@@ -15,7 +15,9 @@
     "test": "npm run test:backend && npm run test:frontend",
     "test:frontend": "npm test --workspace=frontend",
     "test:backend": "vitest run -c tests/vitest.config.ts",
-    "prepare": "husky"
+    "prepare": "husky",
+    "build:backend": "tsc --project ./src/backend/tsconfig.json --outDir ./dist/backend && cpx \"src/declarations/**/*\" dist/declarations",
+    "start:backend": "node ./dist/backend/webHook.js"
   },
   "keywords": [],
   "author": "",
@@ -23,14 +25,23 @@
   "devDependencies": {
     "@dfinity/pic": "^0.13.1",
     "@testing-library/user-event": "^14.6.1",
-    "@types/node": "^22.14.1",
+    "@types/node": "^22.16.5",
+    "cpx": "^1.5.0",
     "cross-fetch": "^4.1.0",
     "husky": "^9.1.7",
+    "ic-mops": "^1.8.0",
     "prettier": "^3.5.3",
+    "ts-node": "^10.9.2",
     "typescript": "^5.8.3",
     "vite": "^6.2.1",
     "vite-plugin-environment": "^1.1.3",
-    "vitest": "^3.1.2",
-    "ic-mops": "^1.8.0"
+    "vitest": "^3.1.2"
+  },
+  "dependencies": {
+    "@types/body-parser": "^1.19.6",
+    "@types/express": "^5.0.3",
+    "axios": "^1.10.0",
+    "body-parser": "^2.2.0",
+    "express": "^5.1.0"
   }
 }

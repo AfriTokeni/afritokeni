@@ -3,38 +3,34 @@ import { backend } from "../../../declarations/backend";
 /**
  * Service for handling all backend canister API calls
  */
-export const backendService = {
+export const canisterService = {
   /**
-   * Sends a greeting to the backend and returns the response
-   * @param name Name to greet
-   * @returns Promise with the greeting response
+   * Sends money from one user to another
    */
-  async greet(name: string): Promise<string> {
-    return await backend.greet(name || "World");
+  async sendMoney(
+    sender: string,
+    recipient: string,
+    amount: bigint,
+    pin: string,
+  ): Promise<any> {
+    return await backend.sendMoney(sender, recipient, amount, pin);
   },
 
   /**
-   * Fetches the current counter value
-   * @returns Promise with the current count
+   * Checks the balance for a user
    */
-  async getCount(): Promise<bigint> {
-    return await backend.get_count();
+  async checkBalance(phoneNumber: string, pin: string): Promise<any> {
+    return await backend.checkBalance(phoneNumber, pin);
   },
 
   /**
-   * Increments the counter on the backend
-   * @returns Promise with the new count
+   * Initiates a withdrawal for a user
    */
-  async incrementCounter(): Promise<bigint> {
-    return await backend.increment();
-  },
-
-  /**
-   * Sends a prompt to the LLM backend
-   * @param prompt The user's prompt text
-   * @returns Promise with the LLM response
-   */
-  async sendLlmPrompt(prompt: string): Promise<string> {
-    return await backend.prompt(prompt);
+  async initiateWithdrawal(
+    phoneNumber: string,
+    amount: bigint,
+    pin: string,
+  ): Promise<any> {
+    return await backend.initiateWithdrawal(phoneNumber, amount, pin);
   },
 };
