@@ -56,11 +56,13 @@ export const backendService = {
     paymentMethod: "MTN" | "Airtel",
     pin: string,
   ): Promise<Result> {
-      ): Promise<Result> {
-    const paymentMethodVariant = paymentMethod === "MTN" ? { MTN: null } : { Airtel: null };
-    return await backend.depositMoney(phoneNumber, amount, paymentMethodVariant, pin);
-  },
-    return await backend.depositMoney(phoneNumber, amount, paymentMethodVariant, pin);
+    const paymentMethodVariant = { [paymentMethod]: null };
+    return await backend.depositMoney(
+      phoneNumber,
+      amount,
+      paymentMethodVariant,
+      pin,
+    );
   },
 
   /**
@@ -84,5 +86,4 @@ export const backendService = {
   // ): Promise<Result> {
   //   return await backend.depositMoney(phoneNumber, amount, pin);
   // },
-
 };
