@@ -15,7 +15,7 @@ function App() {
       <Routes>
         <Route path="/register" element={<UserRegistrationPage />} />
         <Route path="/register-agent" element={<AgentRegistrationPage />} />
-        <Route path="/user-dashboard" element={<UserDashboardPage />} />
+        <Route path="/dashboard" element={<UserDashboardPage />} />
         <Route path="/agent-dashboard" element={<AgentDashboardPage />} />
         <Route path="*" element={<Navigate to="/register" replace />} />
       </Routes>

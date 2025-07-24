@@ -9,5 +9,5 @@
     "target": "es2015"
   },
   "include": ["./**/*.ts"],
-  "exclude": ["node_modules", "**/*.test.ts"]
+  "exclude": ["node_modules", "../frontend/node_modules", "**/*.test.ts"]
 }

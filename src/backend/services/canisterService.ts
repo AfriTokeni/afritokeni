@@ -33,11 +33,4 @@ export const canisterService = {
   ): Promise<any> {
     return await backend.initiateWithdrawal(phoneNumber, amount, pin);
   },
-
-  /**
-   * Registers a new user
-   */
-  async registerUser(phoneNumber: string, pin: string): Promise<any> {
-    return await backend.registerUser(phoneNumber, pin);
-  },
 };

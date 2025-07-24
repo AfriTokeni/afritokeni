@@ -72,12 +72,12 @@ async function handleMainMenu(
 ): Promise<string> {
   if (!input) {
     // First time - show main menu
-    return continueSession(`Welcome to MoneyTransfer
+    return continueSession(`Welcome to AfriTokeni USSD Service
+Please select an option:
 1. Send Money
 2. Check Balance
 3. Withdraw Money
-4. Help
-5. Register`);
+4. Help`);
   }
 
   switch (input) {
@@ -101,11 +101,6 @@ async function handleMainMenu(
         "Help: Call +256700000000 for support\nSMS: help to 6969",
       );
 
-    case "5":
-      session.currentMenu = "register";
-      session.step = 1;
-      return continueSession("Register\nEnter a 4-digit PIN:");
-
     default:
       return continueSession(
         "Invalid option. Please try again:\n1. Send Money\n2. Check Balance\n3. Withdraw Money\n4. Help\n5. Register",
@@ -120,11 +115,11 @@ async function handleSendMoney(
   switch (session.step) {
     case 1:
       // Validate phone number format
-      if (!input.match(/^256\d{9}$/)) {
-        return continueSession(
-          "Invalid phone number format.\nEnter recipient phone (256XXXXXXXXX):",
-        );
-      }
+      // if (!input.match(/^256\d{9}$/)) {
+      //   return continueSession(
+      //     "Invalid phone number format.\nEnter recipient phone (256XXXXXXXXX):",
+      //   );
+      // }
       session.data.recipient = input;
       session.step = 2;
       return continueSession("Enter amount (UGX):");
@@ -166,7 +161,7 @@ async function handleSendMoney(
         }
       } catch (error) {
         console.error("Send money error:", error);
-        return endSession("Service temporarily unavailable. Please try again.");
+        return endSession(`Service temporarily unavailable. Please try again.`);
       }
 
     default:
@@ -256,47 +251,6 @@ async function handleWithdraw(
   }
 }
 
-async function handleRegister(
-  input: string,
-  session: USSDSession,
-): Promise<string> {
-  switch (session.step) {
-    case 1:
-      // Validate PIN format
-      if (!input.match(/^\d{4}$/)) {
-        return continueSession("Invalid PIN. Enter a 4-digit PIN:");
-      }
-      session.data.pin = input;
-      session.step = 2;
-      return continueSession("Confirm your 4-digit PIN:");
-    case 2:
-      if (input !== session.data.pin) {
-        session.step = 1;
-        return continueSession("PINs do not match. Enter a 4-digit PIN:");
-      }
-      try {
-        const result = await canisterService.registerUser(
-          session.phoneNumber,
-          input,
-        );
-        if ("ok" in result) {
-          return endSession(
-            "Registration successful! You can now use the service.",
-          );
-        } else {
-          return endSession(`Registration failed: ${result.err}`);
-        }
-      } catch (error) {
-        console.error("Register user error:", error);
-        return endSession("Service temporarily unavailable. Please try again.");
-      }
-    default:
-      session.currentMenu = "main";
-      session.step = 0;
-      return handleMainMenu("", session);
-  }
-}
-
 // SMS notification helper
 async function sendSMSNotification(
   phoneNumber: string,
@@ -348,9 +302,6 @@ app.post("/ussd", async (req: Request, res: Response) => {
         break;
       case "withdraw":
         response = await handleWithdraw(text, session);
-        break;
-      case "register":
-        response = await handleRegister(text, session);
         break;
       default:
         response = await handleMainMenu("", session);

@@ -1,12 +1,15 @@
 import { ChangeEvent } from "react";
 
-interface InputFieldProps {
+export interface InputFieldProps {
   value: string;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
-  placeholder: string;
+  placeholder?: string;
   disabled?: boolean;
   className?: string;
   type?: string;
+  label?: string;
+  required?: boolean;
+  maxLength?: number;
 }
 
 /**
@@ -19,15 +22,25 @@ export function InputField({
   disabled = false,
   className = "",
   type = "text",
+  label,
+  required = false,
+  maxLength,
 }: InputFieldProps) {
   return (
-    <input
-      type={type}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      disabled={disabled}
-      className={`font-inherit mr-2 rounded-lg border border-gray-500 bg-gray-800 px-5 py-3 text-base text-white transition-colors duration-200 focus:border-blue-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${className} `.trim()}
-    />
+    <div className="flex flex-col gap-1">
+      {label && (
+        <label className="text-sm font-medium text-gray-700">{label}</label>
+      )}
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        disabled={disabled}
+        required={required}
+        maxLength={maxLength}
+        className={`rounded-lg border border-gray-300 bg-white px-4 py-2 text-base text-gray-900 transition-colors duration-200 focus:border-blue-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${className}`.trim()}
+      />
+    </div>
   );
 }

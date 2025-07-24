@@ -27,11 +27,16 @@ actor MoneyTransferCanister {
         createdAt: Int;
     };
     
+    public type PaymentMethod = {
+        #MTN;
+        #Airtel;
+    };
+
     public type TransactionType = {
         #Send;
         #Receive;
         #Withdraw;
-        #Deposit;
+        #Deposit : PaymentMethod;
     };
     
     public type Transaction = {
@@ -86,7 +91,7 @@ actor MoneyTransferCanister {
     // Public functions for USSD operations
     
     // Register new user
-    public func registerUser(phoneNumber: Text, pin: Text) : async Result.Result<User, Text> {
+    public func registerUser(phoneNumber: Text, pin: Text, userType: UserType) : async Result.Result<User, Text> {
         switch(users.get(phoneNumber)) {
             case(?existingUser) {
                 #err("User already exists")
@@ -95,7 +100,7 @@ actor MoneyTransferCanister {
                 let newUser : User = {
                     id = Principal.fromText("aaaaa-aa");
                     phoneNumber = phoneNumber;
-                    userType = #User;
+                    userType = userType;
                     balance = 0;
                     pin = pin; // Hash this in production
                     isActive = true;
@@ -213,6 +218,41 @@ actor MoneyTransferCanister {
         }
     };
     
+    // Deposit money
+    public func depositMoney(phoneNumber: Text, amount: Nat, paymentMethod: PaymentMethod, pin: Text) : async Result.Result<Transaction, Text> {
+        if (not validatePin(phoneNumber, pin)) {
+            return #err("Invalid PIN");
+        };
+
+        switch(users.get(phoneNumber)) {
+            case(?user) {
+                // Create transaction
+                let transactionId = generateId();
+                let transaction : Transaction = {
+                    id = transactionId;
+                    from = phoneNumber;
+                    to = phoneNumber; // Self deposit
+                    amount = amount;
+                    transactionType = #Deposit(paymentMethod);
+                    timestamp = Time.now();
+                };
+
+                // Update user balance
+                let updatedUser : User = {
+                    user with balance = user.balance + amount;
+                };
+                users.put(phoneNumber, updatedUser);
+
+                // Store transaction
+                transactions.put(transactionId, transaction);
+                #ok(transaction)
+            };
+            case null {
+                #err("User not found")
+            };
+        }
+    };
+
     // Get user by phone number
     public query func getUser(phoneNumber: Text) : async ?User {
         users.get(phoneNumber)
