@@ -5,6 +5,7 @@ import type {
   Result_2,
   Result_3,
   UserType,
+  PaymentMethod,
 } from "../../../declarations/backend/backend.did";
 
 /**
@@ -56,7 +57,8 @@ export const backendService = {
     paymentMethod: "MTN" | "Airtel",
     pin: string,
   ): Promise<Result> {
-    const paymentMethodVariant = { [paymentMethod]: null };
+    const paymentMethodVariant: PaymentMethod =
+      paymentMethod === "MTN" ? { MTN: null } : { Airtel: null };
     return await backend.depositMoney(
       phoneNumber,
       amount,
