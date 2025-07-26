@@ -2,11 +2,15 @@
   "compilerOptions": {
     "outDir": "../../dist/backend",
     "rootDir": "./",
-    "moduleResolution": "node",
+    "moduleResolution": "node16",
+    "module": "node16",
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "strict": true,
-    "target": "es2015"
+    "target": "es2022",
+    "allowJs": true,
+    "declaration": true,
+    "typeRoots": ["./declarations.d.ts", "../../node_modules/@types"]
   },
   "include": ["./**/*.ts"],
   "exclude": ["node_modules", "../frontend/node_modules", "**/*.test.ts"]

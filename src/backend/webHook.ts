@@ -1,11 +1,22 @@
 import express, { Request, Response } from "express";
 import bodyParser from "body-parser";
 import axios from "axios";
+import * as dotenv from "dotenv";
+import africastalking from "africastalking";
 import { canisterService } from "./services/canisterService.js";
 
+// Load environment variables
+dotenv.config();
+
+// Initialize Express app
 const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+const africastalking_credentials = africastalking({
+  username: process.env.AT_USERNAME || "",
+  apiKey: process.env.AT_API_KEY || "",
+});
 
 // Session storage (use Redis in production)
 const sessions: Map<string, USSDSession> = new Map();
@@ -49,8 +60,9 @@ function getOrCreateSession(
   sessionId: string,
   phoneNumber: string,
 ): USSDSession {
+  const cleanPhoneNumber = phoneNumber.replace("+", "");
   if (!sessions.has(sessionId) || sessions.get(sessionId)!.isExpired()) {
-    sessions.set(sessionId, new USSDSession(sessionId, phoneNumber));
+    sessions.set(sessionId, new USSDSession(sessionId, cleanPhoneNumber));
   }
   const session = sessions.get(sessionId)!;
   session.updateActivity();
@@ -135,32 +147,34 @@ async function handleSendMoney(
 
     case 3:
       try {
+        const pin = input.split("*")[3];
+        const recipient = session.data.recipient?.split("*")[1];
+        const amount = input.split("*")[2];
         const result = await canisterService.sendMoney(
           session.phoneNumber,
-          session.data.recipient!,
-          BigInt(session.data.amount!),
-          input,
+          recipient!,
+          BigInt(amount!),
+          pin,
         );
 
         if ("ok" in result) {
           // Send SMS notifications
           await sendSMSNotification(
             session.phoneNumber,
-            `Money sent successfully! Amount: UGX ${session.data.amount} to ${session.data.recipient}`,
+            `Money sent successfully! Amount: UGX ${amount} to ${recipient}`,
           );
           await sendSMSNotification(
             session.data.recipient!,
-            `You received UGX ${session.data.amount} from ${session.phoneNumber}`,
+            `You received UGX ${amount} from ${session.phoneNumber}`,
           );
 
           return endSession(
-            `Success!\nSent UGX ${session.data.amount}\nTo: ${session.data.recipient}\nTransaction ID: ${result.ok.id}`,
+            `Success!\nSent UGX ${amount}\nTo: ${recipient}\nTransaction ID: ${result.ok.id}`,
           );
         } else {
           return endSession(`Transaction failed:\n${result.err}`);
         }
       } catch (error) {
-        console.error("Send money error:", error);
         return endSession(`Service temporarily unavailable. Please try again.`);
       }
 
@@ -176,10 +190,8 @@ async function handleCheckBalance(
   session: USSDSession,
 ): Promise<string> {
   try {
-    const result = await canisterService.checkBalance(
-      session.phoneNumber,
-      input,
-    );
+    const pin = input.split("*")[1];
+    const result = await canisterService.checkBalance(session.phoneNumber, pin);
 
     if ("ok" in result) {
       const balance = result.ok;
@@ -218,10 +230,12 @@ async function handleWithdraw(
 
     case 2:
       try {
+        const pin = input.split("*")[2];
+        const amount = input.split("*")[1];
         const result = await canisterService.initiateWithdrawal(
           session.phoneNumber,
-          BigInt(session.data.amount!),
-          input,
+          BigInt(amount!),
+          pin,
         );
 
         if ("ok" in result) {
@@ -230,11 +244,11 @@ async function handleWithdraw(
           // Send SMS with withdrawal details
           await sendSMSNotification(
             session.phoneNumber,
-            `Withdrawal Code: ${withdrawalCode}\nAmount: UGX ${session.data.amount}\nValid for 15 minutes\nVisit any agent to collect cash.`,
+            `Withdrawal Code: ${withdrawalCode}\nAmount: UGX ${amount}\nValid for 15 minutes\nVisit any agent to collect cash.`,
           );
 
           return endSession(
-            `Withdrawal Code: ${withdrawalCode}\nAmount: UGX ${session.data.amount}\nValid for 15 minutes\nVisit any agent to collect cash.`,
+            `Withdrawal Code: ${withdrawalCode}\nAmount: UGX ${amount}\nValid for 15 minutes\nVisit any agent to collect cash.`,
           );
         } else {
           return endSession(`Withdrawal failed:\n${result.err}`);
@@ -256,25 +270,15 @@ async function sendSMSNotification(
   phoneNumber: string,
   message: string,
 ): Promise<void> {
+  console.log("phone no", `+${phoneNumber}`);
   try {
-    const response = await axios.post(
-      "https://api.africastalking.com/version1/messaging",
-      {
-        username: AT_USERNAME,
-        to: `+${phoneNumber}`,
-        message: message,
-        from: AT_SHORT_CODE,
-      },
-      {
-        headers: {
-          apiKey: AT_API_KEY,
-          "Content-Type": "application/x-www-form-urlencoded",
-          Accept: "application/json",
-        },
-      },
-    );
+    const response = await africastalking_credentials.SMS.send({
+      to: `+${phoneNumber}`,
+      message: message,
+      from: AT_SHORT_CODE!,
+    });
 
-    console.log("SMS sent successfully:", response.data);
+    console.log("SMS sent successfully:", response);
   } catch (error: any) {
     console.error("SMS sending failed:", error.response?.data || error.message);
   }
