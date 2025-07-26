@@ -9,6 +9,9 @@ const UserRegistrationPage: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [physicalAddress, setPhysicalAddress] = useState("");
+  const [businessId, setBusinessId] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -39,27 +42,60 @@ const UserRegistrationPage: React.FC = () => {
 
     setIsLoading(true);
     try {
+      let agentDetails;
+      if (activeTab === "agent") {
+        // Validate agent-specific fields
+        if (!businessName) {
+          setError("Business name is required for agent registration");
+          return;
+        }
+        if (!physicalAddress) {
+          setError("Physical address is required for agent registration");
+          return;
+        }
+        if (!businessId) {
+          setError("Business ID is required for agent registration");
+          return;
+        }
+        agentDetails = {
+          businessName,
+          physicalAddress,
+          businessId,
+        };
+      }
+
       const result = await backendService.registerUser(
         phoneNumber,
         pin,
         activeTab,
+        agentDetails,
       );
+
       if ("ok" in result) {
-        // Store user credentials for future API calls
-        localStorage.setItem("phoneNumber", phoneNumber);
-        localStorage.setItem("pin", pin);
+        // Store credentials with appropriate prefix based on user type
+        if (activeTab === "user") {
+          localStorage.setItem("user_phoneNumber", phoneNumber);
+          localStorage.setItem("user_pin", pin);
+        } else {
+          localStorage.setItem("agent_phoneNumber", phoneNumber);
+          localStorage.setItem("agent_pin", pin);
+        }
         setSuccess("Registration successful! Redirecting to dashboard...");
         setTimeout(() => {
-          navigate("/dashboard");
+          const route =
+            activeTab === "user" ? "/dashboard" : "/agent-dashboard";
+          navigate(route);
         }, 2000);
       } else {
         setError(`Registration failed: ${result.err}`);
       }
     } catch (err) {
       console.error("Registration error:", err);
-      setError(
-        `An error occurred during registration. Please try again. ${err}`,
-      );
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An error occurred during registration. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -118,6 +154,35 @@ const UserRegistrationPage: React.FC = () => {
             maxLength={4}
             required
           />
+
+          {activeTab === "agent" && (
+            <>
+              <InputField
+                label="Business Name"
+                type="text"
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
+                placeholder="Enter your business name"
+                required
+              />
+              <InputField
+                label="Physical Address"
+                type="text"
+                value={physicalAddress}
+                onChange={(e) => setPhysicalAddress(e.target.value)}
+                placeholder="Enter your business address"
+                required
+              />
+              <InputField
+                label="Business ID"
+                type="text"
+                value={businessId}
+                onChange={(e) => setBusinessId(e.target.value)}
+                placeholder="Enter your business registration number"
+                required
+              />
+            </>
+          )}
 
           {error && (
             <p className="rounded-md bg-red-50 p-2 text-sm text-red-600">
