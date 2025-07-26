@@ -44,7 +44,7 @@ Despite being a leader in financial innovation, Africa's mobile money ecosystem 
 
 ## 🎥 Demo Video
 
-[Watch the demo video on YouTube](https://www.youtube.com/watch?v=46GGEBX4JAA)
+[Watch the demo video on YouTube](https://www.youtube.com/watch?v=NXVvNf5tT28)
 
 ## 🚀 Local Development Setup
 
