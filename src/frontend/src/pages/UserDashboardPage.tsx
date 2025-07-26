@@ -32,9 +32,9 @@ const UserDashboardPage: React.FC = () => {
   const [pin, setPin] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"MTN" | "Airtel">("MTN");
 
-  // Get user details from localStorage
-  const phoneNumber = localStorage.getItem("phoneNumber");
-  const userPin = localStorage.getItem("pin");
+  // Get user details from localStorage with user-specific keys
+  const phoneNumber = localStorage.getItem("user_phoneNumber");
+  const userPin = localStorage.getItem("user_pin");
 
   useEffect(() => {
     if (!phoneNumber || !userPin) {
@@ -55,6 +55,38 @@ const UserDashboardPage: React.FC = () => {
       }
     } catch (err) {
       setError("Failed to fetch balance");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleWithdraw = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      const result = await backendService.initiateWithdrawal(
+        phoneNumber!,
+        BigInt(amount),
+        pin,
+      );
+      if ("ok" in result) {
+        alert(
+          `Withdrawal Request Created!\n` +
+            `Amount: UGX ${amount}\n` +
+            `Visit any AfriTokeni agent to complete your withdrawal.\n` +
+            `Keep this code handy: ${result.ok}\n\n` +
+            `The agent will help you complete the withdrawal.`,
+        );
+        fetchBalance();
+        setActiveSection(null);
+        // Reset form
+        setAmount("");
+        setPin("");
+      } else {
+        setError(result.err);
+      }
+    } catch (error) {
+      setError("Failed to initiate withdrawal");
     } finally {
       setLoading(false);
     }
@@ -84,50 +116,74 @@ const UserDashboardPage: React.FC = () => {
     }
   };
 
-  const handleWithdraw = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-      const result = await backendService.initiateWithdrawal(
-        phoneNumber!,
-        BigInt(amount),
-        pin,
-      );
-      if ("ok" in result) {
-        alert(`Withdrawal initiated! Code: ${result.ok}`);
-        fetchBalance();
-        setActiveSection(null);
-      } else {
-        setError(result.err);
-      }
-    } catch (err) {
-      setError("Failed to initiate withdrawal");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // const handleWithdraw = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   try {
+  //     setLoading(true);
+  //     const result = await backendService.initiateWithdrawal(
+  //       phoneNumber!,
+  //       BigInt(amount),
+  //       pin,
+  //     );
+  //     if ("ok" in result) {
+  //       alert(`Withdrawal initiated! Code: ${result.ok}`);
+  //       fetchBalance();
+  //       setActiveSection(null);
+  //     } else {
+  //       setError(result.err);
+  //     }
+  //   } catch (err) {
+  //     setError("Failed to initiate withdrawal");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const handleDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      if (!phoneNumber) {
+        setError("Please log in again");
+        return;
+      }
+
+      if (!amount || BigInt(amount) <= BigInt(0)) {
+        setError("Please enter a valid amount");
+        return;
+      }
+
       setLoading(true);
       const result = await backendService.depositMoney(
-        phoneNumber!,
+        phoneNumber,
         BigInt(amount),
         paymentMethod,
         pin,
       );
+
       if ("ok" in result) {
-        alert(
-          `Deposit initiated! An ${paymentMethod} prompt will be sent to your phone.`,
-        );
-        fetchBalance();
-        setActiveSection(null);
+        // Only update user's balance, not agent's
+        const tx = result.ok;
+        if ("transactionType" in tx && "Deposit" in tx.transactionType) {
+          alert(
+            `Deposit of UGX ${amount} initiated!\n` +
+              `An ${paymentMethod} prompt will be sent to your phone.\n` +
+              `Transaction ID: ${tx.id}\n` +
+              `Please complete the mobile money payment to receive your balance.`,
+          );
+          fetchBalance(); // Update user's balance
+          setActiveSection(null);
+          // Reset form
+          setAmount("");
+          setPin("");
+        } else {
+          setError("Invalid transaction type received");
+        }
       } else {
         setError(result.err);
       }
     } catch (err) {
-      setError("Failed to process deposit");
+      setError("Failed to process deposit. Please try again.");
+      console.log("Deposit error:", err);
     } finally {
       setLoading(false);
     }
@@ -170,6 +226,9 @@ const UserDashboardPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100 px-4 py-8">
       <div className="mx-auto max-w-4xl space-y-6">
+        <h1 className="mb-8 text-3xl font-bold text-gray-900">
+          User Dashboard
+        </h1>
         {error && (
           <div className="rounded-lg bg-red-100 p-3 text-red-700">{error}</div>
         )}

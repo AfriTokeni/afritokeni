@@ -244,11 +244,11 @@ async function handleWithdraw(
           // Send SMS with withdrawal details
           await sendSMSNotification(
             session.phoneNumber,
-            `Withdrawal Code: ${withdrawalCode}\nAmount: UGX ${amount}\nValid for 15 minutes\nVisit any agent to collect cash.`,
+            `Withdrawal Code: ${withdrawalCode.code}\nAmount: UGX ${amount}\nValid for 15 minutes\nVisit any agent to collect cash.`,
           );
 
           return endSession(
-            `Withdrawal Code: ${withdrawalCode}\nAmount: UGX ${amount}\nValid for 15 minutes\nVisit any agent to collect cash.`,
+            `Withdrawal Code: ${withdrawalCode.code}\nAmount: UGX ${amount}\nValid for 15 minutes\nVisit any agent to collect cash.`,
           );
         } else {
           return endSession(`Withdrawal failed:\n${result.err}`);
