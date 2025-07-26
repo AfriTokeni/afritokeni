@@ -26,10 +26,12 @@ Despite being a leader in financial innovation, Africa's mobile money ecosystem 
 ### How It Works
 
 1. **Universal Access via Dual Interface**
+
    - **Smartphone Users**: Use the AfriTokeni mobile app with biometric authentication
-   - **Feature Phone Users**: Access all core services via USSD code (*789#), no internet required
+   - **Feature Phone Users**: Access all core services via USSD code (\*789#), no internet required
 
 2. **Core Functions** (Available via app or USSD):
+
    - **Send Money**: Instantly transfer stablecoins to any registered user
    - **Receive Money**: Get funds from anyone on the network
    - **Check Balance**: View real-time balance
@@ -49,6 +51,7 @@ Despite being a leader in financial innovation, Africa's mobile money ecosystem 
 ### Prerequisites
 
 Before you begin, ensure you have the following installed:
+
 - [Docker](https://www.docker.com/get-started)
 - [ngrok](https://ngrok.com/download)
 
@@ -115,6 +118,7 @@ AT_API_KEY=your_api_key_here
 #### 5.4 Run Backend Server
 
 1. Build and start the backend server:
+
    ```bash
    npm run build:backend && npm run start:backend
    ```
@@ -122,6 +126,7 @@ AT_API_KEY=your_api_key_here
 2. The backend will start on port 3000. Ensure this port is exposed in your container configuration.
 
 3. Expose the backend using ngrok:
+
    ```bash
    ngrok http http://localhost:3000
    ```
@@ -166,4 +171,3 @@ AT_SHORT_CODE=your_generated_shortcode
 1. Ensure your backend is running and accessible via ngrok
 2. Verify your USSD channel is properly configured
 3. Use the simulator to test different user interactions
-
