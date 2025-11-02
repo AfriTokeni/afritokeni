@@ -1,58 +1,27 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Vote, TrendingUp, Users, Coins } from '@lucide/svelte';
-	import { type Proposal } from '$lib/utils/dao';
-	import { getDAOProposals, getLeaderboard } from '$lib/services/shared/daoService';
 	import { getUserData } from '$lib/services/user/userService';
-	import { demoMode } from '$lib/stores/demoMode';
 	import DAOStats from './DAOStats.svelte';
-	import ProposalsList from './ProposalsList.svelte';
 	import TokensTab from './TokensTab.svelte';
-	import LeaderboardTab from './LeaderboardTab.svelte';
+	import DAOProposals from '$lib/components/shared/DAOProposals.svelte';
+	import Leaderboard from '$lib/components/shared/Leaderboard.svelte';
 
 	type Tab = 'proposals' | 'my-tokens' | 'leaderboard';
 
 	// State
 	let activeTab = $state<Tab>('proposals');
-	let proposals = $state<Proposal[]>([]);
-	let leaderboard = $state<any[]>([]);
 	let currentUser = $state<any>(null);
 	let tokenBalance = $state(0);
-	let totalSupply = $state(0);
+	let totalSupply = $state(1000000); // Mock for now
 	let totalHolders = $state(0);
 	let activeProposalsCount = $state(0);
-	let loading = $state(true);
 
-	// Subscribe to demo mode changes
-	$effect(() => {
-		// This will re-run when demoMode changes
-		const isDemoMode = $demoMode;
-		console.log('Demo mode changed:', isDemoMode);
-		loadData();
-	});
-
-	onMount(() => {
-		loadData();
-	});
-
-	async function loadData() {
-		loading = true;
-		// Load user data and DAO data
+	onMount(async () => {
+		// Only load user-specific data
 		currentUser = await getUserData();
-		proposals = await getDAOProposals();
-		leaderboard = await getLeaderboard();
-		
-		console.log('DAO Data loaded:', { currentUser, proposals, leaderboard });
-		
-		// Get token balance from user data
 		tokenBalance = currentUser?.daoTokens || 0;
-		
-		// Calculate stats from data
-		totalSupply = leaderboard.reduce((sum: number, holder: any) => sum + (holder.balance || 0), 0);
-		totalHolders = leaderboard.length;
-		activeProposalsCount = proposals.filter((p: any) => p.status === 'active').length;
-		loading = false;
-	}
+	});
 
 	function handleVote(proposalId: string, choice: 'yes' | 'no' | 'abstain') {
 		console.log('Vote:', proposalId, choice);
@@ -104,10 +73,12 @@
 
 	<!-- Tab Content -->
 	{#if activeTab === 'proposals'}
-		<ProposalsList {proposals} onVote={handleVote} />
+		<!-- Encapsulated component - fetches own data -->
+		<DAOProposals onVote={handleVote} maxProposals={10} />
 	{:else if activeTab === 'my-tokens'}
 		<TokensTab balance={tokenBalance} {totalSupply} breakdown={currentUser?.daoTokensBreakdown} />
 	{:else if activeTab === 'leaderboard'}
-		<LeaderboardTab {leaderboard} {totalSupply} />
+		<!-- Encapsulated component - fetches own data -->
+		<Leaderboard maxEntries={20} />
 	{/if}
 </div>

@@ -5,8 +5,9 @@
 	import { Send, Bitcoin, ArrowUp, ArrowDown, Minus, Plus, Info } from '@lucide/svelte';
 	import { AFRICAN_CURRENCIES, formatCurrencyAmount } from '$lib/types/currency';
 	import CurrencySelector from '$lib/components/dashboard/CurrencySelector.svelte';
-	import CkBTCBalanceCard from '$lib/components/dashboard/CkBTCBalanceCard.svelte';
-	import CkUSDBalanceCard from '$lib/components/dashboard/CkUSDBalanceCard.svelte';
+	import CkBTCBalanceCard from '$lib/components/shared/CkBTCBalanceCard.svelte';
+	import CkUSDBalanceCard from '$lib/components/shared/CkUSDBalanceCard.svelte';
+	import FiatBalanceCard from '$lib/components/shared/FiatBalanceCard.svelte';
 	import { getUserData, getUserBalance, getTransactions, getCkBTCBalance, getCkUSDBalance } from '$lib/services/user/userService';
 	import type { PageData } from './$types';
 
@@ -159,21 +160,19 @@
 			</div>
 		</div>
 
-		<!-- ckBTC Balance -->
+		<!-- ckBTC Balance (Encapsulated - fetches own data) -->
 		<CkBTCBalanceCard
-			principalId={currentUser.id}
-			preferredCurrency={userCurrency}
 			showActions={true}
+			preferredCurrency={userCurrency}
 			onDeposit={() => goto('/users/ckbtc/deposit')}
 			onSend={() => goto('/users/ckbtc/send')}
 			onExchange={() => goto('/users/ckbtc/exchange')}
 		/>
 
-		<!-- ckUSD Balance -->
+		<!-- ckUSD Balance (Encapsulated - fetches own data) -->
 		<CkUSDBalanceCard
-			principalId={currentUser.id}
-			preferredCurrency={userCurrency}
 			showActions={true}
+			preferredCurrency={userCurrency}
 			onDeposit={() => goto('/users/ckusdc/deposit')}
 			onSend={() => goto('/users/ckusdc/send')}
 			onExchange={() => goto('/users/ckusdc/exchange')}
