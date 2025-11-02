@@ -86,10 +86,8 @@
 			</div>
 			
 			<div class="flex items-center gap-2 md:gap-4 shrink-0">
-				<!-- Demo Mode Toggle -->
-				<div class="hidden lg:block">
-					<DemoModeToggle />
-				</div>
+				<!-- Demo Mode Toggle - Now visible on all screen sizes -->
+				<DemoModeToggle />
 				
 				<!-- Search Bar - Hidden on mobile -->
 				<form onsubmit={handleSearch} class="relative hidden lg:block">
