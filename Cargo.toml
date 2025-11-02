@@ -1,5 +1,6 @@
 [workspace]
 members = [
-    "src/satellite"
+    "src/satellite",
+    "src/exchange_canister"
 ]
 resolver = "2"
