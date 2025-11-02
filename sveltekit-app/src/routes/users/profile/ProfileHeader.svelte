@@ -4,21 +4,35 @@
 	interface Props {
 		userData: any;
 		onToggleEdit: () => void;
+		onProfilePictureUpload: (event: Event) => void;
 	}
 
-	let { userData, onToggleEdit }: Props = $props();
+	let { userData, onToggleEdit, onProfilePictureUpload }: Props = $props();
 </script>
 
 <!-- Centered Profile Header -->
 <div class="flex flex-col items-center text-center mb-5 sm:mb-6">
 	<!-- Avatar -->
 	<div class="relative mb-3 sm:mb-4">
-		<div class="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-full bg-gray-900 flex items-center justify-center text-white text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold">
-			{userData.firstName.charAt(0)}
-		</div>
+		{#if userData.profileImage}
+			<img 
+				src={userData.profileImage} 
+				alt="{userData.firstName} {userData.lastName}"
+				class="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-full object-cover border-4 border-gray-200"
+			/>
+		{:else}
+			<div class="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-full bg-gray-900 flex items-center justify-center text-white text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold">
+				{userData.firstName.charAt(0)}
+			</div>
+		{/if}
 		<label class="absolute bottom-0 right-0 w-7 h-7 sm:w-8 sm:h-8 bg-gray-900 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-800 transition-colors">
 			<Camera class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white shrink-0" />
-			<input type="file" accept="image/*" class="hidden" />
+			<input 
+				type="file" 
+				accept="image/*" 
+				onchange={onProfilePictureUpload}
+				class="hidden" 
+			/>
 		</label>
 	</div>
 

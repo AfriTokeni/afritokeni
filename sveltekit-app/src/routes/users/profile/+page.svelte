@@ -13,7 +13,7 @@
 	import HelpSupport from './HelpSupport.svelte';
 	import ProfileOnboardingModal from '$lib/components/shared/ProfileOnboardingModal.svelte';
 	import KYCModal from '$lib/components/shared/KYCModal.svelte';
-	import { setDoc, getDoc } from '@junobuild/core';
+	import { setDoc, getDoc, uploadFile, signOut } from '@junobuild/core';
 
 	// Real user data from Juno
 	let userData = $state<any>(null);
@@ -21,6 +21,9 @@
 	let isLoading = $state(true);
 	let showProfileCompleteModal = $state(false);
 	let showKYCModal = $state(false);
+	let showEditNameModal = $state(false);
+	let editFirstName = $state('');
+	let editLastName = $state('');
 	let missingFields = $state<string[]>([]);
 
 	async function loadUserData() {
@@ -87,16 +90,61 @@
 	});
 
 	function toggleEdit() {
-		isEditing = !isEditing;
+		// Open edit name modal
+		editFirstName = userData?.firstName || '';
+		editLastName = userData?.lastName || '';
+		showEditNameModal = true;
+	}
+
+	async function handleNameUpdate() {
+		try {
+			if (!editFirstName || !editLastName) {
+				toast.show('warning', 'Please enter both first and last name');
+				return;
+			}
+
+			const currentPrincipalId = $principalId;
+			if (!currentPrincipalId || !userDoc) {
+				throw new Error('Not authenticated');
+			}
+
+			// Update user document
+			await setDoc({
+				collection: 'users',
+				doc: {
+					...userDoc,
+					data: {
+						...userDoc.data,
+						firstName: editFirstName,
+						lastName: editLastName,
+						updatedAt: new Date().toISOString()
+					}
+				}
+			});
+
+			// Reload user data
+			await loadUserData();
+			toast.show('success', 'Name updated successfully!');
+			showEditNameModal = false;
+
+		} catch (error: any) {
+			console.error('Failed to update name:', error);
+			toast.show('error', 'Failed to update name');
+		}
 	}
 
 	function toggleSection(section: keyof typeof expandedSections) {
 		expandedSections[section] = !expandedSections[section];
 	}
 
-	function handleLogout() {
-		// TODO: Implement proper logout
-		goto('/');
+	async function handleLogout() {
+		try {
+			await signOut();
+			goto('/');
+		} catch (error) {
+			console.error('Sign out failed:', error);
+			toast.show('error', 'Failed to sign out');
+		}
 	}
 
 	function handleCompleteProfile() {
@@ -142,6 +190,67 @@
 		}
 	}
 
+	async function handleProfilePictureUpload(event: Event) {
+		try {
+			const input = event.target as HTMLInputElement;
+			const file = input.files?.[0];
+			
+			if (!file) return;
+
+			// Validate file
+			if (!file.type.startsWith('image/')) {
+				toast.show('error', 'Please upload an image file');
+				return;
+			}
+
+			if (file.size > 5 * 1024 * 1024) {
+				toast.show('error', 'Image must be less than 5MB');
+				return;
+			}
+
+			const currentPrincipalId = $principalId;
+			if (!currentPrincipalId || !userDoc) {
+				throw new Error('Not authenticated');
+			}
+
+			toast.show('info', 'Uploading profile picture...');
+
+			// Upload to Juno Storage (using 'profile-images' collection)
+			const result = await uploadFile({
+				data: file,
+				collection: 'profile-images',
+				filename: `${currentPrincipalId}_${Date.now()}.${file.name.split('.').pop()}`
+			});
+
+			// Update user document with profile picture URL
+			await setDoc({
+				collection: 'users',
+				doc: {
+					...userDoc,
+					data: {
+						...userDoc.data,
+						profileImage: result.downloadUrl,
+						updatedAt: new Date().toISOString()
+					}
+				}
+			});
+
+			// Reload user data
+			await loadUserData();
+			toast.show('success', 'Profile picture updated!');
+
+		} catch (error: any) {
+			console.error('Failed to upload profile picture:', error);
+			
+			// Check if it's a collection not found error
+			if (error.message?.includes('not_found') && error.message?.includes('Storage')) {
+				toast.show('error', 'Storage not configured. Please deploy juno.config.ts with: juno deploy');
+			} else {
+				toast.show('error', 'Failed to upload profile picture');
+			}
+		}
+	}
+
 	async function handleKYCSubmit(kycData: any) {
 		try {
 			const currentPrincipalId = $principalId;
@@ -153,8 +262,37 @@
 				throw new Error('User document not loaded');
 			}
 
-			// TODO: Upload files to Juno storage
-			// For now, just update KYC status to pending
+			// Upload files to Juno Storage
+			const uploadedFiles: any = {};
+
+			if (kycData.documentFront) {
+				const frontResult = await uploadFile({
+					data: kycData.documentFront,
+					collection: 'kyc_documents',
+					filename: `${currentPrincipalId}_front_${Date.now()}.${kycData.documentFront.name.split('.').pop()}`
+				});
+				uploadedFiles.documentFrontUrl = frontResult.downloadUrl;
+			}
+
+			if (kycData.documentBack) {
+				const backResult = await uploadFile({
+					data: kycData.documentBack,
+					collection: 'kyc_documents',
+					filename: `${currentPrincipalId}_back_${Date.now()}.${kycData.documentBack.name.split('.').pop()}`
+				});
+				uploadedFiles.documentBackUrl = backResult.downloadUrl;
+			}
+
+			if (kycData.selfie) {
+				const selfieResult = await uploadFile({
+					data: kycData.selfie,
+					collection: 'kyc_documents',
+					filename: `${currentPrincipalId}_selfie_${Date.now()}.${kycData.selfie.name.split('.').pop()}`
+				});
+				uploadedFiles.selfieUrl = selfieResult.downloadUrl;
+			}
+
+			// Update user document with KYC data and file URLs
 			await setDoc({
 				collection: 'users',
 				doc: {
@@ -165,6 +303,7 @@
 						kycSubmittedAt: new Date().toISOString(),
 						kycDocumentType: kycData.documentType,
 						kycDocumentNumber: kycData.documentNumber,
+						...uploadedFiles,
 						updatedAt: new Date().toISOString()
 					}
 				}
@@ -227,7 +366,11 @@
 		{/if}
 
 		<!-- Centered Profile Header -->
-		<ProfileHeader {userData} onToggleEdit={toggleEdit} />
+		<ProfileHeader 
+			{userData} 
+			onToggleEdit={toggleEdit}
+			onProfilePictureUpload={handleProfilePictureUpload}
+		/>
 
 		<!-- Info Cards Grid -->
 		<ProfileInfoCards {userData} onStartKYC={() => showKYCModal = true} />
@@ -279,3 +422,56 @@
 	onClose={() => showKYCModal = false}
 	onSubmit={handleKYCSubmit}
 />
+
+<!-- Edit Name Modal -->
+{#if showEditNameModal}
+	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+		<div class="bg-white rounded-2xl max-w-md w-full p-6">
+			<h2 class="text-2xl font-bold mb-4">Edit Name</h2>
+			
+			<div class="space-y-4">
+				<div>
+					<label for="editFirstName" class="block text-sm font-medium text-gray-700 mb-2">
+						First Name
+					</label>
+					<input
+						id="editFirstName"
+						type="text"
+						bind:value={editFirstName}
+						placeholder="Enter first name"
+						class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+					/>
+				</div>
+
+				<div>
+					<label for="editLastName" class="block text-sm font-medium text-gray-700 mb-2">
+						Last Name
+					</label>
+					<input
+						id="editLastName"
+						type="text"
+						bind:value={editLastName}
+						placeholder="Enter last name"
+						class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+					/>
+				</div>
+			</div>
+
+			<div class="flex gap-3 mt-6">
+				<button
+					onclick={() => showEditNameModal = false}
+					class="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+				>
+					Cancel
+				</button>
+				
+				<button
+					onclick={handleNameUpdate}
+					class="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
+				>
+					Save
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}

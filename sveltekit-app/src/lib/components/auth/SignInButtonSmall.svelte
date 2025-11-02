@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { signIn } from '$lib/services/auth';
+	import { signIn } from '@junobuild/core';
+	import { goto } from '$app/navigation';
 	import { toast } from '$lib/stores/toast';
 	
 	let isLoading = $state(false);
@@ -7,9 +8,9 @@
 	async function handleSignIn() {
 		isLoading = true;
 		try {
-			await signIn({
-				internet_identity: {}
-			});
+			await signIn();
+			// Redirect to dashboard after successful sign in
+			goto('/users/dashboard');
 		} catch (error) {
 			console.error('Sign in failed:', error);
 			toast.show('error', 'Sign in failed. Please try again.');
