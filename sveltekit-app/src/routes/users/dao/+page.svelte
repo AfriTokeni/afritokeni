@@ -2,10 +2,15 @@
 	import { onMount } from 'svelte';
 	import { Vote, TrendingUp, Users, Coins } from '@lucide/svelte';
 	import { getUserData } from '$lib/services/user/userService';
+	import { voteOnProposal } from '$lib/services/data/daoData';
+	import { demoMode } from '$lib/stores/demoMode';
+	import { principalId } from '$lib/stores/auth';
+	import { toast } from '$lib/stores/toast';
 	import DAOStats from './DAOStats.svelte';
 	import TokensTab from './TokensTab.svelte';
 	import DAOProposals from '$lib/components/shared/DAOProposals.svelte';
 	import Leaderboard from '$lib/components/shared/Leaderboard.svelte';
+	import CreateProposalModal from '$lib/components/shared/CreateProposalModal.svelte';
 
 	type Tab = 'proposals' | 'my-tokens' | 'leaderboard';
 
@@ -15,7 +20,7 @@
 	let tokenBalance = $state(0);
 	let totalSupply = $state(1000000); // Mock for now
 	let totalHolders = $state(0);
-	let activeProposalsCount = $state(0);
+	let showCreateProposalModal = $state(false);
 
 	onMount(async () => {
 		// Only load user-specific data
@@ -23,9 +28,38 @@
 		tokenBalance = currentUser?.daoTokens || 0;
 	});
 
-	function handleVote(proposalId: string, choice: 'yes' | 'no' | 'abstain') {
-		console.log('Vote:', proposalId, choice);
-		// TODO: Implement real voting
+	async function handleVote(proposalId: string, choice: 'yes' | 'no' | 'abstain') {
+		console.log('🗳️ Voting:', choice, 'on proposal', proposalId);
+		
+		try {
+			const result = await voteOnProposal(
+				proposalId,
+				choice,
+				$principalId || '',
+				$demoMode,
+				tokenBalance // Pass user's voting power
+			);
+			
+			if (result.success) {
+				console.log('✅', result.message);
+				toast.show('success', `Vote recorded: ${choice.toUpperCase()} (${tokenBalance.toLocaleString()} AFRI)`);
+			} else {
+				console.error('❌', result.message);
+				toast.show('error', result.message);
+			}
+		} catch (error: any) {
+			console.error('❌ Error voting:', error);
+			toast.show('error', error.message || 'Failed to record vote');
+		}
+	}
+
+	function handleCreateProposal() {
+		showCreateProposalModal = true;
+	}
+
+	function handleProposalSuccess() {
+		console.log('✅ Proposal created successfully!');
+		// Proposals component will auto-refresh via its own effect
 	}
 </script>
 
@@ -35,7 +69,7 @@
 		{tokenBalance}
 		{totalSupply}
 		{totalHolders}
-		{activeProposalsCount}
+		activeProposalsCount={0}
 	/>
 
 	<!-- Tabs -->
@@ -74,7 +108,12 @@
 	<!-- Tab Content -->
 	{#if activeTab === 'proposals'}
 		<!-- Encapsulated component - fetches own data -->
-		<DAOProposals onVote={handleVote} maxProposals={10} />
+		<DAOProposals 
+			onVote={handleVote} 
+			onCreateProposal={handleCreateProposal}
+			userTokenBalance={tokenBalance}
+			maxProposals={10} 
+		/>
 	{:else if activeTab === 'my-tokens'}
 		<TokensTab balance={tokenBalance} {totalSupply} breakdown={currentUser?.daoTokensBreakdown} />
 	{:else if activeTab === 'leaderboard'}
@@ -82,3 +121,12 @@
 		<Leaderboard maxEntries={20} />
 	{/if}
 </div>
+
+<!-- Create Proposal Modal -->
+<CreateProposalModal
+	isOpen={showCreateProposalModal}
+	onClose={() => showCreateProposalModal = false}
+	userId={currentUser?.id || ''}
+	userTokens={tokenBalance}
+	onSuccess={handleProposalSuccess}
+/>

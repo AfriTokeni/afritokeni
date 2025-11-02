@@ -39,3 +39,12 @@ export const USE_LOCAL_REPLICA = import.meta.env.VITE_USE_LOCAL_REPLICA === 'tru
 // Get the appropriate host
 // For SNS canisters, ALWAYS use mainnet unless explicitly told to use local
 export const getHost = () => USE_LOCAL_REPLICA ? NETWORK.LOCAL_HOST : NETWORK.HOST;
+
+// DAO Governance Configuration (from environment variables)
+export const DAO_CONFIG = {
+	MIN_TOKENS_TO_PROPOSE: Number(import.meta.env.VITE_DAO_MIN_TOKENS_TO_PROPOSE) || 1000,
+	MIN_TOKENS_TO_VOTE: Number(import.meta.env.VITE_DAO_MIN_TOKENS_TO_VOTE) || 1,
+	QUORUM_PERCENTAGE: Number(import.meta.env.VITE_DAO_QUORUM_PERCENTAGE) || 10,
+	PASS_THRESHOLD: Number(import.meta.env.VITE_DAO_PASS_THRESHOLD) || 50,
+	VOTING_PERIOD_DAYS: Number(import.meta.env.VITE_DAO_VOTING_PERIOD_DAYS) || 7,
+} as const;

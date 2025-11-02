@@ -8,21 +8,25 @@
  * - Auto-updates when demoMode toggles
  * - Emits events for voting actions
  * 
- * Usage: <DAOProposals onVote={(proposalId, vote) => ...} />
+ * Usage: <DAOProposals onVote={(proposalId, vote) => ...} onCreateProposal={() => ...} />
 -->
 <script lang="ts">
-	import { Vote, Clock, CheckCircle, XCircle, RefreshCw } from 'lucide-svelte';
+	import { Vote, Clock, CheckCircle, XCircle, RefreshCw, Plus } from 'lucide-svelte';
 	import { demoMode } from '$lib/stores/demoMode';
-	import { fetchDAOProposals } from '$lib/services/data/daoData';
+	import { fetchDAOProposals, DAO_CONSTANTS } from '$lib/services/data/daoData';
 
 	interface Props {
 		onVote?: (proposalId: string, vote: 'yes' | 'no' | 'abstain') => void;
+		onCreateProposal?: () => void;
 		maxProposals?: number;
+		userTokenBalance?: number;
 	}
 
 	let {
 		onVote,
-		maxProposals = 5
+		onCreateProposal,
+		maxProposals = 5,
+		userTokenBalance = 0
 	}: Props = $props();
 
 	// Internal state
@@ -39,8 +43,9 @@
 	async function loadProposals(isDemoMode: boolean) {
 		try {
 			error = null;
-			const data = await fetchDAOProposals(isDemoMode);
-			proposals = data.slice(0, maxProposals);
+			isLoading = true; // Ensure loading state is set
+			const data = await fetchDAOProposals(isDemoMode, maxProposals);
+			proposals = data;
 		} catch (err: any) {
 			console.error('Error fetching DAO proposals:', err);
 			error = err.message || 'Failed to load proposals';
@@ -78,22 +83,30 @@
 	<!-- Header -->
 	<div class="flex items-center justify-between mb-4 sm:mb-6">
 		<div class="flex items-center gap-2 sm:gap-3">
-			<div class="p-2 bg-purple-50 rounded-lg">
-				<Vote class="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 shrink-0" />
-			</div>
-			<div>
-				<h2 class="text-lg sm:text-xl font-bold text-neutral-900">DAO Proposals</h2>
-				<p class="text-xs sm:text-sm text-neutral-600">Community Governance</p>
-			</div>
+			<Vote class="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 shrink-0" />
+			<h2 class="text-base sm:text-lg font-bold text-neutral-900">Active Proposals</h2>
 		</div>
-		<button
-			onclick={handleRefresh}
-			disabled={isRefreshing}
-			class="p-2 hover:bg-neutral-100 rounded-lg transition-colors disabled:opacity-50"
-			title="Refresh proposals"
-		>
-			<RefreshCw class="w-4 h-4 sm:w-5 sm:h-5 text-neutral-600 shrink-0 {isRefreshing ? 'animate-spin' : ''}" />
-		</button>
+		<div class="flex items-center gap-2">
+			{#if onCreateProposal}
+				<button
+					onclick={onCreateProposal}
+					disabled={userTokenBalance < DAO_CONSTANTS.MIN_TOKENS_TO_PROPOSE}
+					class="flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+					title={userTokenBalance < DAO_CONSTANTS.MIN_TOKENS_TO_PROPOSE ? `Need ${DAO_CONSTANTS.MIN_TOKENS_TO_PROPOSE} AFRI to create proposal` : 'Create new proposal'}
+				>
+					<Plus class="w-4 h-4 shrink-0" />
+					<span class="hidden sm:inline">Create</span>
+				</button>
+			{/if}
+			<button
+				onclick={handleRefresh}
+				disabled={isRefreshing}
+				class="p-2 hover:bg-neutral-100 rounded-lg transition-colors disabled:opacity-50"
+				title="Refresh proposals"
+			>
+				<RefreshCw class="w-4 h-4 sm:w-5 sm:h-5 text-neutral-600 shrink-0 {isRefreshing ? 'animate-spin' : ''}" />
+			</button>
+		</div>
 	</div>
 
 	{#if isLoading}
@@ -117,9 +130,31 @@
 			</button>
 		</div>
 	{:else if proposals.length === 0}
-		<div class="text-center py-6 sm:py-8">
-			<Vote class="w-10 h-10 sm:w-12 sm:h-12 text-neutral-300 mx-auto mb-3" />
-			<p class="text-sm text-neutral-600">No active proposals</p>
+		<div class="text-center py-8 sm:py-12">
+			<Vote class="w-12 h-12 sm:w-16 sm:h-16 text-neutral-300 mx-auto mb-4" />
+			<h3 class="text-base sm:text-lg font-semibold text-neutral-900 mb-2">No Active Proposals</h3>
+			<p class="text-sm text-neutral-600 mb-4">Be the first to create a governance proposal</p>
+			
+			{#if onCreateProposal}
+				{#if userTokenBalance >= DAO_CONSTANTS.MIN_TOKENS_TO_PROPOSE}
+					<button
+						onclick={onCreateProposal}
+						class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
+					>
+						<Plus class="w-4 h-4 shrink-0" />
+						Create Proposal
+					</button>
+				{:else}
+					<div class="inline-block px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+						<p class="text-sm text-yellow-800">
+							<strong>Need {DAO_CONSTANTS.MIN_TOKENS_TO_PROPOSE} AFRI tokens</strong> to create a proposal
+						</p>
+						<p class="text-xs text-yellow-700 mt-1">
+							You have {userTokenBalance.toFixed(2)} AFRI
+						</p>
+					</div>
+				{/if}
+			{/if}
 		</div>
 	{:else}
 		<div class="space-y-3 sm:space-y-4">
@@ -142,19 +177,19 @@
 						</div>
 					</div>
 
-					<!-- Voting Stats -->
+						<!-- Voting Stats -->
 					<div class="grid grid-cols-3 gap-2 mb-3">
 						<div class="text-center p-2 bg-green-50 rounded">
 							<div class="text-xs text-neutral-600">Yes</div>
-							<div class="text-sm font-bold text-green-600">{proposal.votesYes || 0}</div>
+							<div class="text-sm font-bold text-green-600">{proposal.votes?.yes?.toLocaleString() || 0}</div>
 						</div>
 						<div class="text-center p-2 bg-red-50 rounded">
 							<div class="text-xs text-neutral-600">No</div>
-							<div class="text-sm font-bold text-red-600">{proposal.votesNo || 0}</div>
+							<div class="text-sm font-bold text-red-600">{proposal.votes?.no?.toLocaleString() || 0}</div>
 						</div>
 						<div class="text-center p-2 bg-neutral-50 rounded">
 							<div class="text-xs text-neutral-600">Abstain</div>
-							<div class="text-sm font-bold text-neutral-600">{proposal.votesAbstain || 0}</div>
+							<div class="text-sm font-bold text-neutral-600">{proposal.votes?.abstain?.toLocaleString() || 0}</div>
 						</div>
 					</div>
 
