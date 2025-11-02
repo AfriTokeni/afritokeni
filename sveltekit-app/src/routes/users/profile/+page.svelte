@@ -12,6 +12,7 @@
 	import TransactionLimits from './TransactionLimits.svelte';
 	import HelpSupport from './HelpSupport.svelte';
 	import ProfileOnboardingModal from '$lib/components/shared/ProfileOnboardingModal.svelte';
+	import KYCModal from '$lib/components/shared/KYCModal.svelte';
 	import { setDoc, getDoc } from '@junobuild/core';
 
 	// Real user data from Juno
@@ -19,6 +20,7 @@
 	let userDoc = $state<any>(null); // Store the full document with version
 	let isLoading = $state(true);
 	let showProfileCompleteModal = $state(false);
+	let showKYCModal = $state(false);
 	let missingFields = $state<string[]>([]);
 
 	async function loadUserData() {
@@ -139,6 +141,43 @@
 			throw error;
 		}
 	}
+
+	async function handleKYCSubmit(kycData: any) {
+		try {
+			const currentPrincipalId = $principalId;
+			if (!currentPrincipalId) {
+				throw new Error('Not authenticated');
+			}
+
+			if (!userDoc) {
+				throw new Error('User document not loaded');
+			}
+
+			// TODO: Upload files to Juno storage
+			// For now, just update KYC status to pending
+			await setDoc({
+				collection: 'users',
+				doc: {
+					...userDoc,
+					data: {
+						...userDoc.data,
+						kycStatus: 'pending',
+						kycSubmittedAt: new Date().toISOString(),
+						kycDocumentType: kycData.documentType,
+						kycDocumentNumber: kycData.documentNumber,
+						updatedAt: new Date().toISOString()
+					}
+				}
+			});
+
+			// Reload user data
+			await loadUserData();
+
+		} catch (error: any) {
+			console.error('Failed to submit KYC:', error);
+			throw error;
+		}
+	}
 </script>
 
 <div class="space-y-4 sm:space-y-6">
@@ -191,7 +230,7 @@
 		<ProfileHeader {userData} onToggleEdit={toggleEdit} />
 
 		<!-- Info Cards Grid -->
-		<ProfileInfoCards {userData} />
+		<ProfileInfoCards {userData} onStartKYC={() => showKYCModal = true} />
 
 	<!-- Expandable Sections -->
 	<AccountSettings
@@ -232,4 +271,11 @@
 	onClose={() => showProfileCompleteModal = false}
 	onComplete={handleProfileComplete}
 	currentData={userData}
+/>
+
+<!-- KYC Modal -->
+<KYCModal
+	isOpen={showKYCModal}
+	onClose={() => showKYCModal = false}
+	onSubmit={handleKYCSubmit}
 />

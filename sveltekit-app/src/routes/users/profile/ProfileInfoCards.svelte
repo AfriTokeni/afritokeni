@@ -3,9 +3,10 @@
 
 	interface Props {
 		userData: any;
+		onStartKYC?: () => void;
 	}
 
-	let { userData }: Props = $props();
+	let { userData, onStartKYC }: Props = $props();
 </script>
 
 <!-- Profile Info Cards Grid -->
@@ -29,7 +30,10 @@
 				<span class="text-xs sm:text-sm font-medium text-gray-700">KYC Status</span>
 			</div>
 			{#if userData.kycStatus === 'not_started' || userData.kycStatus === 'rejected'}
-				<button class="text-xs px-2 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shrink-0">
+				<button 
+					onclick={onStartKYC}
+					class="text-xs px-2 py-1 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors shrink-0"
+				>
 					{userData.kycStatus === 'rejected' ? 'Retry KYC' : 'Start KYC'}
 				</button>
 			{/if}
