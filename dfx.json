@@ -40,12 +40,17 @@
     "exchange_canister": {
       "type": "rust",
       "package": "exchange_canister",
-      "candid": "src/exchange_canister/exchange_canister.did"
+      "candid": "canisters/exchange_canister/exchange_canister.did"
     },
     "deposit_canister": {
       "type": "rust",
       "package": "deposit_canister",
-      "candid": "src/deposit_canister/deposit_canister.did"
+      "candid": "canisters/deposit_canister/deposit_canister.did"
+    },
+    "withdrawal_canister": {
+      "type": "rust",
+      "package": "withdrawal_canister",
+      "candid": "canisters/withdrawal_canister/withdrawal_canister.did"
     }
   },
   "defaults": {
