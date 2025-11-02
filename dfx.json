@@ -41,6 +41,11 @@
       "type": "rust",
       "package": "exchange_canister",
       "candid": "src/exchange_canister/exchange_canister.did"
+    },
+    "deposit_canister": {
+      "type": "rust",
+      "package": "deposit_canister",
+      "candid": "src/deposit_canister/deposit_canister.did"
     }
   },
   "defaults": {
