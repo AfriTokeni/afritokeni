@@ -8,9 +8,9 @@
 	async function handleSignIn() {
 		isLoading = true;
 		try {
-			const isDev = import.meta.env.DEV;
+			const isProduction = import.meta.env.PROD;
 			
-			if (!isDev) {
+			if (isProduction) {
 				// Production: Use id.ai with derivationOrigin
 				await signIn({
 					internet_identity: {

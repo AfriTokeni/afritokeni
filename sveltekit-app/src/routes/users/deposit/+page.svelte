@@ -178,7 +178,7 @@
 						</div>
 						<div class="flex justify-between">
 							<span class="text-gray-600">Agent:</span>
-							<span class="font-semibold">{selectedAgent?.businessName}</span>
+							<span class="font-semibold">{selectedAgent?.name}</span>
 						</div>
 					</div>
 					
