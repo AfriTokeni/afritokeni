@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Star, X } from '@lucide/svelte';
-	import type { Agent } from '$lib/services/agentService';
+	import type { Agent } from '$lib/utils/agents';
 
 	interface Props {
 		agent: Agent;

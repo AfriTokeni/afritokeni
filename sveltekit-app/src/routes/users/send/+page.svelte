@@ -4,8 +4,8 @@
 	import { Send, Bitcoin, DollarSign, AlertCircle, Search } from '@lucide/svelte';
 	import { formatCurrencyAmount, type AfricanCurrency } from '$lib/types/currency';
 	import PrimaryBalanceCard from '$lib/components/dashboard/PrimaryBalanceCard.svelte';
-	import CkBTCBalanceCard from '$lib/components/dashboard/CkBTCBalanceCard.svelte';
-	import CkUSDBalanceCard from '$lib/components/dashboard/CkUSDBalanceCard.svelte';
+	import CkBTCBalanceCard from '$lib/components/shared/CkBTCBalanceCard.svelte';
+	import CkUSDBalanceCard from '$lib/components/shared/CkUSDBalanceCard.svelte';
 	import { getUserData, getUserBalance } from '$lib/services/user/userService';
 
 	type SendType = 'local' | 'ckbtc' | 'ckusd';
@@ -161,13 +161,12 @@
 						currency={userCurrency}
 						onCurrencyChange={(currency) => selectedCurrency = currency}
 					/>
+					<!-- Encapsulated components - fetch their own data -->
 					<CkBTCBalanceCard
-						principalId={currentUser?.id || ''}
 						preferredCurrency={userCurrency}
 						showActions={false}
 					/>
 					<CkUSDBalanceCard
-						principalId={currentUser?.id || ''}
 						preferredCurrency={userCurrency}
 						showActions={false}
 					/>
