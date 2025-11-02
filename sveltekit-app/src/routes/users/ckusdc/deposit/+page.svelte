@@ -23,15 +23,15 @@
 		<button onclick={() => goto('/users/dashboard')} class="p-2 hover:bg-gray-100 rounded-lg">
 			<ArrowLeft class="w-5 h-5" />
 		</button>
-		<h1 class="text-2xl font-bold">Deposit ckBTC</h1>
+		<h1 class="text-2xl font-bold">Deposit ckUSDC</h1>
 	</div>
 	
 	<div class="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
-		<div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
-			<h3 class="font-semibold text-orange-900 mb-2">How to deposit ckBTC</h3>
-			<ol class="text-sm text-orange-800 space-y-1 list-decimal list-inside">
+		<div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+			<h3 class="font-semibold text-blue-900 mb-2">How to deposit ckUSDC</h3>
+			<ol class="text-sm text-blue-800 space-y-1 list-decimal list-inside">
 				<li>Copy your Principal ID below</li>
-				<li>Send ckBTC to this Principal ID from any IC wallet or exchange</li>
+				<li>Send ckUSDC to this Principal ID from any IC wallet or exchange</li>
 				<li>Your balance updates instantly (no confirmations needed!)</li>
 			</ol>
 		</div>
