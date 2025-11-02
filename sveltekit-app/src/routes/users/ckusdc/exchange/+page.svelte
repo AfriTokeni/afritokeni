@@ -3,6 +3,9 @@
 	import { ArrowLeft, ArrowDownUp, RefreshCw } from '@lucide/svelte';
 	import { toast } from '$lib/stores/toast';
 	import { getExchangeRates } from '$lib/services/exchangeRateService';
+	import { fetchCkUSDBalance } from '$lib/services/data/ckusdData';
+	import { demoMode } from '$lib/stores/demoMode';
+	import { principalId } from '$lib/stores/auth';
 	import { onMount } from 'svelte';
 	
 	let fromAmount = $state('');
@@ -11,10 +14,20 @@
 	let isExchanging = $state(false);
 	let isLoadingRate = $state(true);
 	let lastUpdated = $state<Date | null>(null);
+	let userBalance = $state(0);
 	
 	onMount(async () => {
 		await loadExchangeRate();
+		await loadBalance();
 	});
+	
+	async function loadBalance() {
+		try {
+			userBalance = await fetchCkUSDBalance($principalId, $demoMode);
+		} catch (error) {
+			console.error('Failed to load balance:', error);
+		}
+	}
 	
 	async function loadExchangeRate() {
 		isLoadingRate = true;
@@ -40,8 +53,16 @@
 	}
 	
 	async function handleExchange() {
-		if (!fromAmount || parseFloat(fromAmount) <= 0) {
+		const amountNum = parseFloat(fromAmount);
+		
+		if (!fromAmount || amountNum <= 0) {
 			toast.show('error', 'Please enter a valid amount');
+			return;
+		}
+		
+		// Check if user has enough balance
+		if (amountNum > userBalance) {
+			toast.show('error', `Insufficient balance. You have ${userBalance.toFixed(2)} ckUSDC`);
 			return;
 		}
 		
@@ -56,15 +77,19 @@
 			// 
 			// Example call:
 			// await exchangeCanister.swapUsdcToBtc({
-			//   amount: parseFloat(fromAmount),
+			//   amount: amountNum,
 			//   minOutput: parseFloat(toAmount) * 0.99 // 1% slippage tolerance
 			// });
+			
+			if (!$demoMode) {
+				throw new Error('Exchange canister not yet deployed. Please try demo mode.');
+			}
 			
 			await new Promise(resolve => setTimeout(resolve, 1500));
 			toast.show('success', 'Exchange completed successfully!');
 			goto('/users/dashboard');
-		} catch (error) {
-			toast.show('error', 'Exchange failed');
+		} catch (error: any) {
+			toast.show('error', error.message || 'Exchange failed');
 		} finally {
 			isExchanging = false;
 		}
@@ -81,16 +106,23 @@
 	
 	<div class="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
 		<div class="bg-gray-50 p-4 rounded-lg">
-			<div class="flex justify-between items-center mb-2">
-				<span class="text-sm text-gray-600">Exchange Rate</span>
-				<div class="flex items-center gap-2">
+			<div class="flex justify-between items-start gap-2 mb-2">
+				<span class="text-sm text-gray-600 shrink-0">Exchange Rate</span>
+				<div class="flex items-center gap-2 min-w-0">
 					{#if isLoadingRate}
 						<span class="text-sm text-gray-500">Loading...</span>
 					{:else}
-						<span class="text-lg font-bold">$1 USDC ≈ {exchangeRate.toFixed(8)} BTC</span>
+						<div class="text-right min-w-0">
+							<div class="font-bold text-sm sm:text-lg break-words">
+								$1 USDC ≈
+							</div>
+							<div class="font-bold text-sm sm:text-lg break-words">
+								{exchangeRate.toFixed(8)} BTC
+							</div>
+						</div>
 						<button
 							onclick={loadExchangeRate}
-							class="p-1 hover:bg-gray-200 rounded"
+							class="p-1 hover:bg-gray-200 rounded shrink-0"
 							title="Refresh rate"
 						>
 							<RefreshCw class="w-4 h-4 text-gray-600" />
@@ -99,7 +131,7 @@
 				</div>
 			</div>
 			{#if lastUpdated}
-				<div class="text-xs text-gray-500">
+				<div class="text-xs text-gray-500 text-right">
 					Updated: {lastUpdated.toLocaleTimeString()}
 				</div>
 			{/if}
@@ -118,6 +150,9 @@
 				placeholder="0.00"
 				class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
 			/>
+			<p class="text-sm text-gray-600 mt-1">
+				Available: <span class="font-semibold">${userBalance.toFixed(2)} USDC</span>
+			</p>
 		</div>
 		
 		<div class="flex justify-center">
@@ -148,10 +183,16 @@
 		
 		<button
 			onclick={handleExchange}
-			disabled={isExchanging || !fromAmount}
-			class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-semibold disabled:opacity-50"
+			disabled={isExchanging || !fromAmount || parseFloat(fromAmount) > userBalance || parseFloat(fromAmount) <= 0}
+			class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
 		>
-			{isExchanging ? 'Exchanging...' : 'Exchange to ckBTC'}
+			{#if isExchanging}
+				Exchanging...
+			{:else if parseFloat(fromAmount) > userBalance}
+				Insufficient Balance
+			{:else}
+				Exchange to ckBTC
+			{/if}
 		</button>
 	</div>
 </div>
