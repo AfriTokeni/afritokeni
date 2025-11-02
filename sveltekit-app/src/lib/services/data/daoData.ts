@@ -4,7 +4,14 @@
  * Pure data fetching functions for DAO proposals and leaderboard.
  * NO store imports - accepts isDemoMode as parameter.
  * Called by encapsulated components that manage their own store subscriptions.
+ * 
+ * Ported from old codebase: src/services/afriTokenService.ts & governanceService.ts
  */
+
+import { HttpAgent } from '@dfinity/agent';
+import { Principal } from '@dfinity/principal';
+import { SnsGovernanceCanister } from '@dfinity/sns';
+import { CANISTER_IDS, getHost } from '$lib/config/canister';
 
 /**
  * Fetch DAO proposals
@@ -39,12 +46,14 @@ export async function fetchDAOProposals(isDemoMode: boolean): Promise<any[]> {
 }
 
 /**
- * Fetch DAO leaderboard
+ * Fetch DAO leaderboard (top token holders from SNS)
+ * Ported from: src/services/afriTokenService.ts getLeaderboard()
  * 
  * @param isDemoMode - Whether to use demo data or real backend
+ * @param limit - Maximum number of entries to return
  * @returns Array of leaderboard entries
  */
-export async function fetchLeaderboard(isDemoMode: boolean): Promise<any[]> {
+export async function fetchLeaderboard(isDemoMode: boolean, limit: number = 50): Promise<any[]> {
 	if (isDemoMode) {
 		try {
 			const response = await fetch('/data/demo/leaderboard.json');
@@ -58,14 +67,52 @@ export async function fetchLeaderboard(isDemoMode: boolean): Promise<any[]> {
 		}
 	}
 
-	// Real mode: query ICP DAO canister
+	// Real mode: query SNS Governance canister for neurons (staked tokens)
 	try {
-		// TODO: Implement real DAO canister query
-		// const leaderboard = await DAOService.getLeaderboard();
-		// return leaderboard;
-		return [];
+		console.log('🔄 Fetching leaderboard from SNS Governance canister:', CANISTER_IDS.SNS_GOVERNANCE);
+		
+		// Create agent for IC mainnet
+		const agent = await HttpAgent.create({ host: getHost() });
+		
+		// Create SNS Governance canister instance using official SDK
+		const governance = SnsGovernanceCanister.create({
+			agent,
+			canisterId: Principal.fromText(CANISTER_IDS.SNS_GOVERNANCE),
+		});
+
+		// List all neurons (staked tokens)
+		const neuronsResponse: any = await governance.listNeurons({
+			limit: limit,
+		});
+
+		console.log('✅ Received neurons from SNS:', neuronsResponse);
+
+		// Convert neurons to leaderboard format
+		const neurons = neuronsResponse.neurons || neuronsResponse || [];
+		const leaderboard = neurons.map((neuron: any, index: number) => {
+			const stake = Number(neuron.cached_neuron_stake_e8s || 0) / 100_000_000; // Convert e8s to AFRI
+			const neuronIdHex = neuron.id?.id ? Buffer.from(neuron.id.id).toString('hex').slice(0, 8) : `${index + 1}`;
+			
+			return {
+				name: `Neuron ${neuronIdHex}`,
+				username: `neuron_${neuronIdHex}`,
+				balance: stake,
+				points: stake, // Use stake as points
+				votes: 0, // Would need additional query
+				contributionCount: 0, // Would need additional query
+				verified: false
+			};
+		});
+
+		// Sort by balance descending
+		const sorted = leaderboard.sort((a: any, b: any) => b.balance - a.balance);
+		
+		console.log(`✅ Leaderboard loaded: ${sorted.length} neurons`);
+		return sorted;
+		
 	} catch (error) {
-		console.error('Failed to fetch leaderboard:', error);
+		console.error('❌ Error fetching leaderboard from SNS:', error);
+		console.log('💡 Tip: Toggle Demo Mode to see leaderboard data while troubleshooting');
 		return [];
 	}
 }

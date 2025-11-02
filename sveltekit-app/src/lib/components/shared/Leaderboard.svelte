@@ -36,8 +36,9 @@
 	async function loadLeaderboard(isDemoMode: boolean) {
 		try {
 			error = null;
-			const data = await fetchLeaderboard(isDemoMode);
-			leaderboard = data.slice(0, maxEntries);
+			isLoading = true; // Ensure loading state is set
+			const data = await fetchLeaderboard(isDemoMode, maxEntries);
+			leaderboard = data;
 		} catch (err: any) {
 			console.error('Error fetching leaderboard:', err);
 			error = err.message || 'Failed to load leaderboard';
