@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { signIn } from '@junobuild/core';
-	import { LogIn } from 'lucide-svelte';
+	import { signIn } from '$lib/services/auth';
+	import { LogIn } from '@lucide/svelte';
+	import { toast } from '$lib/stores/toast';
 	
 	let isLoading = $state(false);
 
@@ -12,7 +13,7 @@
 			});
 		} catch (error) {
 			console.error('Sign in failed:', error);
-			alert('Sign in failed. Please try again.');
+			toast.show('error', 'Sign in failed. Please try again.');
 		} finally {
 			isLoading = false;
 		}

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { CheckCircle, Clock, XCircle, Wifi } from '@lucide/svelte';
+	import { toast } from '$lib/stores/toast';
 
 	interface Props {
 		currentStatus: 'available' | 'busy' | 'cash_out' | 'offline';
@@ -18,11 +19,13 @@
 		try {
 			const success = await onStatusChange(newStatus);
 			if (!success) {
-				alert('Failed to update status. Please try again.');
+				toast.show('error', 'Failed to update status. Please try again.');
+			} else {
+				toast.show('success', `Status updated: ${newStatus ? 'Online' : 'Offline'}`);
 			}
 		} catch (error) {
 			console.error('Error updating status:', error);
-			alert('Failed to update status. Please try again.');
+			toast.show('error', 'Failed to update status. Please try again.');
 		} finally {
 			isUpdating = false;
 		}

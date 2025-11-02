@@ -40,7 +40,7 @@
 		e.preventDefault();
 		
 		if (!title || !description) {
-			alert('Please fill in all fields');
+			toast.show('warning', 'Please fill in all fields');
 			return;
 		}
 
@@ -50,6 +50,7 @@
 				// Demo mode: simulate proposal creation
 				await new Promise(resolve => setTimeout(resolve, 1000));
 				console.log('📋 Demo proposal created:', { type: proposalType, title, description });
+				toast.show('success', 'Proposal created successfully! (Demo mode)');
 				// TODO: Add to demo proposals store
 			} else {
 				// Real mode: Submit to SNS Governance
@@ -69,7 +70,7 @@
 			proposalType = 'other';
 		} catch (error: any) {
 			console.error('Error creating proposal:', error);
-			alert(error.message || 'Failed to create proposal');
+			toast.show('error', error.message || 'Failed to create proposal');
 		} finally {
 			isLoading = false;
 		}

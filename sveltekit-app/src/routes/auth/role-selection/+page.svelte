@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { User, Shield, ArrowRight } from 'lucide-svelte';
+	import { User, Briefcase, Shield, ArrowRight } from '@lucide/svelte';
+	import { toast } from '$lib/stores/toast';
 	import { authUser } from '$lib/stores/auth';
 	import { setDoc, getDoc } from '@junobuild/core';
 	import { onMount } from 'svelte';
@@ -87,7 +88,7 @@
 			goto(targetPath);
 		} catch (error) {
 			console.error('Failed to set user role:', error);
-			alert('Failed to complete setup. Please try again.');
+			toast.show('error', 'Failed to complete setup. Please try again.');
 		} finally {
 			isLoading = false;
 		}

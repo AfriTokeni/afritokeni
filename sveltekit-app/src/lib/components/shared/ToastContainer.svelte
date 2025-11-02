@@ -35,11 +35,11 @@
 	}
 </script>
 
-<div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm">
+<div class="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 w-full max-w-md px-4">
 	{#each $toast as item (item.id)}
 		{@const Icon = getIcon(item.type)}
 		<div
-			transition:fly={{ y: 50, duration: 300 }}
+			transition:fly={{ y: -50, duration: 300 }}
 			class="flex items-start gap-3 p-4 rounded-lg border shadow-lg {getColors(item.type)}"
 		>
 			<Icon class="w-5 h-5 shrink-0 {getIconColor(item.type)}" />

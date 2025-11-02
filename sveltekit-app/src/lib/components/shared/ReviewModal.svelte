@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Star, X } from '@lucide/svelte';
 	import type { Agent } from '$lib/utils/agents';
+	import { toast } from '$lib/stores/toast';
 
 	interface Props {
 		agent: Agent;
@@ -17,12 +18,13 @@
 
 	async function handleSubmit() {
 		if (rating === 0) {
-			alert('Please select a rating');
+			toast.show('warning', 'Please select a rating');
 			return;
 		}
 
 		isSubmitting = true;
 		await onSubmit(rating, comment);
+		toast.show('success', 'Review submitted successfully!');
 		isSubmitting = false;
 	}
 </script>
