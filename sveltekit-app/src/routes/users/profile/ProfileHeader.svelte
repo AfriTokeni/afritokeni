@@ -42,12 +42,15 @@
 
 		<!-- Verification Status -->
 		<div class="flex items-center justify-center space-x-1.5 sm:space-x-2 mb-1.5 sm:mb-2">
-			{#if userData.isVerified}
+			{#if userData.kycStatus === 'approved'}
 				<Check class="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-green-500 shrink-0" />
 				<span class="text-xs sm:text-sm font-medium text-green-600">Verified Account</span>
-			{:else}
+			{:else if userData.kycStatus === 'pending'}
 				<div class="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin shrink-0"></div>
 				<span class="text-xs sm:text-sm font-medium text-yellow-600">Pending Verification</span>
+			{:else}
+				<div class="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 rounded-full bg-gray-400 shrink-0"></div>
+				<span class="text-xs sm:text-sm font-medium text-gray-600">Not Verified</span>
 			{/if}
 		</div>
 

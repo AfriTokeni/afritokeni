@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { CreditCard, Shield, Mail, Phone, Calendar } from '@lucide/svelte';
-	import { formatCurrencyAmount, type AfricanCurrency } from '$lib/types/currency';
+	import { Shield, Key, Phone, Calendar } from '@lucide/svelte';
 
 	interface Props {
 		userData: any;
@@ -11,14 +10,14 @@
 
 <!-- Profile Info Cards Grid -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-5 sm:mb-6">
-	<!-- Balance Card -->
+	<!-- Principal ID Card -->
 	<div class="bg-gray-50 rounded-lg p-3 sm:p-4">
 		<div class="flex items-center space-x-1.5 sm:space-x-2 mb-2">
-			<CreditCard class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600 shrink-0" />
-			<span class="text-xs sm:text-sm font-medium text-gray-700">Current Balance</span>
+			<Key class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600 shrink-0" />
+			<span class="text-xs sm:text-sm font-medium text-gray-700">Principal ID</span>
 		</div>
-		<p class="text-xl sm:text-2xl font-bold font-mono text-gray-900 wrap-break-word">
-			{formatCurrencyAmount(userData.balance, userData.currency)}
+		<p class="text-xs font-mono text-gray-900 break-all">
+			{userData.principalId || 'Not available'}
 		</p>
 	</div>
 
@@ -54,18 +53,13 @@
 		{/if}
 	</div>
 
-	<!-- Email/Phone -->
+	<!-- Phone -->
 	<div class="bg-gray-50 rounded-lg p-3 sm:p-4">
 		<div class="flex items-center space-x-1.5 sm:space-x-2 mb-2">
-			{#if userData.authMethod === 'sms'}
-				<Phone class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600 shrink-0" />
-				<span class="text-xs sm:text-sm font-medium text-gray-700">Phone</span>
-			{:else}
-				<Mail class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600 shrink-0" />
-				<span class="text-xs sm:text-sm font-medium text-gray-700">Email</span>
-			{/if}
+			<Phone class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600 shrink-0" />
+			<span class="text-xs sm:text-sm font-medium text-gray-700">Phone</span>
 		</div>
-		<p class="text-xs sm:text-sm font-mono text-gray-900 break-all">{userData.email}</p>
+		<p class="text-xs sm:text-sm font-mono text-gray-900 break-all">{userData.phone}</p>
 	</div>
 
 	<!-- Member Since -->
