@@ -9,12 +9,27 @@
 	async function handleSignIn() {
 		isLoading = true;
 		try {
-			await signIn();
-			goto('/users/dashboard');
+			const isDev = import.meta.env.DEV;
+			
+			if (!isDev) {
+				// Production: Use id.ai with derivationOrigin
+				await signIn({
+					internet_identity: {
+						options: {
+							domain: "id.ai",
+							derivationOrigin: "https://afritokeni.com"
+						}
+					}
+				});
+			} else {
+				// Local development: Use default Internet Identity
+				await signIn({
+					internet_identity: {}
+				});
+			}
 		} catch (error) {
 			console.error('Sign in failed:', error);
 			toast.show('error', 'Sign in failed. Please try again.');
-		} finally {
 			isLoading = false;
 		}
 	}

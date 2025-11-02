@@ -64,10 +64,7 @@
 			const useContainer = import.meta.env.DEV === true;
 			console.log(`🚀 Initializing Juno with satellite ${satelliteId} (${useContainer ? 'emulator' : 'remote'})`);
 			await initSatellite({
-				container: useContainer,
-				workers: {
-					auth: true
-				}
+				container: useContainer
 			});
 
 			// Initialize auth subscription
