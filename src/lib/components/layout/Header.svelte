@@ -26,7 +26,7 @@
 				<a href="/ussd" class="text-gray-600 hover:text-gray-900 font-medium transition-colors text-sm lg:text-base">
 					Try USSD
 				</a>
-				<a href="/info/about" class="text-gray-600 hover:text-gray-900 font-medium transition-colors text-sm lg:text-base">
+				<a href="/about" class="text-gray-600 hover:text-gray-900 font-medium transition-colors text-sm lg:text-base">
 					About
 				</a>
 			</nav>
@@ -85,7 +85,7 @@
 						Try USSD
 					</a>
 					<a 
-						href="/info/about" 
+						href="/about" 
 						class="block text-gray-600 hover:text-gray-900 font-medium transition-colors py-2"
 						onclick={() => isMobileMenuOpen = false}
 					>

@@ -79,7 +79,7 @@
 				<div>
 					<h4 class="font-semibold mb-3 sm:mb-4 text-sm sm:text-base">Company</h4>
 					<ul class="space-y-2 sm:space-y-3 text-gray-400 text-sm sm:text-base">
-						<li><a href="/info/about" class="hover:text-white transition-colors">About</a></li>
+						<li><a href="/about" class="hover:text-white transition-colors">About</a></li>
 						<li><a href="/info/dao" class="hover:text-white transition-colors">DAO Governance</a></li>
 						<li><a href="/whitepaper" class="hover:text-white transition-colors">Whitepaper</a></li>
 						<li><a href="mailto:info@afritokeni.com" class="hover:text-white transition-colors">Contact</a></li>
