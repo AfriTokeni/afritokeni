@@ -414,7 +414,7 @@ Enter PIN: ****
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](./CONTRIBUTING.md).
+We welcome contributions! Please follow our coding standards below.
 
 ### Development Setup
 
@@ -434,6 +434,81 @@ npm run build
 # Lint
 npm run lint
 ```
+
+### Coding Standards
+
+#### 🔥 CRITICAL RULES - NEVER VIOLATE
+
+**1. NO HARDCODED DATA**
+```typescript
+// ❌ WRONG - Hardcoded fallbacks
+const userData = {
+  firstName: data?.firstName || '',
+  balance: data?.balance || 0
+};
+
+// ✅ CORRECT - Use exact data or show error
+if (!doc) {
+  console.error('❌ DATA ERROR:', error);
+  toast.show('error', 'Data not found');
+  return;
+}
+const userData = doc.data;
+```
+
+**2. NO localStorage FOR BUSINESS DATA**
+```typescript
+// ❌ WRONG - Business data in localStorage
+localStorage.setItem('kycStatus', 'verified');
+
+// ✅ CORRECT - Business data in Juno
+await setDoc({
+  collection: 'users',
+  doc: { key: principalId, data: userData }
+});
+
+// ✅ OK - UI preferences only
+localStorage.setItem('theme', 'dark');
+```
+
+**3. REUSE COMPONENTS**
+```typescript
+// ❌ WRONG - Duplicating logic
+<input type="file" onchange={handleUpload} />
+// ... 50 lines of upload logic
+
+// ✅ CORRECT - Reuse existing
+import KYCModal from '$lib/components/shared/KYCModal.svelte';
+<KYCModal onSubmit={handleKYCSubmit} />
+```
+
+**4. SINGLE RESPONSIBILITY**
+```typescript
+// ❌ WRONG - God component
+function Dashboard() {
+  // 500 lines doing everything
+}
+
+// ✅ CORRECT - Separated concerns
+<BalanceCard balance={balance} />
+<TransactionHistory transactions={txs} />
+<KYCBanner kycStatus={status} />
+```
+
+**5. CONSISTENT DATA FLOW**
+```
+Juno DB → Component → UI
+NO fallbacks, NO localStorage for business data
+```
+
+#### Checklist Before Committing
+- [ ] No hardcoded fallback values (`||`, `??`)
+- [ ] No localStorage for business data
+- [ ] Checked if component already exists
+- [ ] Each component has single responsibility
+- [ ] Error handling with console.error + toast
+- [ ] TypeScript interfaces for props
+- [ ] Data flows from Juno → Component → UI
 
 ---
 
