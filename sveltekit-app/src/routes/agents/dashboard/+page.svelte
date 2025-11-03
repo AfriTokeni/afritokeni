@@ -19,6 +19,8 @@
 	import AgentKYCBanner from '$lib/components/agent/AgentKYCBanner.svelte';
 	import AgentOnboardingModal from '$lib/components/agent/AgentOnboardingModal.svelte';
 	import DemoModeModal from '$lib/components/dashboard/DemoModeModal.svelte';
+	import { getDoc } from '@junobuild/core';
+	import { toast } from '$lib/stores/toast';
 
 	// State
 	let showBalance = $state(true);
@@ -28,7 +30,7 @@
 	let showOnboarding = $state(false);
 	let selectedCurrency = $state('UGX');
 	let searchQuery = $state('');
-	let kycStatus = $state<'pending' | 'verified' | 'rejected' | 'not_started'>('verified');
+	let kycStatus = $state<'pending' | 'verified' | 'rejected' | 'not_started'>('not_started');
 
 	// Agent data (will be loaded from stores/services)
 	let agentData = $state<any>(null);
@@ -77,6 +79,8 @@
 				const response = await fetch('/data/demo/agent-dashboard.json');
 				if (!response.ok) throw new Error('Failed to load demo data');
 				const data = await response.json();
+				
+				kycStatus = 'verified'; // Demo mode is always verified
 
 				agentData = data.agent;
 				digitalBalance = data.digitalBalance;
@@ -85,14 +89,29 @@
 				todayTransactions = data.todayTransactions;
 				activeCustomers = data.activeCustomers;
 			} else {
-				// Real canister calls
-				// const balance = await agentCanister.get_agent_balance(agentPrincipal);
-				// agentData = balance;
-				digitalBalance = 0;
-				cashBalance = 0;
-				dailyEarnings = 0;
-				todayTransactions = 0;
-				activeCustomers = 0;
+				// Load from Juno - NO FALLBACKS
+				const doc = await getDoc({
+					collection: 'agents',
+					key: agentPrincipal
+				});
+
+				if (!doc) {
+					const error = new Error(`Agent document not found for principal: ${agentPrincipal}`);
+					console.error('❌ AGENT DATA ERROR:', error);
+					toast.show('error', 'Agent profile not found. Please complete onboarding.');
+					isLoading = false;
+					return;
+				}
+
+				// NO FALLBACKS - use exact data from Juno
+				const data = doc.data as any;
+				agentData = data;
+				kycStatus = data.kycStatus;
+				digitalBalance = data.digitalBalance;
+				cashBalance = data.cashBalance;
+				dailyEarnings = data.dailyEarnings;
+				todayTransactions = data.todayTransactions;
+				activeCustomers = data.activeCustomers;
 			}
 		} catch (err: any) {
 			console.error('Failed to load agent data:', err);
