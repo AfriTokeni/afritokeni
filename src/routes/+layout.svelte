@@ -15,6 +15,18 @@
 		
 		isCheckingRole = true;
 		try {
+			const currentPath = window.location.pathname;
+			
+			// Allow access to public pages (homepage, info pages, etc.)
+			const publicPaths = ['/', '/how-it-works', '/pricing', '/whitepaper', '/ussd', '/info'];
+			const isPublicPage = publicPaths.some(path => currentPath === path || currentPath.startsWith('/info/'));
+			
+			if (isPublicPage) {
+				console.log('✅ Public page - no redirect needed');
+				isCheckingRole = false;
+				return;
+			}
+			
 			// Check if user has a role
 			const roleDoc = await getDoc({
 				collection: 'user_roles',
@@ -22,32 +34,31 @@
 			});
 
 			if (roleDoc?.data) {
-				// User has existing role, redirect to dashboard
+				// User has existing role, redirect to dashboard ONLY if on auth pages
 				const role = (roleDoc.data as any).role;
-				const currentPath = window.location.pathname;
 				
-				// Don't redirect if already on correct dashboard
-				if (role === 'agent' && !currentPath.startsWith('/agents')) {
-					console.log('🔄 Redirecting agent to dashboard');
-					goto('/agents/dashboard');
-				} else if (role === 'user' && !currentPath.startsWith('/users')) {
-					console.log('🔄 Redirecting user to dashboard');
-					goto('/users/dashboard');
+				// Only redirect if on auth/role-selection page
+				if (currentPath === '/auth/role-selection') {
+					if (role === 'agent') {
+						console.log('🔄 Redirecting agent to dashboard');
+						goto('/agents/dashboard');
+					} else if (role === 'user') {
+						console.log('🔄 Redirecting user to dashboard');
+						goto('/users/dashboard');
+					}
 				}
 			} else {
-				// New user - redirect to role selection
-				const currentPath = window.location.pathname;
-				if (currentPath !== '/auth/role-selection') {
-					console.log('🔄 New user - redirecting to role selection');
+				// New user - redirect to role selection ONLY if trying to access protected routes
+				const protectedPaths = ['/users', '/agents'];
+				const isProtectedRoute = protectedPaths.some(path => currentPath.startsWith(path));
+				
+				if (isProtectedRoute && currentPath !== '/auth/role-selection') {
+					console.log('🔄 New user accessing protected route - redirecting to role selection');
 					goto('/auth/role-selection');
 				}
 			}
 		} catch (error) {
 			console.error('❌ Error checking user role:', error);
-			// On error, redirect to role selection
-			if (window.location.pathname !== '/auth/role-selection') {
-				goto('/auth/role-selection');
-			}
 		} finally {
 			isCheckingRole = false;
 		}
