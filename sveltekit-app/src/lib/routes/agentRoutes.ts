@@ -5,8 +5,7 @@ import {
 	Banknote,
 	Home,
 	LayoutDashboard,
-	Vote,
-	Bitcoin
+	Vote
 } from '@lucide/svelte';
 
 export interface Route {
@@ -34,12 +33,6 @@ export const agent_desktop_routes: Route[] = [
 		path: '/agents/process-withdrawals',
 		label: 'Process Withdrawals',
 		icon: Banknote
-	},
-	{
-		id: 'exchanges',
-		path: '/agents/exchanges',
-		label: 'Exchanges',
-		icon: Bitcoin
 	},
 	{
 		id: 'dao',
@@ -79,12 +72,6 @@ export const agent_mobile_routes: Route[] = [
 		path: '/agents/process-withdrawals',
 		label: 'Withdrawals',
 		icon: Banknote
-	},
-	{
-		id: 'exchanges',
-		path: '/agents/exchanges',
-		label: 'Exchanges',
-		icon: Bitcoin
 	},
 	{
 		id: 'dao',
