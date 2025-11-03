@@ -42,7 +42,11 @@ What agents charge users for withdrawal services (location-based).
 ### 5. Exchange Spread (0.5%)
 Charged on ckBTC ↔ ckUSD swaps.
 
-**Constant**: TODO - Add to exchange canister
+**Configuration**: `exchange_config.toml` - `spread.basis_points = 50`
+
+**Location**:
+- `exchange_canister/exchange_config.toml` - TOML configuration file
+- Loaded at runtime via `toml::from_str(CONFIG_TOML)`
 
 ## How to Change Fees
 
