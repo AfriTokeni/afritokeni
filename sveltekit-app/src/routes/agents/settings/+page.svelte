@@ -8,6 +8,7 @@
 	import AgentInfoCards from './AgentInfoCards.svelte';
 	import AgentReviews from './AgentReviews.svelte';
 	import AgentSettingsComponent from '$lib/components/shared/AgentSettingsComponent.svelte';
+	import KYCModal from '$lib/components/shared/KYCModal.svelte';
 
 	// Agent data
 	let agentData = $state<any>(null);
@@ -223,12 +224,87 @@
 				}
 			});
 
-			await loadAgentData();
+			await loadAgentData($demoMode, $principalId);
 			toast.show('success', 'Profile picture updated!');
 
 		} catch (error: any) {
 			console.error('Failed to upload profile picture:', error);
 			toast.show('error', 'Failed to upload profile picture');
+		}
+	}
+
+	async function handleKYCSubmit(kycData: any) {
+		try {
+			const currentPrincipalId = $principalId;
+			if (!currentPrincipalId) {
+				throw new Error('Not authenticated');
+			}
+
+			toast.show('info', 'Uploading KYC documents...');
+
+			// Upload files to Juno storage
+			const uploadedFiles: any = {};
+
+			if (kycData.idDocument) {
+				const idResult = await uploadFile({
+					data: kycData.idDocument,
+					collection: 'kyc_documents',
+					filename: `agent_${currentPrincipalId}_id_${Date.now()}.${kycData.idDocument.name.split('.').pop()}`
+				});
+				uploadedFiles.idDocumentUrl = idResult.downloadUrl;
+			}
+
+			if (kycData.proofOfAddress) {
+				const addressResult = await uploadFile({
+					data: kycData.proofOfAddress,
+					collection: 'kyc_documents',
+					filename: `agent_${currentPrincipalId}_address_${Date.now()}.${kycData.proofOfAddress.name.split('.').pop()}`
+				});
+				uploadedFiles.proofOfAddressUrl = addressResult.downloadUrl;
+			}
+
+			if (kycData.selfie) {
+				const selfieResult = await uploadFile({
+					data: kycData.selfie,
+					collection: 'kyc_documents',
+					filename: `agent_${currentPrincipalId}_selfie_${Date.now()}.${kycData.selfie.name.split('.').pop()}`
+				});
+				uploadedFiles.selfieUrl = selfieResult.downloadUrl;
+			}
+
+			// Update agent document with KYC data and file URLs
+			await setDoc({
+				collection: 'agents',
+				doc: {
+					...agentDoc,
+					data: {
+						...agentDoc?.data,
+						kycStatus: 'pending',
+						kycSubmittedAt: new Date().toISOString(),
+						kycData: {
+							...kycData,
+							idDocument: undefined,
+							proofOfAddress: undefined,
+							selfie: undefined,
+							...uploadedFiles
+						},
+						updatedAt: new Date().toISOString()
+					}
+				}
+			});
+
+			toast.show('success', 'KYC documents submitted successfully!');
+			showKYCModal = false;
+			await loadAgentData($demoMode, $principalId);
+
+		} catch (error: any) {
+			console.error('❌ Failed to submit KYC:', error);
+			console.error('Error details:', {
+				message: error.message,
+				stack: error.stack
+			});
+			toast.show('error', 'Failed to submit KYC documents');
+			throw error;
 		}
 	}
 </script>
@@ -242,7 +318,61 @@
 		<div class="text-center py-12">
 			<p class="text-gray-600">Loading profile...</p>
 		</div>
-	{:else if agentData}
+	{:else if !agentData}
+		<!-- Onboarding Banner -->
+		<div class="bg-linear-to-br from-purple-50 to-blue-50 border-2 border-purple-200 rounded-2xl p-8 text-center">
+			<div class="max-w-2xl mx-auto">
+				<div class="w-20 h-20 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-6">
+					<svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+					</svg>
+				</div>
+				
+				<h2 class="text-3xl font-bold text-gray-900 mb-3">
+					Welcome to AfriTokeni Agent Portal! 🎉
+				</h2>
+				
+				<p class="text-lg text-gray-700 mb-6">
+					Complete your agent profile to start serving customers and earning commissions.
+				</p>
+				
+				<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+					<div class="bg-white rounded-lg p-4 border border-purple-100">
+						<div class="text-3xl mb-2">📋</div>
+						<h3 class="font-semibold text-gray-900 mb-1">Step 1</h3>
+						<p class="text-sm text-gray-600">Complete your business profile</p>
+					</div>
+					<div class="bg-white rounded-lg p-4 border border-purple-100">
+						<div class="text-3xl mb-2">✅</div>
+						<h3 class="font-semibold text-gray-900 mb-1">Step 2</h3>
+						<p class="text-sm text-gray-600">Verify your identity (KYC)</p>
+					</div>
+					<div class="bg-white rounded-lg p-4 border border-purple-100">
+						<div class="text-3xl mb-2">🚀</div>
+						<h3 class="font-semibold text-gray-900 mb-1">Step 3</h3>
+						<p class="text-sm text-gray-600">Start serving customers!</p>
+					</div>
+				</div>
+				
+				<button
+					onclick={() => {
+						const event = new CustomEvent('start-agent-onboarding');
+						window.dispatchEvent(event);
+					}}
+					class="inline-flex items-center gap-2 px-8 py-4 bg-purple-600 text-white text-lg font-semibold rounded-xl hover:bg-purple-700 transition-all shadow-lg hover:shadow-xl"
+				>
+					<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+					</svg>
+					Start Agent Onboarding
+				</button>
+				
+				<p class="text-sm text-gray-500 mt-4">
+					Takes only 5 minutes to complete
+				</p>
+			</div>
+		</div>
+	{:else}
 		<!-- Profile Header -->
 		<AgentProfileHeader 
 			{agentData} 
@@ -330,3 +460,10 @@
 		</div>
 	</div>
 {/if}
+
+<!-- KYC Modal -->
+<KYCModal
+	isOpen={showKYCModal}
+	onClose={() => showKYCModal = false}
+	onSubmit={handleKYCSubmit}
+/>

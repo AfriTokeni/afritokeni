@@ -154,7 +154,7 @@
 			<!-- Rating Overview -->
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 				<!-- Average Rating -->
-				<div class="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-6">
+				<div class="bg-linear-to-br from-yellow-50 to-orange-50 rounded-xl p-6">
 					<div class="text-center">
 						<div class="text-5xl font-bold text-gray-900 mb-2">{agentData.rating.toFixed(1)}</div>
 						<div class="flex items-center justify-center gap-1 mb-2">
