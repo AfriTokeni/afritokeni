@@ -9,6 +9,7 @@
 	import AgentReviews from './AgentReviews.svelte';
 	import AgentSettingsComponent from '$lib/components/shared/AgentSettingsComponent.svelte';
 	import KYCModal from '$lib/components/shared/KYCModal.svelte';
+	import AgentKYCBanner from '$lib/components/agent/AgentKYCBanner.svelte';
 
 	// Agent data
 	let agentData = $state<any>(null);
@@ -29,27 +30,6 @@
 	async function loadAgentData(isDemoMode: boolean, currentPrincipalId: string | null) {
 		isLoading = true;
 		
-		// Empty default data for real mode
-		const emptyData = {
-			businessName: '',
-			phoneNumber: '',
-			location: '',
-			businessAddress: '',
-			principalId: currentPrincipalId || '',
-			kycStatus: 'pending',
-			status: 'offline',
-			rating: 0,
-			totalReviews: 0,
-			totalTransactions: 0,
-			activeCustomers: 0,
-			totalEarnings: 0,
-			serviceRadius: 5,
-			profileImage: null,
-			commissionRate: 2.5,
-			maxCashLimit: 500000,
-			operatingHours: { start: '08:00', end: '18:00' }
-		};
-
 		// Demo data ONLY for demo mode
 		const demoData = {
 			businessName: 'John Doe Agent Services',
@@ -79,8 +59,8 @@
 		}
 
 		if (!currentPrincipalId) {
-			console.warn('No principal ID available');
-			agentData = emptyData;
+			console.warn('No principal ID available - showing KYC banner');
+			agentData = null;
 			isLoading = false;
 			return;
 		}
@@ -319,57 +299,34 @@
 			<p class="text-gray-600">Loading profile...</p>
 		</div>
 	{:else if !agentData}
-		<!-- Onboarding Banner -->
-		<div class="bg-linear-to-br from-purple-50 to-blue-50 border-2 border-purple-200 rounded-2xl p-8 text-center">
-			<div class="max-w-2xl mx-auto">
-				<div class="w-20 h-20 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-6">
-					<svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+		<!-- No agent data - show onboarding prompt -->
+		<div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-lg shadow-sm">
+			<div class="flex items-start">
+				<div class="shrink-0">
+					<svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
 					</svg>
 				</div>
-				
-				<h2 class="text-3xl font-bold text-gray-900 mb-3">
-					Welcome to AfriTokeni Agent Portal! 🎉
-				</h2>
-				
-				<p class="text-lg text-gray-700 mb-6">
-					Complete your agent profile to start serving customers and earning commissions.
-				</p>
-				
-				<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-					<div class="bg-white rounded-lg p-4 border border-purple-100">
-						<div class="text-3xl mb-2">📋</div>
-						<h3 class="font-semibold text-gray-900 mb-1">Step 1</h3>
-						<p class="text-sm text-gray-600">Complete your business profile</p>
-					</div>
-					<div class="bg-white rounded-lg p-4 border border-purple-100">
-						<div class="text-3xl mb-2">✅</div>
-						<h3 class="font-semibold text-gray-900 mb-1">Step 2</h3>
-						<p class="text-sm text-gray-600">Verify your identity (KYC)</p>
-					</div>
-					<div class="bg-white rounded-lg p-4 border border-purple-100">
-						<div class="text-3xl mb-2">🚀</div>
-						<h3 class="font-semibold text-gray-900 mb-1">Step 3</h3>
-						<p class="text-sm text-gray-600">Start serving customers!</p>
+				<div class="ml-3 flex-1">
+					<h3 class="text-sm font-semibold text-red-800">Agent Profile Not Found</h3>
+					<p class="mt-2 text-sm text-red-700">
+						You need to complete agent onboarding before you can access settings. Click the button below to get started.
+					</p>
+					<div class="mt-4">
+						<button
+							onclick={() => {
+								const event = new CustomEvent('start-agent-onboarding');
+								window.dispatchEvent(event);
+							}}
+							class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
+						>
+							Start Agent Onboarding
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+							</svg>
+						</button>
 					</div>
 				</div>
-				
-				<button
-					onclick={() => {
-						const event = new CustomEvent('start-agent-onboarding');
-						window.dispatchEvent(event);
-					}}
-					class="inline-flex items-center gap-2 px-8 py-4 bg-purple-600 text-white text-lg font-semibold rounded-xl hover:bg-purple-700 transition-all shadow-lg hover:shadow-xl"
-				>
-					<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-					</svg>
-					Start Agent Onboarding
-				</button>
-				
-				<p class="text-sm text-gray-500 mt-4">
-					Takes only 5 minutes to complete
-				</p>
 			</div>
 		</div>
 	{:else}

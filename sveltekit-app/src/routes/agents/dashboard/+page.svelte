@@ -52,12 +52,6 @@
 			showDemoModal = true;
 			localStorage.setItem(globalModalKey, 'true');
 		}
-
-		// Load KYC status
-		const savedKycStatus = localStorage.getItem('agent_kyc_status');
-		if (savedKycStatus) {
-			kycStatus = savedKycStatus as any;
-		}
 	});
 
 	// Load agent data when stores change
@@ -195,12 +189,11 @@
 <AgentOnboardingModal
 	isOpen={showOnboarding}
 	onClose={() => (showOnboarding = false)}
-	onComplete={(data) => {
+	onComplete={async (data) => {
 		console.log('Agent onboarding complete:', data);
-		localStorage.setItem('agent_profile_data', JSON.stringify(data));
-		localStorage.setItem('agent_kyc_status', 'verified');
-		kycStatus = 'verified';
 		showOnboarding = false;
+		// Reload agent data from Juno after onboarding
+		await loadAgentData($demoMode, $principalId);
 		showKYCBanner = false;
 	}}
 	currentData={{
