@@ -196,8 +196,8 @@
 		/>
 	{/if}
 
-	<!-- Agent Verification Status -->
-	{#if showVerificationAlert}
+	<!-- Agent Verification Status - Only show if KYC verified -->
+	{#if showVerificationAlert && kycStatus === 'verified'}
 		<div class="relative rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
 			<div class="flex items-center justify-between">
 				<p class="text-xs sm:text-sm text-green-800">✓ Agent verified and active</p>

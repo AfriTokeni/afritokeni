@@ -12,7 +12,7 @@
 		"kycStatus": "verified",
 		"isActive": true,
 		"status": "available",
-		"ckBTCBalance": 0.005,
+		"ckBTCBalance": 500000,
 		"ckUSDBalance": 150.00
 	},
 	"digitalBalance": 2500000,

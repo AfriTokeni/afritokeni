@@ -19,11 +19,25 @@ import { generatePrincipalFromPhone, generatePrincipalFromIdentifier, isPhoneNum
 export async function fetchCkBTCBalance(principalId: string | null, isDemoMode: boolean): Promise<number> {
 	if (isDemoMode) {
 		try {
+			// Try agent data first, fallback to user data
+			let data;
+			try {
+				const agentResponse = await fetch('/data/demo/agent-dashboard.json');
+				if (agentResponse.ok) {
+					const agentData = await agentResponse.json();
+					if (agentData.agent?.ckBTCBalance !== undefined) {
+						return agentData.agent.ckBTCBalance;
+					}
+				}
+			} catch {
+				// Fallback to user data
+			}
+			
 			const response = await fetch('/data/demo/user.json');
 			if (!response.ok) {
 				throw new Error('Failed to fetch demo data');
 			}
-			const data = await response.json();
+			data = await response.json();
 			return data.ckBTCBalance || 0;
 		} catch (error) {
 			console.error('Failed to fetch demo ckBTC balance:', error);

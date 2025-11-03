@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { demoMode } from '$lib/stores/demoMode';
 	import { principalId } from '$lib/stores/auth';
+	import { toast } from '$lib/stores/toast';
 	import {
 		CheckCircle,
 		XCircle,
@@ -27,6 +28,16 @@
 		status: 'pending' | 'confirmed' | 'completed' | 'rejected';
 		createdAt: string;
 		userLocation?: string;
+		userPhoto?: string;
+	}
+
+	function getUserInitials(name: string): string {
+		return name
+			.split(' ')
+			.map((n) => n[0])
+			.join('')
+			.toUpperCase()
+			.slice(0, 2);
 	}
 
 	let depositRequests = $state<DepositRequest[]>([]);
@@ -35,7 +46,7 @@
 	let isProcessing = $state(false);
 	let loading = $state(true);
 	let error = $state('');
-	let filter = $state<'all' | 'pending' | 'confirmed' | 'completed'>('pending');
+	let filter = $state<'all' | 'pending' | 'confirmed' | 'completed' | 'rejected'>('pending');
 	let searchQuery = $state('');
 
 	// Auto-fetch when stores change
@@ -104,13 +115,15 @@
 		isProcessing = true;
 		try {
 			if ($demoMode) {
-				// Demo: mark as completed
+				// Demo: mark as completed (change status, don't remove)
 				await new Promise((resolve) => setTimeout(resolve, 1000));
-				depositRequests = depositRequests.filter((r) => r.id !== request.id);
+				depositRequests = depositRequests.map((r) =>
+					r.id === request.id ? { ...r, status: 'completed' as const } : r
+				);
 				selectedRequest = null;
 				verificationCodes[request.id] = '';
 				error = '';
-				alert(`Deposit completed! ${formatAmount(request.amount, request.currency)} credited to ${request.userName}'s account.`);
+				toast.show('success', `Deposit completed! ${formatAmount(request.amount, request.currency)} credited to ${request.userName}'s account.`);
 			} else {
 				// Real canister call
 				// await depositCanister.process_deposit(request.id, $principalId);
@@ -130,12 +143,14 @@
 		isProcessing = true;
 		try {
 			if ($demoMode) {
+				await new Promise((resolve) => setTimeout(resolve, 500));
 				depositRequests = depositRequests.map((r) =>
 					r.id === request.id ? { ...r, status: 'rejected' as const } : r
 				);
 				selectedRequest = null;
 				verificationCodes[request.id] = '';
 				error = '';
+				toast.show('info', `Deposit from ${request.userName} has been rejected.`);
 			} else {
 				// Real canister call
 				// await depositCanister.reject_deposit(request.id);
@@ -143,9 +158,11 @@
 				selectedRequest = null;
 				verificationCodes[request.id] = '';
 				error = '';
+				toast.show('info', `Deposit from ${request.userName} has been rejected.`);
 			}
 		} catch (err: any) {
 			error = 'Failed to reject deposit. Please try again.';
+			toast.show('error', 'Failed to reject deposit. Please try again.');
 		} finally {
 			isProcessing = false;
 		}
@@ -270,7 +287,7 @@
 	<div
 		class="flex space-x-1 bg-gray-100 rounded-lg p-1 mb-4 sm:mb-5 md:mb-6 overflow-x-auto scrollbar-hide"
 	>
-		{#each ['all', 'pending', 'confirmed', 'completed'] as tab}
+		{#each ['all', 'pending', 'confirmed', 'completed', 'rejected'] as tab}
 			<button
 				onclick={() => (filter = tab as any)}
 				class="shrink-0 py-1.5 sm:py-2 px-2 sm:px-4 rounded-md text-xs sm:text-sm font-medium transition-colors {filter ===
@@ -321,10 +338,21 @@
 					<!-- Header: User Info + Status -->
 					<div class="flex items-start justify-between gap-2 sm:gap-3">
 						<div class="flex items-start space-x-2 sm:space-x-3 min-w-0 flex-1">
-							<div
-								class="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 rounded-full flex items-center justify-center shrink-0"
-							>
-								<User class="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+							<!-- User Photo/Avatar -->
+							<div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full shrink-0 overflow-hidden border-2 border-gray-200">
+								{#if request.userPhoto}
+									<img
+										src={request.userPhoto}
+										alt={request.userName}
+										class="w-full h-full object-cover"
+									/>
+								{:else}
+									<div class="w-full h-full bg-black flex items-center justify-center">
+										<span class="text-white font-bold text-sm sm:text-base">
+											{getUserInitials(request.userName)}
+										</span>
+									</div>
+								{/if}
 							</div>
 							<div class="min-w-0 flex-1">
 								<h3 class="font-semibold text-gray-900 truncate text-sm sm:text-base">
