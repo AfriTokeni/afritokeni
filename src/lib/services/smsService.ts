@@ -9,27 +9,33 @@ import AfricasTalking from 'africastalking';
 import { AT_USERNAME, AT_API_KEY, AT_SHORT_CODE } from '$env/static/private';
 
 // Africa's Talking configuration
-// These are server-side only environment variables (never exposed to client)
+// NO FALLBACKS - if env vars not set, service won't initialize (demo mode)
 const credentials = {
-	username: AT_USERNAME || 'sandbox',
-	apiKey: AT_API_KEY || ''
+	username: AT_USERNAME,
+	apiKey: AT_API_KEY
 };
 
 // Initialize Africa's Talking
 let africastalking: any = null;
 let sms: any = null;
 
-// Only initialize if we have real credentials (not sandbox)
-if (credentials.username !== 'sandbox' && credentials.apiKey) {
+// Only initialize if we have real credentials
+if (credentials.username && credentials.username !== 'sandbox' && credentials.apiKey) {
 	try {
 		africastalking = AfricasTalking(credentials);
 		sms = africastalking.SMS;
 		console.log('✅ Africa\'s Talking SMS initialized with real credentials');
 	} catch (error) {
 		console.error('❌ Failed to initialize Africa\'s Talking:', error);
+		console.error('Details:', {
+			error,
+			hasUsername: !!credentials.username,
+			hasApiKey: !!credentials.apiKey
+		});
 	}
 } else {
 	console.log('⚠️  Africa\'s Talking running in DEMO mode (no real SMS will be sent)');
+	console.log('Set AT_USERNAME and AT_API_KEY environment variables for real SMS');
 }
 
 /**
@@ -62,7 +68,7 @@ export async function sendSMS(phoneNumber: string, message: string): Promise<{
 		const result = await sms.send({
 			to: [phoneNumber],
 			message: message,
-			from: AT_SHORT_CODE || undefined
+			from: AT_SHORT_CODE  // No fallback - use exact env var
 		});
 
 		console.log('📱 SMS sent:', result);
