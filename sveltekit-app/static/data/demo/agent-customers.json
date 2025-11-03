@@ -1,0 +1,77 @@
+[
+	{
+		"id": "cust-001",
+		"name": "John Doe",
+		"phone": "+256700123456",
+		"location": "Kampala, Uganda",
+		"joinDate": "2024-09-15T10:00:00Z",
+		"totalTransactions": 15,
+		"totalVolume": {
+			"ugx": 2500000,
+			"usdc": 658
+		},
+		"lastTransaction": "2024-11-02T14:30:00Z",
+		"status": "active",
+		"kycStatus": "verified"
+	},
+	{
+		"id": "cust-002",
+		"name": "Sarah Nakato",
+		"phone": "+256700234567",
+		"location": "Kampala, Uganda",
+		"joinDate": "2024-10-01T08:00:00Z",
+		"totalTransactions": 8,
+		"totalVolume": {
+			"ugx": 1200000,
+			"usdc": 316
+		},
+		"lastTransaction": "2024-11-03T09:15:00Z",
+		"status": "active",
+		"kycStatus": "verified"
+	},
+	{
+		"id": "cust-003",
+		"name": "David Okello",
+		"phone": "+256700345678",
+		"location": "Entebbe, Uganda",
+		"joinDate": "2024-08-20T12:00:00Z",
+		"totalTransactions": 22,
+		"totalVolume": {
+			"ugx": 4500000,
+			"usdc": 1184
+		},
+		"lastTransaction": "2024-10-15T16:45:00Z",
+		"status": "inactive",
+		"kycStatus": "verified"
+	},
+	{
+		"id": "cust-004",
+		"name": "Mary Auma",
+		"phone": "+256700456789",
+		"location": "Kampala, Uganda",
+		"joinDate": "2024-10-25T14:00:00Z",
+		"totalTransactions": 3,
+		"totalVolume": {
+			"ugx": 450000,
+			"usdc": 118
+		},
+		"lastTransaction": "2024-11-01T11:20:00Z",
+		"status": "active",
+		"kycStatus": "pending"
+	},
+	{
+		"id": "cust-005",
+		"name": "Peter Musoke",
+		"phone": "+256700567890",
+		"location": "Jinja, Uganda",
+		"joinDate": "2024-07-10T09:00:00Z",
+		"totalTransactions": 35,
+		"totalVolume": {
+			"ugx": 7800000,
+			"usdc": 2053
+		},
+		"lastTransaction": "2024-11-03T08:00:00Z",
+		"status": "active",
+		"kycStatus": "verified"
+	}
+]

@@ -11,7 +11,7 @@
  * Usage: <TransactionHistory maxTransactions={5} onViewAll={() => goto('/users/history')} />
 -->
 <script lang="ts">
-	import { ArrowUp, ArrowDown, Minus, Plus, RefreshCw } from 'lucide-svelte';
+	import { ArrowUp, ArrowDown, Minus, Plus, RefreshCw, Search } from 'lucide-svelte';
 	import { demoMode } from '$lib/stores/demoMode';
 	import { principalId } from '$lib/stores/auth';
 	import { fetchTransactions, getTransactionTypeInfo, isOutgoingTransaction } from '$lib/services/data/transactionsData';
@@ -22,13 +22,15 @@
 		showViewAll?: boolean;
 		onViewAll?: () => void;
 		currency?: string;
+		showFilters?: boolean;
 	}
 
 	let {
 		maxTransactions = 5,
 		showViewAll = true,
 		onViewAll,
-		currency = 'UGX'
+		currency = 'UGX',
+		showFilters = false
 	}: Props = $props();
 
 	// Internal state
@@ -36,10 +38,32 @@
 	let isLoading = $state(true);
 	let isRefreshing = $state(false);
 	let error = $state<string | null>(null);
+	let searchQuery = $state('');
+	let typeFilter = $state<string>('all');
+	let displayCount = $state(10); // Start with 10, load more on scroll
+	let loadMoreElement: HTMLDivElement;
 
 	// Reactive: auto-refetch when demoMode or principalId changes
 	$effect(() => {
 		loadTransactions($demoMode, $principalId);
+	});
+
+	// Infinite scroll observer
+	$effect(() => {
+		if (!loadMoreElement || !showFilters) return;
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0].isIntersecting && displayCount < filteredTransactions.length) {
+					displayCount += 10; // Load 10 more
+				}
+			},
+			{ threshold: 0.1 }
+		);
+
+		observer.observe(loadMoreElement);
+
+		return () => observer.disconnect();
 	});
 
 	async function loadTransactions(isDemoMode: boolean, principal: string | null) {
@@ -83,6 +107,22 @@
 			default: return ArrowUp;
 		}
 	}
+
+	// Filtered transactions
+	const filteredTransactions = $derived(
+		transactions.filter(tx => {
+			// Search filter
+			const matchesSearch = searchQuery === '' || 
+				tx.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				tx.type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				tx.amount?.toString().includes(searchQuery);
+
+			// Type filter
+			const matchesType = typeFilter === 'all' || tx.type === typeFilter;
+
+			return matchesSearch && matchesType;
+		})
+	);
 </script>
 
 <div class="bg-white rounded-xl sm:rounded-2xl border border-gray-200">
@@ -90,9 +130,11 @@
 	<div class="p-4 sm:p-6 border-b border-gray-100">
 		<div class="flex justify-between items-center">
 			<div class="flex items-center gap-2">
-				<h3 class="text-lg sm:text-xl font-bold text-gray-900">Recent Transactions</h3>
-				{#if !isLoading && transactions.length > 0}
-					<span class="text-xs sm:text-sm text-gray-500">({transactions.length})</span>
+				<h3 class="text-lg sm:text-xl font-bold text-gray-900">
+					{showFilters ? 'Transaction History' : 'Recent Transactions'}
+				</h3>
+				{#if !isLoading && filteredTransactions.length > 0}
+					<span class="text-xs sm:text-sm text-gray-500">({filteredTransactions.length})</span>
 				{/if}
 			</div>
 			<div class="flex items-center gap-2">
@@ -116,6 +158,71 @@
 		</div>
 	</div>
 
+	<!-- Search and Filters -->
+	{#if showFilters}
+		<div class="p-4 sm:p-6 border-b border-gray-100 space-y-4">
+			<!-- Search -->
+			<div class="relative">
+				<Search class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+				<input
+					type="text"
+					placeholder="Search transactions..."
+					bind:value={searchQuery}
+					class="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent text-sm sm:text-base"
+				/>
+			</div>
+
+			<!-- Type Filters -->
+			<div class="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
+				<button
+					onclick={() => (typeFilter = 'all')}
+					class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors shrink-0 whitespace-nowrap {typeFilter ===
+					'all'
+						? 'bg-black text-white'
+						: 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}"
+				>
+					All
+				</button>
+				<button
+					onclick={() => (typeFilter = 'deposit')}
+					class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors shrink-0 whitespace-nowrap {typeFilter ===
+					'deposit'
+						? 'bg-black text-white'
+						: 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}"
+				>
+					Deposits
+				</button>
+				<button
+					onclick={() => (typeFilter = 'withdraw')}
+					class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors shrink-0 whitespace-nowrap {typeFilter ===
+					'withdraw'
+						? 'bg-black text-white'
+						: 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}"
+				>
+					Withdrawals
+				</button>
+				<button
+					onclick={() => (typeFilter = 'send')}
+					class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors shrink-0 whitespace-nowrap {typeFilter ===
+					'send'
+						? 'bg-black text-white'
+						: 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}"
+				>
+					Sent
+				</button>
+				<button
+					onclick={() => (typeFilter = 'receive')}
+					class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors shrink-0 whitespace-nowrap {typeFilter ===
+					'receive'
+						? 'bg-black text-white'
+						: 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}"
+				>
+					Received
+				</button>
+			</div>
+		</div>
+	{/if}
+
 	<!-- Transactions List -->
 	<div class="divide-y divide-gray-100">
 		{#if isLoading}
@@ -134,7 +241,7 @@
 					Try Again
 				</button>
 			</div>
-		{:else if transactions.length === 0}
+		{:else if filteredTransactions.length === 0}
 			<div class="p-6 sm:p-8 lg:p-12 text-center">
 				<div class="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
 					<ArrowUp class="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-neutral-400" />
@@ -143,7 +250,7 @@
 				<p class="text-neutral-500 text-xs sm:text-sm lg:text-base">Your transaction history will appear here</p>
 			</div>
 		{:else}
-			{#each transactions as transaction}
+			{#each filteredTransactions.slice(0, showFilters ? displayCount : filteredTransactions.length) as transaction}
 				{@const typeInfo = getTransactionTypeInfo(transaction.type)}
 				{@const Icon = getIcon(transaction.type)}
 				{@const isOutgoing = isOutgoingTransaction(transaction.type)}
@@ -204,6 +311,13 @@
 					</div>
 				</div>
 			{/each}
+
+			<!-- Infinite scroll trigger (only when filters enabled) -->
+			{#if showFilters && displayCount < filteredTransactions.length}
+				<div bind:this={loadMoreElement} class="p-4 text-center text-sm text-gray-500">
+					Loading more...
+				</div>
+			{/if}
 		{/if}
 	</div>
 </div>
