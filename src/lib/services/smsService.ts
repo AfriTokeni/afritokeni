@@ -6,13 +6,13 @@
  */
 
 import AfricasTalking from 'africastalking';
-import { PRIVATE_ENV } from '$lib/config/env';
+import { AT_USERNAME, AT_API_KEY, AT_SHORT_CODE } from '$env/static/private';
 
 // Africa's Talking configuration
 // These are server-side only environment variables (never exposed to client)
 const credentials = {
-	username: PRIVATE_ENV.AT_USERNAME,
-	apiKey: PRIVATE_ENV.AT_API_KEY
+	username: AT_USERNAME || 'sandbox',
+	apiKey: AT_API_KEY || ''
 };
 
 // Initialize Africa's Talking
@@ -62,7 +62,7 @@ export async function sendSMS(phoneNumber: string, message: string): Promise<{
 		const result = await sms.send({
 			to: [phoneNumber],
 			message: message,
-			from: PRIVATE_ENV.AT_SHORT_CODE || undefined
+			from: AT_SHORT_CODE || undefined
 		});
 
 		console.log('📱 SMS sent:', result);
