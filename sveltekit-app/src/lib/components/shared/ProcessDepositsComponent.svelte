@@ -2,6 +2,8 @@
 	import { demoMode } from '$lib/stores/demoMode';
 	import { principalId } from '$lib/stores/auth';
 	import { toast } from '$lib/stores/toast';
+	import { fetchAgentDepositRequests } from '$lib/services/data/depositsData';
+	import * as DepositCanisterService from '$lib/services/icp/canisters/depositCanisterService';
 	import {
 		CheckCircle,
 		XCircle,
@@ -64,19 +66,12 @@
 
 		try {
 			loading = true;
-
-			if (isDemoMode) {
-				const response = await fetch('/data/demo/demo-deposit-requests.json');
-				if (!response.ok) throw new Error('Failed to load demo deposits');
-				depositRequests = await response.json();
-			} else {
-				// Real canister call
-				// const result = await depositCanister.get_agent_deposits(agentPrincipal);
-				// depositRequests = result;
-				depositRequests = [];
-			}
+			error = '';
+			
+			// Use real data service (handles both demo and real mode)
+			depositRequests = await fetchAgentDepositRequests(agentPrincipal, isDemoMode);
 		} catch (err: any) {
-			error = err.message;
+			error = err.message || 'Failed to load deposit requests';
 			depositRequests = [];
 		} finally {
 			loading = false;
@@ -97,14 +92,26 @@
 					selectedRequest = { ...request, status: 'confirmed' };
 					error = '';
 				} else {
-					// Real canister call
-					// await depositCanister.confirm_deposit(request.id);
+					// Real canister call - confirm deposit
+					if (!$principalId) {
+						error = 'Agent principal ID not found';
+						return;
+					}
+					
+					// TODO: Get agent's identity for signing
+					// For now, this will fail without proper identity
+					// await DepositCanisterService.confirmDeposit(
+					// 	request.code,
+					// 	$principalId,
+					// 	identity
+					// );
+					
 					await loadDepositRequests($demoMode, $principalId);
 					selectedRequest = request;
 					error = '';
 				}
 			} catch (err: any) {
-				error = 'Failed to confirm deposit request. Please try again.';
+				error = err.message || 'Failed to confirm deposit request. Please try again.';
 			}
 		} else {
 			error = `Invalid deposit code. Expected: ${expectedCode}, Got: ${currentCode}`;

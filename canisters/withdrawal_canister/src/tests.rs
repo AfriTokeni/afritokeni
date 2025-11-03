@@ -1,19 +1,33 @@
 use super::*;
 
 // ============================================================================
-// FEE SPLIT TESTS
+// FEE SPLIT TESTS - CORRECT REVENUE MODEL
 // ============================================================================
 
 #[test]
-fn test_fee_split_10_90() {
+fn test_correct_fee_calculation() {
     let amount = 100_000u64; // 100k UGX withdrawal
     
-    let platform_fee = (amount * 10) / 100;
-    let agent_fee = (amount * 90) / 100;
+    // Platform base fee: 0.5% of amount
+    let platform_base_fee = (amount * 50) / 10000; // 50 bps = 0.5%
     
-    assert_eq!(platform_fee, 10_000); // AfriTokeni gets 10k (10%)
-    assert_eq!(agent_fee, 90_000); // Agent gets 90k (90%)
-    assert_eq!(platform_fee + agent_fee, amount); // Total = 100%
+    // Agent fee: 3% of amount (default, can be 2-12% dynamic)
+    let agent_total_fee = (amount * 300) / 10000; // 300 bps = 3%
+    
+    // Platform gets 10% of agent's fee
+    let platform_cut_of_agent = (agent_total_fee * 10) / 100;
+    
+    // Total platform revenue
+    let total_platform_fee = platform_base_fee + platform_cut_of_agent;
+    
+    // Agent keeps 90% of their fee
+    let agent_keeps = agent_total_fee - platform_cut_of_agent;
+    
+    assert_eq!(platform_base_fee, 500); // 0.5% of 100k = 500 UGX
+    assert_eq!(agent_total_fee, 3_000); // 3% of 100k = 3,000 UGX
+    assert_eq!(platform_cut_of_agent, 300); // 10% of 3k = 300 UGX
+    assert_eq!(total_platform_fee, 800); // 500 + 300 = 800 UGX total revenue
+    assert_eq!(agent_keeps, 2_700); // Agent keeps 2,700 UGX (90% of their fee)
 }
 
 #[test]
@@ -35,33 +49,47 @@ fn test_withdrawal_code_generation() {
 fn test_small_withdrawal_fees() {
     let amount = 10_000u64; // 10k UGX
     
-    let platform = (amount * 10) / 100;
-    let agent = (amount * 90) / 100;
+    let platform_base = (amount * 50) / 10000; // 0.5%
+    let agent_total = (amount * 300) / 10000; // 3%
+    let platform_cut = (agent_total * 10) / 100; // 10% of agent fee
+    let platform_total = platform_base + platform_cut;
+    let agent_keeps = agent_total - platform_cut;
     
-    assert_eq!(platform, 1_000); // 1k to platform
-    assert_eq!(agent, 9_000); // 9k to agent
+    assert_eq!(platform_base, 50); // 0.5% of 10k = 50 UGX
+    assert_eq!(agent_total, 300); // 3% of 10k = 300 UGX
+    assert_eq!(platform_total, 80); // 50 + 30 = 80 UGX
+    assert_eq!(agent_keeps, 270); // Agent keeps 270 UGX
 }
 
 #[test]
 fn test_medium_withdrawal_fees() {
     let amount = 100_000u64; // 100k UGX
     
-    let platform = (amount * 10) / 100;
-    let agent = (amount * 90) / 100;
+    let platform_base = (amount * 50) / 10000; // 0.5%
+    let agent_total = (amount * 300) / 10000; // 3%
+    let platform_cut = (agent_total * 10) / 100;
+    let platform_total = platform_base + platform_cut;
+    let agent_keeps = agent_total - platform_cut;
     
-    assert_eq!(platform, 10_000); // 10k to platform
-    assert_eq!(agent, 90_000); // 90k to agent
+    assert_eq!(platform_base, 500); // 0.5% of 100k = 500 UGX
+    assert_eq!(platform_total, 800); // 500 + 300 = 800 UGX
+    assert_eq!(agent_keeps, 2_700); // Agent keeps 2,700 UGX
 }
 
 #[test]
 fn test_large_withdrawal_fees() {
     let amount = 1_000_000u64; // 1M UGX
     
-    let platform = (amount * 10) / 100;
-    let agent = (amount * 90) / 100;
+    let platform_base = (amount * 50) / 10000; // 0.5%
+    let agent_total = (amount * 300) / 10000; // 3%
+    let platform_cut = (agent_total * 10) / 100;
+    let platform_total = platform_base + platform_cut;
+    let agent_keeps = agent_total - platform_cut;
     
-    assert_eq!(platform, 100_000); // 100k to platform
-    assert_eq!(agent, 900_000); // 900k to agent
+    assert_eq!(platform_base, 5_000); // 0.5% of 1M = 5,000 UGX
+    assert_eq!(agent_total, 30_000); // 3% of 1M = 30,000 UGX
+    assert_eq!(platform_total, 8_000); // 5,000 + 3,000 = 8,000 UGX
+    assert_eq!(agent_keeps, 27_000); // Agent keeps 27,000 UGX
 }
 
 // ============================================================================
@@ -73,13 +101,16 @@ fn test_typical_withdrawal_scenario() {
     // User withdraws 50,000 UGX (~$13 USD)
     let amount = 50_000u64;
     
-    let platform_fee = (amount * 10) / 100;
-    let agent_fee = (amount * 90) / 100;
+    let platform_base = (amount * 50) / 10000; // 0.5%
+    let agent_total = (amount * 300) / 10000; // 3%
+    let platform_cut = (agent_total * 10) / 100;
+    let platform_fee = platform_base + platform_cut;
+    let agent_keeps = agent_total - platform_cut;
     
-    assert_eq!(platform_fee, 5_000); // AfriTokeni gets 5k
-    assert_eq!(agent_fee, 45_000); // Agent gets 45k
+    assert_eq!(platform_fee, 400); // AfriTokeni gets 400 UGX (250 + 150)
+    assert_eq!(agent_keeps, 1_350); // Agent keeps 1,350 UGX
     
-    // Agent gives user 50k cash, earns 45k fee
+    // Agent gives user 50k cash, earns 1,350 UGX net
 }
 
 #[test]
@@ -89,12 +120,19 @@ fn test_agent_daily_earnings() {
     let withdrawals_per_day = 20u64;
     let daily_volume = avg_withdrawal * withdrawals_per_day;
     
-    let daily_agent_earnings = (daily_volume * 90) / 100;
-    let daily_platform_revenue = (daily_volume * 10) / 100;
+    // Per withdrawal calculations
+    let platform_base_per = (avg_withdrawal * 50) / 10000; // 0.5%
+    let agent_total_per = (avg_withdrawal * 300) / 10000; // 3%
+    let platform_cut_per = (agent_total_per * 10) / 100;
+    
+    let daily_platform_base = platform_base_per * withdrawals_per_day;
+    let daily_platform_cut = platform_cut_per * withdrawals_per_day;
+    let daily_platform_revenue = daily_platform_base + daily_platform_cut;
+    let daily_agent_earnings = (agent_total_per - platform_cut_per) * withdrawals_per_day;
     
     assert_eq!(daily_volume, 1_500_000); // 1.5M UGX daily volume
-    assert_eq!(daily_agent_earnings, 1_350_000); // Agent earns 1.35M
-    assert_eq!(daily_platform_revenue, 150_000); // Platform gets 150k
+    assert_eq!(daily_agent_earnings, 40_500); // Agent earns 40.5k (2,025 * 20)
+    assert_eq!(daily_platform_revenue, 12_000); // Platform gets 12k (600 * 20)
 }
 
 #[test]
@@ -102,11 +140,14 @@ fn test_monthly_agent_earnings() {
     // Agent processes 500k UGX in withdrawals per month
     let monthly_volume = 500_000u64;
     
-    let agent_earnings = (monthly_volume * 90) / 100;
-    let platform_revenue = (monthly_volume * 10) / 100;
+    let platform_base = (monthly_volume * 50) / 10000; // 0.5%
+    let agent_total = (monthly_volume * 300) / 10000; // 3%
+    let platform_cut = (agent_total * 10) / 100;
+    let platform_revenue = platform_base + platform_cut;
+    let agent_earnings = agent_total - platform_cut;
     
-    assert_eq!(agent_earnings, 450_000); // Agent earns 450k/month
-    assert_eq!(platform_revenue, 50_000); // Platform gets 50k/month
+    assert_eq!(agent_earnings, 13_500); // Agent earns 13,500 UGX/month
+    assert_eq!(platform_revenue, 4_000); // Platform gets 4,000 UGX/month
 }
 
 #[test]
@@ -116,12 +157,16 @@ fn test_multiple_agents_revenue() {
     let num_agents = 10u64;
     let total_volume = per_agent_volume * num_agents;
     
-    let total_platform_revenue = (total_volume * 10) / 100;
-    let total_agent_earnings = (total_volume * 90) / 100;
+    let platform_base_per = (per_agent_volume * 50) / 10000;
+    let agent_total_per = (per_agent_volume * 300) / 10000;
+    let platform_cut_per = (agent_total_per * 10) / 100;
+    
+    let total_platform_revenue = (platform_base_per + platform_cut_per) * num_agents;
+    let total_agent_earnings = (agent_total_per - platform_cut_per) * num_agents;
     
     assert_eq!(total_volume, 10_000_000); // 10M total
-    assert_eq!(total_platform_revenue, 1_000_000); // 1M to platform
-    assert_eq!(total_agent_earnings, 9_000_000); // 9M to agents
+    assert_eq!(total_platform_revenue, 80_000); // 80k to platform (8k * 10)
+    assert_eq!(total_agent_earnings, 270_000); // 270k to agents (27k * 10)
 }
 
 // ============================================================================
@@ -138,11 +183,13 @@ fn test_agent_earnings_accumulation() {
     
     for amount in withdrawals {
         total_volume += amount;
-        total_agent_fees += (amount * 90) / 100;
+        let agent_total = (amount * 300) / 10000; // 3%
+        let platform_cut = (agent_total * 10) / 100;
+        total_agent_fees += agent_total - platform_cut; // Agent keeps 90%
     }
     
     assert_eq!(total_volume, 1_000_000); // 1M processed
-    assert_eq!(total_agent_fees, 900_000); // 900k earned
+    assert_eq!(total_agent_fees, 27_000); // 27k earned (90% of 30k)
 }
 
 #[test]

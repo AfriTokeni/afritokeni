@@ -14,8 +14,8 @@ pub struct WithdrawalTransaction {
     pub user_principal: Principal,
     pub agent_principal: Principal,
     pub amount_ugx: u64,
-    pub platform_fee_ugx: u64,      // 10% to AfriTokeni
-    pub agent_fee_ugx: u64,          // 90% to Agent
+    pub platform_fee_ugx: u64,      // 0.5% of amount + 10% of agent fee
+    pub agent_fee_ugx: u64,          // Dynamic 2-12% (agent keeps 90%)
     pub withdrawal_code: String,
     pub timestamp: u64,
     pub status: TransactionStatus,
@@ -58,8 +58,9 @@ thread_local! {
     static WITHDRAWALS: RefCell<HashMap<u64, WithdrawalTransaction>> = RefCell::new(HashMap::new());
     static AGENT_EARNINGS: RefCell<HashMap<Principal, AgentEarnings>> = RefCell::new(HashMap::new());
     static NEXT_WITHDRAWAL_ID: RefCell<u64> = RefCell::new(1);
-    static PLATFORM_FEE_PERCENTAGE: RefCell<u64> = RefCell::new(10); // 10%
-    static AGENT_FEE_PERCENTAGE: RefCell<u64> = RefCell::new(90); // 90%
+    static PLATFORM_FEE_BPS: RefCell<u64> = RefCell::new(50); // 0.5% = 50 basis points
+    static AGENT_FEE_BPS: RefCell<u64> = RefCell::new(300); // 3% default (2-12% dynamic)
+    static PLATFORM_CUT_OF_AGENT_FEE: RefCell<u64> = RefCell::new(10); // 10% of agent fee
     static COMPANY_WALLET: RefCell<Option<Principal>> = RefCell::new(None);
 }
 
@@ -98,13 +99,29 @@ fn create_withdrawal_request(request: CreateWithdrawalRequest) -> Result<Withdra
     
     let withdrawal_code = generate_withdrawal_code(withdrawal_id);
     
-    // Calculate fees
-    // Platform gets 10%, Agent gets 90%
-    let platform_fee_pct = PLATFORM_FEE_PERCENTAGE.with(|p| *p.borrow());
-    let agent_fee_pct = AGENT_FEE_PERCENTAGE.with(|a| *a.borrow());
+    // Calculate fees according to revenue model:
+    // 1. Platform fee: 0.5% of withdrawal amount
+    // 2. Agent fee: Dynamic 2-12% based on location (default 3%)
+    // 3. Platform takes 10% of agent's fee
     
-    let platform_fee = (request.amount_ugx * platform_fee_pct) / 100;
-    let agent_fee = (request.amount_ugx * agent_fee_pct) / 100;
+    let platform_fee_bps = PLATFORM_FEE_BPS.with(|p| *p.borrow());
+    let agent_fee_bps = AGENT_FEE_BPS.with(|a| *a.borrow());
+    let platform_cut = PLATFORM_CUT_OF_AGENT_FEE.with(|c| *c.borrow());
+    
+    // Platform fee: 0.5% of amount (50 bps)
+    let platform_base_fee = (request.amount_ugx * platform_fee_bps) / 10000;
+    
+    // Agent fee: 3% of amount (300 bps) - TODO: Make dynamic based on location
+    let agent_total_fee = (request.amount_ugx * agent_fee_bps) / 10000;
+    
+    // Platform gets 10% of agent's fee
+    let platform_cut_of_agent = (agent_total_fee * platform_cut) / 100;
+    
+    // Total platform revenue
+    let platform_fee = platform_base_fee + platform_cut_of_agent;
+    
+    // Agent keeps 90% of their fee
+    let agent_fee = agent_total_fee - platform_cut_of_agent;
     
     let transaction = WithdrawalTransaction {
         id: withdrawal_id,
@@ -272,9 +289,9 @@ fn get_total_agent_earnings() -> u64 {
 
 #[query]
 fn get_fee_split() -> (u64, u64) {
-    let platform = PLATFORM_FEE_PERCENTAGE.with(|p| *p.borrow());
-    let agent = AGENT_FEE_PERCENTAGE.with(|a| *a.borrow());
-    (platform, agent)
+    let platform_bps = PLATFORM_FEE_BPS.with(|p| *p.borrow());
+    let agent_bps = AGENT_FEE_BPS.with(|a| *a.borrow());
+    (platform_bps, agent_bps)
 }
 
 // ============================================================================

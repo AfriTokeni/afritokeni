@@ -2,6 +2,8 @@
 	import { demoMode } from '$lib/stores/demoMode';
 	import { principalId } from '$lib/stores/auth';
 	import { toast } from '$lib/stores/toast';
+	import { fetchAgentWithdrawalRequests } from '$lib/services/data/withdrawalsData';
+	import * as WithdrawalCanisterService from '$lib/services/icp/canisters/withdrawalCanisterService';
 	import {
 		CheckCircle,
 		XCircle,
@@ -64,19 +66,12 @@
 
 		try {
 			loading = true;
-
-			if (isDemoMode) {
-				const response = await fetch('/data/demo/demo-withdrawal-requests.json');
-				if (!response.ok) throw new Error('Failed to load demo withdrawals');
-				withdrawalRequests = await response.json();
-			} else {
-				// Real canister call
-				// const result = await withdrawalCanister.get_agent_withdrawals(agentPrincipal);
-				// withdrawalRequests = result;
-				withdrawalRequests = [];
-			}
+			error = '';
+			
+			// Use real data service (handles both demo and real mode)
+			withdrawalRequests = await fetchAgentWithdrawalRequests(agentPrincipal, isDemoMode);
 		} catch (err: any) {
-			error = err.message;
+			error = err.message || 'Failed to load withdrawal requests';
 			withdrawalRequests = [];
 		} finally {
 			loading = false;
