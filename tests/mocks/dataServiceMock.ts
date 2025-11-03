@@ -87,7 +87,7 @@ export function enableDataServiceMock() {
     // Also update in BalanceService for the test to see
     const userId = phoneToUserId.get(senderPhone) || phoneToUserId.get(cleanSender) || phoneToUserId.get(withPlusSender);
     if (userId) {
-      const { BalanceService } = await import('../../src/services/balanceService');
+      const { BalanceService } = await import('../../src/lib/services/balanceService');
       try {
         await BalanceService.updateUserBalance(userId, newBalance);
       } catch (e) {
