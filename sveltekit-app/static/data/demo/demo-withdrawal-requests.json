@@ -1,0 +1,50 @@
+[
+	{
+		"id": "wth-001",
+		"userId": "user-005",
+		"userName": "Alice Nambi",
+		"userPhone": "+256700567890",
+		"amount": 80000,
+		"currency": "UGX",
+		"code": "WTH4MN",
+		"status": "pending",
+		"createdAt": "2024-11-03T08:00:00Z",
+		"userLocation": "Kampala, Uganda"
+	},
+	{
+		"id": "wth-002",
+		"userId": "user-006",
+		"userName": "Peter Okoth",
+		"userPhone": "+256700678901",
+		"amount": 150000,
+		"currency": "UGX",
+		"code": "WTH7PQ",
+		"status": "pending",
+		"createdAt": "2024-11-03T07:45:00Z",
+		"userLocation": "Kampala, Uganda"
+	},
+	{
+		"id": "wth-003",
+		"userId": "user-007",
+		"userName": "Grace Akello",
+		"userPhone": "+256700789012",
+		"amount": 120000,
+		"currency": "UGX",
+		"code": "WTH2RS",
+		"status": "confirmed",
+		"createdAt": "2024-11-03T07:00:00Z",
+		"userLocation": "Kampala, Uganda"
+	},
+	{
+		"id": "wth-004",
+		"userId": "user-008",
+		"userName": "James Opio",
+		"userPhone": "+256700890123",
+		"amount": 250000,
+		"currency": "UGX",
+		"code": "WTH5TU",
+		"status": "completed",
+		"createdAt": "2024-11-02T16:00:00Z",
+		"userLocation": "Kampala, Uganda"
+	}
+]

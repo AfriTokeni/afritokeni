@@ -132,15 +132,11 @@
 
 		<!-- Balance Display -->
 		<div class="mb-3 sm:mb-4">
-			<div class="flex items-baseline gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+			<div class="flex items-baseline gap-1.5 sm:gap-2">
 				<span class="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-900 font-mono wrap-break-word">
 					₿{formatBTC(balanceBTC)}
 				</span>
 				<span class="text-xs sm:text-sm text-neutral-600 font-semibold">ckBTC</span>
-			</div>
-			
-			<div class="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-neutral-600">
-				<span class="font-mono">{balanceSatoshis.toLocaleString()} sats</span>
 			</div>
 		</div>
 

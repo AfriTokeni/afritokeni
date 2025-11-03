@@ -11,7 +11,9 @@
 		"address": "Plot 123, Kampala Road",
 		"kycStatus": "verified",
 		"isActive": true,
-		"status": "available"
+		"status": "available",
+		"ckBTCBalance": 0.005,
+		"ckUSDBalance": 150.00
 	},
 	"digitalBalance": 2500000,
 	"cashBalance": 1800000,
