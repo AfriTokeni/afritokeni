@@ -158,7 +158,19 @@
 </svelte:head>
 
 <!-- Demo Mode Modal -->
-<DemoModeModal isOpen={showDemoModal} onClose={() => (showDemoModal = false)} userType="agent" />
+<DemoModeModal 
+	isOpen={showDemoModal} 
+	onClose={() => {
+		showDemoModal = false;
+		// When user chooses "Real Account", disable demo mode and show onboarding
+		demoMode.disable();
+		showOnboarding = true;
+	}} 
+	onEnableDemo={() => {
+		demoMode.enable();
+	}}
+	userType="agent" 
+/>
 
 <!-- Onboarding Modal -->
 <AgentOnboardingModal

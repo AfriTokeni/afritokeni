@@ -136,6 +136,12 @@ export default defineConfig({
           write: "public",
           memory: "stable",
         },
+        {
+          collection: "agent_reviews",
+          read: "public",
+          write: "public",
+          memory: "stable",
+        },
       ],
       storage: [
         {
@@ -146,6 +152,13 @@ export default defineConfig({
         },
         {
           collection: "profile-images",
+          read: "public",
+          write: "managed",
+          memory: "stable",
+          maxSize: 5242880n, // 5MB max file size
+        },
+        {
+          collection: "agent-profile-images",
           read: "public",
           write: "managed",
           memory: "stable",
