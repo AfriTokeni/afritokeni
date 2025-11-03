@@ -65,6 +65,26 @@ npm run dev
 npm run build
 ```
 
+### ICP Canister Development
+
+AfriTokeni uses custom ICP canisters (smart contracts) for deposit, withdrawal, and exchange operations. TypeScript bindings are **auto-generated** from Rust code.
+
+```bash
+# Build all canisters + generate Candid interfaces + TypeScript bindings
+npm run canisters:generate
+
+# Or run steps individually:
+npm run canisters:build              # Build Rust → WASM
+npm run canisters:generate-candid    # Extract Candid (.did) from WASM
+npm run canisters:generate-ts        # Generate TypeScript types from Candid
+```
+
+**What gets generated:**
+- `canisters/*/canister_name.did` - Candid interface (IDL)
+- `sveltekit-app/src/lib/services/icp/canisters/*.ts` - TypeScript types & actor interfaces
+
+**⚠️ Important:** Always run `npm run canisters:generate` after modifying canister Rust code to keep TypeScript bindings in sync!
+
 ### Testing
 
 ```bash

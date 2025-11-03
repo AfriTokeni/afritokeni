@@ -35,3 +35,14 @@ api/.env
 .dfx/
 .dfx.json
 canister_ids.json
+
+# Rust/Cargo build artifacts
+target/
+Cargo.lock
+
+# Auto-generated files (regenerate with npm run canisters:generate)
+src/declarations/
+canisters/*/*.did
+sveltekit-app/src/lib/services/icp/canisters/depositCanister.ts
+sveltekit-app/src/lib/services/icp/canisters/withdrawalCanister.ts
+sveltekit-app/src/lib/services/icp/canisters/exchangeCanister.ts
