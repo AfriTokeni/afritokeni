@@ -26,7 +26,8 @@
     
     "test:unit": "NODE_ENV=unit-test cucumber-js 'tests/features/ussd-*.feature' --require 'tests/setup.ts' --require 'tests/features/step-definitions/*.ts' --require-module tsx",
     "test:integration": "npm run icp:start && npm run icp:deploy && NODE_ENV=integration DFX_NETWORK=local cucumber-js 'tests/features/integration-*.feature' --require 'tests/setup.ts' --require 'tests/features/step-definitions/*.ts' --require-module tsx",
-    "test:all": "npm run test:unit && npm run test:integration",
+    "test:e2e": "npm run icp:start && npm run canisters:deploy && NODE_ENV=e2e DFX_NETWORK=local cucumber-js 'tests/features/e2e-*.feature' --require 'tests/setup.ts' --require 'tests/features/step-definitions/*.ts' --require-module tsx",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
     
     "icp:start": "dfx start --clean --background",
     "icp:stop": "dfx stop",
@@ -35,6 +36,7 @@
     "canisters:build": "cargo build --target wasm32-unknown-unknown --release --package deposit_canister --package withdrawal_canister --package exchange_canister",
     "canisters:generate-candid": "candid-extractor target/wasm32-unknown-unknown/release/deposit_canister.wasm > canisters/deposit_canister/deposit_canister.did && candid-extractor target/wasm32-unknown-unknown/release/withdrawal_canister.wasm > canisters/withdrawal_canister/withdrawal_canister.did && candid-extractor target/wasm32-unknown-unknown/release/exchange_canister.wasm > canisters/exchange_canister/exchange_canister.did",
     "canisters:generate-ts": "dfx generate deposit_canister && dfx generate withdrawal_canister && dfx generate exchange_canister && mv src/declarations/deposit_canister/deposit_canister.did.d.ts src/lib/services/icp/canisters/depositCanister.ts && mv src/declarations/withdrawal_canister/withdrawal_canister.did.d.ts src/lib/services/icp/canisters/withdrawalCanister.ts && mv src/declarations/exchange_canister/exchange_canister.did.d.ts src/lib/services/icp/canisters/exchangeCanister.ts",
+    "canisters:deploy": "npm run canisters:build && dfx deploy deposit_canister && dfx deploy withdrawal_canister && dfx deploy exchange_canister",
     "canisters:generate": "npm run canisters:build && npm run canisters:generate-candid && npm run canisters:generate-ts",
     
     "postinstall": "npm run postinstall:copy-auth",
