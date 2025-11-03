@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Header from '$lib/components/layout/Header.svelte';
+	import Footer from '$lib/components/layout/Footer.svelte';
 	import { 
 		Calculator, 
 		MapPin, 
@@ -96,6 +98,8 @@
 	<title>Pricing - AfriTokeni</title>
 	<meta name="description" content="Transparent, location-based pricing across Africa. Fair compensation for agents." />
 </svelte:head>
+
+<Header />
 
 <div class="min-h-screen bg-gray-50">
 	<!-- Hero Section with Gradient -->
@@ -455,3 +459,5 @@
 		</div>
 	</div>
 </div>
+
+<Footer />

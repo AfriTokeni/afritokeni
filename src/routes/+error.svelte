@@ -1,86 +1,70 @@
 <script lang="ts">
-	import { Home, Smartphone, Compass } from '@lucide/svelte';
+	import Header from '$lib/components/layout/Header.svelte';
+	import Footer from '$lib/components/layout/Footer.svelte';
+	import { ArrowLeft } from '@lucide/svelte';
 
-	export let error: Error & { message?: string };
 	export let status: number;
+	export let error: Error & { message?: string };
 
-	const title = status === 404 ? "Page not found" : "Something went wrong";
-	const description =
-		status === 404
-			? "The page you were looking for has moved or no longer exists."
-			: "An unexpected error occurred. Our team has been alerted.";
+	const is404 = status === 404;
+	const title = is404 ? 'Page Not Found' : 'Something Went Wrong';
+	const subtitle = is404
+		? "The page you're looking for doesn't exist or has been moved."
+		: 'An unexpected error occurred. Our team has been notified and is working on it.';
 </script>
 
 <svelte:head>
 	<title>{status} | AfriTokeni</title>
 </svelte:head>
 
-<section class="min-h-screen bg-slate-950 text-white">
-	<div class="mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-6 py-16 text-center">
-		<span class="rounded-full bg-white/10 px-4 py-1 text-sm font-semibold tracking-widest text-emerald-300">
-			{status}
-		</span>
+<div class="min-h-screen flex flex-col bg-neutral-50">
+	<Header />
 
-		<h1 class="mt-6 text-4xl font-black sm:text-5xl lg:text-6xl">
-			{title}
-		</h1>
+	<main class="flex-1 flex items-center justify-center px-4 py-16">
+		<div class="max-w-2xl w-full">
+			<!-- Error Card -->
+			<div class="bg-white rounded-2xl shadow-lg border border-neutral-200 p-16 text-center">
+				<!-- Large Status Code -->
+				<div class="mb-6">
+					<span class="text-9xl font-black text-neutral-200">{status}</span>
+				</div>
 
-		<p class="mt-4 max-w-2xl text-base text-slate-300 sm:text-lg">
-			{description}
-		</p>
+				<!-- Title -->
+				<h1 class="text-5xl font-bold text-neutral-900 mb-6">
+					{title}
+				</h1>
 
-		{#if error?.message && status !== 404}
-			<p class="mt-2 max-w-xl text-sm text-slate-500">
-				{error.message}
-			</p>
-		{/if}
+				<!-- Subtitle -->
+				<p class="text-xl text-neutral-600 mb-10 max-w-lg mx-auto leading-relaxed">
+					{subtitle}
+				</p>
 
-		<div class="mt-10 flex flex-col gap-3 sm:flex-row sm:gap-4">
-			<a
-				href="/"
-				class="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/20"
-			>
-				<Home class="h-4 w-4" />
-				Back to Home
-			</a>
+				<!-- Error Details (if available) -->
+				{#if error?.message && !is404}
+					<div class="mb-10 p-5 bg-red-50 border border-red-100 rounded-xl text-sm text-red-800 text-left max-w-lg mx-auto">
+						<p class="font-semibold mb-2">Technical Details:</p>
+						<p class="font-mono text-xs leading-relaxed">{error.message}</p>
+					</div>
+				{/if}
 
-			<a
-				href="/ussd"
-				class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400"
-			>
-				<Smartphone class="h-4 w-4" />
-				Try USSD Playground
-			</a>
-
-			<a
-				href="/pricing"
-				class="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/40"
-			>
-				<Compass class="h-4 w-4" />
-				View Pricing
-			</a>
-		</div>
-
-		<div class="mt-14 grid gap-6 rounded-3xl border border-white/10 bg-white/5 p-6 text-left sm:grid-cols-2">
-			<div>
-				<h2 class="text-sm font-semibold uppercase tracking-wide text-emerald-200">Need help?</h2>
-				<p class="mt-2 text-sm text-slate-300">
-					Reach out to our team at
-					<a href="mailto:info@afritokeni.com" class="text-emerald-200 underline decoration-dotted underline-offset-2">
-						info@afritokeni.com
+				<!-- Single Action Button -->
+				<div class="mb-8">
+					<a
+						href="/"
+						class="inline-flex items-center justify-center gap-2 bg-neutral-900 text-white px-8 py-4 rounded-xl font-semibold hover:bg-neutral-800 transition-all duration-200 shadow-sm"
+					>
+						<ArrowLeft class="h-5 w-5" />
+						Go Back Home
 					</a>
-					and we will get you back on track.
+				</div>
+
+				<!-- Help Text -->
+				<p class="text-neutral-500 text-sm">
+					Need help? Email us at <a href="mailto:support@afritokeni.com" class="text-neutral-900 font-semibold hover:underline">support@afritokeni.com</a>
 				</p>
 			</div>
-			<div>
-				<h2 class="text-sm font-semibold uppercase tracking-wide text-emerald-200">Popular destinations</h2>
-				<ul class="mt-2 space-y-2 text-sm text-slate-300">
-					<li><a class="hover:text-emerald-200" href="/about">About AfriTokeni</a></li>
-					<li><a class="hover:text-emerald-200" href="/info/dao">DAO Governance</a></li>
-					<li><a class="hover:text-emerald-200" href="/whitepaper">Whitepaper</a></li>
-					<li><a class="hover:text-emerald-200" href="/become-agent">Become an Agent</a></li>
-				</ul>
-			</div>
 		</div>
-	</div>
-</section>
+	</main>
+
+	<Footer />
+</div>
