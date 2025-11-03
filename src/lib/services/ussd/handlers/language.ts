@@ -4,8 +4,8 @@
  */
 
 import type { USSDSession } from "../types.js";
-import { continueSession, endSession } from "../utils/responses.js";
-import { TranslationService, type Language } from "../../translations.js";
+import { continueSession } from "../utils/responses.js";
+import { TranslationService } from "../../translations.js";
 
 /**
  * Handle language selection menu

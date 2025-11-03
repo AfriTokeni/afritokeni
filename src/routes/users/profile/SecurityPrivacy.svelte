@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { ChevronDown, ChevronUp, Shield } from "@lucide/svelte";
-  interface Props {
+    import {ChevronDown, ChevronUp, Shield} from "@lucide/svelte";
+
+    interface Props {
     expanded: boolean;
     onToggle: () => void;
   }

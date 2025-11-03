@@ -1,15 +1,12 @@
-import { TransactionService } from "./transactionService";
-import { BalanceService } from "./balanceService";
 import type { User } from "../types/auth";
 import { generatePrincipalFromIdentifier } from "../utils/principalUtils.js";
 import type { Transaction } from "../types/transaction";
 import { AnonymousIdentity } from "@dfinity/agent";
 import type { SatelliteOptions } from "@junobuild/core";
-import { getDoc, setDoc, listDocs, deleteDoc } from "@junobuild/core";
+import { getDoc, listDocs, setDoc } from "@junobuild/core";
 import { nanoid } from "nanoid";
 import type { AfricanCurrency } from "../types/currency";
-import { Principal } from "@dfinity/principal";
-import { shouldUseMocks, MOCK_USER_BALANCE } from "./mockService.js";
+import { MOCK_USER_BALANCE, shouldUseMocks } from "./mockService.js";
 
 const satellite: SatelliteOptions = {
   identity: new AnonymousIdentity(),

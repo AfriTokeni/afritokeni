@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import { ArrowLeft, MapPin, Check } from "@lucide/svelte";
-  import { toast } from "$lib/stores/toast";
-  import { demoMode } from "$lib/stores/demoMode";
-  import { fetchAgents } from "$lib/services/data/agentsData";
-  import { onMount } from "svelte";
+    import {goto} from "$app/navigation";
+    import {ArrowLeft, Check, MapPin} from "@lucide/svelte";
+    import {toast} from "$lib/stores/toast";
+    import {demoMode} from "$lib/stores/demoMode";
+    import {fetchAgents} from "$lib/services/data/agentsData";
+    import {onMount} from "svelte";
 
-  // State
+    // State
   let step = $state<"amount" | "agent" | "confirmation">("amount");
   let amount = $state("");
   let selectedAgent = $state<any>(null);

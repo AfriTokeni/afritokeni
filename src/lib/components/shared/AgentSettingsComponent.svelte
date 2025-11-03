@@ -1,25 +1,13 @@
 <script lang="ts">
-  import { demoMode } from "$lib/stores/demoMode";
-  import { principalId } from "$lib/stores/auth";
-  import { toast } from "$lib/stores/toast";
-  import {
-    User,
-    Bell,
-    Shield,
-    Globe,
-    Save,
-    CheckCircle,
-    RotateCcw,
-    AlertCircle,
-  } from "@lucide/svelte";
-  import { onMount } from "svelte";
-  import { getDoc, setDoc } from "@junobuild/core";
-  import {
-    AGENT_SETTINGS_CONFIG,
-    getSliderLabel,
-  } from "$lib/config/agentSettings";
+    import {demoMode} from "$lib/stores/demoMode";
+    import {principalId} from "$lib/stores/auth";
+    import {toast} from "$lib/stores/toast";
+    import {AlertCircle, Bell, Globe, RotateCcw, Save, Shield, User,} from "@lucide/svelte";
+    import {onMount} from "svelte";
+    import {getDoc, setDoc} from "@junobuild/core";
+    import {AGENT_SETTINGS_CONFIG, getSliderLabel,} from "$lib/config/agentSettings";
 
-  interface AgentSettings {
+    interface AgentSettings {
     commissionRate: number;
     maxCashLimit: number;
     operatingHours: { start: string; end: string };

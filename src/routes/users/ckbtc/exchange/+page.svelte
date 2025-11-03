@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import { ArrowLeft, ArrowDownUp, RefreshCw } from "@lucide/svelte";
-  import { toast } from "$lib/stores/toast";
-  import { getExchangeRates } from "$lib/services/exchangeRateService";
-  import { fetchCkBTCBalance } from "$lib/services/data/ckbtcData";
-  import { demoMode } from "$lib/stores/demoMode";
-  import { principalId } from "$lib/stores/auth";
-  import { onMount } from "svelte";
+    import {goto} from "$app/navigation";
+    import {ArrowDownUp, ArrowLeft, RefreshCw} from "@lucide/svelte";
+    import {toast} from "$lib/stores/toast";
+    import {getExchangeRates} from "$lib/services/exchangeRateService";
+    import {fetchCkBTCBalance} from "$lib/services/data/ckbtcData";
+    import {demoMode} from "$lib/stores/demoMode";
+    import {principalId} from "$lib/stores/auth";
+    import {onMount} from "svelte";
 
-  let fromAmount = $state("");
+    let fromAmount = $state("");
   let toAmount = $state("");
   let exchangeRate = $state(0);
   let isExchanging = $state(false);

@@ -1,26 +1,22 @@
 <!--
  * Fiat Balance Card Component (FULLY ENCAPSULATED)
- * 
+ *
  * Self-contained component that:
  * - Subscribes to demoMode and auth stores internally
  * - Fetches its own data via pure data service
  * - Manages its own loading/error states
  * - Auto-updates when demoMode toggles
  * - Emits events for user actions
- * 
+ *
  * Usage: <FiatBalanceCard onDeposit={...} onWithdraw={...} />
 -->
 <script lang="ts">
-  import { Wallet, Send, Download, Upload, RefreshCw } from "lucide-svelte";
-  import { demoMode } from "$lib/stores/demoMode";
-  import { principalId } from "$lib/stores/auth";
-  import {
-    fetchFiatBalance,
-    formatCurrency,
-    getCurrencySymbol,
-  } from "$lib/services/data/fiatData";
+    import {Download, RefreshCw, Send, Upload, Wallet} from "lucide-svelte";
+    import {demoMode} from "$lib/stores/demoMode";
+    import {principalId} from "$lib/stores/auth";
+    import {fetchFiatBalance, formatCurrency, getCurrencySymbol,} from "$lib/services/data/fiatData";
 
-  interface Props {
+    interface Props {
     showActions?: boolean;
     onDeposit?: () => void;
     onWithdraw?: () => void;

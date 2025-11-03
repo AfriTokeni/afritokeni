@@ -7,7 +7,7 @@ import type { USSDSession } from "../types.js";
 import { continueSession, endSession } from "../utils/responses.js";
 import { getSessionCurrency } from "../utils/currency.js";
 import { WebhookDataService as DataService } from "../../webHookServices.js";
-import { TranslationService, type Language } from "../../translations.js";
+import { type Language, TranslationService } from "../../translations.js";
 import {
   handleCheckBalance,
   handleTransactionHistory,

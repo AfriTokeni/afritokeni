@@ -3,10 +3,10 @@
  * Multi-step wizard for completing user profile
  -->
 <script lang="ts">
-  import { X, User, MapPin, Check } from "lucide-svelte";
-  import { toast } from "$lib/stores/toast";
+    import {Check, MapPin, User, X} from "lucide-svelte";
+    import {toast} from "$lib/stores/toast";
 
-  interface Props {
+    interface Props {
     isOpen: boolean;
     onClose: () => void;
     onComplete: (data: any) => void;

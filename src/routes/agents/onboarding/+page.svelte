@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import { principalId } from "$lib/stores/auth";
-  import AgentOnboardingModal from "$lib/components/agent/AgentOnboardingModal.svelte";
-  import { onMount } from "svelte";
-  import { getDoc } from "@junobuild/core";
+    import {goto} from "$app/navigation";
+    import {principalId} from "$lib/stores/auth";
+    import AgentOnboardingModal from "$lib/components/agent/AgentOnboardingModal.svelte";
+    import {onMount} from "svelte";
+    import {getDoc} from "@junobuild/core";
 
-  let showOnboarding = $state(true);
+    let showOnboarding = $state(true);
 
   // Check if agent already has profile
   onMount(async () => {

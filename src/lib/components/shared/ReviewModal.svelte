@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { Star, X } from "@lucide/svelte";
-  import type { Agent } from "$lib/utils/agents";
-  import { toast } from "$lib/stores/toast";
+    import {Star, X} from "@lucide/svelte";
+    import type {Agent} from "$lib/utils/agents";
+    import {toast} from "$lib/stores/toast";
 
-  interface Props {
+    interface Props {
     agent: Agent;
     onClose: () => void;
     onSubmit: (rating: number, comment: string) => void;

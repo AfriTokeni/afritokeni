@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { Settings, Check, Search } from "@lucide/svelte";
-  import { getActiveCurrencies } from "$lib/types/currency";
+    import {Check, Search, Settings} from "@lucide/svelte";
+    import {getActiveCurrencies} from "$lib/types/currency";
 
-  interface Props {
+    interface Props {
     currentCurrency: string;
     onCurrencyChange: (currency: string) => void;
   }

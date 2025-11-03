@@ -5,7 +5,7 @@
  * This is the REAL authentication - no fake data!
  */
 
-import { writable, derived, type Readable } from "svelte/store";
+import { derived, type Readable, writable } from "svelte/store";
 import { onAuthStateChange, type User as JunoUser } from "@junobuild/core";
 import { browser } from "$app/environment";
 

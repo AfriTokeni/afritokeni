@@ -7,11 +7,7 @@ import type { USSDSession } from "../types.js";
 import { continueSession, endSession } from "../utils/responses.js";
 import { getSessionCurrency } from "../utils/currency.js";
 import { WebhookDataService as DataService } from "../../webHookServices.js";
-import {
-  requiresPinVerification,
-  requestPinVerification,
-  verifyUserPin,
-} from "./pinManagement.js";
+import { requestPinVerification, requiresPinVerification, verifyUserPin } from "./pinManagement.js";
 import { TranslationService } from "../../translations.js";
 
 /**

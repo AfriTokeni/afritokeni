@@ -1,30 +1,26 @@
 <!--
  * Agent Finder Component (FULLY ENCAPSULATED)
- * 
+ *
  * Self-contained component that:
  * - Subscribes to demoMode store internally
  * - Fetches its own agent data via pure data service
  * - Manages its own loading/error states
  * - Handles geolocation internally
  * - Auto-updates when demoMode toggles
- * 
+ *
  * Usage: <AgentFinder />
 -->
 <script lang="ts">
-  import { Navigation } from "lucide-svelte";
-  import { demoMode } from "$lib/stores/demoMode";
-  import { fetchAgents } from "$lib/services/data/agentsData";
-  import {
-    calculateDistance,
-    type Agent,
-    type UserLocation,
-  } from "$lib/utils/agents";
-  import AgentSearchFilters from "./AgentSearchFilters.svelte";
-  import AgentCard from "./AgentCard.svelte";
-  import AgentMap from "./AgentMap.svelte";
-  import "leaflet/dist/leaflet.css";
+    import {Navigation} from "lucide-svelte";
+    import {demoMode} from "$lib/stores/demoMode";
+    import {fetchAgents} from "$lib/services/data/agentsData";
+    import {type Agent, calculateDistance, type UserLocation,} from "$lib/utils/agents";
+    import AgentSearchFilters from "./AgentSearchFilters.svelte";
+    import AgentCard from "./AgentCard.svelte";
+    import AgentMap from "./AgentMap.svelte";
+    import "leaflet/dist/leaflet.css";
 
-  // Internal state
+    // Internal state
   let agents = $state<Agent[]>([]);
   let userLocation = $state<UserLocation | null>(null);
   let searchQuery = $state("");

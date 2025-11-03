@@ -1,13 +1,13 @@
 import {
-  Home,
-  Send,
-  History,
-  User,
-  MapPin,
-  Vote,
-  Trophy,
-  LayoutDashboard,
   Banknote,
+  History,
+  Home,
+  LayoutDashboard,
+  MapPin,
+  Send,
+  Trophy,
+  User,
+  Vote,
 } from "@lucide/svelte";
 
 export interface Route {

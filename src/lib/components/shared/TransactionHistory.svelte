@@ -1,34 +1,27 @@
 <!--
  * Transaction History Component (FULLY ENCAPSULATED)
- * 
+ *
  * Self-contained component that:
  * - Subscribes to demoMode and auth stores internally
  * - Fetches its own data via pure data service
  * - Manages its own loading/error states
  * - Auto-updates when demoMode toggles
  * - Emits events for navigation
- * 
+ *
  * Usage: <TransactionHistory maxTransactions={5} onViewAll={() => goto('/users/history')} />
 -->
 <script lang="ts">
-  import {
-    ArrowUp,
-    ArrowDown,
-    Minus,
-    Plus,
-    RefreshCw,
-    Search,
-  } from "lucide-svelte";
-  import { demoMode } from "$lib/stores/demoMode";
-  import { principalId } from "$lib/stores/auth";
-  import {
-    fetchTransactions,
-    getTransactionTypeInfo,
-    isOutgoingTransaction,
-  } from "$lib/services/data/transactionsData";
-  import { formatCurrencyAmount } from "$lib/types/currency";
+    import {ArrowDown, ArrowUp, Minus, Plus, RefreshCw, Search,} from "lucide-svelte";
+    import {demoMode} from "$lib/stores/demoMode";
+    import {principalId} from "$lib/stores/auth";
+    import {
+        fetchTransactions,
+        getTransactionTypeInfo,
+        isOutgoingTransaction,
+    } from "$lib/services/data/transactionsData";
+    import {formatCurrencyAmount} from "$lib/types/currency";
 
-  interface Props {
+    interface Props {
     maxTransactions?: number;
     showViewAll?: boolean;
     onViewAll?: () => void;

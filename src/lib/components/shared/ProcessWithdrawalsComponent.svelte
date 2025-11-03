@@ -1,23 +1,11 @@
 <script lang="ts">
-  import { demoMode } from "$lib/stores/demoMode";
-  import { principalId } from "$lib/stores/auth";
-  import { toast } from "$lib/stores/toast";
-  import { fetchAgentWithdrawalRequests } from "$lib/services/data/withdrawalsData";
-  import * as WithdrawalCanisterService from "$lib/services/icp/canisters/withdrawalCanisterService";
-  import {
-    CheckCircle,
-    XCircle,
-    Clock,
-    User,
-    Phone,
-    MapPin,
-    AlertCircle,
-    Search,
-    X,
-    Info,
-  } from "@lucide/svelte";
+    import {demoMode} from "$lib/stores/demoMode";
+    import {principalId} from "$lib/stores/auth";
+    import {toast} from "$lib/stores/toast";
+    import {fetchAgentWithdrawalRequests} from "$lib/services/data/withdrawalsData";
+    import {AlertCircle, CheckCircle, Clock, Info, MapPin, Phone, Search, X, XCircle,} from "@lucide/svelte";
 
-  let showInstructions = $state(false);
+    let showInstructions = $state(false);
 
   interface WithdrawalRequest {
     id: string;

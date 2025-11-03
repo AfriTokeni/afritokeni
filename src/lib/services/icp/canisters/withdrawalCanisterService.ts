@@ -18,10 +18,10 @@ import { Actor, HttpAgent } from "@dfinity/agent";
 import { Principal } from "@dfinity/principal";
 import type {
   _SERVICE,
-  WithdrawalTransaction,
-  CreateWithdrawalRequest,
-  ConfirmWithdrawalRequest,
   AgentEarnings,
+  ConfirmWithdrawalRequest,
+  CreateWithdrawalRequest,
+  WithdrawalTransaction
 } from "./withdrawalCanister";
 import { idlFactory } from "./withdrawalCanister";
 import { IC_HOST } from "./config";
@@ -33,7 +33,7 @@ import * as env from "$env/static/public";
 function getWithdrawalCanisterId(): string {
   // Check environment variables (set via .env)
   const WITHDRAWAL_CANISTER_ID =
-    (env as Record<string, string>).PUBLIC_WITHDRAWAL_CANISTER_ID || 
+    (env as Record<string, string>).PUBLIC_WITHDRAWAL_CANISTER_ID ||
     (env as Record<string, string>).PUBLIC_DEV_WITHDRAWAL_CANISTER_ID ||
     "";
 

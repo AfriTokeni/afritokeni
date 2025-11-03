@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { AlertTriangle, Clock, XCircle, ArrowRight } from "@lucide/svelte";
-  import { goto } from "$app/navigation";
+    import {AlertTriangle, ArrowRight, Clock, XCircle} from "@lucide/svelte";
+    import {goto} from "$app/navigation";
 
-  interface Props {
+    interface Props {
     userType: "user" | "agent";
     kycStatus?: "not_started" | "pending" | "rejected" | "approved";
   }

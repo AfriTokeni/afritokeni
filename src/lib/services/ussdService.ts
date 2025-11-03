@@ -1,10 +1,12 @@
-import { nanoid } from "nanoid";
 import { getDoc, setDoc } from "@junobuild/core";
 import { RateLimiter } from "./rateLimiter";
-import { USSDSessionImpl } from "./ussd/types";
 import type { USSDSession } from "./ussd/types";
+import { USSDSessionImpl } from "./ussd/types";
 import { handleMainMenu } from "./ussd/handlers/mainMenu";
-import { handleLocalCurrency } from "./ussd/handlers/localCurrency";
+import {
+  handleLocalCurrency,
+  handleTransactionHistory,
+} from "./ussd/handlers/localCurrency";
 import {
   handleBitcoin,
   handleBTCBalance,
@@ -20,7 +22,6 @@ import { handleWithdraw } from "./ussd/handlers/withdraw";
 import { handleDeposit } from "./ussd/handlers/deposit";
 import { handleFindAgent } from "./ussd/handlers/agents";
 import { handleDAO } from "./ussd/handlers/dao";
-import { handleTransactionHistory } from "./ussd/handlers/localCurrency";
 import { handlePinCheck } from "./ussd/handlers/pinManagement";
 import { shouldUseMocks } from "./mockService";
 

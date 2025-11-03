@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { Circle, Clock, AlertTriangle, WifiOff } from "@lucide/svelte";
-  import type { Component } from "svelte";
+    import {AlertTriangle, Circle, Clock, WifiOff} from "@lucide/svelte";
 
-  interface Props {
+    interface Props {
     status: "available" | "busy" | "cash_out" | "offline";
     isActive?: boolean;
     size?: "sm" | "md" | "lg";

@@ -1,15 +1,12 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import {
-    formatCurrencyAmount,
-    type AfricanCurrency,
-  } from "$lib/types/currency";
-  import { getUserData, getUserBalance } from "$lib/services/user/userService";
-  import AmountStep from "./AmountStep.svelte";
-  import AgentStep from "./AgentStep.svelte";
-  import ConfirmationStep from "./ConfirmationStep.svelte";
+    import {onMount} from "svelte";
+    import {formatCurrencyAmount,} from "$lib/types/currency";
+    import {getUserBalance, getUserData} from "$lib/services/user/userService";
+    import AmountStep from "./AmountStep.svelte";
+    import AgentStep from "./AgentStep.svelte";
+    import ConfirmationStep from "./ConfirmationStep.svelte";
 
-  type WithdrawStep = "amount" | "agent" | "confirmation";
+    type WithdrawStep = "amount" | "agent" | "confirmation";
   type Agent = {
     id: string;
     businessName: string;

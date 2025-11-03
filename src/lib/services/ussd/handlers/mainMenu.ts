@@ -4,7 +4,7 @@
  */
 
 import type { USSDSession } from "../types.js";
-import { continueSession, endSession } from "../utils/responses.js";
+import { continueSession } from "../utils/responses.js";
 import { getSessionCurrency } from "../utils/currency.js";
 import { TranslationService } from "../../translations.js";
 import { handleLanguageSelection } from "./language.js";

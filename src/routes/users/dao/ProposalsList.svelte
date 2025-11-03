@@ -1,21 +1,8 @@
 <script lang="ts">
-  import {
-    CheckCircle,
-    XCircle,
-    Clock,
-    DollarSign,
-    Globe,
-    Shield,
-    FileText,
-    Lightbulb,
-  } from "@lucide/svelte";
-  import {
-    getTotalVotes,
-    calculateVotePercentage,
-    type Proposal,
-  } from "$lib/utils/dao";
+    import {CheckCircle, Clock, DollarSign, FileText, Globe, Lightbulb, Shield, XCircle,} from "@lucide/svelte";
+    import {calculateVotePercentage, getTotalVotes, type Proposal,} from "$lib/utils/dao";
 
-  interface Props {
+    interface Props {
     proposals: Proposal[];
     onVote: (proposalId: string, choice: "yes" | "no" | "abstain") => void;
   }

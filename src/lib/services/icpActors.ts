@@ -3,7 +3,7 @@
  * Creates actors to interact with ICP mainnet canisters
  */
 
-import { Actor, HttpAgent, type ActorSubclass } from "@dfinity/agent";
+import { Actor, type ActorSubclass, HttpAgent } from "@dfinity/agent";
 import { Principal } from "@dfinity/principal";
 
 // ckBTC Canister IDs - use local dfx if available, otherwise mainnet

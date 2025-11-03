@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Users, Target, Zap, Globe, Award, Heart } from "@lucide/svelte";
+    import {Award, Globe, Heart, Target, Users, Zap} from "@lucide/svelte";
 </script>
 
 <svelte:head>

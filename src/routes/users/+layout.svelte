@@ -1,7 +1,8 @@
 <script lang="ts">
-  import DashboardLayout from "$lib/components/dashboard/DashboardLayout.svelte";
-  import ToastContainer from "$lib/components/shared/ToastContainer.svelte";
-  let { children } = $props();
+    import DashboardLayout from "$lib/components/dashboard/DashboardLayout.svelte";
+    import ToastContainer from "$lib/components/shared/ToastContainer.svelte";
+
+    let { children } = $props();
 </script>
 
 <DashboardLayout userType="user">

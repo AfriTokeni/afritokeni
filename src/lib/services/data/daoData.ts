@@ -11,7 +11,7 @@
 import { HttpAgent } from "@dfinity/agent";
 import { Principal } from "@dfinity/principal";
 import { SnsGovernanceCanister } from "@dfinity/sns";
-import { CANISTER_IDS, getHost, DAO_CONFIG } from "$lib/config/canister";
+import { CANISTER_IDS, DAO_CONFIG, getHost } from "$lib/config/canister";
 
 // Re-export DAO config for convenience
 export const DAO_CONSTANTS = DAO_CONFIG;

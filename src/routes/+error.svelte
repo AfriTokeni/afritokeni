@@ -1,9 +1,9 @@
 <script lang="ts">
-  import Header from "$lib/components/layout/Header.svelte";
-  import Footer from "$lib/components/layout/Footer.svelte";
-  import { ArrowLeft } from "@lucide/svelte";
+    import Header from "$lib/components/layout/Header.svelte";
+    import Footer from "$lib/components/layout/Footer.svelte";
+    import {ArrowLeft} from "@lucide/svelte";
 
-  export let status: number;
+    export let status: number;
   export let error: Error & { message?: string };
 
   const is404 = status === 404;

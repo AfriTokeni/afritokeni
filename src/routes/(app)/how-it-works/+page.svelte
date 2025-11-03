@@ -1,12 +1,5 @@
 <script lang="ts">
-  import {
-    Bitcoin,
-    Shield,
-    Users,
-    CheckCircle,
-    Coins,
-    Smartphone,
-  } from "@lucide/svelte";
+    import {Bitcoin, CheckCircle, Coins, Shield, Smartphone, Users,} from "@lucide/svelte";
 </script>
 
 <svelte:head>

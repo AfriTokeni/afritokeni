@@ -1,20 +1,14 @@
 <!--
  * ckUSD Balance Card Component
- * 
+ *
  * Displays user's ckUSD balance with local currency equivalent
  * Provides quick actions for deposit, send, and exchange
 -->
 <script lang="ts">
-  import { onMount } from "svelte";
-  import {
-    DollarSign,
-    TrendingUp,
-    Send,
-    Download,
-    RefreshCw,
-  } from "@lucide/svelte";
+    import {onMount} from "svelte";
+    import {DollarSign, Download, RefreshCw, Send, TrendingUp,} from "@lucide/svelte";
 
-  interface Props {
+    interface Props {
     principalId: string;
     preferredCurrency?: string;
     showActions?: boolean;

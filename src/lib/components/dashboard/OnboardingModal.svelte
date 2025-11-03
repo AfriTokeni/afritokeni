@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { X, User, Phone, MapPin, Globe } from "@lucide/svelte";
-  import { Modal } from "flowbite-svelte";
+    import {MapPin, Phone, User, X} from "@lucide/svelte";
+    import {Modal} from "flowbite-svelte";
 
-  interface OnboardingData {
+    interface OnboardingData {
     firstName: string;
     lastName: string;
     email: string;

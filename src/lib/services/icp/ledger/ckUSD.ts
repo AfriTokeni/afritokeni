@@ -32,34 +32,30 @@
 
 import { nanoid } from "nanoid";
 import { getCkUSDLedgerActor, toPrincipal, toSubaccount } from "./actors";
-import { setDoc, listDocs } from "@junobuild/core";
+import { listDocs, setDoc } from "@junobuild/core";
 import {
-  type CkUSDConfig,
+  CKUSD_CONSTANTS,
   type CkUSDBalance,
-  type CkUSDDepositRequest,
-  type CkUSDDepositResponse,
-  type CkUSDWithdrawalRequest,
-  type CkUSDWithdrawalResponse,
-  type CkUSDTransferRequest,
-  type CkUSDTransferResponse,
+  type CkUSDConfig,
   type CkUSDExchangeRequest,
   type CkUSDExchangeResponse,
-  type USDExchangeRate,
   type CkUSDTransaction,
-  type CkUSDTransactionStatus,
-  CKUSD_CONSTANTS,
+  type CkUSDTransferRequest,
+  type CkUSDTransferResponse,
   CkUSDUtils,
+  type CkUSDWithdrawalRequest,
+  type CkUSDWithdrawalResponse,
+  type USDExchangeRate
 } from "./types";
 import { CKUSD_LEDGER_CANISTER_ID } from "../canisters/config";
 import {
-  shouldUseMocks,
-  MOCK_CKUSD_BALANCE,
-  MOCK_USD_RATE,
   generateMockTransactionId,
   logMockWarning,
-  simulateICPDelay,
+  MOCK_CKUSD_BALANCE,
+  MOCK_USD_RATE,
+  shouldUseMocks,
+  simulateICPDelay
 } from "../utils/mock";
-import { JUNO_SATELLITE_ID } from "../canisters/config";
 
 /**
  * Ethereum Deposit Address

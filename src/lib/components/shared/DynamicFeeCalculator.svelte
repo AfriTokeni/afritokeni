@@ -1,19 +1,10 @@
 <script lang="ts">
-  import {
-    Calculator,
-    Clock,
-    Info,
-    TrendingUp,
-    TrendingDown,
-  } from "@lucide/svelte";
-  // TODO: Import when service layer is migrated
-  // import { DynamicFeeService, type LocationData, type TransactionRequest } from '$lib/services/dynamicFeeService';
-  import {
-    AFRICAN_CURRENCIES,
-    type AfricanCurrency,
-  } from "$lib/types/currency";
+    import {Calculator, Clock, Info, TrendingDown, TrendingUp,} from "@lucide/svelte";
+    // TODO: Import when service layer is migrated
+    // import { DynamicFeeService, type LocationData, type TransactionRequest } from '$lib/services/dynamicFeeService';
+    import {AFRICAN_CURRENCIES, type AfricanCurrency,} from "$lib/types/currency";
 
-  // Temporary mock types until service is migrated
+    // Temporary mock types until service is migrated
   type LocationData = {
     latitude: number;
     longitude: number;

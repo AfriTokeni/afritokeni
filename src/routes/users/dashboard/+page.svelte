@@ -1,21 +1,17 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import { browser } from "$app/environment";
-  import { onMount } from "svelte";
-  import { Send, Bitcoin, Minus, Plus, Info } from "@lucide/svelte";
-  import {
-    AFRICAN_CURRENCIES,
-    formatCurrencyAmount,
-  } from "$lib/types/currency";
-  import CurrencySelector from "$lib/components/dashboard/CurrencySelector.svelte";
-  import CkBTCBalanceCard from "$lib/components/shared/CkBTCBalanceCard.svelte";
-  import CkUSDBalanceCard from "$lib/components/shared/CkUSDBalanceCard.svelte";
-  import FiatBalanceCard from "$lib/components/shared/FiatBalanceCard.svelte";
-  import TransactionHistory from "$lib/components/shared/TransactionHistory.svelte";
-  import { getUserData, getUserBalance } from "$lib/services/user/userService";
-  import type { PageData } from "./$types";
+    import {goto} from "$app/navigation";
+    import {browser} from "$app/environment";
+    import {onMount} from "svelte";
+    import {Bitcoin, Info, Minus, Plus, Send} from "@lucide/svelte";
+    import {AFRICAN_CURRENCIES, formatCurrencyAmount,} from "$lib/types/currency";
+    import CurrencySelector from "$lib/components/dashboard/CurrencySelector.svelte";
+    import CkBTCBalanceCard from "$lib/components/shared/CkBTCBalanceCard.svelte";
+    import CkUSDBalanceCard from "$lib/components/shared/CkUSDBalanceCard.svelte";
+    import TransactionHistory from "$lib/components/shared/TransactionHistory.svelte";
+    import {getUserBalance, getUserData} from "$lib/services/user/userService";
+    import type {PageData} from "./$types";
 
-  let { data }: { data: PageData } = $props();
+    let { data }: { data: PageData } = $props();
 
   // State
   let showDemoModal = $state(false);

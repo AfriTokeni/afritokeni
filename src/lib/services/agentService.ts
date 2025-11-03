@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import { getDoc, setDoc, listDocs } from "@junobuild/core";
+import { getDoc, listDocs, setDoc } from "@junobuild/core";
 
 export interface Agent {
   id: string;

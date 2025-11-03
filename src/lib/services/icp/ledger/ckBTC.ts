@@ -32,35 +32,31 @@
 
 import { nanoid } from "nanoid";
 import { getCkBTCLedgerActor, toPrincipal, toSubaccount } from "./actors";
-import { setDoc, listDocs } from "@junobuild/core";
+import { listDocs, setDoc } from "@junobuild/core";
 import {
-  type CkBTCConfig,
-  type CkBTCBalance,
-  type CkBTCDepositRequest,
-  type CkBTCDepositResponse,
-  type CkBTCWithdrawalRequest,
-  type CkBTCWithdrawalResponse,
-  type CkBTCTransferRequest,
-  type CkBTCTransferResponse,
-  type CkBTCExchangeRequest,
-  type CkBTCExchangeResponse,
-  type BitcoinExchangeRate,
-  type CkBTCTransaction,
-  type CkBTCTransactionStatus,
   type BitcoinDepositAddress,
+  type BitcoinExchangeRate,
   CKBTC_CONSTANTS,
   CKBTC_TESTNET_CONFIG,
+  type CkBTCBalance,
+  type CkBTCConfig,
+  type CkBTCExchangeRequest,
+  type CkBTCExchangeResponse,
+  type CkBTCTransaction,
+  type CkBTCTransferRequest,
+  type CkBTCTransferResponse,
   CkBTCUtils,
+  type CkBTCWithdrawalRequest,
+  type CkBTCWithdrawalResponse
 } from "./types";
 import {
-  shouldUseMocks,
-  MOCK_CKBTC_BALANCE,
-  MOCK_BTC_RATE,
   generateMockTransactionId,
   logMockWarning,
-  simulateICPDelay,
+  MOCK_BTC_RATE,
+  MOCK_CKBTC_BALANCE,
+  shouldUseMocks,
+  simulateICPDelay
 } from "../utils/mock";
-import { JUNO_SATELLITE_ID } from "../canisters/config";
 
 /**
  * ckBTC Service Class

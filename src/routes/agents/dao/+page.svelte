@@ -1,6 +1,6 @@
 <script lang="ts">
-  import DAOProposals from "$lib/components/shared/DAOProposals.svelte";
-  import Leaderboard from "$lib/components/shared/Leaderboard.svelte";
+    import DAOProposals from "$lib/components/shared/DAOProposals.svelte";
+    import Leaderboard from "$lib/components/shared/Leaderboard.svelte";
 </script>
 
 <svelte:head>

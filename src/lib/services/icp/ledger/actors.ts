@@ -21,14 +21,14 @@
  * ❌ Control user funds
  */
 
-import { Actor, HttpAgent, type ActorSubclass } from "@dfinity/agent";
+import { Actor, type ActorSubclass, HttpAgent } from "@dfinity/agent";
 import { Principal } from "@dfinity/principal";
 import {
   CKBTC_LEDGER_CANISTER_ID,
   CKBTC_MINTER_CANISTER_ID,
   CKUSD_LEDGER_CANISTER_ID,
   IC_HOST,
-  IS_LOCAL_DEV,
+  IS_LOCAL_DEV
 } from "../canisters/config";
 
 /**

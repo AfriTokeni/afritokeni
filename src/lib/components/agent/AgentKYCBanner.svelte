@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { AlertCircle, X, ArrowRight, ShieldAlert } from "@lucide/svelte";
-  import { goto } from "$app/navigation";
+    import {AlertCircle, ArrowRight, ShieldAlert, X} from "@lucide/svelte";
+    import {goto} from "$app/navigation";
 
-  interface Props {
+    interface Props {
     missingFields: string[];
     kycStatus: "pending" | "verified" | "rejected" | "not_started";
     onDismiss: () => void;

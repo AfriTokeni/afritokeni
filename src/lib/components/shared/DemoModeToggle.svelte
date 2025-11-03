@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Zap } from "@lucide/svelte";
-  import { demoMode } from "$lib/stores/demoMode";
+    import {Zap} from "@lucide/svelte";
+    import {demoMode} from "$lib/stores/demoMode";
 </script>
 
 <div class="flex items-center gap-2 sm:gap-3">

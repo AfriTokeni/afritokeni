@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { CheckCircle, Linkedin, Twitter } from "@lucide/svelte";
+    import {CheckCircle, Linkedin, Twitter} from "@lucide/svelte";
 
-  let email = $state("");
+    let email = $state("");
   let isSubscribing = $state(false);
   let subscriptionStatus = $state<"idle" | "success" | "error">("idle");
 

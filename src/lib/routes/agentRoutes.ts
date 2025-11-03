@@ -1,10 +1,10 @@
 import {
-  Users,
-  CreditCard,
-  Settings,
   Banknote,
+  CreditCard,
   Home,
   LayoutDashboard,
+  Settings,
+  Users,
   Vote,
 } from "@lucide/svelte";
 

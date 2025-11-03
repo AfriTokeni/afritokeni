@@ -1,21 +1,21 @@
 <script lang="ts">
-  import Header from "$lib/components/layout/Header.svelte";
-  import Footer from "$lib/components/layout/Footer.svelte";
-  import {
-    Calculator,
-    MapPin,
-    Clock,
-    Zap,
-    Info,
-    TrendingUp,
-    TrendingDown,
-    Users,
-    Shield,
-    CircleCheckBig,
-    Bitcoin,
-  } from "@lucide/svelte";
+    import Header from "$lib/components/layout/Header.svelte";
+    import Footer from "$lib/components/layout/Footer.svelte";
+    import {
+        Bitcoin,
+        Calculator,
+        CircleCheckBig,
+        Clock,
+        Info,
+        MapPin,
+        Shield,
+        TrendingDown,
+        TrendingUp,
+        Users,
+        Zap,
+    } from "@lucide/svelte";
 
-  let activeSection = $state<"overview" | "calculator" | "examples">(
+    let activeSection = $state<"overview" | "calculator" | "examples">(
     "overview",
   );
 

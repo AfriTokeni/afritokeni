@@ -1,18 +1,18 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { Vote, TrendingUp, Users, Coins } from "@lucide/svelte";
-  import { getUserData } from "$lib/services/user/userService";
-  import { voteOnProposal } from "$lib/services/data/daoData";
-  import { demoMode } from "$lib/stores/demoMode";
-  import { principalId } from "$lib/stores/auth";
-  import { toast } from "$lib/stores/toast";
-  import DAOStats from "./DAOStats.svelte";
-  import TokensTab from "./TokensTab.svelte";
-  import DAOProposals from "$lib/components/shared/DAOProposals.svelte";
-  import Leaderboard from "$lib/components/shared/Leaderboard.svelte";
-  import CreateProposalModal from "$lib/components/shared/CreateProposalModal.svelte";
+    import {onMount} from "svelte";
+    import {Coins, TrendingUp, Vote} from "@lucide/svelte";
+    import {getUserData} from "$lib/services/user/userService";
+    import {voteOnProposal} from "$lib/services/data/daoData";
+    import {demoMode} from "$lib/stores/demoMode";
+    import {principalId} from "$lib/stores/auth";
+    import {toast} from "$lib/stores/toast";
+    import DAOStats from "./DAOStats.svelte";
+    import TokensTab from "./TokensTab.svelte";
+    import DAOProposals from "$lib/components/shared/DAOProposals.svelte";
+    import Leaderboard from "$lib/components/shared/Leaderboard.svelte";
+    import CreateProposalModal from "$lib/components/shared/CreateProposalModal.svelte";
 
-  type Tab = "proposals" | "my-tokens" | "leaderboard";
+    type Tab = "proposals" | "my-tokens" | "leaderboard";
 
   // State
   let activeTab = $state<Tab>("proposals");

@@ -3,11 +3,11 @@
  * Displays toast notifications in the bottom-right corner
  -->
 <script lang="ts">
-  import { toast, type Toast } from "$lib/stores/toast";
-  import { CheckCircle, XCircle, Info, AlertTriangle, X } from "lucide-svelte";
-  import { fly } from "svelte/transition";
+    import {toast, type Toast} from "$lib/stores/toast";
+    import {AlertTriangle, CheckCircle, Info, X, XCircle} from "lucide-svelte";
+    import {fly} from "svelte/transition";
 
-  function getIcon(type: Toast["type"]) {
+    function getIcon(type: Toast["type"]) {
     switch (type) {
       case "success":
         return CheckCircle;

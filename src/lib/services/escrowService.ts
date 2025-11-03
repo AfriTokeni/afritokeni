@@ -6,9 +6,10 @@
  */
 
 import { nanoid } from "nanoid";
-import { setDoc, getDoc, listDocs, SatelliteOptions } from "@junobuild/core";
+import { getDoc, listDocs, setDoc } from "@junobuild/core";
+import type { SatelliteOptions } from "@junobuild/core";
 import { AnonymousIdentity } from "@dfinity/agent";
-import { AfricanCurrency } from "../types/currency";
+import type { AfricanCurrency } from "../types/currency";
 
 export type AssetType = "ckBTC" | "ckUSDC";
 

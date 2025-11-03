@@ -1,32 +1,22 @@
 <!--
  * ckBTC Balance Card Component (FULLY ENCAPSULATED)
- * 
+ *
  * Self-contained component that:
  * - Subscribes to demoMode and auth stores internally
  * - Fetches its own data via pure data service
  * - Manages its own loading/error states
  * - Auto-updates when demoMode toggles
  * - Emits events for user actions
- * 
+ *
  * Usage: <CkBTCBalanceCard onDeposit={...} onSend={...} />
 -->
 <script lang="ts">
-  import { onMount } from "svelte";
-  import {
-    Bitcoin,
-    TrendingUp,
-    Send,
-    Download,
-    RefreshCw,
-  } from "lucide-svelte";
-  import { demoMode } from "$lib/stores/demoMode";
-  import { principalId } from "$lib/stores/auth";
-  import {
-    fetchCkBTCBalance,
-    satoshisToBTC,
-  } from "$lib/services/data/ckbtcData";
+    import {Bitcoin, Download, RefreshCw, Send,} from "lucide-svelte";
+    import {demoMode} from "$lib/stores/demoMode";
+    import {principalId} from "$lib/stores/auth";
+    import {fetchCkBTCBalance, satoshisToBTC,} from "$lib/services/data/ckbtcData";
 
-  interface Props {
+    interface Props {
     showActions?: boolean;
     preferredCurrency?: string;
     onDeposit?: () => void;

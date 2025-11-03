@@ -1,17 +1,8 @@
 <script lang="ts">
-  import {
-    X,
-    CheckCircle,
-    AlertCircle,
-    Info,
-    AlertTriangle,
-  } from "@lucide/svelte";
-  import type {
-    Notification,
-    NotificationType,
-  } from "./NotificationSystem.svelte";
+    import {AlertCircle, AlertTriangle, CheckCircle, Info, X,} from "@lucide/svelte";
+    import type {Notification, NotificationType,} from "./NotificationSystem.svelte";
 
-  interface Props {
+    interface Props {
     notification: Notification;
     onDismiss: (id: string) => void;
   }

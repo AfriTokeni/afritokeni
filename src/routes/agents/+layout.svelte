@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { goto } from "$app/navigation";
-  import DashboardLayout from "$lib/components/dashboard/DashboardLayout.svelte";
-  import ToastContainer from "$lib/components/shared/ToastContainer.svelte";
-  import AgentOnboardingModal from "$lib/components/agent/AgentOnboardingModal.svelte";
+    import {onMount} from "svelte";
+    import {goto} from "$app/navigation";
+    import DashboardLayout from "$lib/components/dashboard/DashboardLayout.svelte";
+    import ToastContainer from "$lib/components/shared/ToastContainer.svelte";
+    import AgentOnboardingModal from "$lib/components/agent/AgentOnboardingModal.svelte";
 
-  let { children } = $props();
+    let { children } = $props();
   let showOnboarding = $state(false);
 
   onMount(() => {

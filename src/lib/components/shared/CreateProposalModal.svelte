@@ -1,23 +1,16 @@
 <!--
  * Create Proposal Modal
  * Ported from: src/components/CreateProposalModal.tsx
- * 
+ *
  * Allows users to create governance proposals for the DAO
  -->
 <script lang="ts">
-  import {
-    X,
-    FileText,
-    DollarSign,
-    Globe,
-    Shield,
-    Lightbulb,
-  } from "lucide-svelte";
-  import { demoMode } from "$lib/stores/demoMode";
-  import { DAO_CONSTANTS } from "$lib/services/data/daoData";
-  import { toast } from "$lib/stores/toast";
+    import {DollarSign, FileText, Globe, Lightbulb, Shield, X,} from "lucide-svelte";
+    import {demoMode} from "$lib/stores/demoMode";
+    import {DAO_CONSTANTS} from "$lib/services/data/daoData";
+    import {toast} from "$lib/stores/toast";
 
-  interface Props {
+    interface Props {
     isOpen: boolean;
     onClose: () => void;
     userId: string;

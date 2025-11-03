@@ -13,41 +13,40 @@
 
 import { ethers } from "ethers";
 import { Principal } from "@dfinity/principal";
-import { AnonymousIdentity } from "@dfinity/agent";
-import { HttpAgent, Actor } from "@dfinity/agent";
+import { Actor, AnonymousIdentity, HttpAgent } from "@dfinity/agent";
 import { nanoid } from "nanoid";
 import {
   getCkUSDCLedgerActor,
   toPrincipal,
   toSubaccount,
 } from "./icpActors.js";
-import { getDoc, setDoc, listDocs } from "@junobuild/core";
 import type { SatelliteOptions } from "@junobuild/core";
+import { getDoc, listDocs, setDoc } from "@junobuild/core";
 import type {
-  CkUSDCConfig,
   CkUSDCBalance,
+  CkUSDCConfig,
   CkUSDCDepositRequest,
   CkUSDCDepositResponse,
-  CkUSDCWithdrawalRequest,
-  CkUSDCWithdrawalResponse,
-  CkUSDCTransferRequest,
-  CkUSDCTransferResponse,
+  CkUSDCExchangeRate,
   CkUSDCExchangeRequest,
   CkUSDCExchangeResponse,
-  CkUSDCExchangeRate,
   CkUSDCTransaction,
   CkUSDCTransactionStatus,
+  CkUSDCTransferRequest,
+  CkUSDCTransferResponse,
+  CkUSDCWithdrawalRequest,
+  CkUSDCWithdrawalResponse,
 } from "../types/ckusdc.js";
 import {
+  CKUSDC_CONSTANTS,
   ERC20_APPROVE_ABI,
   HELPER_CONTRACT_ABI,
-  CKUSDC_CONSTANTS,
   SEPOLIA_CONFIG,
 } from "../types/ckusdc.js";
 import {
-  shouldUseMocks,
   MOCK_CKUSDC_BALANCE,
   MOCK_USDC_RATE,
+  shouldUseMocks,
 } from "./mockService.js";
 
 declare global {

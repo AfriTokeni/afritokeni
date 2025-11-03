@@ -1,29 +1,21 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import { browser } from "$app/environment";
-  import { onMount } from "svelte";
-  import { demoMode } from "$lib/stores/demoMode";
-  import { principalId } from "$lib/stores/auth";
-  import {
-    TrendingUp,
-    Users,
-    Eye,
-    EyeOff,
-    Wallet,
-    CreditCard,
-    X,
-  } from "@lucide/svelte";
-  import CkBTCBalanceCard from "$lib/components/shared/CkBTCBalanceCard.svelte";
-  import CkUSDBalanceCard from "$lib/components/shared/CkUSDBalanceCard.svelte";
-  import TransactionHistory from "$lib/components/shared/TransactionHistory.svelte";
-  import AgentKYCBanner from "$lib/components/agent/AgentKYCBanner.svelte";
-  import AgentOnboardingModal from "$lib/components/agent/AgentOnboardingModal.svelte";
-  import KYCModal from "$lib/components/shared/KYCModal.svelte";
-  import DemoModeModal from "$lib/components/dashboard/DemoModeModal.svelte";
-  import { getDoc, uploadFile, setDoc } from "@junobuild/core";
-  import { toast } from "$lib/stores/toast";
+    import {goto} from "$app/navigation";
+    import {browser} from "$app/environment";
+    import {onMount} from "svelte";
+    import {demoMode} from "$lib/stores/demoMode";
+    import {principalId} from "$lib/stores/auth";
+    import {CreditCard, Eye, EyeOff, TrendingUp, Users, Wallet, X,} from "@lucide/svelte";
+    import CkBTCBalanceCard from "$lib/components/shared/CkBTCBalanceCard.svelte";
+    import CkUSDBalanceCard from "$lib/components/shared/CkUSDBalanceCard.svelte";
+    import TransactionHistory from "$lib/components/shared/TransactionHistory.svelte";
+    import AgentKYCBanner from "$lib/components/agent/AgentKYCBanner.svelte";
+    import AgentOnboardingModal from "$lib/components/agent/AgentOnboardingModal.svelte";
+    import KYCModal from "$lib/components/shared/KYCModal.svelte";
+    import DemoModeModal from "$lib/components/dashboard/DemoModeModal.svelte";
+    import {getDoc, setDoc, uploadFile} from "@junobuild/core";
+    import {toast} from "$lib/stores/toast";
 
-  // State
+    // State
   let showBalance = $state(true);
   let showVerificationAlert = $state(true);
   let showKYCBanner = $state(true);

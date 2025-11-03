@@ -1,23 +1,11 @@
 <script lang="ts">
-  import { demoMode } from "$lib/stores/demoMode";
-  import { principalId } from "$lib/stores/auth";
-  import { toast } from "$lib/stores/toast";
-  import { fetchAgentDepositRequests } from "$lib/services/data/depositsData";
-  import * as DepositCanisterService from "$lib/services/icp/canisters/depositCanisterService";
-  import {
-    CheckCircle,
-    XCircle,
-    Clock,
-    User,
-    Phone,
-    MapPin,
-    AlertCircle,
-    Search,
-    X,
-    Info,
-  } from "@lucide/svelte";
+    import {demoMode} from "$lib/stores/demoMode";
+    import {principalId} from "$lib/stores/auth";
+    import {toast} from "$lib/stores/toast";
+    import {fetchAgentDepositRequests} from "$lib/services/data/depositsData";
+    import {AlertCircle, CheckCircle, Clock, Info, MapPin, Phone, Search, X, XCircle,} from "@lucide/svelte";
 
-  let showInstructions = $state(false);
+    let showInstructions = $state(false);
 
   interface DepositRequest {
     id: string;

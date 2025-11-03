@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { MapPin, Clock, Phone as PhoneIcon, Mail } from "@lucide/svelte";
-  import type { Agent } from "$lib/utils/agents";
+    import {Clock, MapPin} from "@lucide/svelte";
+    import type {Agent} from "$lib/utils/agents";
 
-  interface Props {
+    interface Props {
     agent: Agent;
     distance?: number;
     expanded?: boolean;

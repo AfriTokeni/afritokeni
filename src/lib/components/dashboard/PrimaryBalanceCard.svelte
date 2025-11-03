@@ -1,11 +1,8 @@
 <script lang="ts">
-  import {
-    formatCurrencyAmount,
-    type AfricanCurrency,
-  } from "$lib/types/currency";
-  import CurrencySelector from "./CurrencySelector.svelte";
+    import {formatCurrencyAmount,} from "$lib/types/currency";
+    import CurrencySelector from "./CurrencySelector.svelte";
 
-  interface Props {
+    interface Props {
     balance: number;
     currency: string;
     onCurrencyChange?: (currency: string) => void;

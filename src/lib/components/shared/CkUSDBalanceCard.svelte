@@ -1,28 +1,22 @@
 <!--
  * ckUSD Balance Card Component (FULLY ENCAPSULATED)
- * 
+ *
  * Self-contained component that:
  * - Subscribes to demoMode and auth stores internally
  * - Fetches its own data via pure data service
  * - Manages its own loading/error states
  * - Auto-updates when demoMode toggles
  * - Emits events for user actions
- * 
+ *
  * Usage: <CkUSDBalanceCard onDeposit={...} onSend={...} />
 -->
 <script lang="ts">
-  import {
-    DollarSign,
-    TrendingUp,
-    Send,
-    Download,
-    RefreshCw,
-  } from "lucide-svelte";
-  import { demoMode } from "$lib/stores/demoMode";
-  import { principalId } from "$lib/stores/auth";
-  import { fetchCkUSDBalance, formatUSD } from "$lib/services/data/ckusdData";
+    import {DollarSign, Download, RefreshCw, Send,} from "lucide-svelte";
+    import {demoMode} from "$lib/stores/demoMode";
+    import {principalId} from "$lib/stores/auth";
+    import {fetchCkUSDBalance, formatUSD} from "$lib/services/data/ckusdData";
 
-  interface Props {
+    interface Props {
     showActions?: boolean;
     preferredCurrency?: string;
     onDeposit?: () => void;

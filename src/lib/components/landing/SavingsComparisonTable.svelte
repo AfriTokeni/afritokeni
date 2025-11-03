@@ -1,12 +1,8 @@
 <script lang="ts">
-  import { Check, TrendingDown, X, Zap, Bitcoin } from "@lucide/svelte";
-  import {
-    getActiveCurrencies,
-    AFRICAN_CURRENCIES,
-    type AfricanCurrency,
-  } from "$lib/types/currency";
+    import {Bitcoin, Check, TrendingDown, X, Zap} from "@lucide/svelte";
+    import {AFRICAN_CURRENCIES, type AfricanCurrency, getActiveCurrencies,} from "$lib/types/currency";
 
-  let amount = $state("100");
+    let amount = $state("100");
   let toCountry = $state<AfricanCurrency>("UGX");
   let location = $state<"urban" | "suburban" | "rural" | "remote">("urban");
 

@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { Menu, X } from "@lucide/svelte";
-  import SignInButtonSmall from "$lib/components/auth/SignInButtonSmall.svelte";
+    import {Menu, X} from "@lucide/svelte";
+    import SignInButtonSmall from "$lib/components/auth/SignInButtonSmall.svelte";
 
-  let isMobileMenuOpen = $state(false);
+    let isMobileMenuOpen = $state(false);
 </script>
 
 <header class="sticky top-0 z-50 border-b border-gray-200 bg-white">

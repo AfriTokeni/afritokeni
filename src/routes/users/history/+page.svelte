@@ -1,25 +1,16 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import {
-    ArrowUp,
-    ArrowDown,
-    Plus,
-    Minus,
-    Search,
-    Send,
-    Banknote,
-    LayoutDashboard,
-  } from "@lucide/svelte";
-  import {
-    formatCurrency,
-    formatDate,
-    getTransactionDescription,
-    type Transaction,
-    type TransactionType,
-  } from "$lib/utils/transactions";
-  import { getTransactions } from "$lib/services/user/userService";
+    import {onMount} from "svelte";
+    import {ArrowDown, ArrowUp, Banknote, LayoutDashboard, Minus, Plus, Search, Send,} from "@lucide/svelte";
+    import {
+        formatCurrency,
+        formatDate,
+        getTransactionDescription,
+        type Transaction,
+        type TransactionType,
+    } from "$lib/utils/transactions";
+    import {getTransactions} from "$lib/services/user/userService";
 
-  // State
+    // State
   let transactions = $state<Transaction[]>([]);
   let searchQuery = $state("");
   let filterType = $state<TransactionType | "all">("all");

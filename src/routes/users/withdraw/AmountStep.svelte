@@ -1,9 +1,9 @@
 <script lang="ts">
-  import PrimaryBalanceCard from "$lib/components/dashboard/PrimaryBalanceCard.svelte";
-  import CkBTCBalanceCard from "$lib/components/dashboard/CkBTCBalanceCard.svelte";
-  import CkUSDBalanceCard from "$lib/components/dashboard/CkUSDBalanceCard.svelte";
+    import PrimaryBalanceCard from "$lib/components/dashboard/PrimaryBalanceCard.svelte";
+    import CkBTCBalanceCard from "$lib/components/dashboard/CkBTCBalanceCard.svelte";
+    import CkUSDBalanceCard from "$lib/components/dashboard/CkUSDBalanceCard.svelte";
 
-  interface Props {
+    interface Props {
     exchangeRate: number;
     userBalance: number;
     preferredCurrency: string;

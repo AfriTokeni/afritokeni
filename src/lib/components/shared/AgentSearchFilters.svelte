@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Search, List, MapIcon as Map, Navigation } from "@lucide/svelte";
+    import {List, MapIcon as Map, Navigation, Search} from "@lucide/svelte";
 
-  interface Props {
+    interface Props {
     searchQuery: string;
     filterRadius: number;
     showOnlineOnly: boolean;

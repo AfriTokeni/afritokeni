@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { dev } from "$app/environment";
-  import { env } from "$env/dynamic/public";
+    import {dev} from "$app/environment";
+    import {env} from "$env/dynamic/public";
 
-  const satelliteMissing =
+    const satelliteMissing =
     !env.PUBLIC_SATELLITE_ID ||
     env.PUBLIC_SATELLITE_ID === "<DEV_SATELLITE_ID>";
   const showBanner = dev && satelliteMissing;

@@ -14,10 +14,10 @@ import { Actor, HttpAgent } from "@dfinity/agent";
 import { Principal } from "@dfinity/principal";
 import type {
   _SERVICE,
-  DepositTransaction,
-  CreateDepositRequest,
-  ConfirmDepositRequest,
   AgentBalance,
+  ConfirmDepositRequest,
+  CreateDepositRequest,
+  DepositTransaction
 } from "./depositCanister";
 import { idlFactory } from "./depositCanister";
 import { IC_HOST } from "./config";
@@ -29,7 +29,7 @@ import * as env from "$env/static/public";
 function getDepositCanisterId(): string {
   // Check environment variables (set via .env)
   const DEPOSIT_CANISTER_ID =
-    (env as Record<string, string>).PUBLIC_DEPOSIT_CANISTER_ID || 
+    (env as Record<string, string>).PUBLIC_DEPOSIT_CANISTER_ID ||
     (env as Record<string, string>).PUBLIC_DEV_DEPOSIT_CANISTER_ID ||
     "";
 

@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { CheckCircle, Clock, XCircle, Wifi } from "@lucide/svelte";
-  import { toast } from "$lib/stores/toast";
+    import {CheckCircle, Clock, Wifi, XCircle} from "@lucide/svelte";
+    import {toast} from "$lib/stores/toast";
 
-  interface Props {
+    interface Props {
     currentStatus: "available" | "busy" | "cash_out" | "offline";
     onStatusChange: (
       status: "available" | "busy" | "cash_out" | "offline",

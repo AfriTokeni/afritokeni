@@ -9,13 +9,13 @@ import { demoMode } from "$lib/stores/demoMode";
 import { get } from "svelte/store";
 import { CkBTCService, CkUSDService } from "$lib/services/icp";
 import {
-  generatePrincipalFromPhone,
   generatePrincipalFromIdentifier,
+  generatePrincipalFromPhone,
   isPhoneNumber,
 } from "$lib/utils/principalUtils";
 import {
-  principalId as authPrincipalId,
   isAuthenticated,
+  principalId as authPrincipalId,
 } from "$lib/stores/auth";
 import { getDoc } from "@junobuild/core";
 

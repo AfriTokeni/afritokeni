@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Smartphone, Zap, Lock, Bitcoin, Globe } from "@lucide/svelte";
-  import SavingsComparisonTable from "$lib/components/landing/SavingsComparisonTable.svelte";
-  import SignInButton from "$lib/components/auth/SignInButton.svelte";
+    import {Bitcoin, Globe, Lock, Smartphone, Zap} from "@lucide/svelte";
+    import SavingsComparisonTable from "$lib/components/landing/SavingsComparisonTable.svelte";
+    import SignInButton from "$lib/components/auth/SignInButton.svelte";
 </script>
 
 <!-- Hero Section -->

@@ -1,26 +1,26 @@
 <script lang="ts">
-  import { demoMode } from "$lib/stores/demoMode";
-  import { principalId } from "$lib/stores/auth";
-  import { toast } from "$lib/stores/toast";
-  import { fetchAgentCustomers } from "$lib/services/data/customersData";
-  import TransactionHistory from "$lib/components/shared/TransactionHistory.svelte";
-  import {
-    Search,
-    User,
-    Phone,
-    MapPin,
-    Calendar,
-    Loader2,
-    CheckCircle,
-    Shield,
-    TrendingUp,
-    X,
-    Ban,
-    PhoneCall,
-    History,
-  } from "@lucide/svelte";
+    import {demoMode} from "$lib/stores/demoMode";
+    import {principalId} from "$lib/stores/auth";
+    import {toast} from "$lib/stores/toast";
+    import {fetchAgentCustomers} from "$lib/services/data/customersData";
+    import TransactionHistory from "$lib/components/shared/TransactionHistory.svelte";
+    import {
+        Ban,
+        Calendar,
+        CheckCircle,
+        History,
+        Loader2,
+        MapPin,
+        Phone,
+        PhoneCall,
+        Search,
+        Shield,
+        TrendingUp,
+        User,
+        X,
+    } from "@lucide/svelte";
 
-  interface Customer {
+    interface Customer {
     id: string;
     name: string;
     phone: string;

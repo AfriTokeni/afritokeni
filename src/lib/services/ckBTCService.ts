@@ -9,27 +9,26 @@
  * - Supports both Web and SMS/USSD operations
  */
 
-import { Principal } from "@dfinity/principal";
 import { AnonymousIdentity } from "@dfinity/agent";
 import { nanoid } from "nanoid";
 import { getCkBTCLedgerActor, toPrincipal, toSubaccount } from "./icpActors.js";
-import { getDoc, setDoc, listDocs } from "@junobuild/core";
 import type { SatelliteOptions } from "@junobuild/core";
+import { getDoc, listDocs, setDoc } from "@junobuild/core";
 import type {
-  CkBTCConfig,
+  BitcoinDepositAddress,
+  BitcoinExchangeRate,
   CkBTCBalance,
+  CkBTCConfig,
   CkBTCDepositRequest,
   CkBTCDepositResponse,
-  CkBTCWithdrawalRequest,
-  CkBTCWithdrawalResponse,
-  CkBTCTransferRequest,
-  CkBTCTransferResponse,
   CkBTCExchangeRequest,
   CkBTCExchangeResponse,
-  BitcoinExchangeRate,
   CkBTCTransaction,
   CkBTCTransactionStatus,
-  BitcoinDepositAddress,
+  CkBTCTransferRequest,
+  CkBTCTransferResponse,
+  CkBTCWithdrawalRequest,
+  CkBTCWithdrawalResponse,
 } from "../types/ckbtc.js";
 import {
   CKBTC_CONSTANTS,
@@ -37,9 +36,9 @@ import {
   CkBTCUtils,
 } from "../types/ckbtc.js";
 import {
-  shouldUseMocks,
-  MOCK_CKBTC_BALANCE,
   MOCK_BTC_RATE,
+  MOCK_CKBTC_BALANCE,
+  shouldUseMocks,
 } from "./mockService.js";
 
 export class CkBTCService {

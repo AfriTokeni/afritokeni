@@ -6,7 +6,7 @@
  */
 
 import AfricasTalking from "africastalking";
-import { AT_USERNAME, AT_API_KEY, AT_SHORT_CODE } from "$env/static/private";
+import { AT_API_KEY, AT_SHORT_CODE, AT_USERNAME } from "$env/static/private";
 
 // Africa's Talking configuration
 // NO FALLBACKS - if env vars not set, service won't initialize (demo mode)

@@ -1,21 +1,14 @@
 <!--
  * ckBTC Balance Card Component
- * 
+ *
  * Displays user's ckBTC balance with local currency equivalent
  * Lightning-like instant transfers with near-zero fees
 -->
 <script lang="ts">
-  import { onMount } from "svelte";
-  import {
-    Download,
-    Send,
-    RefreshCw,
-    Bitcoin,
-    Zap,
-    TrendingUp,
-  } from "@lucide/svelte";
+    import {onMount} from "svelte";
+    import {Bitcoin, Download, RefreshCw, Send, TrendingUp, Zap,} from "@lucide/svelte";
 
-  interface Props {
+    interface Props {
     principalId: string;
     preferredCurrency?: string;
     showActions?: boolean;

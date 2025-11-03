@@ -1,13 +1,5 @@
 <script lang="ts">
-  import {
-    Zap,
-    Bitcoin,
-    DollarSign,
-    Clock,
-    Shield,
-    ArrowRight,
-    CircleCheckBig,
-  } from "@lucide/svelte";
+    import {ArrowRight, Bitcoin, CircleCheckBig, Clock, DollarSign, Shield, Zap,} from "@lucide/svelte";
 </script>
 
 <svelte:head>

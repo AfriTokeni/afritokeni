@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { X, Zap, FileText, Lightbulb } from "@lucide/svelte";
+    import {FileText, Lightbulb, X, Zap} from "@lucide/svelte";
 
-  interface Props {
+    interface Props {
     isOpen: boolean;
     onClose: () => void;
     userType: "user" | "agent";

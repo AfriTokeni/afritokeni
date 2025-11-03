@@ -1,13 +1,7 @@
 <script lang="ts">
-  import {
-    TrendingUp,
-    Users,
-    DollarSign,
-    MapPin,
-    AlertCircle,
-  } from "@lucide/svelte";
+    import {AlertCircle, DollarSign, MapPin, TrendingUp, Users,} from "@lucide/svelte";
 
-  interface Props {
+    interface Props {
     agentData: any;
     onStartKYC?: () => void;
   }

@@ -1,12 +1,9 @@
 <script lang="ts">
-  import { Eye, EyeOff } from "@lucide/svelte";
-  import {
-    formatCurrencyAmount,
-    type AfricanCurrency,
-  } from "$lib/types/currency";
-  import CurrencySelector from "../dashboard/CurrencySelector.svelte";
+    import {Eye, EyeOff} from "@lucide/svelte";
+    import {formatCurrencyAmount,} from "$lib/types/currency";
+    import CurrencySelector from "../dashboard/CurrencySelector.svelte";
 
-  interface Props {
+    interface Props {
     title: string;
     subtitle?: string;
     balance: number;

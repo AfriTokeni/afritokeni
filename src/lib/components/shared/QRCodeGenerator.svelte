@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import QRCode from "qrcode";
+    import QRCode from "qrcode";
 
-  interface Props {
+    interface Props {
     value: string;
     size?: number;
     class?: string;

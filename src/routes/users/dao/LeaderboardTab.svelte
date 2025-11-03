@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { LeaderboardEntry } from "$lib/utils/dao";
+    import type {LeaderboardEntry} from "$lib/utils/dao";
 
-  interface Props {
+    interface Props {
     leaderboard: LeaderboardEntry[];
     totalSupply: number;
   }

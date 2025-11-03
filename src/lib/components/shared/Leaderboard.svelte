@@ -1,20 +1,20 @@
 <!--
  * Leaderboard Component (FULLY ENCAPSULATED)
- * 
+ *
  * Self-contained component that:
  * - Subscribes to demoMode store internally
  * - Fetches its own data via pure data service
  * - Manages its own loading/error states
  * - Auto-updates when demoMode toggles
- * 
+ *
  * Usage: <Leaderboard maxEntries={10} />
 -->
 <script lang="ts">
-  import { Trophy, TrendingUp, Award, RefreshCw } from "lucide-svelte";
-  import { demoMode } from "$lib/stores/demoMode";
-  import { fetchLeaderboard } from "$lib/services/data/daoData";
+    import {Award, RefreshCw, TrendingUp, Trophy} from "lucide-svelte";
+    import {demoMode} from "$lib/stores/demoMode";
+    import {fetchLeaderboard} from "$lib/services/data/daoData";
 
-  interface Props {
+    interface Props {
     maxEntries?: number;
   }
 

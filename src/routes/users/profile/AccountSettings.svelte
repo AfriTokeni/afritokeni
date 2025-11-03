@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { ChevronDown, ChevronUp, User } from "@lucide/svelte";
+    import {ChevronDown, ChevronUp, User} from "@lucide/svelte";
 
-  interface Props {
+    interface Props {
     expanded: boolean;
     onToggle: () => void;
     userData: any;

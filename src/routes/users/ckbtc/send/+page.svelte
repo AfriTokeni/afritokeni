@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import { ArrowLeft } from "@lucide/svelte";
-  import { toast } from "$lib/stores/toast";
+    import {goto} from "$app/navigation";
+    import {ArrowLeft} from "@lucide/svelte";
+    import {toast} from "$lib/stores/toast";
 
-  let recipientAddress = $state("");
+    let recipientAddress = $state("");
   let amount = $state("");
   let isSending = $state(false);
 

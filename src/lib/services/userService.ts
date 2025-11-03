@@ -1,9 +1,8 @@
 import { nanoid } from "nanoid";
-import { setDoc, getDoc, listDocs } from "@junobuild/core";
+import { getDoc, listDocs, setDoc } from "@junobuild/core";
 import type { User } from "../types/auth";
 import { generatePrincipalFromIdentifier } from "../utils/principalUtils";
 import { PINVerificationService } from "./pinVerification";
-import { RateLimiter } from "./rateLimiter";
 
 export interface UserDataFromJuno {
   id: string;

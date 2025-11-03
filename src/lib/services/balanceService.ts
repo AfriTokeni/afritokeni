@@ -1,4 +1,4 @@
-import { getDoc, setDoc, listDocs } from "@junobuild/core";
+import { getDoc, listDocs, setDoc } from "@junobuild/core";
 import { TransactionService } from "./transactionService";
 
 export interface UserBalance {

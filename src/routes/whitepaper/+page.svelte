@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { marked } from "marked";
-  import { FileText } from "@lucide/svelte";
+    import {onMount} from "svelte";
+    import {marked} from "marked";
+    import {FileText} from "@lucide/svelte";
 
-  let htmlContent = $state("");
+    let htmlContent = $state("");
   let loading = $state(true);
 
   onMount(async () => {

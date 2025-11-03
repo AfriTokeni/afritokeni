@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { ChevronDown, Star, Filter, TrendingUp } from "@lucide/svelte";
-  import { onMount } from "svelte";
-  import { demoMode } from "$lib/stores/demoMode";
-  import { principalId } from "$lib/stores/auth";
-  import { listDocs } from "@junobuild/core";
+    import {ChevronDown, Filter, Star, TrendingUp} from "@lucide/svelte";
+    import {demoMode} from "$lib/stores/demoMode";
+    import {principalId} from "$lib/stores/auth";
+    import {listDocs} from "@junobuild/core";
 
-  interface Props {
+    interface Props {
     agentData: any;
     expanded: boolean;
     onToggle: () => void;

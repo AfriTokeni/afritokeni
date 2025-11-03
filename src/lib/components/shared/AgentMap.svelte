@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { LeafletMap, TileLayer, Marker, Popup } from "svelte-leafletjs";
-  import type { Agent, UserLocation } from "$lib/utils/agents";
-  import { MapPin, Star, Phone } from "@lucide/svelte";
+    import {LeafletMap, Marker, Popup, TileLayer} from "svelte-leafletjs";
+    import type {Agent, UserLocation} from "$lib/utils/agents";
+    import {MapPin, Star} from "@lucide/svelte";
 
-  interface Props {
+    interface Props {
     agents: Agent[];
     userLocation: UserLocation | null;
   }

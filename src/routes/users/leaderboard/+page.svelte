@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Leaderboard from "$lib/components/shared/Leaderboard.svelte";
+    import Leaderboard from "$lib/components/shared/Leaderboard.svelte";
 </script>
 
 <div class="space-y-4 sm:space-y-6">

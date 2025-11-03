@@ -1,28 +1,21 @@
 <!--
  * DAO Proposals Component (FULLY ENCAPSULATED)
- * 
+ *
  * Self-contained component that:
  * - Subscribes to demoMode store internally
  * - Fetches its own data via pure data service
  * - Manages its own loading/error states
  * - Auto-updates when demoMode toggles
  * - Emits events for voting actions
- * 
+ *
  * Usage: <DAOProposals onVote={(proposalId, vote) => ...} onCreateProposal={() => ...} />
 -->
 <script lang="ts">
-  import {
-    Vote,
-    Clock,
-    CheckCircle,
-    XCircle,
-    RefreshCw,
-    Plus,
-  } from "lucide-svelte";
-  import { demoMode } from "$lib/stores/demoMode";
-  import { fetchDAOProposals, DAO_CONSTANTS } from "$lib/services/data/daoData";
+    import {CheckCircle, Clock, Plus, RefreshCw, Vote, XCircle,} from "lucide-svelte";
+    import {demoMode} from "$lib/stores/demoMode";
+    import {DAO_CONSTANTS, fetchDAOProposals} from "$lib/services/data/daoData";
 
-  interface Props {
+    interface Props {
     onVote?: (proposalId: string, vote: "yes" | "no" | "abstain") => void;
     onCreateProposal?: () => void;
     maxProposals?: number;

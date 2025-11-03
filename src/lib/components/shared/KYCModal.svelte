@@ -3,10 +3,10 @@
  * Allows users to start KYC verification process
  -->
 <script lang="ts">
-  import { X, Upload, FileText, Camera, AlertCircle } from "lucide-svelte";
-  import { toast } from "$lib/stores/toast";
+    import {AlertCircle, Camera, FileText, Upload, X} from "lucide-svelte";
+    import {toast} from "$lib/stores/toast";
 
-  interface Props {
+    interface Props {
     isOpen: boolean;
     onClose: () => void;
     onSubmit: (kycData: any) => Promise<void>;
