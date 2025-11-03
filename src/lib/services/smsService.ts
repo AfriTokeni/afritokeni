@@ -6,13 +6,13 @@
  */
 
 import AfricasTalking from 'africastalking';
-import { env } from '$env/dynamic/private';
+import { PRIVATE_ENV } from '$lib/config/env';
 
 // Africa's Talking configuration
-// Use SvelteKit's env for server-side environment variables
+// These are server-side only environment variables (never exposed to client)
 const credentials = {
-	username: env.AT_USERNAME || env.VITE_AT_USERNAME || 'sandbox',
-	apiKey: env.AT_API_KEY || env.VITE_AT_API_KEY || ''
+	username: PRIVATE_ENV.AT_USERNAME,
+	apiKey: PRIVATE_ENV.AT_API_KEY
 };
 
 // Initialize Africa's Talking
@@ -62,7 +62,7 @@ export async function sendSMS(phoneNumber: string, message: string): Promise<{
 		const result = await sms.send({
 			to: [phoneNumber],
 			message: message,
-			from: env.AT_SHORT_CODE || env.VITE_AT_SHORT_CODE || undefined
+			from: PRIVATE_ENV.AT_SHORT_CODE || undefined
 		});
 
 		console.log('📱 SMS sent:', result);
