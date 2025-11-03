@@ -2,12 +2,12 @@ import { TransactionService } from './transactionService';
 import { BalanceService } from './balanceService';
 import type { User } from '../types/auth';
 import { generatePrincipalFromIdentifier } from '../utils/principalUtils.js';
-import { Transaction } from '../types/transaction';
+import type { Transaction } from '../types/transaction';
 import { AnonymousIdentity } from "@dfinity/agent";
 import type { SatelliteOptions } from "@junobuild/core";
 import { getDoc, setDoc, listDocs, deleteDoc } from '@junobuild/core';
 import { nanoid } from 'nanoid';
-import { AfricanCurrency } from '../types/currency';
+import type { AfricanCurrency } from '../types/currency';
 import { Principal } from '@dfinity/principal';
 import { shouldUseMocks, MOCK_USER_BALANCE } from './mockService.js';
 
@@ -413,9 +413,12 @@ export class WebhookDataService {
 
   // USSD Operations
   static async getUserPin(phoneNumber: string): Promise<UserPin | null> {
-    // MOCK MODE: Return mock PIN for testing
-    if (shouldUseMocks()) {
-      console.log('✅ Mock mode: Returning mock PIN 1234');
+    // MOCK MODE: Return mock PIN for testing or playground
+    // Check for playground phone number pattern (256 700 123 456)
+    const isPlaygroundPhone = phoneNumber.includes('256 700 123 456') || phoneNumber.includes('256700123456');
+    
+    if (shouldUseMocks() || isPlaygroundPhone) {
+      console.log('✅ Mock mode: Returning mock PIN 1234 for', phoneNumber);
       return {
         userId: 'mock_user',
         phoneNumber: phoneNumber,

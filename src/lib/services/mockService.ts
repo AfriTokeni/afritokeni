@@ -12,9 +12,9 @@ declare global {
  * Check if we should use mocks
  * Returns true for:
  * - Unit tests (global test flag or NODE_ENV === 'unit-test' or 'test')
- * - USSD Playground (browser on localhost with /ussd path)
+ * - USSD Playground (browser on localhost with /ussd path OR sessionId starts with 'playground_')
  */
-export function shouldUseMocks(): boolean {
+export function shouldUseMocks(sessionId?: string): boolean {
   // Check global test flag first (set by test setup)
   if (typeof globalThis !== 'undefined' && globalThis.__AFRITOKENI_TEST_MODE__) {
     console.log('🎭 shouldUseMocks: true (global test flag)');
@@ -28,6 +28,12 @@ export function shouldUseMocks(): boolean {
       console.log('🎭 shouldUseMocks: true (NODE_ENV=' + nodeEnv + ')');
       return true;
     }
+  }
+  
+  // Playground mode - check sessionId (works in both browser and SSR)
+  if (sessionId && sessionId.startsWith('playground_')) {
+    console.log('🎭 shouldUseMocks: true (playground sessionId)');
+    return true;
   }
   
   // Playground mode (browser only - USSD playground page)
