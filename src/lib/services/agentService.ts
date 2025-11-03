@@ -339,7 +339,7 @@ export class AgentService {
     const userBalance = await BalanceService.getUserBalance(
       agentKYCData.userId,
     );
-    let digitalBalance = userBalance?.balance || 0;
+    const digitalBalance = userBalance?.balance || 0;
     const cashBalance = Number(
       process.env.VITE_AGENT_INITIAL_CASH_BALANCE ?? 0,
     );

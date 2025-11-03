@@ -283,7 +283,8 @@ export async function handlePinSetup(
         `${TranslationService.translate("confirm_pin", lang)}:\n\n${TranslationService.translate("back_or_menu", lang as Language)}`,
       );
 
-    case 2: { // PIN confirmation
+    case 2: {
+      // PIN confirmation
       console.log(
         `🔄 Confirming PIN for ${session.phoneNumber}: "${pinInput}" vs "${session.data.newPin}"`,
       );
