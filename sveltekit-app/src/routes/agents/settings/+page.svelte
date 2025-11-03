@@ -28,8 +28,29 @@
 	async function loadAgentData(isDemoMode: boolean, currentPrincipalId: string | null) {
 		isLoading = true;
 		
-		// Default demo data
-		const defaultData = {
+		// Empty default data for real mode
+		const emptyData = {
+			businessName: '',
+			phoneNumber: '',
+			location: '',
+			businessAddress: '',
+			principalId: currentPrincipalId || '',
+			kycStatus: 'pending',
+			status: 'offline',
+			rating: 0,
+			totalReviews: 0,
+			totalTransactions: 0,
+			activeCustomers: 0,
+			totalEarnings: 0,
+			serviceRadius: 5,
+			profileImage: null,
+			commissionRate: 2.5,
+			maxCashLimit: 500000,
+			operatingHours: { start: '08:00', end: '18:00' }
+		};
+
+		// Demo data ONLY for demo mode
+		const demoData = {
 			businessName: 'John Doe Agent Services',
 			phoneNumber: '+256700123456',
 			location: 'Kampala, Uganda',
@@ -51,14 +72,14 @@
 
 		if (isDemoMode) {
 			// Use demo data
-			agentData = defaultData;
+			agentData = demoData;
 			isLoading = false;
 			return;
 		}
 
 		if (!currentPrincipalId) {
 			console.warn('No principal ID available');
-			agentData = defaultData;
+			agentData = emptyData;
 			isLoading = false;
 			return;
 		}
@@ -70,36 +91,47 @@
 				key: currentPrincipalId
 			});
 
-			if (doc) {
-				agentDoc = doc;
-				const data = doc.data;
-			
-				agentData = {
-					businessName: data?.businessName || 'Agent Services',
-					phoneNumber: data?.phoneNumber || '+256700123456',
-					location: data?.location || 'Kampala, Uganda',
-					businessAddress: data?.businessAddress || 'Plot 123, Kampala Road',
-					principalId: currentPrincipalId,
-					kycStatus: data?.kycStatus || 'pending',
-					status: data?.status || 'available',
-					rating: data?.rating || 4.8,
-					totalReviews: data?.totalReviews || 156,
-					totalTransactions: data?.totalTransactions || 1234,
-					activeCustomers: data?.activeCustomers || 89,
-					totalEarnings: data?.totalEarnings || 2500000,
-					serviceRadius: data?.serviceRadius || 5,
-					profileImage: data?.profileImage || null,
-					commissionRate: data?.commissionRate || 2.5,
-					maxCashLimit: data?.maxCashLimit || 500000,
-					operatingHours: data?.operatingHours || { start: '08:00', end: '18:00' }
-				};
-			} else {
-				// Default data if no doc exists
-				agentData = defaultData;
+			if (!doc) {
+				const error = new Error(`Agent document not found for principal: ${currentPrincipalId}`);
+				console.error('❌ AGENT DATA ERROR:', error);
+				toast.show('error', 'Agent profile not found. Please complete onboarding.');
+				agentData = null;
+				isLoading = false;
+				return;
 			}
-		} catch (error) {
-			console.error('Failed to load agent data:', error);
-			agentData = defaultData;
+
+			agentDoc = doc;
+			const data = doc.data;
+		
+			// NO FALLBACKS - use exact data from Juno
+			agentData = {
+				businessName: data.businessName,
+				phoneNumber: data.phoneNumber,
+				location: data.location,
+				businessAddress: data.businessAddress,
+				principalId: currentPrincipalId,
+				kycStatus: data.kycStatus,
+				status: data.status,
+				rating: data.rating,
+				totalReviews: data.totalReviews,
+				totalTransactions: data.totalTransactions,
+				activeCustomers: data.activeCustomers,
+				totalEarnings: data.totalEarnings,
+				serviceRadius: data.serviceRadius,
+				profileImage: data.profileImage,
+				commissionRate: data.commissionRate,
+				maxCashLimit: data.maxCashLimit,
+				operatingHours: data.operatingHours
+			};
+		} catch (error: any) {
+			console.error('❌ FAILED TO LOAD AGENT DATA:', error);
+			console.error('Error details:', {
+				message: error.message,
+				stack: error.stack,
+				principalId: currentPrincipalId
+			});
+			toast.show('error', 'Failed to load agent profile. Please try again.');
+			agentData = null;
 		} finally {
 			isLoading = false;
 		}

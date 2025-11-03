@@ -4,6 +4,7 @@
 	import { toast } from '$lib/stores/toast';
 	import { User, Bell, Shield, Globe, Save, CheckCircle, RotateCcw, AlertCircle } from '@lucide/svelte';
 	import { onMount } from 'svelte';
+	import { getDoc, setDoc } from '@junobuild/core';
 	import { AGENT_SETTINGS_CONFIG, getSliderLabel } from '$lib/config/agentSettings';
 
 	interface AgentSettings {
@@ -26,41 +27,138 @@
 	let activeTab = $state<'profile' | 'operations' | 'security' | 'notifications'>('profile');
 	let isSaving = $state(false);
 	let hasUnsavedChanges = $state(false);
+	let isLoading = $state(true);
+	let agentDoc = $state<any>(null);
 	let originalSettings: AgentSettings;
 	let originalProfile = { businessName: '', phoneNumber: '', location: '', businessAddress: '' };
 
-	let settings = $state<AgentSettings>({
+	// Default settings from config
+	const defaultSettings: AgentSettings = {
 		commissionRate: AGENT_SETTINGS_CONFIG.commissionRate.default,
 		maxCashLimit: AGENT_SETTINGS_CONFIG.maxCashLimit.default,
 		operatingHours: { 
 			start: AGENT_SETTINGS_CONFIG.operatingHours.default.start, 
 			end: AGENT_SETTINGS_CONFIG.operatingHours.default.end 
 		},
-		bitcoinEnabled: true,
-		notificationsEnabled: true,
-		smsNotifications: true,
+		bitcoinEnabled: false,
+		notificationsEnabled: false,
+		smsNotifications: false,
 		emailNotifications: false,
-		status: 'available',
+		status: 'offline',
 		preferredCurrency: 'UGX',
 		serviceRadius: AGENT_SETTINGS_CONFIG.serviceRadius.default,
 		minimumTransaction: AGENT_SETTINGS_CONFIG.minimumTransaction.default,
 		autoAcceptLimit: AGENT_SETTINGS_CONFIG.autoAcceptLimit.default,
-		securityPinEnabled: true,
-		locationSharing: true
+		securityPinEnabled: false,
+		locationSharing: false
+	};
+
+	let settings = $state<AgentSettings>({ ...defaultSettings });
+
+	// Profile settings - NO HARDCODED VALUES
+	let businessName = $state('');
+	let phoneNumber = $state('');
+	let location = $state('');
+	let businessAddress = $state('');
+
+	// Load settings from Juno or use demo data
+	$effect(() => {
+		loadAgentSettings($demoMode, $principalId);
 	});
 
-	// Profile settings
-	let businessName = $state('John Doe Agent Services');
-	let phoneNumber = $state('+256700123456');
-	let location = $state('Kampala, Uganda');
-	let businessAddress = $state('Plot 123, Kampala Road');
+	async function loadAgentSettings(isDemoMode: boolean, agentPrincipalId: string | null) {
+		isLoading = true;
 
-	// Initialize original values
+		if (isDemoMode) {
+			// Demo data
+			settings = {
+				...defaultSettings,
+				bitcoinEnabled: true,
+				notificationsEnabled: true,
+				smsNotifications: true,
+				status: 'available',
+				securityPinEnabled: true,
+				locationSharing: true
+			};
+			businessName = 'John Doe Agent Services';
+			phoneNumber = '+256700123456';
+			location = 'Kampala, Uganda';
+			businessAddress = 'Plot 123, Kampala Road';
+			originalSettings = JSON.parse(JSON.stringify(settings));
+			originalProfile = { businessName, phoneNumber, location, businessAddress };
+			isLoading = false;
+			return;
+		}
+
+		if (!agentPrincipalId) {
+			settings = { ...defaultSettings };
+			businessName = '';
+			phoneNumber = '';
+			location = '';
+			businessAddress = '';
+			originalSettings = JSON.parse(JSON.stringify(settings));
+			originalProfile = { businessName, phoneNumber, location, businessAddress };
+			isLoading = false;
+			return;
+		}
+
+		try {
+			const doc = await getDoc({
+				collection: 'agents',
+				key: agentPrincipalId
+			});
+
+			if (!doc) {
+				const error = new Error(`Agent settings not found for principal: ${agentPrincipalId}`);
+				console.error('❌ AGENT SETTINGS ERROR:', error);
+				toast.show('error', 'Agent settings not found. Please complete onboarding.');
+				isLoading = false;
+				return;
+			}
+
+			agentDoc = doc;
+			const data = doc.data;
+			
+			// NO FALLBACKS - use exact data from Juno
+			settings = {
+				commissionRate: data.commissionRate,
+				maxCashLimit: data.maxCashLimit,
+				operatingHours: data.operatingHours,
+				bitcoinEnabled: data.bitcoinEnabled,
+				notificationsEnabled: data.notificationsEnabled,
+				smsNotifications: data.smsNotifications,
+				emailNotifications: data.emailNotifications,
+				status: data.status,
+				preferredCurrency: data.preferredCurrency,
+				serviceRadius: data.serviceRadius,
+				minimumTransaction: data.minimumTransaction,
+				autoAcceptLimit: data.autoAcceptLimit,
+				securityPinEnabled: data.securityPinEnabled,
+				locationSharing: data.locationSharing
+			};
+
+			businessName = data.businessName;
+			phoneNumber = data.phoneNumber;
+			location = data.location;
+			businessAddress = data.businessAddress;
+
+			originalSettings = JSON.parse(JSON.stringify(settings));
+			originalProfile = { businessName, phoneNumber, location, businessAddress };
+		} catch (error: any) {
+			console.error('❌ FAILED TO LOAD AGENT SETTINGS:', error);
+			console.error('Error details:', {
+				message: error.message,
+				stack: error.stack,
+				principalId: agentPrincipalId
+			});
+			toast.show('error', 'Failed to load agent settings. Please try again.');
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	// Initialize keyboard shortcuts
 	onMount(() => {
-		originalSettings = JSON.parse(JSON.stringify(settings));
-		originalProfile = { businessName, phoneNumber, location, businessAddress };
-		
-		// Keyboard shortcut: Ctrl+S to save
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if ((e.ctrlKey || e.metaKey) && e.key === 's') {
 				e.preventDefault();
@@ -85,8 +183,31 @@
 	async function saveSettings() {
 		isSaving = true;
 		try {
-			// In real app, save to backend
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			const currentPrincipalId = $principalId;
+			
+			if ($demoMode) {
+				// Demo mode - just simulate save
+				await new Promise((resolve) => setTimeout(resolve, 500));
+			} else if (currentPrincipalId && agentDoc) {
+				// Real mode - save to Juno
+				await setDoc({
+					collection: 'agents',
+					doc: {
+						...agentDoc,
+						data: {
+							...agentDoc.data,
+							...settings,
+							businessName,
+							phoneNumber,
+							location,
+							businessAddress,
+							updatedAt: new Date().toISOString()
+						}
+					}
+				});
+			} else {
+				throw new Error('Not authenticated or no agent document');
+			}
 			
 			// Update original values
 			originalSettings = JSON.parse(JSON.stringify(settings));
@@ -95,6 +216,7 @@
 			
 			toast.show('success', 'Settings saved successfully');
 		} catch (error) {
+			console.error('Failed to save settings:', error);
 			toast.show('error', 'Failed to save settings');
 		} finally {
 			isSaving = false;
