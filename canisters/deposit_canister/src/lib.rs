@@ -59,6 +59,14 @@ pub struct ConfirmDepositRequest {
 }
 
 // ============================================================================
+// CONFIGURABLE CONSTANTS - CHANGE THESE TO UPDATE FEE STRUCTURE
+// ============================================================================
+
+/// Agent commission rate in basis points (0.5% = 50 bps)
+/// This is what agents owe AfriTokeni on deposits they process
+const DEFAULT_COMMISSION_RATE_BPS: u64 = 50;
+
+// ============================================================================
 // STATE
 // ============================================================================
 
@@ -67,7 +75,7 @@ thread_local! {
     static AGENT_BALANCES: RefCell<HashMap<Principal, AgentBalance>> = RefCell::new(HashMap::new());
     static SETTLEMENTS: RefCell<Vec<MonthlySettlement>> = RefCell::new(Vec::new());
     static NEXT_DEPOSIT_ID: RefCell<u64> = RefCell::new(1);
-    static COMMISSION_RATE_BPS: RefCell<u64> = RefCell::new(50); // 0.5% = 50 basis points
+    static COMMISSION_RATE_BPS: RefCell<u64> = RefCell::new(DEFAULT_COMMISSION_RATE_BPS);
     static COMPANY_WALLET: RefCell<Option<Principal>> = RefCell::new(None);
 }
 

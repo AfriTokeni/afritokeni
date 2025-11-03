@@ -8,14 +8,10 @@ use super::*;
 fn test_correct_fee_calculation() {
     let amount = 100_000u64; // 100k UGX withdrawal
     
-    // Platform base fee: 0.5% of amount
-    let platform_base_fee = (amount * 50) / 10000; // 50 bps = 0.5%
-    
-    // Agent fee: 3% of amount (default, can be 2-12% dynamic)
-    let agent_total_fee = (amount * 300) / 10000; // 300 bps = 3%
-    
-    // Platform gets 10% of agent's fee
-    let platform_cut_of_agent = (agent_total_fee * 10) / 100;
+    // Use constants from lib.rs instead of hardcoded values
+    let platform_base_fee = (amount * DEFAULT_PLATFORM_FEE_BPS) / 10000;
+    let agent_total_fee = (amount * DEFAULT_AGENT_FEE_BPS) / 10000;
+    let platform_cut_of_agent = (agent_total_fee * PLATFORM_CUT_OF_AGENT_FEE_PERCENT) / 100;
     
     // Total platform revenue
     let total_platform_fee = platform_base_fee + platform_cut_of_agent;
@@ -49,9 +45,9 @@ fn test_withdrawal_code_generation() {
 fn test_small_withdrawal_fees() {
     let amount = 10_000u64; // 10k UGX
     
-    let platform_base = (amount * 50) / 10000; // 0.5%
-    let agent_total = (amount * 300) / 10000; // 3%
-    let platform_cut = (agent_total * 10) / 100; // 10% of agent fee
+    let platform_base = (amount * DEFAULT_PLATFORM_FEE_BPS) / 10000;
+    let agent_total = (amount * DEFAULT_AGENT_FEE_BPS) / 10000;
+    let platform_cut = (agent_total * PLATFORM_CUT_OF_AGENT_FEE_PERCENT) / 100;
     let platform_total = platform_base + platform_cut;
     let agent_keeps = agent_total - platform_cut;
     
@@ -65,9 +61,9 @@ fn test_small_withdrawal_fees() {
 fn test_medium_withdrawal_fees() {
     let amount = 100_000u64; // 100k UGX
     
-    let platform_base = (amount * 50) / 10000; // 0.5%
-    let agent_total = (amount * 300) / 10000; // 3%
-    let platform_cut = (agent_total * 10) / 100;
+    let platform_base = (amount * DEFAULT_PLATFORM_FEE_BPS) / 10000;
+    let agent_total = (amount * DEFAULT_AGENT_FEE_BPS) / 10000;
+    let platform_cut = (agent_total * PLATFORM_CUT_OF_AGENT_FEE_PERCENT) / 100;
     let platform_total = platform_base + platform_cut;
     let agent_keeps = agent_total - platform_cut;
     
@@ -80,9 +76,9 @@ fn test_medium_withdrawal_fees() {
 fn test_large_withdrawal_fees() {
     let amount = 1_000_000u64; // 1M UGX
     
-    let platform_base = (amount * 50) / 10000; // 0.5%
-    let agent_total = (amount * 300) / 10000; // 3%
-    let platform_cut = (agent_total * 10) / 100;
+    let platform_base = (amount * DEFAULT_PLATFORM_FEE_BPS) / 10000;
+    let agent_total = (amount * DEFAULT_AGENT_FEE_BPS) / 10000;
+    let platform_cut = (agent_total * PLATFORM_CUT_OF_AGENT_FEE_PERCENT) / 100;
     let platform_total = platform_base + platform_cut;
     let agent_keeps = agent_total - platform_cut;
     
