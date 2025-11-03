@@ -88,55 +88,69 @@ npm run canisters:generate-ts        # Generate TypeScript types from Candid
 ### Testing
 
 ```bash
-# Run all tests (unit + integration)
-npm test
+# Run all tests
+npm run test:all
 
-# Run unit tests only (fast, no ICP required)
+# Run unit tests only (USSD service tests)
 npm run test:unit
 
-# Run integration tests (requires local ICP replica)
+# Run integration tests (ICP canister tests)
 npm run test:integration
 
-# Watch integration tests
-npm run test:integration:watch
+# Run E2E tests (full stack + revenue verification)
+npm run test:e2e
 ```
 
 **Test Coverage:**
-- ✅ **60 BDD scenarios PASSING** (54 unit + 6 ICP integration)
-- ⏳ **3 scenarios UNDEFINED** (PIN verification steps)
-- ✅ **317+ test steps** - All with meaningful assertions
-- ✅ **Core tests**: USSD, ckBTC, ckUSDC, Fiat operations
-- ✅ **DAO Governance**: 12 scenarios covering voting, proposals, validation
-- ✅ **ICP integration**: Real ckBTC/ckUSDC ledger queries on local replica
-- ✅ **Error handling**: Balance checks, invalid amounts, expired escrows
-- ✅ **Multi-currency**: NGN, KES, GHS, ZAR, UGX with real exchange rates
-- ✅ **Agent operations**: Deposits, withdrawals, liquidity management
-- ✅ **DAO features**: View proposals, vote YES/NO/ABSTAIN, voting power, active votes
-- ✅ **Fast execution**: All tests complete in <1 second
-- 📋 **95% test coverage** - Production ready!
+- ✅ **58 Rust canister tests** (deposit, withdrawal, exchange)
+- ✅ **162 USSD unit test scenarios** (Bitcoin, USDC, local currency, DAO)
+- ✅ **19 ICP integration scenarios** (ckBTC, ckUSDC ledger integration)
+- ✅ **36 E2E scenarios** (deposit, withdrawal, exchange, API routes, revenue)
+- 📊 **Total: 275 tests across all layers**
+
+**What's Tested:**
+- ✅ **USSD Flows**: Menu navigation, Bitcoin/USDC buy/sell/send, local currency ops
+- ✅ **DAO Governance**: Proposals, voting, token locking, voting power
+- ✅ **ICP Integration**: Real ckBTC/ckUSDC ledger queries on local replica
+- ✅ **Revenue Model**: Platform fees (0.5%), agent commissions (2-12%), on-chain tracking
+- ✅ **Multi-currency**: 39 African currencies with real exchange rates
+- ✅ **Error Handling**: Balance checks, invalid amounts, PIN verification
+- ✅ **Security**: Escrow codes, transaction expiry, fraud prevention
 
 **Test Structure:**
 ```
-tests/features/
-├── ckbtc.feature (3 scenarios)
-├── ckusdc.feature (3 scenarios)
-├── fiat.feature (2 scenarios)
-├── ussd.feature (3 scenarios)
-├── ussd-dao.feature (12 scenarios) ✨ NEW
-├── error-handling.feature (10 scenarios)
-├── multi-currency.feature (8 scenarios)
-├── agent-flows.feature (10 scenarios)
-├── security.feature (10 scenarios)
-├── icp-integration.feature (6 scenarios)
-└── step-definitions/
-    ├── shared-steps.ts (setup & mocks)
-    ├── core-steps.ts (USSD, ckBTC, ckUSDC, Fiat)
-    ├── ussd-dao-steps.ts (DAO governance) ✨ NEW
-    ├── icp-integration-steps.ts (real blockchain)
-    ├── error-handling-steps.ts (error scenarios)
-    ├── multi-currency-steps.ts (multi-currency ops)
-    ├── agent-steps.ts (agent operations)
-    └── security-steps.ts (security features)
+tests/
+├── unit/              # USSD service unit tests (15 features, 162 scenarios)
+│   ├── ussd-bitcoin.feature
+│   ├── ussd-usdc.feature
+│   ├── ussd-dao.feature
+│   ├── ussd-handlers.feature
+│   └── ... (11 more)
+│
+├── integration/       # ICP canister integration (2 features, 19 scenarios)
+│   ├── integration-ckbtc.feature
+│   └── integration-ckusdc.feature
+│
+├── e2e/              # End-to-end tests (5 features, 36 scenarios)
+│   ├── e2e-deposit-flow.feature
+│   ├── e2e-withdrawal-flow.feature
+│   ├── e2e-exchange-flow.feature
+│   ├── e2e-api-routes.feature
+│   └── e2e-revenue-tracking.feature
+│
+├── helpers/          # Shared test utilities
+└── mocks/            # Mock implementations
+```
+
+**Rust Canister Tests:**
+```bash
+# Test all canisters
+cargo test --release
+
+# Results:
+# ✅ Deposit canister: 20 tests
+# ✅ Withdrawal canister: 19 tests
+# ✅ Exchange canister: 19 tests
 ```
 
 ---
@@ -174,14 +188,15 @@ tests/features/
 ## 🏗️ Technical Stack
 
 **Frontend**:
-- React 19.2 + TypeScript
-- TailwindCSS
+- SvelteKit 2.x + TypeScript
+- Svelte 5 (Runes)
+- TailwindCSS 4
 - Vite 7
-- React Router
 
 **Backend**:
+- SvelteKit API Routes (+server.ts)
 - Juno (ICP) - Decentralized storage
-- ICP Canisters - Smart contracts
+- ICP Canisters - Smart contracts (Rust)
 - ICRC-1 - Token standard
 - Internet Identity - Authentication
 
@@ -198,10 +213,10 @@ tests/features/
 - Multi-language support (English, Luganda, Swahili)
 
 **Testing**:
-- Cucumber.js (BDD)
+- Cucumber.js (BDD) - 275 tests
+- Cargo (Rust canister tests) - 58 tests
 - DFX (local ICP replica)
 - Real ledger canister integration
-- Juno emulator
 
 ---
 
