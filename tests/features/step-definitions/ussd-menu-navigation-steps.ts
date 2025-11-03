@@ -2,7 +2,7 @@ import { Given, When, Then } from '@cucumber/cucumber';
 import { expect } from 'chai';
 import { world } from './shared-steps.js';
 import { USSDTestHelper } from '../../helpers/ussdTestHelpers';
-import { UserService } from '../../../src/services/userService';
+import { UserService } from '../../../src/lib/services/userService';
 
 // Background steps
 Given('I have a valid phone number {string}', async function (phoneNumber: string) {

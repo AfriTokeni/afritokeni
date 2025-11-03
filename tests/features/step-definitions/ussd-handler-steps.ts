@@ -7,17 +7,17 @@ import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'assert';
 import { world } from './shared-steps.js';
 import { USSDTestHelper } from '../../helpers/ussdTestHelpers';
-import { USSDService } from '../../../src/services/ussdService';
-import { handleMainMenu } from '../../../src/services/ussd/handlers/mainMenu';
-import { handleLocalCurrency, getUserBalance } from '../../../src/services/ussd/handlers/localCurrency';
-import { handleBitcoin } from '../../../src/services/ussd/handlers/bitcoin';
-import { handleFindAgent } from '../../../src/services/ussd/handlers/agents';
-import { UserService } from '../../../src/services/userService';
-import { BalanceService } from '../../../src/services/balanceService';
+import { USSDService } from '../../../src/lib/services/ussdService';
+import { handleMainMenu } from '../../../src/lib/services/ussd/handlers/mainMenu';
+import { handleLocalCurrency, getUserBalance } from '../../../src/lib/services/ussd/handlers/localCurrency';
+import { handleBitcoin } from '../../../src/lib/services/ussd/handlers/bitcoin';
+import { handleFindAgent } from '../../../src/lib/services/ussd/handlers/agents';
+import { UserService } from '../../../src/lib/services/userService';
+import { BalanceService } from '../../../src/lib/services/balanceService';
 import { setDoc } from '@junobuild/core';
 import { enableDataServiceMock, setMockBalance, disableDataServiceMock } from '../../mocks/dataServiceMock';
-import { getUSSDPrincipalInfo } from '../../../src/services/ussdPrincipalService';
-import { setUserPin } from '../../../src/services/ussd/handlers/pinManagement';
+import { getUSSDPrincipalInfo } from '../../../src/lib/services/ussdPrincipalService';
+import { setUserPin } from '../../../src/lib/services/ussd/handlers/pinManagement';
 
 // ========== Background Steps ==========
 

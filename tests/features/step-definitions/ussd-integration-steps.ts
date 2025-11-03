@@ -6,14 +6,14 @@ import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'assert';
 import { world } from './shared-steps.js';
 import { USSDTestHelper } from '../../helpers/ussdTestHelpers';
-import { USSDService } from '../../../src/services/ussdService';
-import { UserService } from '../../../src/services/userService';
-import { BalanceService } from '../../../src/services/balanceService';
-import { TransactionService } from '../../../src/services/transactionService';
-import { CkBTCService } from '../../../src/services/ckBTCService';
-import { getUSSDPrincipalInfo, transferUSSDCkBTC, getUSSDCkBTCBalance } from '../../../src/services/ussdPrincipalService';
+import { USSDService } from '../../../src/lib/services/ussdService';
+import { UserService } from '../../../src/lib/services/userService';
+import { BalanceService } from '../../../src/lib/services/balanceService';
+import { TransactionService } from '../../../src/lib/services/transactionService';
+import { CkBTCService } from '../../../src/lib/services/ckBTCService';
+import { getUSSDPrincipalInfo, transferUSSDCkBTC, getUSSDCkBTCBalance } from '../../../src/lib/services/ussdPrincipalService';
 import { enableDataServiceMock, setMockBalance, setPhoneToUserId } from '../../mocks/dataServiceMock';
-import { setUserPin } from '../../../src/services/ussd/handlers/pinManagement';
+import { setUserPin } from '../../../src/lib/services/ussd/handlers/pinManagement';
 
 // ========== Given Steps ==========
 

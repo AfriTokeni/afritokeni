@@ -8,7 +8,7 @@ import assert from 'assert';
 import { world, LOCAL_REPLICA_URL, CKBTC_CANISTER_ID, CKUSDC_CANISTER_ID, ICRC1_IDL } from './shared-steps.js';
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { Principal } from '@dfinity/principal';
-import { EscrowService } from '../../../src/services/escrowService';
+import { EscrowService } from '../../../src/lib/services/escrowService';
 
 // @icp tag
 Given('the local ICP replica is running', async function () {

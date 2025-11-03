@@ -6,8 +6,8 @@ import { Given, When, Then } from '@cucumber/cucumber';
 import { expect } from 'chai';
 import { world } from './shared-steps.js';
 import { USSDTestHelper } from '../../helpers/ussdTestHelpers.js';
-import { USSDService } from '../../../src/services/ussdService.js';
-import type { Language } from '../../../src/services/translations.js';
+import { USSDService } from '../../../src/lib/services/ussdService.js';
+import type { Language } from '../../../src/lib/services/translations.js';
 
 Given('I am a registered USSD user', async function () {
   world.ussdPhoneNumber = USSDTestHelper.generatePhoneNumber();

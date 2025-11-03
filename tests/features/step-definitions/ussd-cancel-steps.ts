@@ -6,7 +6,7 @@ import { Given, When, Then } from '@cucumber/cucumber';
 import { expect } from 'chai';
 import { world } from './shared-steps.js';
 import { USSDTestHelper } from '../../helpers/ussdTestHelpers.js';
-import { USSDService } from '../../../src/services/ussdService.js';
+import { USSDService } from '../../../src/lib/services/ussdService.js';
 
 // Note: 'I enter phone number' is defined in ussd-handler-steps.ts
 

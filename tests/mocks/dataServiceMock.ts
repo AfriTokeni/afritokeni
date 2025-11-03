@@ -3,9 +3,9 @@
  * Intercepts DataService calls and returns test data
  */
 
-import { WebhookDataService } from '../../src/services/webHookServices';
+import { WebhookDataService } from '../../src/lib/services/webHookServices';
 import { listDocs } from '@junobuild/core';
-import { CkBTCService } from '../../src/services/ckBTCService';
+import { CkBTCService } from '../../src/lib/services/ckBTCService';
 
 // Store original methods
 const originalGetUserBalance = WebhookDataService.getUserBalance;

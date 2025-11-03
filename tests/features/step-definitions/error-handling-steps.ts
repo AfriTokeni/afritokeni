@@ -5,8 +5,8 @@
 import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'assert';
 import { world } from './shared-steps.js';
-import { CkBTCService } from '../../../src/services/ckBTCService';
-import { EscrowService } from '../../../src/services/escrowService';
+import { CkBTCService } from '../../../src/lib/services/ckBTCService';
+import { EscrowService } from '../../../src/lib/services/escrowService';
 
 When('I try to send {float} ckBTC to another user', async function (amount: number) {
   // Validate amount

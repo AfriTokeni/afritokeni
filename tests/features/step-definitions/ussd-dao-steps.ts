@@ -2,9 +2,9 @@ import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'assert';
 import { world } from './shared-steps.js';
 import { USSDTestHelper } from '../../helpers/ussdTestHelpers';
-import { USSDService } from '../../../src/services/ussdService';
-import { WebhookDataService } from '../../../src/services/webHookServices';
-import { setUserPin } from '../../../src/services/ussd/handlers/pinManagement';
+import { USSDService } from '../../../src/lib/services/ussdService';
+import { WebhookDataService } from '../../../src/lib/services/webHookServices';
+import { setUserPin } from '../../../src/lib/services/ussd/handlers/pinManagement';
 
 // ========== Given Steps ==========
 
