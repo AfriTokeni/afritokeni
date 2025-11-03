@@ -262,10 +262,7 @@ export class USSDService {
         
         case 'pin_check':
           // PIN verification for sensitive operations
-          const handleCheckBalance = async (input: string, session: USSDSession) => {
-            return await handleLocalCurrency(input, session, handleSendMoney, handleDeposit, handleWithdraw, handleFindAgent, async () => this.getMainMenu());
-          };
-          response = await handlePinCheck(input, session, handleCheckBalance, handleTransactionHistory);
+          response = await handlePinCheck(input, session);
           break;
         
         case 'transaction_history':

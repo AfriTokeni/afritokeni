@@ -10,6 +10,33 @@ import { WebhookDataService as DataService } from '../../webHookServices.js';
 import { TranslationService, type Language } from '../../translations.js';
 import { handleCheckBalance, handleTransactionHistory } from './localCurrency.js';
 
+type PendingOperationResolver = (menu: string, session: USSDSession) => Promise<string>;
+
+async function defaultPendingOperationResolver(menu: string, session: USSDSession): Promise<string> {
+	session.step = 1;
+	switch (menu) {
+		case 'check_balance':
+			session.currentMenu = 'check_balance' as const;
+			return await handleCheckBalance('', session);
+		case 'transaction_history':
+			session.currentMenu = 'transaction_history' as const;
+			return await handleTransactionHistory('', session);
+		default: {
+			const lang = session.language || 'en';
+			session.currentMenu = 'main';
+			session.step = 0;
+			const currency = getSessionCurrency(session);
+			return continueSession(`${TranslationService.translate('welcome_back', lang)}
+${TranslationService.translate('please_select_option', lang)}:
+1. ${TranslationService.translate('local_currency_menu', lang)} (${currency})
+2. ${TranslationService.translate('bitcoin', lang)} (ckBTC)
+3. ${TranslationService.translate('usdc', lang)} (ckUSDC)
+4. ${TranslationService.translate('dao_governance', lang)}
+0. Exit`);
+		}
+	}
+}
+
 /**
  * Check if user has a PIN set
  */
@@ -91,7 +118,11 @@ export function requestPinVerification(session: USSDSession, operation: string, 
 /**
  * Handle PIN check - verify existing PIN
  */
-export async function handlePinCheck(input: string, session: USSDSession, handleCheckBalance: any, handleTransactionHistory: any): Promise<string> {
+export async function handlePinCheck(
+	input: string,
+	session: USSDSession,
+	resolvePendingOperation: PendingOperationResolver = defaultPendingOperationResolver
+): Promise<string> {
   const lang = session.language || 'en';
   console.log(`🔑 PIN check for ${session.phoneNumber}, step: ${session.step}, raw input: "${input}"`);
   
@@ -138,14 +169,7 @@ export async function handlePinCheck(input: string, session: USSDSession, handle
           delete session.data.nextMenu;
           
           // Route to the appropriate handler
-          session.currentMenu = nextMenu as any;
-          session.step = 1;
-          
-          if (nextMenu === 'check_balance') {
-            return await handleCheckBalance('', session);
-          } else if (nextMenu === 'transaction_history') {
-            return await handleTransactionHistory('', session);
-          }
+          return await resolvePendingOperation(nextMenu, session);
         }
         
         // No pending operation - go to main menu
@@ -234,6 +258,6 @@ export async function handlePinSetup(input: string, session: USSDSession, lang: 
     default:
       session.currentMenu = 'pin_check' as const;
       session.step = 0;
-      return handlePinCheck('', session, null, null);
+      return handlePinCheck('', session);
   }
 }
