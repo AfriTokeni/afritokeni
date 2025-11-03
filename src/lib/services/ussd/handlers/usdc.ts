@@ -11,7 +11,7 @@ import { TranslationService } from "../../translations.js";
 import { generatePrincipalFromIdentifier } from "../../../utils/principalUtils.js";
 import { shouldUseMocks } from "../../mockService.js";
 
-const isPlayground = () => {
+const _isPlayground = () => {
   if (typeof window !== "undefined") {
     const result =
       window.location.pathname.includes("/playground") ||

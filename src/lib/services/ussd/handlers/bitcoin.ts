@@ -18,7 +18,7 @@ import { generatePrincipalFromIdentifier } from "../../../utils/principalUtils.j
 import { shouldUseMocks } from "../../mockService.js";
 
 // Check if we're in playground mode (ONLY for UI playground, NOT for tests!)
-const isPlayground = () => {
+const _isPlayground = () => {
   // Only check browser playground - tests should use REAL services
   if (typeof window !== "undefined") {
     return (

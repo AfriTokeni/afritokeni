@@ -19,7 +19,7 @@ interface ExchangeRates {
   lastUpdated: Date;
 }
 
-interface ExchangeCalculation {
+interface _ExchangeCalculation {
   inputAmount: number;
   outputAmount: number;
   spreadAmount: number;

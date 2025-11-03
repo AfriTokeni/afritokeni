@@ -18,7 +18,7 @@ import { getDoc } from "@junobuild/core";
 export async function fetchFiatBalance(
   principalId: string | null,
   isDemoMode: boolean,
-): Promise<{ amount: number; currency: string }> {
+): Promise<{ amount: number; _currency: string }> {
   if (isDemoMode) {
     try {
       const response = await fetch("/data/demo/user.json");
@@ -71,7 +71,7 @@ export async function fetchFiatBalance(
  * @param currency - Currency code (NGN, KES, UGX, etc.)
  * @returns Formatted string
  */
-export function formatCurrency(amount: number, currency: string): string {
+export function formatCurrency(amount: number, _currency: string): string {
   return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -81,7 +81,7 @@ export function formatCurrency(amount: number, currency: string): string {
 /**
  * Get currency symbol
  */
-export function getCurrencySymbol(currency: string): string {
+export function getCurrencySymbol(_currency: string): string {
   const symbols: Record<string, string> = {
     UGX: "UGX",
     NGN: "₦",

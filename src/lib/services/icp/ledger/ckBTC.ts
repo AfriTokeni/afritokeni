@@ -253,7 +253,7 @@ export class CkBTCService {
 
       // Get ledger actor
       const ledgerActor = await getCkBTCLedgerActor();
-      const senderPrincipal = toPrincipal(request.senderId);
+      const _senderPrincipal = toPrincipal(request.senderId);
       const recipientPrincipal = toPrincipal(request.recipient);
 
       console.log(`📤 Sender: ${request.senderId}`);

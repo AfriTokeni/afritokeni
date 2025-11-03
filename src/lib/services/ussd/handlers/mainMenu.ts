@@ -20,7 +20,7 @@ export async function handleMainMenu(
   handleUSDC: any,
   handleDAO?: any,
 ): Promise<string> {
-  const currency = getSessionCurrency(session);
+  const _currency = getSessionCurrency(session);
   const lang = session.language || "en";
 
   if (!input) {
@@ -74,7 +74,7 @@ export async function handleMainMenu(
       );
 
     case "5": {
-      const currency = getSessionCurrency(session);
+      const _currency = getSessionCurrency(session);
       const lang = session.language || "en";
       return continueSession(
         `${TranslationService.translate("help", lang)}\n\n${TranslationService.translate("local_currency", lang)}: ${TranslationService.translate("send_money", lang)}, ${TranslationService.translate("withdraw", lang)}\n${TranslationService.translate("bitcoin", lang)}: ${TranslationService.translate("buy_bitcoin", lang)}, ${TranslationService.translate("sell_bitcoin", lang)}\n${TranslationService.translate("dao", lang)}: ${TranslationService.translate("vote_on_proposals", lang)}\n\n${TranslationService.translate("for_support", lang)}: ${TranslationService.translate("call", lang)} +256-XXX-XXXX\n${TranslationService.translate("visit", lang)}: ${TranslationService.translate("website", lang)}\n\n${TranslationService.translate("back_or_menu", lang)}`,
@@ -101,7 +101,7 @@ export async function handleMainMenu(
     }
 
     default: {
-      const currency = getSessionCurrency(session);
+      const _currency = getSessionCurrency(session);
       const lang = session.language || "en";
       return continueSession(`${TranslationService.translate("invalid_option", lang)}
 

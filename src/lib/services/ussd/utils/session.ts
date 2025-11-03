@@ -34,7 +34,7 @@ export function getOrCreateSession(
  */
 export function startSessionCleanup(): NodeJS.Timeout {
   return setInterval(() => {
-    const now = Date.now();
+    const _now = Date.now();
     for (const [sessionId, session] of ussdSessions.entries()) {
       if (session.isExpired()) {
         ussdSessions.delete(sessionId);

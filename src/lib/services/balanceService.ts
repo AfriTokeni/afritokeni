@@ -4,7 +4,7 @@ import { TransactionService } from "./transactionService";
 export interface UserBalance {
   userId: string;
   balance: number;
-  currency: string;
+  _currency: string;
   lastUpdated: Date;
 }
 
@@ -21,7 +21,7 @@ export class BalanceService {
       const rawData = doc.data as {
         userId: string;
         balance: number;
-        currency: string;
+        _currency: string;
         lastUpdated: string;
       };
 
@@ -40,7 +40,7 @@ export class BalanceService {
   static async updateUserBalance(
     userId: string,
     balance: number,
-    currency: string = "UGX",
+    _currency: string = "UGX",
   ): Promise<boolean> {
     try {
       const now = new Date();
@@ -77,7 +77,7 @@ export class BalanceService {
     }
   }
 
-  static async getBalance(userId: string, currency: string): Promise<number> {
+  static async getBalance(userId: string, _currency: string): Promise<number> {
     const balance = await this.getUserBalance(userId);
     return balance?.balance || 0;
   }
@@ -86,7 +86,7 @@ export class BalanceService {
     senderId: string,
     recipientId: string,
     amount: number,
-    currency: string,
+    _currency: string,
   ): Promise<void> {
     const senderBalance = await this.getUserBalance(senderId);
     if (!senderBalance || senderBalance.balance < amount) {

@@ -12,7 +12,7 @@ export const POST: RequestHandler = async ({ request }) => {
   const startTime = Date.now();
 
   try {
-    const { type, recipient, subject, message, data } = await request.json();
+    const { type, recipient, _subject, _message, _data } = await request.json();
 
     console.log(`📧 Sending ${type} notification to ${recipient}`);
 
