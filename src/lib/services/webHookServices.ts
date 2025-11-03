@@ -414,8 +414,9 @@ export class WebhookDataService {
   // USSD Operations
   static async getUserPin(phoneNumber: string): Promise<UserPin | null> {
     // MOCK MODE: Return mock PIN for testing or playground
-    // Check for playground phone number pattern (256 700 123 456)
-    const isPlaygroundPhone = phoneNumber.includes('256 700 123 456') || phoneNumber.includes('256700123456');
+    // Check for playground phone number pattern (256 700 123 456 or +256700123456)
+    const normalizedPhone = phoneNumber.replace(/[\s+]/g, ''); // Remove spaces and +
+    const isPlaygroundPhone = normalizedPhone.includes('256700123456');
     
     if (shouldUseMocks() || isPlaygroundPhone) {
       console.log('✅ Mock mode: Returning mock PIN 1234 for', phoneNumber);
