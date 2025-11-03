@@ -44,8 +44,8 @@
 <!-- Desktop Sidebar -->
 <div
 	class="fixed left-0 top-0 h-screen bg-black text-white transition-all duration-300 ease-in-out z-50 hidden md:block {isExpanded ? 'w-64' : 'w-16'}"
-	onmouseenter={() => isExpanded = true}
-	onmouseleave={() => isExpanded = false}
+	onmouseenter={() => (isExpanded = true)}
+	onmouseleave={() => (isExpanded = false)}
 >
 	<!-- Logo Section -->
 	<div class="h-16 flex items-center justify-center border-b border-gray-800">

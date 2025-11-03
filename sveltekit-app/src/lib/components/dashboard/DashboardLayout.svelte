@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Search, LogOut, ChevronRight } from '@lucide/svelte';
-	import type { Component } from 'svelte';
+	import { onMount } from 'svelte';
+	import { Search, Bell } from '@lucide/svelte';
 	import CollapsibleSidebar from './CollapsibleSidebar.svelte';
+	import { user_desktop_routes } from '$lib/routes/userRoutes';
+	import { agent_desktop_routes } from '$lib/routes/agentRoutes';
 	import DemoModeToggle from '$lib/components/shared/DemoModeToggle.svelte';
 	
 	// Import user routes
@@ -36,18 +38,7 @@
 	let profileImage = $state<string | null>(null);
 	let userName = $state('');
 
-	const userRoutes: Route[] = [
-		{ id: 'dashboard', path: '/users/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-		{ id: 'send', path: '/users/send', label: 'Send', icon: Send },
-		{ id: 'withdraw', path: '/users/withdraw', label: 'Withdraw', icon: Banknote },
-		{ id: 'dao', path: '/users/dao', label: 'DAO Governance', icon: Vote },
-		{ id: 'leaderboard', path: '/users/leaderboard', label: 'Leaderboard', icon: Trophy },
-		{ id: 'agents', path: '/users/agents', label: 'Find Agents', icon: MapPin },
-		{ id: 'history', path: '/users/history', label: 'Transaction History', icon: History },
-		{ id: 'profile', path: '/users/profile', label: 'Profile & Settings', icon: User }
-	];
-
-	const routes = userRoutes; // Can extend for agent/admin later
+	const routes = $derived(userType === 'agent' ? agent_desktop_routes : user_desktop_routes); // Can extend for agent/admin later
 
 	// Navigate to history page when user types in search
 	$effect(() => {
