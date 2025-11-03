@@ -23,7 +23,6 @@ export async function fetchCkUSDBalance(
   if (isDemoMode) {
     try {
       // Try agent data first, fallback to user data
-      let data;
       try {
         const agentResponse = await fetch("/data/demo/agent-dashboard.json");
         if (agentResponse.ok) {
@@ -40,8 +39,8 @@ export async function fetchCkUSDBalance(
       if (!response.ok) {
         throw new Error("Failed to fetch demo data");
       }
-      data = await response.json();
-      return data.ckUSDBalance || 0;
+      const userData = await response.json();
+      return userData.ckUSDBalance || 0;
     } catch (error) {
       console.error("Failed to fetch demo ckUSD balance:", error);
       return 0;

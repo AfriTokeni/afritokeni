@@ -10,4 +10,10 @@ declare global {
   }
 }
 
+// YAML module declarations
+declare module '*.yaml' {
+  const content: any;
+  export default content;
+}
+
 export {};
