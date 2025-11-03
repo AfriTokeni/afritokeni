@@ -4,7 +4,7 @@ import { RateLimiter } from './rateLimiter';
 import { USSDSessionImpl } from './ussd/types';
 import type { USSDSession } from './ussd/types';
 import { handleMainMenu } from './ussd/handlers/mainMenu';
-import { handleLocalCurrency, handleCheckBalance, handleTransactionHistory } from './ussd/handlers/localCurrency';
+import { handleLocalCurrency } from './ussd/handlers/localCurrency';
 import { handleBitcoin, handleBTCBalance, handleBTCRate } from './ussd/handlers/bitcoin';
 import { handleUSDC, handleUSDCBalance, handleUSDCRate } from './ussd/handlers/usdc';
 import { handleSendMoney } from './ussd/handlers/sendMoney';
@@ -12,6 +12,7 @@ import { handleWithdraw } from './ussd/handlers/withdraw';
 import { handleDeposit } from './ussd/handlers/deposit';
 import { handleFindAgent } from './ussd/handlers/agents';
 import { handleDAO } from './ussd/handlers/dao';
+import { handleTransactionHistory } from './ussd/handlers/localCurrency';
 import { handlePinCheck } from './ussd/handlers/pinManagement';
 import { shouldUseMocks } from './mockService';
 
@@ -255,12 +256,15 @@ export class USSDService {
           break;
         
         case 'check_balance':
-          // Balance check handler
-          response = await handleCheckBalance(input, session);
+          // Balance check is handled by localCurrency handler
+          response = await handleLocalCurrency(input, session, handleSendMoney, handleDeposit, handleWithdraw, handleFindAgent, async () => this.getMainMenu());
           break;
         
         case 'pin_check':
           // PIN verification for sensitive operations
+          const handleCheckBalance = async (input: string, session: USSDSession) => {
+            return await handleLocalCurrency(input, session, handleSendMoney, handleDeposit, handleWithdraw, handleFindAgent, async () => this.getMainMenu());
+          };
           response = await handlePinCheck(input, session, handleCheckBalance, handleTransactionHistory);
           break;
         
