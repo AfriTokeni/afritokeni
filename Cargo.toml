@@ -1,6 +1,5 @@
 [workspace]
 members = [
-    "src/satellite",
     "canisters/exchange_canister",
     "canisters/deposit_canister",
     "canisters/withdrawal_canister"
