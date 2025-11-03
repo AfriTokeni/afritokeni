@@ -153,9 +153,9 @@
 
 			<!-- Phone Simulator - Centered -->
 			<div class="max-w-sm sm:max-w-md mx-auto">
-				<div class="bg-black rounded-[2rem] sm:rounded-[3rem] shadow-2xl overflow-hidden p-2 sm:p-3">
+				<div class="bg-black rounded-4xl sm:rounded-[3rem] shadow-2xl overflow-hidden p-2 sm:p-3">
 					<!-- Phone Notch -->
-					<div class="bg-gray-900 rounded-[1.5rem] sm:rounded-[2.5rem] overflow-hidden">
+					<div class="bg-gray-900 rounded-3xl sm:rounded-[2.5rem] overflow-hidden">
 						<!-- Status Bar -->
 						<div class="bg-gray-900 px-4 sm:px-6 py-2 flex items-center justify-between text-white text-xs">
 							<span>9:21</span>
@@ -226,7 +226,7 @@
 			</div>
 
 			<!-- CTA Section -->
-			<div class="mt-8 sm:mt-10 lg:mt-12 bg-gradient-to-r from-green-600 to-teal-600 rounded-xl p-6 sm:p-8 lg:p-12 text-center text-white">
+			<div class="mt-8 sm:mt-10 lg:mt-12 bg-linear-to-r from-green-600 to-teal-600 rounded-xl p-6 sm:p-8 lg:p-12 text-center text-white">
 				<h2 class="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-4">Ready to Start Banking?</h2>
 				<p class="text-base sm:text-lg lg:text-xl mb-4 sm:mb-6 opacity-90">
 					Experience the future of mobile banking with instant, fee-free transfers
