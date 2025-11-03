@@ -22,21 +22,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: 'pnpm'
       
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
       
       - name: TypeScript Check
-        run: npm run check
+        run: pnpm run check
       
       - name: ESLint
-        run: npx eslint . --ext .ts,.tsx,.svelte --max-warnings 0
+        run: pnpm exec eslint . --ext .ts,.tsx,.svelte --max-warnings 0
       
       - name: Security Audit
-        run: npm audit --audit-level=high
+        run: pnpm audit --audit-level=high
         continue-on-error: true
 
   # Unit Tests
@@ -47,15 +51,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: 'pnpm'
       
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
       
       - name: Run Unit Tests
-        run: npm run test:unit
+        run: pnpm run test:unit
         env:
           NODE_ENV: unit-test
 
@@ -67,15 +75,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: 'pnpm'
       
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
       
       - name: Run Integration Tests
-        run: npm run test:integration
+        run: pnpm run test:integration
         env:
           NODE_ENV: integration
           DFX_NETWORK: local
@@ -88,15 +100,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: 'pnpm'
       
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
       
       - name: Run E2E Tests
-        run: npm run test:e2e
+        run: pnpm run test:e2e
         env:
           NODE_ENV: e2e
           DFX_NETWORK: local
@@ -109,15 +125,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: 'pnpm'
       
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
       
       - name: Build Application
-        run: npm run build
+        run: pnpm run build
       
       - name: Verify Build
         run: |
@@ -139,12 +159,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: 'pnpm'
       
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
       
       - name: Deploy to Staging
         uses: junobuild/juno-action@main
@@ -180,12 +204,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: 'pnpm'
       
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
       
       - name: Deploy to Production
         uses: junobuild/juno-action@main
