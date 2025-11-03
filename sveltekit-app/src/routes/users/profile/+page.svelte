@@ -30,6 +30,7 @@
 		const currentPrincipalId = $principalId;
 		if (!currentPrincipalId) {
 			console.warn('No principal ID available');
+			userData = null;
 			return;
 		}
 
@@ -39,35 +40,42 @@
 			key: currentPrincipalId
 		});
 
-		if (doc) {
-			userDoc = doc; // Store full document with version
-			const data = doc.data;
-			
-			console.log('Principal ID from auth store:', currentPrincipalId);
-			console.log('User data from Juno:', data);
-			
-			userData = {
-				firstName: data?.firstName || '',
-				lastName: data?.lastName || '',
-				phone: data?.phone || 'Not set',
-				principalId: currentPrincipalId,
-				isVerified: data?.isVerified || false,
-				kycStatus: data?.kycStatus || 'pending',
-				joinDate: data?.createdAt ? new Date(data.createdAt) : new Date(),
-				authMethod: 'web',
-				location: data?.location || null,
-				profileImage: data?.profileImage || null
-			};
-
-			// Check for missing fields
-			const missing: string[] = [];
-			if (!userData.firstName) missing.push('First Name');
-			if (!userData.lastName) missing.push('Last Name');
-			if (!userData.location?.country) missing.push('Country');
-			if (!userData.location?.city) missing.push('City');
-			
-			missingFields = missing;
+		if (!doc) {
+			const error = new Error(`User document not found for principal: ${currentPrincipalId}`);
+			console.error('❌ USER DATA ERROR:', error);
+			toast.show('error', 'User profile not found. Please complete registration.');
+			userData = null;
+			return;
 		}
+
+		userDoc = doc; // Store full document with version
+		const data = doc.data as any;
+		
+		console.log('Principal ID from auth store:', currentPrincipalId);
+		console.log('User data from Juno:', data);
+		
+		// NO FALLBACKS - use exact data from Juno
+		userData = {
+			firstName: data.firstName,
+			lastName: data.lastName,
+			phone: data.phone,
+			principalId: currentPrincipalId,
+			isVerified: data.isVerified,
+			kycStatus: data.kycStatus,
+			joinDate: data.createdAt ? new Date(data.createdAt) : new Date(),
+			authMethod: 'web',
+			location: data.location,
+			profileImage: data.profileImage
+		};
+
+		// Check for missing fields
+		const missing: string[] = [];
+		if (!userData.firstName) missing.push('First Name');
+		if (!userData.lastName) missing.push('Last Name');
+		if (!userData.location?.country) missing.push('Country');
+		if (!userData.location?.city) missing.push('City');
+		
+		missingFields = missing;
 	}
 
 	onMount(async () => {
