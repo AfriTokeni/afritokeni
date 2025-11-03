@@ -23,7 +23,7 @@
 	<main class="flex-1 flex items-center justify-center px-4 py-16">
 		<div class="max-w-2xl w-full">
 			<!-- Error Card -->
-			<div class="bg-white rounded-2xl shadow-lg border border-neutral-200 p-16 text-center">
+			<div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg border border-neutral-200 p-16 text-center">
 				<!-- Large Status Code -->
 				<div class="mb-6">
 					<span class="text-9xl font-black text-neutral-200">{status}</span>

@@ -1,15 +1,11 @@
 <script lang="ts">
-	import Header from '$lib/components/layout/Header.svelte';
-	import Footer from '$lib/components/layout/Footer.svelte';
 	import { Bitcoin, Shield, Users, CheckCircle, Coins, Smartphone } from '@lucide/svelte';
 </script>
 
 <svelte:head>
 	<title>How It Works - AfriTokeni</title>
-	<meta name="description" content="Learn how AfriTokeni works - Bitcoin and stablecoin banking via ICP blockchain" />
+	<meta name="description" content="Learn how AfriTokeni works - Bitcoin exchange for African currencies via SMS and web" />
 </svelte:head>
-
-<Header />
 
 <div class="min-h-screen bg-gray-50">
 	<!-- Hero Section with Gradient -->
@@ -23,7 +19,7 @@
 				How AfriTokeni Works
 			</h1>
 			<p class="text-lg sm:text-xl lg:text-2xl opacity-90 max-w-3xl mx-auto">
-				Bitcoin and stablecoin banking on ICP blockchain. Access via web or SMS - works on any phone.
+				Direct Bitcoin ↔ African currency exchange. Access via web or SMS - works on any phone.
 			</p>
 		</div>
 	</div>
@@ -49,8 +45,8 @@
 						<Bitcoin class="w-8 h-8 text-blue-600" />
 					</div>
 					<div>
-						<h3 class="font-semibold text-neutral-900 mb-2">2. Hold ckBTC/ckUSD</h3>
-						<p class="text-sm text-neutral-600">Your Bitcoin and stablecoins stored on ICP blockchain</p>
+						<h3 class="font-semibold text-neutral-900 mb-2">2. Hold Bitcoin</h3>
+						<p class="text-sm text-neutral-600">Your Bitcoin stored securely on ICP blockchain</p>
 					</div>
 				</div>
 
@@ -70,7 +66,7 @@
 					</div>
 					<div>
 						<h3 class="font-semibold text-neutral-900 mb-2">4. Exchange</h3>
-						<p class="text-sm text-neutral-600">Convert between ckBTC, ckUSD, and local African currencies</p>
+						<p class="text-sm text-neutral-600">Convert Bitcoin directly to/from local African currencies</p>
 					</div>
 				</div>
 			</div>
@@ -85,14 +81,14 @@
 						<Shield class="w-8 h-8 text-blue-600" />
 					</div>
 					<h3 class="text-xl font-bold text-gray-900 mb-3">ICP Blockchain</h3>
-					<p class="text-gray-600">Secure, decentralized storage of ckBTC and ckUSD on Internet Computer</p>
+					<p class="text-gray-600">Secure, decentralized Bitcoin storage on Internet Computer Protocol</p>
 				</div>
 				<div class="text-center">
 					<div class="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-4">
 						<Coins class="w-8 h-8 text-green-600" />
 					</div>
 					<h3 class="text-xl font-bold text-gray-900 mb-3">Multi-Currency</h3>
-					<p class="text-gray-600">Support for ckBTC, ckUSD, and 39 African currencies</p>
+					<p class="text-gray-600">Direct Bitcoin exchange with 39 African currencies</p>
 				</div>
 				<div class="text-center">
 					<div class="w-16 h-16 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-4">
@@ -108,7 +104,7 @@
 		<div class="bg-gradient-to-r from-orange-600 to-yellow-600 rounded-xl p-6 sm:p-8 lg:p-12 text-center text-white">
 			<h2 class="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-4">Ready to Get Started?</h2>
 			<p class="text-base sm:text-lg lg:text-xl mb-4 sm:mb-6 opacity-90">
-				Join the future of African banking with ckBTC and ckUSD on ICP blockchain
+				Join the future of African banking with Bitcoin on ICP blockchain
 			</p>
 			<div class="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
 				<a
@@ -127,5 +123,3 @@
 		</div>
 	</div>
 </div>
-
-<Footer />
