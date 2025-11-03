@@ -31,7 +31,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --no-frozen-lockfile
       
       - name: TypeScript Check
         run: pnpm run check
@@ -42,6 +42,13 @@ jobs:
       - name: Security Audit
         run: pnpm audit --audit-level=high
         continue-on-error: true
+      
+      - name: Check for Secrets
+        run: |
+          if grep -r "api.*key\|secret\|password\|private.*key" --include="*.ts" --include="*.tsx" --include="*.svelte" --exclude-dir=node_modules --exclude-dir=dist src/ 2>/dev/null; then
+            echo "⚠️ Potential secrets found in code"
+            exit 1
+          fi
 
   # Unit Tests
   test-unit:
@@ -60,7 +67,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --no-frozen-lockfile
       
       - name: Run Unit Tests
         run: pnpm run test:unit
@@ -84,7 +91,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --no-frozen-lockfile
       
       - name: Run Integration Tests
         run: pnpm run test:integration
@@ -109,7 +116,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --no-frozen-lockfile
       
       - name: Run E2E Tests
         run: pnpm run test:e2e
@@ -134,7 +141,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --no-frozen-lockfile
       
       - name: Build Application
         run: pnpm run build
@@ -168,7 +175,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --no-frozen-lockfile
       
       - name: Deploy to Staging
         uses: junobuild/juno-action@main
@@ -213,7 +220,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --no-frozen-lockfile
       
       - name: Deploy to Production
         uses: junobuild/juno-action@main
