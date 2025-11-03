@@ -79,7 +79,6 @@ jobs:
         env:
           NODE_ENV: integration
           DFX_NETWORK: local
-        continue-on-error: true
 
   # E2E Tests
   test-e2e:
@@ -101,7 +100,6 @@ jobs:
         env:
           NODE_ENV: e2e
           DFX_NETWORK: local
-        continue-on-error: true
 
   # Build
   build:
@@ -133,7 +131,7 @@ jobs:
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
-    needs: [build, test-unit]
+    needs: [build, test-unit, test-integration, test-e2e]
     if: github.ref != 'refs/heads/main'
     environment:
       name: staging
