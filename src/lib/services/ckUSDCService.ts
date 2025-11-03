@@ -23,7 +23,7 @@ import {
 } from "./icpActors.js";
 import { getDoc, setDoc, listDocs } from "@junobuild/core";
 import type { SatelliteOptions } from "@junobuild/core";
-import {
+import type {
   CkUSDCConfig,
   CkUSDCBalance,
   CkUSDCDepositRequest,
@@ -37,6 +37,8 @@ import {
   CkUSDCExchangeRate,
   CkUSDCTransaction,
   CkUSDCTransactionStatus,
+} from "../types/ckusdc.js";
+import {
   ERC20_APPROVE_ABI,
   HELPER_CONTRACT_ABI,
   CKUSDC_CONSTANTS,

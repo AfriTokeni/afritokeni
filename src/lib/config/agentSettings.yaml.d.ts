@@ -1,41 +1,27 @@
 declare module './agentSettings.yaml' {
-  const content: {
-    commissionRate: {
-      min: number;
-      max: number;
-      step: number;
-      default: number;
+  interface RangeConfig {
+    min: number;
+    max: number;
+    step: number;
+    default: number;
+  }
+
+  interface OperatingHoursConfig {
+    default: {
+      start: string;
+      end: string;
     };
-    serviceRadius: {
-      min: number;
-      max: number;
-      step: number;
-      default: number;
-    };
-    maxCashLimit: {
-      min: number;
-      max: number;
-      step: number;
-      default: number;
-    };
-    minimumTransaction: {
-      min: number;
-      max: number;
-      step: number;
-      default: number;
-    };
-    autoAcceptLimit: {
-      min: number;
-      max: number;
-      step: number;
-      default: number;
-    };
-    operatingHours: {
-      default: {
-        start: string;
-        end: string;
-      };
-    };
-  };
+  }
+
+  interface AgentSettingsConfig {
+    commissionRate: RangeConfig;
+    serviceRadius: RangeConfig;
+    maxCashLimit: RangeConfig;
+    minimumTransaction: RangeConfig;
+    autoAcceptLimit: RangeConfig;
+    operatingHours: OperatingHoursConfig;
+  }
+
+  const content: AgentSettingsConfig;
   export default content;
 }
