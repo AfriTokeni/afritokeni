@@ -26,6 +26,12 @@
     "canisters:generate-ts": "dfx generate deposit_canister && dfx generate withdrawal_canister && dfx generate exchange_canister && mv src/declarations/deposit_canister/deposit_canister.did.d.ts src/lib/services/icp/canisters/depositCanister.ts && mv src/declarations/withdrawal_canister/withdrawal_canister.did.d.ts src/lib/services/icp/canisters/withdrawalCanister.ts && mv src/declarations/exchange_canister/exchange_canister.did.d.ts src/lib/services/icp/canisters/exchangeCanister.ts",
     "canisters:deploy": "npm run canisters:build && dfx deploy deposit_canister && dfx deploy withdrawal_canister && dfx deploy exchange_canister",
     "canisters:generate": "npm run canisters:build && npm run canisters:generate-candid && npm run canisters:generate-ts",
+    "lint": "eslint . --ext .ts,.tsx,.svelte",
+    "lint:fix": "eslint . --ext .ts,.tsx,.svelte --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,svelte,js,json,css}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,svelte,js,json,css}\"",
+    "validate": "npm run format:check && npm run lint && npm run check && npm run test:unit",
+    "precommit": "npm run format && npm run lint:fix && npm run check",
     "postinstall": "npm run postinstall:copy-auth",
     "postinstall:copy-auth": "node -e \"require('fs').cpSync('node_modules/@junobuild/core/dist/workers/', './public/workers', {recursive: true});\""
   },
