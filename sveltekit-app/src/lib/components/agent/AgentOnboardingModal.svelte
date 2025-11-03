@@ -124,10 +124,11 @@
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="businessName" class="block text-sm font-medium text-gray-700 mb-2">
 								Business Name *
 							</label>
 							<input
+								id="businessName"
 								type="text"
 								bind:value={formData.businessName}
 								class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-neutral-900 focus:border-transparent {errors.businessName ? 'border-red-500' : 'border-gray-300'}"
@@ -139,10 +140,11 @@
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="ownerName" class="block text-sm font-medium text-gray-700 mb-2">
 								Owner Name *
 							</label>
 							<input
+								id="ownerName"
 								type="text"
 								bind:value={formData.ownerName}
 								class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-neutral-900 focus:border-transparent {errors.ownerName ? 'border-red-500' : 'border-gray-300'}"
@@ -154,10 +156,11 @@
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="email" class="block text-sm font-medium text-gray-700 mb-2">
 								Email Address *
 							</label>
 							<input
+								id="email"
 								type="email"
 								bind:value={formData.email}
 								class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-neutral-900 focus:border-transparent {errors.email ? 'border-red-500' : 'border-gray-300'}"
@@ -179,10 +182,11 @@
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="phone" class="block text-sm font-medium text-gray-700 mb-2">
 								Phone Number *
 							</label>
 							<input
+								id="phone"
 								type="tel"
 								bind:value={formData.phone}
 								class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-neutral-900 focus:border-transparent {errors.phone ? 'border-red-500' : 'border-gray-300'}"
@@ -195,10 +199,11 @@
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="preferredCurrency" class="block text-sm font-medium text-gray-700 mb-2">
 								Preferred Currency *
 							</label>
 							<select
+								id="preferredCurrency"
 								bind:value={formData.preferredCurrency}
 								class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-neutral-900 focus:border-transparent"
 							>
@@ -222,10 +227,11 @@
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="country" class="block text-sm font-medium text-gray-700 mb-2">
 								Country *
 							</label>
 							<input
+								id="country"
 								type="text"
 								bind:value={formData.country}
 								class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-neutral-900 focus:border-transparent {errors.country ? 'border-red-500' : 'border-gray-300'}"
@@ -237,10 +243,11 @@
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="city" class="block text-sm font-medium text-gray-700 mb-2">
 								City *
 							</label>
 							<input
+								id="city"
 								type="text"
 								bind:value={formData.city}
 								class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-neutral-900 focus:border-transparent {errors.city ? 'border-red-500' : 'border-gray-300'}"
@@ -252,10 +259,11 @@
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="address" class="block text-sm font-medium text-gray-700 mb-2">
 								Business Address *
 							</label>
 							<textarea
+								id="address"
 								bind:value={formData.address}
 								class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-neutral-900 focus:border-transparent {errors.address ? 'border-red-500' : 'border-gray-300'}"
 								placeholder="Street address, building, landmarks"

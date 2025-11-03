@@ -41,7 +41,7 @@
 	let searchQuery = $state('');
 	let typeFilter = $state<string>('all');
 	let displayCount = $state(10); // Start with 10, load more on scroll
-	let loadMoreElement: HTMLDivElement;
+	let loadMoreElement = $state<HTMLDivElement | null>(null);
 
 	// Reactive: auto-refetch when demoMode or principalId changes
 	$effect(() => {
