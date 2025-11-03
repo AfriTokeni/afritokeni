@@ -77,21 +77,36 @@ export const PUBLIC_ENV = {
  * Server-only environment variables
  * These are NEVER exposed to the client
  * 
- * Import these only in +server.ts files or server-side code
+ * IMPORTANT: Only access these in:
+ * - +server.ts files (API routes)
+ * - Server-side load functions (+page.server.ts)
+ * - Server-side hooks (hooks.server.ts)
+ * 
+ * These will be undefined in browser/client code!
  */
-export const PRIVATE_ENV = {
-	// Africa's Talking (SMS/USSD)
-	AT_USERNAME: getEnv('AT_USERNAME', 'sandbox'),
-	AT_API_KEY: getEnv('AT_API_KEY', ''),
-	AT_SHORT_CODE: getEnv('AT_SHORT_CODE', ''),
+export function getPrivateEnv() {
+	// Only available server-side
+	if (browser) {
+		throw new Error('PRIVATE_ENV cannot be accessed in browser/client code!');
+	}
 	
-	// Email (Resend)
-	RESEND_API_KEY: getEnv('RESEND_API_KEY', ''),
-	EMAIL_FROM_DOMAIN: getEnv('EMAIL_FROM_DOMAIN', 'afritokeni.com'),
-	
-	// Node environment
-	NODE_ENV: getEnv('NODE_ENV', 'development'),
-};
+	return {
+		// Africa's Talking (SMS/USSD)
+		AT_USERNAME: getEnv('AT_USERNAME', 'sandbox'),
+		AT_API_KEY: getEnv('AT_API_KEY', ''),
+		AT_SHORT_CODE: getEnv('AT_SHORT_CODE', ''),
+		
+		// Email (Resend)
+		RESEND_API_KEY: getEnv('RESEND_API_KEY', ''),
+		EMAIL_FROM_DOMAIN: getEnv('EMAIL_FROM_DOMAIN', 'afritokeni.com'),
+		
+		// Node environment
+		NODE_ENV: getEnv('NODE_ENV', 'development'),
+	};
+}
+
+// For server-side code only
+export const PRIVATE_ENV = browser ? {} as any : getPrivateEnv();
 
 /**
  * Helper to check if we're in development
