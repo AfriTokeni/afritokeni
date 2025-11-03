@@ -36,7 +36,7 @@ jobs:
       - name: TypeScript Check
         run: pnpm run check
       
-      - name: ESLint
+      - name: ESLint (fail on warnings)
         run: pnpm exec eslint . --ext .ts,.tsx,.svelte --max-warnings 0
       
       - name: Security Audit

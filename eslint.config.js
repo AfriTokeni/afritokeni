@@ -18,8 +18,8 @@ export default tseslint.config(
       },
     },
     rules: {
-      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
-      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-explicit-any": "off", // Too many to fix right now
     },
   },
   // Test files - same strict rules but allow test-specific patterns

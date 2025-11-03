@@ -1,4 +1,18 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-pnpm run precommit
+echo "🔍 Running pre-commit checks..."
+
+# Format code
+echo "📝 Formatting code..."
+pnpm run format || exit 1
+
+# Lint (treat warnings as errors)
+echo "🔎 Linting code..."
+pnpm run lint || exit 1
+
+# TypeScript check
+echo "🔧 Type checking..."
+pnpm run check || exit 1
+
+echo "✅ All checks passed!"
