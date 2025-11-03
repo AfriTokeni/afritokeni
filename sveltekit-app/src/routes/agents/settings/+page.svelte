@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { toast } from '$lib/stores/toast';
 	import { principalId } from '$lib/stores/auth';
 	import { demoMode } from '$lib/stores/demoMode';
@@ -59,8 +60,8 @@
 		}
 
 		if (!currentPrincipalId) {
-			console.warn('No principal ID available - showing KYC banner');
-			agentData = null;
+			console.log('No principal ID - redirecting to onboarding');
+			goto('/agents/onboarding');
 			isLoading = false;
 			return;
 		}
@@ -73,10 +74,8 @@
 			});
 
 			if (!doc) {
-				const error = new Error(`Agent document not found for principal: ${currentPrincipalId}`);
-				console.error('❌ AGENT DATA ERROR:', error);
-				toast.show('error', 'Agent profile not found. Please complete onboarding.');
-				agentData = null;
+				console.log('No agent profile found - redirecting to onboarding');
+				goto('/agents/onboarding');
 				isLoading = false;
 				return;
 			}
@@ -308,11 +307,11 @@
 					</svg>
 				</div>
 				<div class="ml-3 flex-1">
-					<h3 class="text-sm font-semibold text-red-800">Agent Profile Not Found</h3>
+					<h3 class="text-sm font-semibold text-red-800">Complete Agent Onboarding</h3>
 					<p class="mt-2 text-sm text-red-700">
-						You need to complete agent onboarding before you can access settings. Click the button below to get started.
+						You need to complete your agent profile and KYC verification. Start with business profile setup.
 					</p>
-					<div class="mt-4">
+					<div class="mt-4 flex gap-3">
 						<button
 							onclick={() => {
 								const event = new CustomEvent('start-agent-onboarding');
@@ -320,7 +319,7 @@
 							}}
 							class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
 						>
-							Start Agent Onboarding
+							Complete Profile
 							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
 							</svg>

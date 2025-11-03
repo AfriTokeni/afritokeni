@@ -17,6 +17,10 @@
 <script lang="ts">
 	import { X, Phone, MapPin, Building } from '@lucide/svelte';
 	import { getActiveCurrencies } from '$lib/types/currency';
+	import { principalId } from '$lib/stores/auth';
+	import { setDoc, getDoc, uploadFile } from '@junobuild/core';
+	import { toast } from '$lib/stores/toast';
+	import KYCModal from '$lib/components/shared/KYCModal.svelte';
 
 	interface Props {
 		isOpen: boolean;
@@ -28,6 +32,8 @@
 	let { isOpen, onClose, onComplete, currentData = {} }: Props = $props();
 
 	let step = $state(1);
+	let isSubmitting = $state(false);
+	let showKYCModal = $state(false);
 	let formData = $state<AgentOnboardingData>({
 		businessName: currentData.businessName || '',
 		ownerName: currentData.ownerName || '',
@@ -62,19 +68,127 @@
 			if (!formData.country.trim()) newErrors.country = 'Country is required';
 			if (!formData.city.trim()) newErrors.city = 'City is required';
 			if (!formData.address.trim()) newErrors.address = 'Business address is required';
+		} else if (currentStep === 4) {
+			// KYC documents are optional for now
 		}
 
 		errors = newErrors;
 		return Object.keys(newErrors).length === 0;
 	}
 
-	function handleNext() {
+	async function handleNext() {
 		if (validateStep(step)) {
-			if (step < 3) {
+			if (step < 4) {
 				step = step + 1;
 			} else {
-				onComplete(formData);
+				// Step 4 - Save to Juno and complete
+				await handleSubmit();
 			}
+		}
+	}
+
+	async function handleSubmit() {
+		try {
+			isSubmitting = true;
+			const currentPrincipalId = $principalId;
+			if (!currentPrincipalId) {
+				throw new Error('Not authenticated');
+			}
+
+			toast.show('info', 'Creating agent profile...');
+
+			// Create agent document in Juno
+			await setDoc({
+				collection: 'agents',
+				doc: {
+					key: currentPrincipalId,
+					data: {
+						...formData,
+						kycStatus: 'not_started',
+						digitalBalance: 0,
+						cashBalance: 0,
+						dailyEarnings: 0,
+						todayTransactions: 0,
+						activeCustomers: 0,
+						rating: 0,
+						status: 'active',
+						createdAt: new Date().toISOString(),
+						updatedAt: new Date().toISOString()
+					}
+				}
+			});
+
+			toast.show('success', 'Agent profile created successfully!');
+			// Move to step 4 to show KYC option
+			step = 4;
+		} catch (error: any) {
+			console.error('❌ Failed to create agent profile:', error);
+			toast.show('error', 'Failed to create profile. Please try again.');
+		} finally {
+			isSubmitting = false;
+		}
+	}
+
+	async function handleKYCSubmit(kycData: any) {
+		try {
+			const currentPrincipalId = $principalId;
+			if (!currentPrincipalId) return;
+
+			toast.show('info', 'Uploading KYC documents...');
+
+			// Upload files
+			const uploadedFiles: any = {};
+
+			if (kycData.idDocument) {
+				const idResult = await uploadFile({
+					data: kycData.idDocument,
+					collection: 'kyc_documents',
+					filename: `agent_${currentPrincipalId}_id_${Date.now()}.${kycData.idDocument.name.split('.').pop()}`
+				});
+				uploadedFiles.idDocumentUrl = idResult.downloadUrl;
+			}
+
+			if (kycData.proofOfAddress) {
+				const addressResult = await uploadFile({
+					data: kycData.proofOfAddress,
+					collection: 'kyc_documents',
+					filename: `agent_${currentPrincipalId}_address_${Date.now()}.${kycData.proofOfAddress.name.split('.').pop()}`
+				});
+				uploadedFiles.proofOfAddressUrl = addressResult.downloadUrl;
+			}
+
+			if (kycData.selfie) {
+				const selfieResult = await uploadFile({
+					data: kycData.selfie,
+					collection: 'kyc_documents',
+					filename: `agent_${currentPrincipalId}_selfie_${Date.now()}.${kycData.selfie.name.split('.').pop()}`
+				});
+				uploadedFiles.selfieUrl = selfieResult.downloadUrl;
+			}
+
+			// Update agent with KYC data
+			const doc = await getDoc({ collection: 'agents', key: currentPrincipalId });
+			if (doc) {
+				await setDoc({
+					collection: 'agents',
+					doc: {
+						...doc,
+						data: {
+							...doc.data,
+							kycStatus: 'pending',
+							kycData: uploadedFiles,
+							updatedAt: new Date().toISOString()
+						}
+					}
+				});
+			}
+
+			toast.show('success', 'KYC documents submitted!');
+			showKYCModal = false;
+			onComplete(formData);
+		} catch (error: any) {
+			console.error('❌ KYC submission failed:', error);
+			toast.show('error', 'Failed to submit KYC documents');
 		}
 	}
 
@@ -90,7 +204,7 @@
 			<div class="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
 				<div>
 					<h2 class="text-2xl font-bold text-gray-900">Welcome Agent! 🎉</h2>
-					<p class="text-sm text-gray-600 mt-1">Set up your agent profile (Step {step} of 3)</p>
+					<p class="text-sm text-gray-600 mt-1">{step === 4 ? 'Almost Done!' : `Set up your agent profile (Step ${step} of 3)`}</p>
 				</div>
 				<button
 					onclick={handleSkip}
@@ -274,25 +388,72 @@
 							{/if}
 						</div>
 					</div>
+				{:else if step === 4}
+					<div class="space-y-6 text-center">
+						<div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+							<svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+							</svg>
+						</div>
+
+						<div>
+							<h3 class="text-2xl font-bold text-gray-900 mb-2">Profile Created! 🎉</h3>
+							<p class="text-gray-600">Your agent profile is ready. Complete KYC verification to start serving customers.</p>
+						</div>
+
+						<div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+							<p class="text-sm text-blue-800">
+								<strong>💡 Next Step:</strong> Upload your KYC documents (ID, proof of address, selfie) to get verified and start earning.
+							</p>
+						</div>
+
+						<div class="flex flex-col gap-3">
+							<button
+								onclick={() => showKYCModal = true}
+								class="w-full px-6 py-3 bg-neutral-900 text-white font-medium rounded-lg hover:bg-neutral-800 transition-colors"
+							>
+								Upload KYC Documents Now
+							</button>
+							<button
+								onclick={() => onComplete(formData)}
+								class="w-full px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+							>
+								Skip for Now
+							</button>
+						</div>
+					</div>
 				{/if}
 
-				<!-- Action Buttons -->
-				<div class="flex gap-3 mt-8">
-					{#if step > 1}
+				<!-- Action Buttons (hidden on step 4) -->
+				{#if step < 4}
+					<div class="flex gap-3 mt-8">
+						{#if step > 1}
+							<button
+								onclick={() => step = step - 1}
+								class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+							>
+								Back
+							</button>
+						{/if}
 						<button
-							onclick={() => step = step - 1}
-							class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+							onclick={handleNext}
+							disabled={isSubmitting}
+							class="flex-1 px-4 py-3 bg-neutral-900 text-white font-medium rounded-lg hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 						>
-							Back
+							{#if isSubmitting}
+								<span class="flex items-center justify-center gap-2">
+									<svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+										<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+										<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+									</svg>
+									Creating Profile...
+								</span>
+							{:else}
+								{step === 3 ? 'Create Profile' : 'Next'}
+							{/if}
 						</button>
-					{/if}
-					<button
-						onclick={handleNext}
-						class="flex-1 px-4 py-3 bg-neutral-900 text-white font-medium rounded-lg hover:bg-neutral-800 transition-colors"
-					>
-						{step === 3 ? 'Complete Setup' : 'Next'}
-					</button>
-				</div>
+					</div>
+				{/if}
 
 				{#if step === 1}
 					<button
@@ -306,3 +467,10 @@
 		</div>
 	</div>
 {/if}
+
+<!-- KYC Modal - Reuse existing component -->
+<KYCModal
+	isOpen={showKYCModal}
+	onClose={() => (showKYCModal = false)}
+	onSubmit={handleKYCSubmit}
+/>

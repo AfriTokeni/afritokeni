@@ -18,8 +18,9 @@
 	import TransactionHistory from '$lib/components/shared/TransactionHistory.svelte';
 	import AgentKYCBanner from '$lib/components/agent/AgentKYCBanner.svelte';
 	import AgentOnboardingModal from '$lib/components/agent/AgentOnboardingModal.svelte';
+	import KYCModal from '$lib/components/shared/KYCModal.svelte';
 	import DemoModeModal from '$lib/components/dashboard/DemoModeModal.svelte';
-	import { getDoc } from '@junobuild/core';
+	import { getDoc, uploadFile, setDoc } from '@junobuild/core';
 	import { toast } from '$lib/stores/toast';
 
 	// State
@@ -28,6 +29,7 @@
 	let showKYCBanner = $state(true);
 	let showDemoModal = $state(false);
 	let showOnboarding = $state(false);
+	let showKYCModal = $state(false);
 	let selectedCurrency = $state('UGX');
 	let searchQuery = $state('');
 	let kycStatus = $state<'pending' | 'verified' | 'rejected' | 'not_started'>('not_started');
@@ -62,6 +64,8 @@
 	async function loadAgentData(isDemoMode: boolean, agentPrincipal: string | null) {
 		if (!agentPrincipal) {
 			isLoading = false;
+			// Redirect to onboarding if no principal
+			goto('/agents/onboarding');
 			return;
 		}
 
@@ -90,9 +94,8 @@
 				});
 
 				if (!doc) {
-					const error = new Error(`Agent document not found for principal: ${agentPrincipal}`);
-					console.error('❌ AGENT DATA ERROR:', error);
-					toast.show('error', 'Agent profile not found. Please complete onboarding.');
+					console.log('No agent profile found - redirecting to onboarding');
+					goto('/agents/onboarding');
 					isLoading = false;
 					return;
 				}
@@ -118,8 +121,93 @@
 		return new Intl.NumberFormat('en-UG', {
 			style: 'currency',
 			currency: selectedCurrency,
-			minimumFractionDigits: 0
+			minimumFractionDigits: 0,
+			maximumFractionDigits: 0
 		}).format(amount);
+	}
+
+	async function handleKYCSubmit(kycData: any) {
+		try {
+			const currentPrincipalId = $principalId;
+			if (!currentPrincipalId) {
+				throw new Error('Not authenticated');
+			}
+
+			toast.show('info', 'Uploading KYC documents...');
+
+			// Upload files to Juno storage
+			const uploadedFiles: any = {};
+
+			if (kycData.idDocument) {
+				const idResult = await uploadFile({
+					data: kycData.idDocument,
+					collection: 'kyc_documents',
+					filename: `agent_${currentPrincipalId}_id_${Date.now()}.${kycData.idDocument.name.split('.').pop()}`
+				});
+				uploadedFiles.idDocumentUrl = idResult.downloadUrl;
+			}
+
+			if (kycData.proofOfAddress) {
+				const addressResult = await uploadFile({
+					data: kycData.proofOfAddress,
+					collection: 'kyc_documents',
+					filename: `agent_${currentPrincipalId}_address_${Date.now()}.${kycData.proofOfAddress.name.split('.').pop()}`
+				});
+				uploadedFiles.proofOfAddressUrl = addressResult.downloadUrl;
+			}
+
+			if (kycData.selfie) {
+				const selfieResult = await uploadFile({
+					data: kycData.selfie,
+					collection: 'kyc_documents',
+					filename: `agent_${currentPrincipalId}_selfie_${Date.now()}.${kycData.selfie.name.split('.').pop()}`
+				});
+				uploadedFiles.selfieUrl = selfieResult.downloadUrl;
+			}
+
+			// Update agent document with KYC data
+			const doc = await getDoc({
+				collection: 'agents',
+				key: currentPrincipalId
+			});
+
+			if (doc) {
+				await setDoc({
+					collection: 'agents',
+					doc: {
+						...doc,
+						data: {
+							...doc.data,
+							kycStatus: 'pending',
+							kycSubmittedAt: new Date().toISOString(),
+							kycData: {
+								...kycData,
+								idDocument: undefined,
+								proofOfAddress: undefined,
+								selfie: undefined,
+								...uploadedFiles
+							},
+							updatedAt: new Date().toISOString()
+						}
+					}
+				});
+			}
+
+			toast.show('success', 'KYC documents submitted successfully!');
+			showKYCModal = false;
+			showKYCBanner = false;
+			// Reload agent data
+			await loadAgentData($demoMode, $principalId);
+
+		} catch (error: any) {
+			console.error('❌ Failed to submit KYC:', error);
+			console.error('Error details:', {
+				message: error.message,
+				stack: error.stack
+			});
+			toast.show('error', 'Failed to submit KYC documents');
+			throw error;
+		}
 	}
 
 	function getLiquidityAlerts() {
@@ -216,7 +304,7 @@
 			missingFields={[]}
 			kycStatus={kycStatus}
 			onDismiss={() => (showKYCBanner = false)}
-			onComplete={() => (showOnboarding = true)}
+			onComplete={() => (showKYCModal = true)}
 		/>
 	{/if}
 
@@ -425,3 +513,10 @@
 	<!-- Recent Transactions -->
 	<TransactionHistory maxTransactions={20} currency={selectedCurrency} />
 </div>
+
+<!-- KYC Modal -->
+<KYCModal
+	isOpen={showKYCModal}
+	onClose={() => (showKYCModal = false)}
+	onSubmit={handleKYCSubmit}
+/>
