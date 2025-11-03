@@ -4,12 +4,12 @@
 
 import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'assert';
-import { world } from './shared-steps.js';
-import { USSDTestHelper } from '../../helpers/ussdTestHelpers';
-import { USSDService } from '../../../src/lib/services/ussdService';
-import { UserService } from '../../../src/lib/services/userService';
-import { BalanceService } from '../../../src/lib/services/balanceService';
-import { TransactionService } from '../../../src/lib/services/transactionService';
+import { world } from './setup';
+import { USSDTestHelper } from '../helpers/ussdTestHelpers';
+import { USSDService } from '../../src/lib/services/ussdService';
+import { UserService } from '../../src/lib/services/userService';
+import { BalanceService } from '../../src/lib/services/balanceService';
+import { TransactionService } from '../../src/lib/services/transactionService';
 
 // ========== Given Steps ==========
 

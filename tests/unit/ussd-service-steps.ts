@@ -5,9 +5,9 @@
 
 import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'assert';
-import { world } from './shared-steps.js';
-import { USSDTestHelper } from '../../helpers/ussdTestHelpers';
-import { USSDService } from '../../../src/lib/services/ussdService';
+import { world } from './setup';
+import { USSDTestHelper } from '../helpers/ussdTestHelpers';
+import { USSDService } from '../../src/lib/services/ussdService';
 
 // ========== Given Steps ==========
 

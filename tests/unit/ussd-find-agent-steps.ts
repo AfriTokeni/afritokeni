@@ -1,6 +1,6 @@
 import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'assert';
-import { world } from './shared-steps.js';
+import { world } from './setup';
 
 Given('there are no agents in my area', function () {
   // Set a flag to indicate no agents should be returned

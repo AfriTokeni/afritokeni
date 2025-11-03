@@ -1,10 +1,10 @@
 import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'assert';
-import { world } from './shared-steps.js';
-import { USSDTestHelper } from '../../helpers/ussdTestHelpers';
-import { USSDService } from '../../../src/lib/services/ussdService';
-import { WebhookDataService } from '../../../src/lib/services/webHookServices';
-import { setUserPin } from '../../../src/lib/services/ussd/handlers/pinManagement';
+import { world } from './setup';
+import { USSDTestHelper } from '../helpers/ussdTestHelpers';
+import { USSDService } from '../../src/lib/services/ussdService';
+import { WebhookDataService } from '../../src/lib/services/webHookServices';
+import { setUserPin } from '../../src/lib/services/ussd/handlers/pinManagement';
 
 // ========== Given Steps ==========
 

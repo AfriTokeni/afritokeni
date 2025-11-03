@@ -1,6 +1,6 @@
 import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'assert';
-import { world } from './shared-steps.js';
+import { world } from './setup';
 
 Given('I am a new user with no transactions', function () {
   // Set a flag to indicate user has no transactions

@@ -1,11 +1,11 @@
 import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'assert';
-import { world } from './shared-steps.js';
-import { UserService } from '../../../src/lib/services/userService';
-import { BalanceService } from '../../../src/lib/services/balanceService';
-import { TransactionService } from '../../../src/lib/services/transactionService';
-import { USSDTestHelper } from '../../helpers/ussdTestHelpers';
-import { USSDService } from '../../../src/lib/services/ussdService';
+import { world } from './setup';
+import { UserService } from '../../src/lib/services/userService';
+import { BalanceService } from '../../src/lib/services/balanceService';
+import { TransactionService } from '../../src/lib/services/transactionService';
+import { USSDTestHelper } from '../helpers/ussdTestHelpers';
+import { USSDService } from '../../src/lib/services/ussdService';
 
 // Step definitions for session reset tests
 Given('I am a registered user with phone number {string}', async function (phoneNumber: string) {
