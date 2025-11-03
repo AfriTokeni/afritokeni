@@ -6,7 +6,7 @@
  * Called by encapsulated components that manage their own store subscriptions.
  */
 
-import { getDoc, listDocs } from "@junobuild/core";
+import { listDocs } from "@junobuild/core";
 
 /**
  * Fetch user transactions

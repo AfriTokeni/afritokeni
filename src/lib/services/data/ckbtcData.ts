@@ -44,7 +44,7 @@ export async function fetchCkBTCBalance(
       if (!response.ok) {
         throw new Error("Failed to fetch demo data");
       }
-      data = await response.json();
+      const data = await response.json();
       return data.ckBTCBalance || 0;
     } catch (error) {
       console.error("Failed to fetch demo ckBTC balance:", error);
