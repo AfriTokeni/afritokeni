@@ -15,7 +15,7 @@ import { nanoid } from "nanoid";
 import { getCkBTCLedgerActor, toPrincipal, toSubaccount } from "./icpActors.js";
 import { getDoc, setDoc, listDocs } from "@junobuild/core";
 import type { SatelliteOptions } from "@junobuild/core";
-import {
+import type {
   CkBTCConfig,
   CkBTCBalance,
   CkBTCDepositRequest,
@@ -30,6 +30,8 @@ import {
   CkBTCTransaction,
   CkBTCTransactionStatus,
   BitcoinDepositAddress,
+} from "../types/ckbtc.js";
+import {
   CKBTC_CONSTANTS,
   CKBTC_TESTNET_CONFIG,
   CkBTCUtils,

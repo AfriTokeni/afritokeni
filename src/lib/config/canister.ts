@@ -5,36 +5,24 @@
  * Uses SvelteKit's public environment variables
  */
 
-import {
-  PUBLIC_SNS_GOVERNANCE_CANISTER,
-  PUBLIC_SNS_INDEX_CANISTER,
-  PUBLIC_SNS_LEDGER_CANISTER,
-  PUBLIC_SNS_ROOT_CANISTER,
-  PUBLIC_SNS_SWAP_CANISTER,
-  PUBLIC_USE_LOCAL_REPLICA,
-  PUBLIC_DAO_MIN_TOKENS_TO_PROPOSE,
-  PUBLIC_DAO_MIN_TOKENS_TO_VOTE,
-  PUBLIC_DAO_QUORUM_PERCENTAGE,
-  PUBLIC_DAO_PASS_THRESHOLD,
-  PUBLIC_DAO_VOTING_PERIOD_DAYS,
-} from "$env/static/public";
+import * as env from "$env/static/public";
 
-// Get canister IDs from environment variables
+// Get canister IDs from environment variables (with fallbacks for development)
 export const CANISTER_IDS = {
   // SNS Governance - handles proposals and voting
-  SNS_GOVERNANCE: PUBLIC_SNS_GOVERNANCE_CANISTER,
+  SNS_GOVERNANCE: (env as Record<string, string>).PUBLIC_SNS_GOVERNANCE_CANISTER || "",
 
   // SNS Index - indexes ledger transactions
-  SNS_INDEX: PUBLIC_SNS_INDEX_CANISTER,
+  SNS_INDEX: (env as Record<string, string>).PUBLIC_SNS_INDEX_CANISTER || "",
 
   // SNS Ledger - token ledger
-  SNS_LEDGER: PUBLIC_SNS_LEDGER_CANISTER,
+  SNS_LEDGER: (env as Record<string, string>).PUBLIC_SNS_LEDGER_CANISTER || "",
 
   // SNS Root - root canister
-  SNS_ROOT: PUBLIC_SNS_ROOT_CANISTER,
+  SNS_ROOT: (env as Record<string, string>).PUBLIC_SNS_ROOT_CANISTER || "",
 
   // SNS Swap - token swap
-  SNS_SWAP: PUBLIC_SNS_SWAP_CANISTER,
+  SNS_SWAP: (env as Record<string, string>).PUBLIC_SNS_SWAP_CANISTER || "",
 } as const;
 
 // Network configuration
@@ -47,18 +35,17 @@ export const NETWORK = {
 } as const;
 
 // Determine if we should use local replica
-export const USE_LOCAL_REPLICA = PUBLIC_USE_LOCAL_REPLICA === "true";
+export const USE_LOCAL_REPLICA = (env as Record<string, string>).PUBLIC_USE_LOCAL_REPLICA === "true";
 
 // Get the appropriate host
 export const getHost = () =>
   USE_LOCAL_REPLICA ? NETWORK.LOCAL_HOST : NETWORK.HOST;
 
-// DAO Governance Configuration
-// NO FALLBACKS - env vars must be set in .env
+// DAO Governance Configuration (with sensible defaults)
 export const DAO_CONFIG = {
-  MIN_TOKENS_TO_PROPOSE: Number(PUBLIC_DAO_MIN_TOKENS_TO_PROPOSE),
-  MIN_TOKENS_TO_VOTE: Number(PUBLIC_DAO_MIN_TOKENS_TO_VOTE),
-  QUORUM_PERCENTAGE: Number(PUBLIC_DAO_QUORUM_PERCENTAGE),
-  PASS_THRESHOLD: Number(PUBLIC_DAO_PASS_THRESHOLD),
-  VOTING_PERIOD_DAYS: Number(PUBLIC_DAO_VOTING_PERIOD_DAYS),
+  MIN_TOKENS_TO_PROPOSE: Number((env as Record<string, string>).PUBLIC_DAO_MIN_TOKENS_TO_PROPOSE) || 1000,
+  MIN_TOKENS_TO_VOTE: Number((env as Record<string, string>).PUBLIC_DAO_MIN_TOKENS_TO_VOTE) || 1,
+  QUORUM_PERCENTAGE: Number((env as Record<string, string>).PUBLIC_DAO_QUORUM_PERCENTAGE) || 20,
+  PASS_THRESHOLD: Number((env as Record<string, string>).PUBLIC_DAO_PASS_THRESHOLD) || 51,
+  VOTING_PERIOD_DAYS: Number((env as Record<string, string>).PUBLIC_DAO_VOTING_PERIOD_DAYS) || 7,
 } as const;

@@ -44,7 +44,7 @@ Module.prototype.require = function(id: string) {
       satelliteId: () => mockSatelliteState.satelliteId
     };
   }
-  // eslint-disable-next-line prefer-rest-params
+   
   return originalRequire.apply(this, arguments);
 };
 
