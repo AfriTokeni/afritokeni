@@ -2,6 +2,7 @@
 	import { demoMode } from '$lib/stores/demoMode';
 	import { principalId } from '$lib/stores/auth';
 	import { toast } from '$lib/stores/toast';
+	import { fetchAgentCustomers } from '$lib/services/data/customersData';
 	import TransactionHistory from '$lib/components/shared/TransactionHistory.svelte';
 	import { Search, User, Phone, MapPin, Calendar, Loader2, CheckCircle, Shield, TrendingUp, X, Ban, PhoneCall, History } from '@lucide/svelte';
 
@@ -85,18 +86,10 @@
 			isLoading = true;
 			error = null;
 
-			if (isDemoMode) {
-				const response = await fetch('/data/demo/agent-customers.json');
-				if (!response.ok) throw new Error('Failed to load demo customers');
-				customers = await response.json();
-			} else {
-				// Real canister call
-				// const result = await customerService.get_agent_customers(agentPrincipal);
-				// customers = result;
-				customers = [];
-			}
+			// Use real data service (handles both demo and real mode)
+			customers = await fetchAgentCustomers(agentPrincipal, isDemoMode);
 		} catch (err: any) {
-			error = err.message;
+			error = err.message || 'Failed to load customers';
 			customers = [];
 		} finally {
 			isLoading = false;
