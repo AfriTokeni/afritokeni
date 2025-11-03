@@ -21,13 +21,17 @@ Feature: End-to-End Deposit Flow
     And the deposit request should be stored in the canister
     And the request status should be "pending"
 
-  Scenario: Agent confirms deposit on canister
-    Given I have a pending deposit request with code "123456"
+  Scenario: Agent confirms deposit with revenue verification
+    Given I have a pending deposit request with code "123456" for 50000 UGX
     When the agent confirms the deposit with code "123456"
     Then the deposit status should be "completed"
-    And my balance should increase by 49750 UGX
-    And the platform should earn 250 UGX commission
+    And my balance should increase by exactly 49750 UGX
+    And the platform should earn exactly 250 UGX commission
+    And the deposit canister should record 250 UGX platform revenue
+    And querying platform revenue should show 250 UGX
+    And the canister revenue total should match the fee
     And I should receive SMS confirmation
+    And the on-chain record should be immutable
 
   Scenario: Deposit with insufficient agent cash
     When I dial "*229#"

@@ -48,9 +48,17 @@ Feature: End-to-End Exchange Flow
     Then the exchange should be rejected
     And I should see "Amount must be greater than zero"
 
-  Scenario: Exchange revenue tracking
-    Given multiple users perform exchanges
+  Scenario: Exchange revenue tracking and verification
+    Given multiple users perform exchanges:
+      | from_token | to_token | amount    | spread_percent | platform_earns |
+      | ckBTC      | ckUSD    | 0.01      | 0.5           | 0.00005       |
+      | ckUSD      | ckBTC    | 600       | 0.5           | 3             |
+      | ckBTC      | ckUSD    | 0.005     | 0.5           | 0.000025      |
     When I query the exchange canister revenue
-    Then the total spread earned should be accurate
+    Then the total spread earned should be exactly 0.000075 ckBTC + 3 ckUSD
     And the revenue should match sum of all exchanges
+    And each exchange should be recorded separately
+    And the canister should track revenue by token type
+    And querying total revenue should show accurate amounts
     And the on-chain record should be immutable
+    And no revenue should be missing or duplicated

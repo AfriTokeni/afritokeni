@@ -49,10 +49,15 @@ Feature: End-to-End Withdrawal Flow
     Then I should see "Invalid PIN"
     And no withdrawal request should be created
 
-  Scenario: Agent commission calculation
+  Scenario: Agent commission calculation and revenue verification
     Given I request withdrawal of 100000 UGX in urban area
-    Then the platform fee should be 500 UGX
-    And the agent fee should be 3000 UGX
-    And the platform should take 300 UGX from agent fee
-    And the agent should keep 2700 UGX
-    And the total platform revenue should be 800 UGX
+    When the withdrawal is confirmed by the agent
+    Then the platform fee should be exactly 500 UGX
+    And the agent fee should be exactly 3000 UGX
+    And the platform should take exactly 300 UGX from agent fee
+    And the agent should keep exactly 2700 UGX
+    And the total platform revenue should be exactly 800 UGX
+    And the withdrawal canister should record all fees correctly
+    And querying agent earnings should show 2700 UGX
+    And querying platform revenue should show 800 UGX
+    And the on-chain record should be immutable
