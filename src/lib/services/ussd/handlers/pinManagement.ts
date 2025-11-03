@@ -8,6 +8,7 @@ import { continueSession, endSession } from '../utils/responses.js';
 import { getSessionCurrency } from '../utils/currency.js';
 import { WebhookDataService as DataService } from '../../webHookServices.js';
 import { TranslationService, type Language } from '../../translations.js';
+import { handleCheckBalance, handleTransactionHistory } from './localCurrency.js';
 
 /**
  * Check if user has a PIN set
