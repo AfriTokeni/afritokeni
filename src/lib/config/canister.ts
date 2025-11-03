@@ -2,25 +2,27 @@
  * Canister Configuration
  * 
  * SNS (Service Nervous System) canister IDs for AfriTokeni DAO
- * Loaded from environment variables (.env file)
+ * Uses centralized env config
  */
 
-// Get canister IDs from environment variables (VITE_ prefix for SvelteKit)
+import { PUBLIC_ENV } from './env';
+
+// Get canister IDs from environment variables
 export const CANISTER_IDS = {
 	// SNS Governance - handles proposals and voting
-	SNS_GOVERNANCE: import.meta.env.VITE_SNS_GOVERNANCE_CANISTER || 'kly22-hyaaa-aaaac-qceeq-cai',
+	SNS_GOVERNANCE: PUBLIC_ENV.SNS_GOVERNANCE_CANISTER,
 	
 	// SNS Index - indexes ledger transactions
-	SNS_INDEX: import.meta.env.VITE_SNS_INDEX_CANISTER || 'kc3rg-rqaaa-aaaac-qcefa-cai',
+	SNS_INDEX: PUBLIC_ENV.SNS_INDEX_CANISTER,
 	
 	// SNS Ledger - token ledger
-	SNS_LEDGER: import.meta.env.VITE_SNS_LEDGER_CANISTER || 'kf2xs-4iaaa-aaaac-qcefq-cai',
+	SNS_LEDGER: PUBLIC_ENV.SNS_LEDGER_CANISTER,
 	
 	// SNS Root - root canister
-	SNS_ROOT: import.meta.env.VITE_SNS_ROOT_CANISTER || 'kq5g7-5aaaa-aaaac-qcega-cai',
+	SNS_ROOT: PUBLIC_ENV.SNS_ROOT_CANISTER,
 	
 	// SNS Swap - token swap
-	SNS_SWAP: import.meta.env.VITE_SNS_SWAP_CANISTER || 'kx4al-qyaaa-aaaac-qcegq-cai'
+	SNS_SWAP: PUBLIC_ENV.SNS_SWAP_CANISTER
 } as const;
 
 // Network configuration
@@ -33,18 +35,16 @@ export const NETWORK = {
 } as const;
 
 // Determine if we should use local replica
-// Only use local if explicitly set via env variable
-export const USE_LOCAL_REPLICA = import.meta.env.VITE_USE_LOCAL_REPLICA === 'true';
+export const USE_LOCAL_REPLICA = PUBLIC_ENV.USE_LOCAL_REPLICA;
 
 // Get the appropriate host
-// For SNS canisters, ALWAYS use mainnet unless explicitly told to use local
 export const getHost = () => USE_LOCAL_REPLICA ? NETWORK.LOCAL_HOST : NETWORK.HOST;
 
-// DAO Governance Configuration (from environment variables)
+// DAO Governance Configuration
 export const DAO_CONFIG = {
-	MIN_TOKENS_TO_PROPOSE: Number(import.meta.env.VITE_DAO_MIN_TOKENS_TO_PROPOSE) || 1000,
-	MIN_TOKENS_TO_VOTE: Number(import.meta.env.VITE_DAO_MIN_TOKENS_TO_VOTE) || 1,
-	QUORUM_PERCENTAGE: Number(import.meta.env.VITE_DAO_QUORUM_PERCENTAGE) || 10,
-	PASS_THRESHOLD: Number(import.meta.env.VITE_DAO_PASS_THRESHOLD) || 50,
-	VOTING_PERIOD_DAYS: Number(import.meta.env.VITE_DAO_VOTING_PERIOD_DAYS) || 7,
+	MIN_TOKENS_TO_PROPOSE: PUBLIC_ENV.DAO_MIN_TOKENS_TO_PROPOSE,
+	MIN_TOKENS_TO_VOTE: PUBLIC_ENV.DAO_MIN_TOKENS_TO_VOTE,
+	QUORUM_PERCENTAGE: PUBLIC_ENV.DAO_QUORUM_PERCENTAGE,
+	PASS_THRESHOLD: PUBLIC_ENV.DAO_PASS_THRESHOLD,
+	VOTING_PERIOD_DAYS: PUBLIC_ENV.DAO_VOTING_PERIOD_DAYS,
 } as const;

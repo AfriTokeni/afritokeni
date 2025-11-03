@@ -15,21 +15,22 @@ import { Principal } from '@dfinity/principal';
 import type { _SERVICE, DepositTransaction, CreateDepositRequest, ConfirmDepositRequest, AgentBalance } from './depositCanister';
 import { idlFactory } from './depositCanister';
 import { IC_HOST } from './config';
+import { PUBLIC_ENV } from '$lib/config/env';
 
 /**
  * Get Deposit Canister ID from environment
  */
 function getDepositCanisterId(): string {
 	// Check environment variables (set via .env)
-	const canisterId = 
-		import.meta.env.VITE_DEPOSIT_CANISTER_ID || 
-		import.meta.env.VITE_DEVELOPMENT_DEPOSIT_CANISTER_ID;
+	const DEPOSIT_CANISTER_ID =
+		PUBLIC_ENV.DEPOSIT_CANISTER_ID ||
+		PUBLIC_ENV.DEV_DEPOSIT_CANISTER_ID;
 	
-	if (!canisterId) {
+	if (!DEPOSIT_CANISTER_ID) {
 		throw new Error('DEPOSIT_CANISTER_ID not configured. Run: dfx deploy deposit_canister');
 	}
 	
-	return canisterId;
+	return DEPOSIT_CANISTER_ID;
 }
 
 /**

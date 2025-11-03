@@ -28,9 +28,11 @@ interface ExchangeCalculation {
 }
 
 // Configuration from environment variables
-const API_URL = import.meta.env.VITE_EXCHANGE_RATE_API_URL || 'https://api.coingecko.com/api/v3/simple/price';
-const CACHE_DURATION = parseInt(import.meta.env.VITE_EXCHANGE_RATE_CACHE_DURATION || '60000');
-const SPREAD_PERCENTAGE = parseFloat(import.meta.env.VITE_EXCHANGE_SPREAD_PERCENTAGE || '0.5');
+import { PUBLIC_ENV } from '$lib/config/env';
+
+const API_URL = PUBLIC_ENV.EXCHANGE_RATE_API_URL;
+const CACHE_DURATION = PUBLIC_ENV.EXCHANGE_RATE_CACHE_DURATION;
+const SPREAD_PERCENTAGE = PUBLIC_ENV.EXCHANGE_SPREAD_PERCENTAGE;
 
 let cachedRates: ExchangeRates | null = null;
 let lastFetch: number = 0;

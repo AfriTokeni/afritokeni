@@ -19,20 +19,21 @@ import { Principal } from '@dfinity/principal';
 import type { _SERVICE, WithdrawalTransaction, CreateWithdrawalRequest, ConfirmWithdrawalRequest, AgentEarnings } from './withdrawalCanister';
 import { idlFactory } from './withdrawalCanister';
 import { IC_HOST } from './config';
+import { PUBLIC_ENV } from '$lib/config/env';
 
 /**
  * Get Withdrawal Canister ID from environment
  */
 function getWithdrawalCanisterId(): string {
-	const canisterId = 
-		import.meta.env.VITE_WITHDRAWAL_CANISTER_ID || 
-		import.meta.env.VITE_DEVELOPMENT_WITHDRAWAL_CANISTER_ID;
+	const WITHDRAWAL_CANISTER_ID =
+		PUBLIC_ENV.WITHDRAWAL_CANISTER_ID ||
+		PUBLIC_ENV.DEV_WITHDRAWAL_CANISTER_ID;
 	
-	if (!canisterId) {
+	if (!WITHDRAWAL_CANISTER_ID) {
 		throw new Error('WITHDRAWAL_CANISTER_ID not configured. Run: dfx deploy withdrawal_canister');
 	}
 	
-	return canisterId;
+	return WITHDRAWAL_CANISTER_ID;
 }
 
 /**
