@@ -25,19 +25,21 @@ import type {
 } from "./withdrawalCanister";
 import { idlFactory } from "./withdrawalCanister";
 import { IC_HOST } from "./config";
-import { PUBLIC_ENV } from "$lib/config/env";
+import * as env from "$env/static/public";
 
 /**
  * Get Withdrawal Canister ID from environment
  */
 function getWithdrawalCanisterId(): string {
+  // Check environment variables (set via .env)
   const WITHDRAWAL_CANISTER_ID =
-    PUBLIC_ENV.WITHDRAWAL_CANISTER_ID || PUBLIC_ENV.DEV_WITHDRAWAL_CANISTER_ID;
+    (env as Record<string, string>).PUBLIC_WITHDRAWAL_CANISTER_ID || 
+    (env as Record<string, string>).PUBLIC_DEV_WITHDRAWAL_CANISTER_ID ||
+    "";
 
   if (!WITHDRAWAL_CANISTER_ID) {
-    throw new Error(
-      "WITHDRAWAL_CANISTER_ID not configured. Run: dfx deploy withdrawal_canister",
-    );
+    console.warn("WITHDRAWAL_CANISTER_ID not configured. Using empty string.");
+    return "";
   }
 
   return WITHDRAWAL_CANISTER_ID;

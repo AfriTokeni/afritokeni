@@ -21,7 +21,7 @@ import type {
 } from "./depositCanister";
 import { idlFactory } from "./depositCanister";
 import { IC_HOST } from "./config";
-import { PUBLIC_ENV } from "$lib/config/env";
+import * as env from "$env/static/public";
 
 /**
  * Get Deposit Canister ID from environment
@@ -29,12 +29,13 @@ import { PUBLIC_ENV } from "$lib/config/env";
 function getDepositCanisterId(): string {
   // Check environment variables (set via .env)
   const DEPOSIT_CANISTER_ID =
-    PUBLIC_ENV.DEPOSIT_CANISTER_ID || PUBLIC_ENV.DEV_DEPOSIT_CANISTER_ID;
+    (env as Record<string, string>).PUBLIC_DEPOSIT_CANISTER_ID || 
+    (env as Record<string, string>).PUBLIC_DEV_DEPOSIT_CANISTER_ID ||
+    "";
 
   if (!DEPOSIT_CANISTER_ID) {
-    throw new Error(
-      "DEPOSIT_CANISTER_ID not configured. Run: dfx deploy deposit_canister",
-    );
+    console.warn("DEPOSIT_CANISTER_ID not configured. Using empty string.");
+    return "";
   }
 
   return DEPOSIT_CANISTER_ID;
