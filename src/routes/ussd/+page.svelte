@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Smartphone, Send, Globe } from '@lucide/svelte';
+	import { onMount } from 'svelte';
 
 	interface Message {
 		type: 'sent' | 'received';
@@ -8,7 +9,9 @@
 	}
 
 	let phoneNumber = '+256 700 123 456';
+	let sessionId = `playground_session_${Date.now()}`;
 	let inputCommand = $state('');
+	let isInitialized = $state(false);
 	let messages = $state<Message[]>([
 		{
 			type: 'received',
@@ -19,31 +22,52 @@
 
 	let messagesContainer: HTMLDivElement | undefined;
 
-	// Demo responses for common commands
-	const demoResponses: Record<string, string> = {
-		'*384*22948#': 'Welcome to AfriTokeni\n\n1. Local Currency\n2. Bitcoin\n3. ckUSD\n4. DAO Governance\n5. Profile\n6. Help',
-		'1': 'Local Currency Menu\n\n1. Send Money\n2. Check Balance\n3. Deposit\n4. Withdraw\n5. Transactions\n6. Find Agent\n\n0. Back',
-		'2': 'Bitcoin Menu\n\n1. Check Balance\n2. Bitcoin Rate\n3. Buy Bitcoin\n4. Sell Bitcoin\n5. Send Bitcoin\n\n0. Back',
-		'3': 'ckUSD Menu\n\n1. Check Balance\n2. ckUSD Rate\n3. Buy ckUSD\n4. Sell ckUSD\n5. Send ckUSD\n\n0. Back',
-		'4': 'DAO Governance\n\n1. View Proposals\n2. Vote\n3. Check AFRI Balance\n4. Staking\n\n0. Back',
-		'5': 'Profile\n\n1. View Profile\n2. Update Phone\n3. Change PIN\n4. KYC Status\n\n0. Back',
-		'6': 'Help & Support\n\nUSSD: *384*22948#\nSMS: Text HELP to 22948\nWeb: afritokeni.com\n\nSupport: +256 700 000 000',
-		'0': 'Welcome to AfriTokeni\n\n1. Local Currency\n2. Bitcoin\n3. ckUSD\n4. DAO Governance\n5. Profile\n6. Help'
-	};
+	onMount(() => {
+		console.log('🎭 Playground: Using in-memory mock data (no backend calls)');
+		isInitialized = true;
+	});
 
-	function processCommand(cmd: string): string {
+	async function processCommand(cmd: string): Promise<string> {
 		const trimmedCmd = cmd.trim();
 		
-		// Check for demo responses
-		if (demoResponses[trimmedCmd]) {
-			return demoResponses[trimmedCmd];
+		if (!isInitialized) {
+			return '⏳ Initializing... Please wait.';
 		}
 
-		// Default response for unknown commands
-		return '❌ Invalid option\n\nPlease try again or dial *384*22948# to restart';
+		// Handle USSD dial code or menu navigation
+		const ussdText = trimmedCmd;
+		
+		try {
+			// Call real USSD backend with session context
+			console.log(`📱 USSD Playground: sessionId="${sessionId}", text="${ussdText}"`);
+			
+			const response = await fetch('/api/ussd', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					sessionId,
+					phoneNumber,
+					text: ussdText
+				})
+			});
+
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+
+			const result = await response.json();
+			
+			// Clean up response (remove CON/END prefixes)
+			return result.response.replace(/^(CON |END )/, '');
+		} catch (error) {
+			console.error('Failed to process USSD command:', error);
+			return '❌ Error processing command\n\nPlease try again or dial *384*22948# to restart';
+		}
 	}
 
-	function handleSendMessage() {
+	async function handleSendMessage() {
 		if (!inputCommand.trim()) return;
 
 		const now = new Date();
@@ -57,7 +81,7 @@
 		}];
 
 		// Process command and add response
-		const response = processCommand(inputCommand);
+		const response = await processCommand(inputCommand);
 		messages = [...messages, {
 			type: 'received',
 			text: response,

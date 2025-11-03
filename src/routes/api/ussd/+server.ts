@@ -13,16 +13,32 @@ import { USSDService } from '$lib/services/ussdService';
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
-		// Parse incoming USSD request
-		const formData = await request.formData();
+		const contentType = request.headers.get('content-type') || '';
+		let sessionId: string;
+		let phoneNumber: string;
+		let text: string;
+		let serviceCode: string | undefined;
+		let isJsonRequest = false;
 		
-		// Africa's Talking sends these parameters
-		const sessionId = formData.get('sessionId') as string;
-		const serviceCode = formData.get('serviceCode') as string;
-		const phoneNumber = formData.get('phoneNumber') as string;
-		const text = formData.get('text') as string;
+		// Handle both JSON (playground) and form data (Africa's Talking)
+		if (contentType.includes('application/json')) {
+			// JSON request from playground
+			const body = await request.json();
+			sessionId = body.sessionId;
+			phoneNumber = body.phoneNumber;
+			text = body.text || '';
+			serviceCode = body.serviceCode;
+			isJsonRequest = true;
+		} else {
+			// Form data from Africa's Talking
+			const formData = await request.formData();
+			sessionId = formData.get('sessionId') as string;
+			serviceCode = formData.get('serviceCode') as string;
+			phoneNumber = formData.get('phoneNumber') as string;
+			text = formData.get('text') as string || '';
+		}
 		
-		console.log('📱 USSD Request:', { sessionId, serviceCode, phoneNumber, text });
+		console.log('📱 USSD Request:', { sessionId, serviceCode, phoneNumber, text, isJsonRequest });
 		
 		// Validate required fields
 		if (!sessionId || !phoneNumber) {
@@ -30,25 +46,27 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 		
 		// Process USSD request with the real service
-		const result = await USSDService.processUSSDRequest(sessionId, phoneNumber, text || '');
+		const result = await USSDService.processUSSDRequest(sessionId, phoneNumber, text);
 		
-		const response = {
-			continueSession: result.continueSession,
-			response: result.response
-		};
-		
-		// Format response for Africa's Talking
-		// CON = Continue session
-		// END = End session
-		const prefix = response.continueSession ? 'CON' : 'END';
-		const ussdResponse = `${prefix} ${response.response}`;
-		
-		// Return plain text response (Africa's Talking expects this)
-		return new Response(ussdResponse, {
-			headers: {
-				'Content-Type': 'text/plain'
-			}
-		});
+		// Format response based on request type
+		if (isJsonRequest) {
+			// JSON response for playground
+			return json({
+				continueSession: result.continueSession,
+				response: result.response
+			});
+		} else {
+			// Plain text response for Africa's Talking
+			// CON = Continue session, END = End session
+			const prefix = result.continueSession ? 'CON' : 'END';
+			const ussdResponse = `${prefix} ${result.response}`;
+			
+			return new Response(ussdResponse, {
+				headers: {
+					'Content-Type': 'text/plain'
+				}
+			});
+		}
 		
 	} catch (error) {
 		console.error('❌ USSD Error:', error);
