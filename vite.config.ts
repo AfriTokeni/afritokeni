@@ -1,31 +1,14 @@
-import juno from "@junobuild/vite-plugin";
-import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
-import { nodePolyfills } from "vite-plugin-node-polyfills";
-import tailwindcss from "@tailwindcss/vite";
-import wasm from "vite-plugin-wasm";
-import topLevelAwait from "vite-plugin-top-level-await";
+import { sveltekit } from '@sveltejs/kit/vite';
+import { defineConfig } from 'vite';
+import juno from '@junobuild/vite-plugin';
+import yaml from '@rollup/plugin-yaml';
 
-// https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [
-    react(), 
-    nodePolyfills(), 
-    juno(), 
-    tailwindcss(),
-    wasm(),
-    topLevelAwait()
-  ],
-  optimizeDeps: {
-    exclude: ['@noble/secp256k1'],
-    include: ['tiny-secp256k1']
-  },
-  define: {
-    global: 'globalThis',
-  },
-  server: {
-    fs: {
-      allow: ['..']
-    }
-  }
+	plugins: [sveltekit(), juno(), yaml()],
+	optimizeDeps: {
+		include: ['@lucide/svelte']
+	},
+	ssr: {
+		noExternal: ['@lucide/svelte']
+	}
 });

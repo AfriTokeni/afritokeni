@@ -1,0 +1,42 @@
+type AgentEarnings = record {
+  "principal" : principal;
+  total_withdrawals_processed : nat64;
+  last_withdrawal_date : opt nat64;
+  total_fees_earned : nat64;
+  total_fees_withdrawn : nat64;
+};
+type ConfirmWithdrawalRequest = record {
+  agent_principal : principal;
+  withdrawal_code : text;
+};
+type CreateWithdrawalRequest = record {
+  user_principal : principal;
+  agent_principal : principal;
+  amount_ugx : nat64;
+};
+type Result = variant { Ok : WithdrawalTransaction; Err : text };
+type TransactionStatus = variant { Confirmed; Cancelled; Pending };
+type WithdrawalTransaction = record {
+  id : nat64;
+  status : TransactionStatus;
+  user_principal : principal;
+  agent_principal : principal;
+  platform_fee_ugx : nat64;
+  amount_ugx : nat64;
+  agent_fee_ugx : nat64;
+  timestamp : nat64;
+  withdrawal_code : text;
+};
+service : (principal) -> {
+  confirm_withdrawal : (ConfirmWithdrawalRequest) -> (Result);
+  create_withdrawal_request : (CreateWithdrawalRequest) -> (Result);
+  get_agent_earnings : (principal) -> (opt AgentEarnings) query;
+  get_agent_withdrawals : (principal) -> (vec WithdrawalTransaction) query;
+  get_all_agent_earnings : () -> (vec AgentEarnings) query;
+  get_fee_split : () -> (nat64, nat64) query;
+  get_pending_withdrawals : (principal) -> (vec WithdrawalTransaction) query;
+  get_total_agent_earnings : () -> (nat64) query;
+  get_total_platform_revenue : () -> (nat64) query;
+  get_user_withdrawals : (principal) -> (vec WithdrawalTransaction) query;
+  get_withdrawal : (nat64) -> (opt WithdrawalTransaction) query;
+}
