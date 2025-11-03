@@ -1,1 +1,1 @@
-export type RouteID = 'home' | 'send' | 'history' | 'agents' | 'profile';
+export type RouteID = "home" | "send" | "history" | "agents" | "profile";

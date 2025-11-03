@@ -1,7 +1,17 @@
 export interface Transaction {
   id: string;
   userId: string;
-  type: 'send' | 'receive' | 'withdraw' | 'deposit' | 'bitcoin_buy' | 'bitcoin_sell' | 'bitcoin_to_ugx' | 'ugx_to_bitcoin' | 'bitcoin_send' | 'bitcoin_receive';
+  type:
+    | "send"
+    | "receive"
+    | "withdraw"
+    | "deposit"
+    | "bitcoin_buy"
+    | "bitcoin_sell"
+    | "bitcoin_to_ugx"
+    | "ugx_to_bitcoin"
+    | "bitcoin_send"
+    | "bitcoin_receive";
   amount: number;
   fee?: number;
   currency: string;
@@ -12,7 +22,7 @@ export interface Transaction {
   agentId?: string;
   fromUserId?: string;
   toUserId?: string;
-  status: 'pending' | 'completed' | 'failed' | 'cancelled' | 'confirmed';
+  status: "pending" | "completed" | "failed" | "cancelled" | "confirmed";
   smsCommand?: string;
   description?: string;
   createdAt: Date;

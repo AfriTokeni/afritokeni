@@ -1,24 +1,26 @@
 <script lang="ts">
-	import Leaderboard from '$lib/components/shared/Leaderboard.svelte';
+  import Leaderboard from "$lib/components/shared/Leaderboard.svelte";
 </script>
 
 <div class="space-y-4 sm:space-y-6">
-	<!-- Page Header -->
-	<div>
-		<h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Token Holders</h1>
-		<p class="text-sm sm:text-base text-gray-600">
-			Top AFRI token holders in the AfriTokeni DAO
-		</p>
-	</div>
+  <!-- Page Header -->
+  <div>
+    <h1 class="mb-2 text-2xl font-bold text-gray-900 sm:text-3xl">
+      Token Holders
+    </h1>
+    <p class="text-sm text-gray-600 sm:text-base">
+      Top AFRI token holders in the AfriTokeni DAO
+    </p>
+  </div>
 
-	<!-- Encapsulated Leaderboard Component (fetches own data) -->
-	<Leaderboard maxEntries={50} />
+  <!-- Encapsulated Leaderboard Component (fetches own data) -->
+  <Leaderboard maxEntries={50} />
 
-	<!-- Info -->
-	<div class="p-3 sm:p-4 bg-blue-50 rounded-lg border border-blue-200">
-		<p class="text-xs sm:text-sm text-blue-800 leading-relaxed">
-			<strong>Note:</strong> This leaderboard shows neurons staked in SNS governance. Token
-			holders who haven't staked their tokens in neurons are not displayed.
-		</p>
-	</div>
+  <!-- Info -->
+  <div class="rounded-lg border border-blue-200 bg-blue-50 p-3 sm:p-4">
+    <p class="text-xs leading-relaxed text-blue-800 sm:text-sm">
+      <strong>Note:</strong> This leaderboard shows neurons staked in SNS governance.
+      Token holders who haven't staked their tokens in neurons are not displayed.
+    </p>
+  </div>
 </div>

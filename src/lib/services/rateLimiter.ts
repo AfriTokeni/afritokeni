@@ -15,22 +15,22 @@ export class RateLimiter {
   private static readonly LIMITS = {
     // Per minute limits
     perMinute: {
-      sms: 5,        // Max 5 SMS commands per minute
-      ussd: 10,      // Max 10 USSD requests per minute
-      transaction: 3 // Max 3 transactions per minute
+      sms: 5, // Max 5 SMS commands per minute
+      ussd: 10, // Max 10 USSD requests per minute
+      transaction: 3, // Max 3 transactions per minute
     },
     // Per hour limits
     perHour: {
       sms: 50,
       ussd: 100,
-      transaction: 20
+      transaction: 20,
     },
     // Per day limits
     perDay: {
       sms: 200,
       ussd: 500,
-      transaction: 50
-    }
+      transaction: 50,
+    },
   };
 
   /**
@@ -38,13 +38,13 @@ export class RateLimiter {
    */
   static isAllowed(
     phoneNumber: string,
-    type: 'sms' | 'ussd' | 'transaction'
+    type: "sms" | "ussd" | "transaction",
   ): { allowed: boolean; message?: string; retryAfter?: number } {
     // Disable rate limiting in test environment
-    if (process.env.NODE_ENV === 'test') {
+    if (process.env.NODE_ENV === "test") {
       return { allowed: true };
     }
-    
+
     const record = this.getRecord(phoneNumber);
     const now = new Date();
 
@@ -53,34 +53,36 @@ export class RateLimiter {
 
     // Check per-minute limit
     const minuteAgo = new Date(now.getTime() - 60 * 1000);
-    const requestsLastMinute = record.requests.filter(r => r > minuteAgo).length;
+    const requestsLastMinute = record.requests.filter(
+      (r) => r > minuteAgo,
+    ).length;
     if (requestsLastMinute >= this.LIMITS.perMinute[type]) {
       return {
         allowed: false,
-        message: 'Too many requests. Wait 1 minute.',
-        retryAfter: 60
+        message: "Too many requests. Wait 1 minute.",
+        retryAfter: 60,
       };
     }
 
     // Check per-hour limit
     const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    const requestsLastHour = record.requests.filter(r => r > hourAgo).length;
+    const requestsLastHour = record.requests.filter((r) => r > hourAgo).length;
     if (requestsLastHour >= this.LIMITS.perHour[type]) {
       return {
         allowed: false,
-        message: 'Too many requests. Wait 1 hour.',
-        retryAfter: 3600
+        message: "Too many requests. Wait 1 hour.",
+        retryAfter: 3600,
       };
     }
 
     // Check per-day limit
     const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const requestsLastDay = record.requests.filter(r => r > dayAgo).length;
+    const requestsLastDay = record.requests.filter((r) => r > dayAgo).length;
     if (requestsLastDay >= this.LIMITS.perDay[type]) {
       return {
         allowed: false,
-        message: 'Daily limit reached. Try tomorrow.',
-        retryAfter: 86400
+        message: "Daily limit reached. Try tomorrow.",
+        retryAfter: 86400,
       };
     }
 
@@ -99,7 +101,7 @@ export class RateLimiter {
     if (!record) {
       record = {
         phoneNumber,
-        requests: []
+        requests: [],
       };
       this.records.set(phoneNumber, record);
     }
@@ -111,7 +113,7 @@ export class RateLimiter {
    */
   private static cleanOldRequests(record: RateLimitRecord): void {
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    record.requests = record.requests.filter(r => r > dayAgo);
+    record.requests = record.requests.filter((r) => r > dayAgo);
   }
 
   /**
@@ -137,9 +139,9 @@ export class RateLimiter {
     const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
     return {
-      lastMinute: record.requests.filter(r => r > minuteAgo).length,
-      lastHour: record.requests.filter(r => r > hourAgo).length,
-      lastDay: record.requests.filter(r => r > dayAgo).length
+      lastMinute: record.requests.filter((r) => r > minuteAgo).length,
+      lastHour: record.requests.filter((r) => r > hourAgo).length,
+      lastDay: record.requests.filter((r) => r > dayAgo).length,
     };
   }
 }

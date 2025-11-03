@@ -10,14 +10,14 @@ export interface UserData {
 
 export interface Transaction {
   id: string;
-  type: 'sent' | 'received' | 'withdrawal' | 'deposit';
+  type: "sent" | "received" | "withdrawal" | "deposit";
   amount: number;
-  currency: 'UGX' | 'USDT';
+  currency: "UGX" | "USDT";
   from?: string;
   to?: string;
   agent?: string;
   date: string;
-  status: 'completed' | 'pending';
+  status: "completed" | "pending";
   description: string;
 }
 
@@ -28,12 +28,11 @@ export interface Agent {
   distance: string;
   rating: number;
   available: boolean;
-  services: Array<'withdrawal' | 'deposit' | 'exchange'>;
+  services: Array<"withdrawal" | "deposit" | "exchange">;
   cashAvailable: {
     UGX: number;
     USDT: number;
   };
 }
 
-
-export type Currency = 'UGX' | 'USDT';
+export type Currency = "UGX" | "USDT";

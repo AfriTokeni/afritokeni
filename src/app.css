@@ -1,5 +1,5 @@
 /* Flowbite Svelte styles - must be first */
-@import 'flowbite/dist/flowbite.css';
+@import "flowbite/dist/flowbite.css";
 
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";

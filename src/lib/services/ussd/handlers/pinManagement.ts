@@ -3,38 +3,47 @@
  * Handles PIN setup, verification, and security
  */
 
-import type { USSDSession } from '../types.js';
-import { continueSession, endSession } from '../utils/responses.js';
-import { getSessionCurrency } from '../utils/currency.js';
-import { WebhookDataService as DataService } from '../../webHookServices.js';
-import { TranslationService, type Language } from '../../translations.js';
-import { handleCheckBalance, handleTransactionHistory } from './localCurrency.js';
+import type { USSDSession } from "../types.js";
+import { continueSession, endSession } from "../utils/responses.js";
+import { getSessionCurrency } from "../utils/currency.js";
+import { WebhookDataService as DataService } from "../../webHookServices.js";
+import { TranslationService, type Language } from "../../translations.js";
+import {
+  handleCheckBalance,
+  handleTransactionHistory,
+} from "./localCurrency.js";
 
-type PendingOperationResolver = (menu: string, session: USSDSession) => Promise<string>;
+type PendingOperationResolver = (
+  menu: string,
+  session: USSDSession,
+) => Promise<string>;
 
-async function defaultPendingOperationResolver(menu: string, session: USSDSession): Promise<string> {
-	session.step = 1;
-	switch (menu) {
-		case 'check_balance':
-			session.currentMenu = 'check_balance' as const;
-			return await handleCheckBalance('', session);
-		case 'transaction_history':
-			session.currentMenu = 'transaction_history' as const;
-			return await handleTransactionHistory('', session);
-		default: {
-			const lang = session.language || 'en';
-			session.currentMenu = 'main';
-			session.step = 0;
-			const currency = getSessionCurrency(session);
-			return continueSession(`${TranslationService.translate('welcome_back', lang)}
-${TranslationService.translate('please_select_option', lang)}:
-1. ${TranslationService.translate('local_currency_menu', lang)} (${currency})
-2. ${TranslationService.translate('bitcoin', lang)} (ckBTC)
-3. ${TranslationService.translate('usdc', lang)} (ckUSDC)
-4. ${TranslationService.translate('dao_governance', lang)}
+async function defaultPendingOperationResolver(
+  menu: string,
+  session: USSDSession,
+): Promise<string> {
+  session.step = 1;
+  switch (menu) {
+    case "check_balance":
+      session.currentMenu = "check_balance" as const;
+      return await handleCheckBalance("", session);
+    case "transaction_history":
+      session.currentMenu = "transaction_history" as const;
+      return await handleTransactionHistory("", session);
+    default: {
+      const lang = session.language || "en";
+      session.currentMenu = "main";
+      session.step = 0;
+      const currency = getSessionCurrency(session);
+      return continueSession(`${TranslationService.translate("welcome_back", lang)}
+${TranslationService.translate("please_select_option", lang)}:
+1. ${TranslationService.translate("local_currency_menu", lang)} (${currency})
+2. ${TranslationService.translate("bitcoin", lang)} (ckBTC)
+3. ${TranslationService.translate("usdc", lang)} (ckUSDC)
+4. ${TranslationService.translate("dao_governance", lang)}
 0. Exit`);
-		}
-	}
+    }
+  }
 }
 
 /**
@@ -45,9 +54,11 @@ export async function hasUserPin(phoneNumber: string): Promise<boolean> {
     console.log(`🔍 Checking if user has PIN for: ${phoneNumber}`);
     const userPin = await DataService.getUserPin(`+${phoneNumber}`);
     console.log(`🔍 getUserPin result for ${phoneNumber}:`, userPin);
-    
+
     if (userPin) {
-      console.log(`🔍 UserPin details - PIN: ${userPin.pin}, isSet: ${userPin.isSet}`);
+      console.log(
+        `🔍 UserPin details - PIN: ${userPin.pin}, isSet: ${userPin.isSet}`,
+      );
       const hasPin = userPin !== null && userPin.isSet;
       console.log(`🔍 Final hasUserPin result for ${phoneNumber}: ${hasPin}`);
       return hasPin;
@@ -56,7 +67,7 @@ export async function hasUserPin(phoneNumber: string): Promise<boolean> {
       return false;
     }
   } catch (error) {
-    console.error('❌ Error checking user PIN:', error);
+    console.error("❌ Error checking user PIN:", error);
     return false;
   }
 }
@@ -64,10 +75,16 @@ export async function hasUserPin(phoneNumber: string): Promise<boolean> {
 /**
  * Set user PIN
  */
-export async function setUserPin(phoneNumber: string, pin: string): Promise<boolean> {
+export async function setUserPin(
+  phoneNumber: string,
+  pin: string,
+): Promise<boolean> {
   console.log(`Setting PIN for ${phoneNumber}`);
   try {
-    const success = await DataService.createOrUpdateUserPin(`+${phoneNumber}`, pin);
+    const success = await DataService.createOrUpdateUserPin(
+      `+${phoneNumber}`,
+      pin,
+    );
     if (success) {
       console.log(`✅ PIN set successfully for ${phoneNumber}`);
     } else {
@@ -75,7 +92,7 @@ export async function setUserPin(phoneNumber: string, pin: string): Promise<bool
     }
     return success;
   } catch (error) {
-    console.error('Error setting user PIN:', error);
+    console.error("Error setting user PIN:", error);
     return false;
   }
 }
@@ -83,13 +100,16 @@ export async function setUserPin(phoneNumber: string, pin: string): Promise<bool
 /**
  * Verify user PIN
  */
-export async function verifyUserPin(phoneNumber: string, pin: string): Promise<boolean> {
+export async function verifyUserPin(
+  phoneNumber: string,
+  pin: string,
+): Promise<boolean> {
   console.log(`Verifying PIN for ${phoneNumber} ${pin}`);
   try {
     const userPin = await DataService.getUserPin(`+${phoneNumber}`);
     return userPin !== null && userPin.pin === pin;
   } catch (error) {
-    console.error('Error verifying user PIN:', error);
+    console.error("Error verifying user PIN:", error);
     return false;
   }
 }
@@ -105,159 +125,209 @@ export function requiresPinVerification(session: USSDSession): boolean {
 /**
  * Initiate PIN verification for sensitive operations
  */
-export function requestPinVerification(session: USSDSession, operation: string, nextMenu: string): string {
-  const lang = session.language || 'en';
-  session.currentMenu = 'pin_check';
+export function requestPinVerification(
+  session: USSDSession,
+  operation: string,
+  nextMenu: string,
+): string {
+  const lang = session.language || "en";
+  session.currentMenu = "pin_check";
   session.step = 1;
   session.data.pendingOperation = operation;
   session.data.nextMenu = nextMenu;
   session.data.pinAttempts = 0;
-  return continueSession(`${operation}\nFor security, please enter your 4-digit PIN:\n\n${TranslationService.translate('back_or_menu', lang)}`);
+  return continueSession(
+    `${operation}\nFor security, please enter your 4-digit PIN:\n\n${TranslationService.translate("back_or_menu", lang)}`,
+  );
 }
 
 /**
  * Handle PIN check - verify existing PIN
  */
 export async function handlePinCheck(
-	input: string,
-	session: USSDSession,
-	resolvePendingOperation: PendingOperationResolver = defaultPendingOperationResolver
+  input: string,
+  session: USSDSession,
+  resolvePendingOperation: PendingOperationResolver = defaultPendingOperationResolver,
 ): Promise<string> {
-  const lang = session.language || 'en';
-  console.log(`🔑 PIN check for ${session.phoneNumber}, step: ${session.step}, raw input: "${input}"`);
-  
+  const lang = session.language || "en";
+  console.log(
+    `🔑 PIN check for ${session.phoneNumber}, step: ${session.step}, raw input: "${input}"`,
+  );
+
   // Extract the last part of USSD input (the actual PIN entered)
-  const inputParts = input.split('*');
-  const pinInput = inputParts[inputParts.length - 1] || '';
+  const inputParts = input.split("*");
+  const pinInput = inputParts[inputParts.length - 1] || "";
   console.log(`🔑 PIN input after USSD parsing: "${pinInput}"`);
-  
+
   switch (session.step) {
     case 1: {
       // User is entering their PIN
       if (!pinInput) {
-        return continueSession(`${TranslationService.translate('welcome_afritokeni', lang)}\n${TranslationService.translate('enter_pin_4digit', lang)}:`);
+        return continueSession(
+          `${TranslationService.translate("welcome_afritokeni", lang)}\n${TranslationService.translate("enter_pin_4digit", lang)}:`,
+        );
       }
-      
+
       if (!/^\d{4}$/.test(pinInput)) {
         session.data.pinAttempts = (session.data.pinAttempts || 0) + 1;
-        console.log(`❌ Invalid PIN format for ${session.phoneNumber}, PIN: "${pinInput}", attempts: ${session.data.pinAttempts}`);
-        
+        console.log(
+          `❌ Invalid PIN format for ${session.phoneNumber}, PIN: "${pinInput}", attempts: ${session.data.pinAttempts}`,
+        );
+
         if (session.data.pinAttempts >= 3) {
           console.log(`🚫 Max PIN attempts reached for ${session.phoneNumber}`);
-          return endSession(`${TranslationService.translate('too_many_attempts', lang)}. ${TranslationService.translate('please_try_again_later', lang)}`);
+          return endSession(
+            `${TranslationService.translate("too_many_attempts", lang)}. ${TranslationService.translate("please_try_again_later", lang)}`,
+          );
         }
-        
-        return continueSession(`${TranslationService.translate('invalid_pin_format', lang)}. ${TranslationService.translate('enter_pin_4digit', lang)}:`);
+
+        return continueSession(
+          `${TranslationService.translate("invalid_pin_format", lang)}. ${TranslationService.translate("enter_pin_4digit", lang)}:`,
+        );
       }
-      
+
       // Verify the PIN
       const isValidPin = await verifyUserPin(session.phoneNumber, pinInput);
-      console.log(`🔐 PIN verification result for ${session.phoneNumber}: ${isValidPin ? 'Valid' : 'Invalid'}`);
-      
+      console.log(
+        `🔐 PIN verification result for ${session.phoneNumber}: ${isValidPin ? "Valid" : "Invalid"}`,
+      );
+
       if (isValidPin) {
         // PIN is correct - check if there's a pending operation
         console.log(`✅ PIN verified successfully for ${session.phoneNumber}`);
         session.data.pinVerified = true; // Mark PIN as verified in this session
-        
+
         // Check if there's a pending operation to complete
         if (session.data.pendingOperation && session.data.nextMenu) {
-          console.log(`🔄 Completing pending operation: ${session.data.pendingOperation}`);
+          console.log(
+            `🔄 Completing pending operation: ${session.data.pendingOperation}`,
+          );
           const nextMenu = session.data.nextMenu;
-          
+
           // Clear pending operation data
           delete session.data.pendingOperation;
           delete session.data.nextMenu;
-          
+
           // Route to the appropriate handler
           return await resolvePendingOperation(nextMenu, session);
         }
-        
+
         // No pending operation - go to main menu
         const currency = getSessionCurrency(session);
-        session.currentMenu = 'main';
+        session.currentMenu = "main";
         session.step = 0;
-        return continueSession(`${TranslationService.translate('welcome_back', lang)}\n${TranslationService.translate('please_select_option', lang)}:\n1. ${TranslationService.translate('local_currency_menu', lang)} (${currency})\n2. ${TranslationService.translate('bitcoin', lang)} (ckBTC)\n3. ${TranslationService.translate('usdc', lang)} (ckUSDC)\n4. ${TranslationService.translate('dao_governance', lang)}\n0. Exit`);
+        return continueSession(
+          `${TranslationService.translate("welcome_back", lang)}\n${TranslationService.translate("please_select_option", lang)}:\n1. ${TranslationService.translate("local_currency_menu", lang)} (${currency})\n2. ${TranslationService.translate("bitcoin", lang)} (ckBTC)\n3. ${TranslationService.translate("usdc", lang)} (ckUSDC)\n4. ${TranslationService.translate("dao_governance", lang)}\n0. Exit`,
+        );
       } else {
         // PIN is incorrect
         session.data.pinAttempts = (session.data.pinAttempts || 0) + 1;
-        console.log(`❌ Invalid PIN for ${session.phoneNumber}, attempts: ${session.data.pinAttempts}`);
-        
+        console.log(
+          `❌ Invalid PIN for ${session.phoneNumber}, attempts: ${session.data.pinAttempts}`,
+        );
+
         if (session.data.pinAttempts >= 3) {
           console.log(`🚫 Max PIN attempts reached for ${session.phoneNumber}`);
-          return endSession(`${TranslationService.translate('too_many_attempts', lang)}. ${TranslationService.translate('please_try_again_later', lang)}`);
+          return endSession(
+            `${TranslationService.translate("too_many_attempts", lang)}. ${TranslationService.translate("please_try_again_later", lang)}`,
+          );
         }
-        
+
         const remainingAttempts = 3 - session.data.pinAttempts;
-        return continueSession(`${TranslationService.translate('incorrect_pin', lang)}. ${remainingAttempts} ${remainingAttempts > 1 ? 'attempts' : 'attempt'} remaining.\n${TranslationService.translate('enter_pin_4digit', lang)}:`);
+        return continueSession(
+          `${TranslationService.translate("incorrect_pin", lang)}. ${remainingAttempts} ${remainingAttempts > 1 ? "attempts" : "attempt"} remaining.\n${TranslationService.translate("enter_pin_4digit", lang)}:`,
+        );
       }
     }
-    
+
     default:
       // Initialize PIN check
       console.log(`🔑 Initializing PIN check for ${session.phoneNumber}`);
       session.step = 1;
       session.data.pinAttempts = 0;
-      return continueSession(`${TranslationService.translate('welcome_afritokeni', lang)}\n${TranslationService.translate('enter_pin_4digit', lang)}:`);
+      return continueSession(
+        `${TranslationService.translate("welcome_afritokeni", lang)}\n${TranslationService.translate("enter_pin_4digit", lang)}:`,
+      );
   }
 }
 
 /**
  * Handle PIN setup - for new users or PIN reset
  */
-export async function handlePinSetup(input: string, session: USSDSession, lang: Language = 'en'): Promise<string> {
-  const inputParts = input.split('*');
-  const pinInput = inputParts[inputParts.length - 1] || '';
-  console.log(`🔧 PIN setup for ${session.phoneNumber}, step: ${session.step}, input: "${pinInput}"`);
-  
+export async function handlePinSetup(
+  input: string,
+  session: USSDSession,
+  lang: Language = "en",
+): Promise<string> {
+  const inputParts = input.split("*");
+  const pinInput = inputParts[inputParts.length - 1] || "";
+  console.log(
+    `🔧 PIN setup for ${session.phoneNumber}, step: ${session.step}, input: "${pinInput}"`,
+  );
+
   switch (session.step) {
     case 1:
       // First PIN entry
       if (!/^\d{4}$/.test(pinInput)) {
-        console.log(`❌ Invalid PIN format during setup for ${session.phoneNumber}: "${pinInput}"`);
-        return continueSession(`${TranslationService.translate('invalid_pin_format', lang)}.\n${TranslationService.translate('enter_exactly_4_digits', lang)}:`);
+        console.log(
+          `❌ Invalid PIN format during setup for ${session.phoneNumber}: "${pinInput}"`,
+        );
+        return continueSession(
+          `${TranslationService.translate("invalid_pin_format", lang)}.\n${TranslationService.translate("enter_exactly_4_digits", lang)}:`,
+        );
       }
       session.data.newPin = pinInput;
       session.step = 2;
       console.log(`✅ First PIN entry accepted for ${session.phoneNumber}`);
-      return continueSession(`${TranslationService.translate('confirm_pin', lang)}:\n\n${TranslationService.translate('back_or_menu', lang as Language)}`);
-    
-    case 2:
-      // PIN confirmation
-      { 
-        console.log(`🔄 Confirming PIN for ${session.phoneNumber}: "${pinInput}" vs "${session.data.newPin}"`);
+      return continueSession(
+        `${TranslationService.translate("confirm_pin", lang)}:\n\n${TranslationService.translate("back_or_menu", lang as Language)}`,
+      );
 
-        if (pinInput !== session.data.newPin) {
-          // Reset PIN setup
-          session.step = 1;
-          session.data = {};
-          console.log(`❌ PIN mismatch for ${session.phoneNumber}`);
-          return continueSession(`${TranslationService.translate('pins_no_match', lang)}.\n${TranslationService.translate('enter_pin_4digit', lang)}:\n\n${TranslationService.translate('back_or_menu', lang as Language)}`);
-        }
+    case 2: { // PIN confirmation
+      console.log(
+        `🔄 Confirming PIN for ${session.phoneNumber}: "${pinInput}" vs "${session.data.newPin}"`,
+      );
 
-        console.log(`🔑 New PIN confirmed for ${session.phoneNumber}`);
+      if (pinInput !== session.data.newPin) {
+        // Reset PIN setup
+        session.step = 1;
+        session.data = {};
+        console.log(`❌ PIN mismatch for ${session.phoneNumber}`);
+        return continueSession(
+          `${TranslationService.translate("pins_no_match", lang)}.\n${TranslationService.translate("enter_pin_4digit", lang)}:\n\n${TranslationService.translate("back_or_menu", lang as Language)}`,
+        );
+      }
 
-        // Save PIN and proceed to main menu
-        const pinSaved = await setUserPin(session.phoneNumber, pinInput);
-        if (pinSaved) {
-          const currency = getSessionCurrency(session);
-          session.currentMenu = 'main';
-          session.step = 0;
-          session.data = { preferredCurrency: currency };
-          console.log(`✅ PIN setup completed successfully for ${session.phoneNumber}`);
-          
-          return continueSession(`${TranslationService.translate('pin_set_success', lang)}\n\n${TranslationService.translate('welcome_back', lang)}\n${TranslationService.translate('please_select_option', lang)}:\n1. ${TranslationService.translate('local_currency_menu', lang)} (${currency})\n2. ${TranslationService.translate('bitcoin', lang)} (ckBTC)\n3. ${TranslationService.translate('usdc', lang)} (ckUSDC)\n4. ${TranslationService.translate('dao_governance', lang)}\n0. Exit`);
-        } else {
-          // PIN save failed, retry
-          session.step = 1;
-          session.data = {};
-          console.log(`❌ Failed to save PIN for ${session.phoneNumber}`);
-          return continueSession(`${TranslationService.translate('error_saving_pin', lang)}\n${TranslationService.translate('enter_pin_4digit', lang)}:\n\n${TranslationService.translate('back_or_menu', lang as Language)}`);
-        }
-      }  
-    
+      console.log(`🔑 New PIN confirmed for ${session.phoneNumber}`);
+
+      // Save PIN and proceed to main menu
+      const pinSaved = await setUserPin(session.phoneNumber, pinInput);
+      if (pinSaved) {
+        const currency = getSessionCurrency(session);
+        session.currentMenu = "main";
+        session.step = 0;
+        session.data = { preferredCurrency: currency };
+        console.log(
+          `✅ PIN setup completed successfully for ${session.phoneNumber}`,
+        );
+
+        return continueSession(
+          `${TranslationService.translate("pin_set_success", lang)}\n\n${TranslationService.translate("welcome_back", lang)}\n${TranslationService.translate("please_select_option", lang)}:\n1. ${TranslationService.translate("local_currency_menu", lang)} (${currency})\n2. ${TranslationService.translate("bitcoin", lang)} (ckBTC)\n3. ${TranslationService.translate("usdc", lang)} (ckUSDC)\n4. ${TranslationService.translate("dao_governance", lang)}\n0. Exit`,
+        );
+      } else {
+        // PIN save failed, retry
+        session.step = 1;
+        session.data = {};
+        console.log(`❌ Failed to save PIN for ${session.phoneNumber}`);
+        return continueSession(
+          `${TranslationService.translate("error_saving_pin", lang)}\n${TranslationService.translate("enter_pin_4digit", lang)}:\n\n${TranslationService.translate("back_or_menu", lang as Language)}`,
+        );
+      }
+    }
+
     default:
-      session.currentMenu = 'pin_check' as const;
+      session.currentMenu = "pin_check" as const;
       session.step = 0;
-      return handlePinCheck('', session);
+      return handlePinCheck("", session);
   }
 }

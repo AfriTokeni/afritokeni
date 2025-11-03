@@ -1,11 +1,11 @@
 /**
  * ckBTC (Chain-Key Bitcoin) Types for AfriTokeni
- * 
+ *
  * ckBTC is ICP's native Bitcoin representation with Lightning-like speed
  * Provides instant Bitcoin transfers without Lightning Network complexity
  */
 
-import { Principal } from '@dfinity/principal';
+import { Principal } from "@dfinity/principal";
 
 /**
  * ckBTC configuration for ICP canisters
@@ -18,7 +18,7 @@ export interface CkBTCConfig {
   /** KYT (Know Your Transaction) canister ID for compliance */
   kytCanisterId?: string;
   /** Network: 'testnet' or 'mainnet' */
-  network: 'testnet' | 'mainnet';
+  network: "testnet" | "mainnet";
   /** Minimum confirmations for BTC deposits */
   minConfirmations: number;
 }
@@ -27,24 +27,24 @@ export interface CkBTCConfig {
  * ckBTC transaction types
  */
 export type CkBTCTransactionType =
-  | 'deposit'      // BTC → ckBTC (Bitcoin to ICP)
-  | 'withdrawal'   // ckBTC → BTC (ICP to Bitcoin)
-  | 'transfer'     // ckBTC → ckBTC (ICP to ICP, instant!) - legacy
-  | 'transfer_out' // ckBTC sent to another user (debit)
-  | 'transfer_in'  // ckBTC received from another user (credit)
-  | 'exchange_buy' // Local currency → ckBTC via agent
-  | 'exchange_sell'; // ckBTC → Local currency via agent
+  | "deposit" // BTC → ckBTC (Bitcoin to ICP)
+  | "withdrawal" // ckBTC → BTC (ICP to Bitcoin)
+  | "transfer" // ckBTC → ckBTC (ICP to ICP, instant!) - legacy
+  | "transfer_out" // ckBTC sent to another user (debit)
+  | "transfer_in" // ckBTC received from another user (credit)
+  | "exchange_buy" // Local currency → ckBTC via agent
+  | "exchange_sell"; // ckBTC → Local currency via agent
 
 /**
  * ckBTC transaction status
  */
 export type CkBTCTransactionStatus =
-  | 'pending'      // Waiting for Bitcoin confirmations
-  | 'confirming'   // Bitcoin transaction confirming
-  | 'minting'      // ckBTC being minted on ICP
-  | 'completed'    // Transaction successful
-  | 'failed'       // Transaction failed
-  | 'expired';     // Transaction expired
+  | "pending" // Waiting for Bitcoin confirmations
+  | "confirming" // Bitcoin transaction confirming
+  | "minting" // ckBTC being minted on ICP
+  | "completed" // Transaction successful
+  | "failed" // Transaction failed
+  | "expired"; // Transaction expired
 
 /**
  * ckBTC transaction record
@@ -221,7 +221,7 @@ export interface CkBTCExchangeRequest {
   /** Local currency code */
   currency: string;
   /** Exchange type */
-  type: 'buy' | 'sell';
+  type: "buy" | "sell";
   /** User ID */
   userId: string;
   /** Agent ID */
@@ -300,9 +300,9 @@ export const CKBTC_CONSTANTS = {
  */
 export const CKBTC_TESTNET_CONFIG: CkBTCConfig = {
   // These will be filled after canister deployment
-  ledgerCanisterId: 'mxzaz-hqaaa-aaaar-qaada-cai', // ckBTC testnet ledger
-  minterCanisterId: 'mqygn-kiaaa-aaaar-qaadq-cai', // ckBTC testnet minter
-  network: 'testnet',
+  ledgerCanisterId: "mxzaz-hqaaa-aaaar-qaada-cai", // ckBTC testnet ledger
+  minterCanisterId: "mqygn-kiaaa-aaaar-qaadq-cai", // ckBTC testnet minter
+  network: "testnet",
   minConfirmations: 6,
 };
 
@@ -310,9 +310,9 @@ export const CKBTC_TESTNET_CONFIG: CkBTCConfig = {
  * Mainnet configuration (for production)
  */
 export const CKBTC_MAINNET_CONFIG: CkBTCConfig = {
-  ledgerCanisterId: 'mxzaz-hqaaa-aaaar-qaada-cai', // ckBTC mainnet ledger
-  minterCanisterId: 'mqygn-kiaaa-aaaar-qaadq-cai', // ckBTC mainnet minter
-  network: 'mainnet',
+  ledgerCanisterId: "mxzaz-hqaaa-aaaar-qaada-cai", // ckBTC mainnet ledger
+  minterCanisterId: "mqygn-kiaaa-aaaar-qaadq-cai", // ckBTC mainnet minter
+  network: "mainnet",
   minConfirmations: 12,
 };
 
@@ -344,7 +344,9 @@ export const CkBTCUtils = {
   /** Validate Bitcoin address */
   isValidBitcoinAddress(address: string): boolean {
     // Basic validation - in production use proper Bitcoin address validation
-    return /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$|^bc1[a-z0-9]{39,59}$/.test(address);
+    return /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$|^bc1[a-z0-9]{39,59}$/.test(
+      address,
+    );
   },
 
   /** Validate Principal ID */

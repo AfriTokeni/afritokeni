@@ -1,7 +1,7 @@
 export interface LoginFormData {
   emailOrPhone: string;
   password: string;
-  userType: 'user' | 'agent' | 'admin';
+  userType: "user" | "agent" | "admin";
 }
 
 export interface RegisterFormData {
@@ -10,14 +10,14 @@ export interface RegisterFormData {
   email: string;
   password: string;
   confirmPassword: string;
-  userType: 'user' | 'agent';
+  userType: "user" | "agent";
 }
 
 export interface UserKYCData {
   firstName: string;
   lastName: string;
   phoneNumber: string;
-  documentType?: 'national_id' | 'passport' | 'drivers_license';
+  documentType?: "national_id" | "passport" | "drivers_license";
   documentNumber?: string;
   documentFile?: File;
   pin?: string;
@@ -29,7 +29,7 @@ export interface AgentKYCData {
   firstName: string;
   lastName: string;
   phoneNumber: string;
-  
+
   // Operating Details
   location: {
     country: string;
@@ -44,12 +44,12 @@ export interface AgentKYCData {
   locationDescription: string;
   operatingHours: string;
   operatingDays: string;
-  
+
   // Personal Identification (Optional)
-  documentType?: 'national_id' | 'passport' | 'drivers_license';
+  documentType?: "national_id" | "passport" | "drivers_license";
   documentNumber?: string;
   documentFile?: File;
-  
+
   // Business License (Optional)
   businessLicense?: string;
   businessLicenseFile?: File;
@@ -62,9 +62,9 @@ export interface User {
   lastName: string;
   email: string;
   phoneNumber?: string; // Phone number for SMS/USSD users
-  userType: 'user' | 'agent' | 'admin';
+  userType: "user" | "agent" | "admin";
   isVerified: boolean;
-  kycStatus: 'pending' | 'approved' | 'rejected' | 'not_started';
+  kycStatus: "pending" | "approved" | "rejected" | "not_started";
   pin?: string; // USSD PIN for mobile users
   createdAt?: Date; // Optional since Juno handles timestamps automatically
   junoUser?: any; // Juno User object
@@ -82,14 +82,14 @@ export interface AuthContextType {
     agent: User | null;
     admin: User | null;
   };
-  
-  authMethod: 'sms' | 'web';
+
+  authMethod: "sms" | "web";
   updateUserCurrency: (currency: string) => void;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (formData: LoginFormData, method?: 'sms' | 'web') => Promise<boolean>;
+  login: (formData: LoginFormData, method?: "sms" | "web") => Promise<boolean>;
   register: (formData: RegisterFormData) => Promise<boolean>;
-  logout: (userTypeToLogout?: 'user' | 'agent' | 'admin') => Promise<void>;
+  logout: (userTypeToLogout?: "user" | "agent" | "admin") => Promise<void>;
   // SMS verification methods
   verifyRegistrationCode: (code: string) => Promise<boolean>;
   cancelVerification: () => void;
@@ -101,7 +101,10 @@ export interface AuthContextType {
   // User update method
   updateUser: (updatedUser: User) => Promise<void>;
   // User type update method (for role selection)
-  updateUserType: (newUserType: 'user' | 'agent' | 'admin', currentUserType: 'user' | 'agent' | 'admin') => Promise<void>;
+  updateUserType: (
+    newUserType: "user" | "agent" | "admin",
+    currentUserType: "user" | "agent" | "admin",
+  ) => Promise<void>;
 }
 
 export interface LocationSuggestion {

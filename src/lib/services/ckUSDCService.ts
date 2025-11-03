@@ -1,6 +1,6 @@
 /**
  * ckUSDC Service for AfriTokeni
- * 
+ *
  * Handles all ckUSDC operations for both SMS/USSD and Web users:
  * - Deposits (USDC → ckUSDC via Ethereum bridge)
  * - Withdrawals (ckUSDC → USDC)
@@ -11,14 +11,18 @@
  * - Supports both Web and SMS/USSD operations with satellite configuration
  */
 
-import { ethers } from 'ethers';
-import { Principal } from '@dfinity/principal';
-import { AnonymousIdentity } from '@dfinity/agent';
-import { HttpAgent, Actor } from '@dfinity/agent';
-import { nanoid } from 'nanoid';
-import { getCkUSDCLedgerActor, toPrincipal, toSubaccount } from './icpActors.js';
-import { getDoc, setDoc, listDocs } from '@junobuild/core';
-import type { SatelliteOptions } from '@junobuild/core';
+import { ethers } from "ethers";
+import { Principal } from "@dfinity/principal";
+import { AnonymousIdentity } from "@dfinity/agent";
+import { HttpAgent, Actor } from "@dfinity/agent";
+import { nanoid } from "nanoid";
+import {
+  getCkUSDCLedgerActor,
+  toPrincipal,
+  toSubaccount,
+} from "./icpActors.js";
+import { getDoc, setDoc, listDocs } from "@junobuild/core";
+import type { SatelliteOptions } from "@junobuild/core";
 import {
   CkUSDCConfig,
   CkUSDCBalance,
@@ -37,8 +41,12 @@ import {
   HELPER_CONTRACT_ABI,
   CKUSDC_CONSTANTS,
   SEPOLIA_CONFIG,
-} from '../types/ckusdc.js';
-import { shouldUseMocks, MOCK_CKUSDC_BALANCE, MOCK_USDC_RATE } from './mockService.js';
+} from "../types/ckusdc.js";
+import {
+  shouldUseMocks,
+  MOCK_CKUSDC_BALANCE,
+  MOCK_USDC_RATE,
+} from "./mockService.js";
 
 declare global {
   interface Window {
@@ -48,19 +56,25 @@ declare global {
       selectedAddress?: string;
       chainId?: string;
       on?: (event: string, handler: (...args: any[]) => void) => void;
-      removeListener?: (event: string, handler: (...args: any[]) => void) => void;
+      removeListener?: (
+        event: string,
+        handler: (...args: any[]) => void,
+      ) => void;
     };
   }
 }
 
 export class CkUSDCService {
   private static config: CkUSDCConfig = SEPOLIA_CONFIG;
-  
+
   // Default satellite configuration for SMS/USSD operations
   private static defaultSatellite: SatelliteOptions = {
     identity: new AnonymousIdentity(),
-    satelliteId: (typeof process !== 'undefined' ? process.env.VITE_DEVELOPMENT_JUNO_SATELLITE_ID : undefined) || "uxrrr-q7777-77774-qaaaq-cai",
-    container: true
+    satelliteId:
+      (typeof process !== "undefined"
+        ? process.env.VITE_DEVELOPMENT_JUNO_SATELLITE_ID
+        : undefined) || "uxrrr-q7777-77774-qaaaq-cai",
+    container: true,
   };
 
   /**
@@ -81,7 +95,9 @@ export class CkUSDCService {
    * Get satellite configuration for Juno operations
    * Returns satellite config for SMS/USSD operations, undefined for web operations
    */
-  private static getSatelliteConfig(useSatellite?: boolean): SatelliteOptions | undefined {
+  private static getSatelliteConfig(
+    useSatellite?: boolean,
+  ): SatelliteOptions | undefined {
     return useSatellite ? this.defaultSatellite : undefined;
   }
 
@@ -93,24 +109,29 @@ export class CkUSDCService {
    * @param useSatellite - Whether to use satellite configuration (true for SMS/USSD, false for web)
    * @param isDemoMode - Whether in demo mode (uses Juno transactions)
    */
-  static async getBalance(principalId: string, useSatellite?: boolean, isDemoMode = false): Promise<CkUSDCBalance> {
+  static async getBalance(
+    principalId: string,
+    useSatellite?: boolean,
+    isDemoMode = false,
+  ): Promise<CkUSDCBalance> {
     try {
       // MOCK MODE: Return mock for unit tests or playground
       if (shouldUseMocks()) {
-        console.log('✅ Mock mode: Returning mock ckUSDC balance');
+        console.log("✅ Mock mode: Returning mock ckUSDC balance");
         return MOCK_CKUSDC_BALANCE;
       }
-      
+
       // PRODUCTION/INTEGRATION MODE: Query ICP canister
-      console.log('🚀 Production: Querying ICP for ckUSDC balance...');
+      console.log("🚀 Production: Querying ICP for ckUSDC balance...");
       const principal = toPrincipal(principalId);
       const ledgerActor = await getCkUSDCLedgerActor();
       const balance = await ledgerActor.icrc1_balance_of({
         owner: principal,
-        subaccount: toSubaccount()
+        subaccount: toSubaccount(),
       });
 
-      const balanceAmount = Number(balance) / Math.pow(10, CKUSDC_CONSTANTS.DECIMALS);
+      const balanceAmount =
+        Number(balance) / Math.pow(10, CKUSDC_CONSTANTS.DECIMALS);
       console.log(`✅ ckUSDC balance from ICP: ${balanceAmount} USDC`);
 
       return {
@@ -118,8 +139,8 @@ export class CkUSDCService {
         lastUpdated: new Date(),
       };
     } catch (error) {
-      console.error('Error fetching ckUSDC balance:', error);
-      throw new Error('Failed to fetch ckUSDC balance');
+      console.error("Error fetching ckUSDC balance:", error);
+      throw new Error("Failed to fetch ckUSDC balance");
     }
   }
 
@@ -132,12 +153,12 @@ export class CkUSDCService {
   static async getBalanceWithLocalCurrency(
     principalId: string,
     currency: string,
-    useSatellite?: boolean
+    useSatellite?: boolean,
   ): Promise<CkUSDCBalance> {
     const balance = await this.getBalance(principalId, useSatellite);
     const exchangeRate = await this.getExchangeRate(currency);
-    
-    const localCurrencyEquivalent = 
+
+    const localCurrencyEquivalent =
       parseFloat(balance.balanceUSDC) * exchangeRate.rate;
 
     return {
@@ -155,33 +176,33 @@ export class CkUSDCService {
   static async approveUSDC(amount: number): Promise<string> {
     try {
       if (!window.ethereum) {
-        throw new Error('MetaMask not installed');
+        throw new Error("MetaMask not installed");
       }
 
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
-      
+
       const contract = new ethers.Contract(
         this.config.sepoliaUSDCAddress,
         ERC20_APPROVE_ABI,
-        signer
+        signer,
       );
 
       const amountInSmallestUnit = ethers.utils.parseUnits(
         amount.toString(),
-        CKUSDC_CONSTANTS.DECIMALS
+        CKUSDC_CONSTANTS.DECIMALS,
       );
 
       const tx = await contract.approve(
         this.config.helperContractAddress,
-        amountInSmallestUnit
+        amountInSmallestUnit,
       );
 
       await tx.wait();
       return tx.hash;
     } catch (error) {
-      console.error('Error approving USDC:', error);
-      throw new Error('Failed to approve USDC spending');
+      console.error("Error approving USDC:", error);
+      throw new Error("Failed to approve USDC spending");
     }
   }
 
@@ -192,18 +213,21 @@ export class CkUSDCService {
     try {
       const principal = Principal.fromText(principalId);
       const bytes = principal.toUint8Array();
-      
+
       // Pad to 32 bytes
       const paddedBytes = new Uint8Array(32);
       paddedBytes.set(bytes);
-      
+
       // Convert to hex string
-      return '0x' + Array.from(paddedBytes)
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
+      return (
+        "0x" +
+        Array.from(paddedBytes)
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("")
+      );
     } catch (error) {
-      console.error('Error converting Principal to Byte32:', error);
-      throw new Error('Invalid Principal ID');
+      console.error("Error converting Principal to Byte32:", error);
+      throw new Error("Invalid Principal ID");
     }
   }
 
@@ -212,14 +236,21 @@ export class CkUSDCService {
    * @param request - Deposit request with amount and principal ID
    * @param useSatellite - Whether to use satellite configuration (true for SMS/USSD, false for web)
    */
-  static async deposit(request: CkUSDCDepositRequest, useSatellite?: boolean): Promise<CkUSDCDepositResponse> {
+  static async deposit(
+    request: CkUSDCDepositRequest,
+    useSatellite?: boolean,
+  ): Promise<CkUSDCDepositResponse> {
     try {
       // Validate amount
       if (request.amount < CKUSDC_CONSTANTS.MIN_DEPOSIT) {
-        throw new Error(`Minimum deposit is ${CKUSDC_CONSTANTS.MIN_DEPOSIT} USDC`);
+        throw new Error(
+          `Minimum deposit is ${CKUSDC_CONSTANTS.MIN_DEPOSIT} USDC`,
+        );
       }
       if (request.amount > CKUSDC_CONSTANTS.MAX_DEPOSIT) {
-        throw new Error(`Maximum deposit is ${CKUSDC_CONSTANTS.MAX_DEPOSIT} USDC`);
+        throw new Error(
+          `Maximum deposit is ${CKUSDC_CONSTANTS.MAX_DEPOSIT} USDC`,
+        );
       }
 
       // Step 1: Approve USDC spending
@@ -230,27 +261,27 @@ export class CkUSDCService {
 
       // Step 3: Deposit via helper contract
       if (!window.ethereum) {
-        throw new Error('MetaMask not installed');
+        throw new Error("MetaMask not installed");
       }
 
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
-      
+
       const contract = new ethers.Contract(
         this.config.helperContractAddress,
         HELPER_CONTRACT_ABI,
-        signer
+        signer,
       );
 
       const amountInSmallestUnit = ethers.utils.parseUnits(
         request.amount.toString(),
-        CKUSDC_CONSTANTS.DECIMALS
+        CKUSDC_CONSTANTS.DECIMALS,
       );
 
       const tx = await contract.deposit(
         this.config.sepoliaUSDCAddress,
         amountInSmallestUnit,
-        depositAddress
+        depositAddress,
       );
 
       await tx.wait();
@@ -260,9 +291,9 @@ export class CkUSDCService {
       const transaction: CkUSDCTransaction = {
         id: transactionId,
         userId: request.principalId,
-        type: 'deposit',
+        type: "deposit",
         amount: request.amount * Math.pow(10, CKUSDC_CONSTANTS.DECIMALS),
-        status: 'confirming',
+        status: "confirming",
         ethTxHash: tx.hash,
         fee: 0,
         createdAt: new Date(),
@@ -272,7 +303,7 @@ export class CkUSDCService {
 
       const satellite = this.getSatelliteConfig(useSatellite);
       await setDoc({
-        collection: 'ckusdc_transactions',
+        collection: "ckusdc_transactions",
         satellite,
         doc: {
           key: transactionId,
@@ -281,8 +312,8 @@ export class CkUSDCService {
             createdAt: transaction.createdAt.toISOString(),
             updatedAt: transaction.updatedAt.toISOString(),
             expiresAt: transaction.expiresAt?.toISOString(),
-          }
-        }
+          },
+        },
       });
 
       return {
@@ -293,10 +324,10 @@ export class CkUSDCService {
         estimatedConfirmationTime: 5, // ~5 minutes for Sepolia
       };
     } catch (error: any) {
-      console.error('Error depositing USDC:', error);
+      console.error("Error depositing USDC:", error);
       return {
         success: false,
-        error: error.message || 'Failed to deposit USDC',
+        error: error.message || "Failed to deposit USDC",
       };
     }
   }
@@ -308,27 +339,37 @@ export class CkUSDCService {
    * @param request - Withdrawal request with amount, principal ID, and Ethereum address
    * @param useSatellite - Whether to use satellite configuration (true for SMS/USSD, false for web)
    */
-  static async withdraw(request: CkUSDCWithdrawalRequest, useSatellite?: boolean): Promise<CkUSDCWithdrawalResponse> {
+  static async withdraw(
+    request: CkUSDCWithdrawalRequest,
+    useSatellite?: boolean,
+  ): Promise<CkUSDCWithdrawalResponse> {
     try {
       // Validate amount
       if (request.amount < CKUSDC_CONSTANTS.MIN_TRANSFER) {
-        throw new Error(`Minimum withdrawal is ${CKUSDC_CONSTANTS.MIN_TRANSFER} ckUSDC`);
+        throw new Error(
+          `Minimum withdrawal is ${CKUSDC_CONSTANTS.MIN_TRANSFER} ckUSDC`,
+        );
       }
 
       // Call ICP minter canister to initiate withdrawal
       const minterActor = await this.getMinterActor();
-      
+
       const result: any = await minterActor.withdraw({
-        amount: BigInt(request.amount * Math.pow(10, CKUSDC_CONSTANTS.DECIMALS)),
-        address: request.ethereumAddress
+        amount: BigInt(
+          request.amount * Math.pow(10, CKUSDC_CONSTANTS.DECIMALS),
+        ),
+        address: request.ethereumAddress,
       });
 
       // Check if withdrawal was successful
-      if ('Err' in result) {
+      if ("Err" in result) {
         // Convert BigInt to string before error message
-        const errorStr = typeof result.Err === 'object' 
-          ? JSON.stringify(result.Err, (_, v) => typeof v === 'bigint' ? v.toString() : v)
-          : String(result.Err);
+        const errorStr =
+          typeof result.Err === "object"
+            ? JSON.stringify(result.Err, (_, v) =>
+                typeof v === "bigint" ? v.toString() : v,
+              )
+            : String(result.Err);
         throw new Error(`Withdrawal failed: ${errorStr}`);
       }
 
@@ -337,9 +378,9 @@ export class CkUSDCService {
       const transaction: CkUSDCTransaction = {
         id: transactionId,
         userId: request.principalId,
-        type: 'withdrawal',
+        type: "withdrawal",
         amount: request.amount * Math.pow(10, CKUSDC_CONSTANTS.DECIMALS),
-        status: 'pending',
+        status: "pending",
         recipient: request.ethereumAddress,
         fee: 0.1,
         createdAt: new Date(),
@@ -348,7 +389,7 @@ export class CkUSDCService {
 
       const satellite = this.getSatelliteConfig(useSatellite);
       await setDoc({
-        collection: 'ckusdc_transactions',
+        collection: "ckusdc_transactions",
         satellite,
         doc: {
           key: transactionId,
@@ -356,8 +397,8 @@ export class CkUSDCService {
             ...transaction,
             createdAt: transaction.createdAt.toISOString(),
             updatedAt: transaction.updatedAt.toISOString(),
-          }
-        }
+          },
+        },
       });
 
       return {
@@ -366,10 +407,10 @@ export class CkUSDCService {
         estimatedProcessingTime: 10, // ~10 minutes
       };
     } catch (error: any) {
-      console.error('Error withdrawing ckUSDC:', error);
+      console.error("Error withdrawing ckUSDC:", error);
       return {
         success: false,
-        error: error.message || 'Failed to withdraw ckUSDC',
+        error: error.message || "Failed to withdraw ckUSDC",
       };
     }
   }
@@ -382,36 +423,49 @@ export class CkUSDCService {
    * @param useSatellite - Whether to use satellite configuration (true for SMS/USSD, false for web)
    * @param isDemoMode - Whether in demo mode
    */
-  static async transfer(request: CkUSDCTransferRequest, useSatellite?: boolean, isDemoMode = false): Promise<CkUSDCTransferResponse> {
+  static async transfer(
+    request: CkUSDCTransferRequest,
+    useSatellite?: boolean,
+    isDemoMode = false,
+  ): Promise<CkUSDCTransferResponse> {
     try {
       // Validate amount
       if (request.amount < CKUSDC_CONSTANTS.MIN_TRANSFER) {
-        throw new Error(`Minimum transfer is ${CKUSDC_CONSTANTS.MIN_TRANSFER} ckUSDC`);
+        throw new Error(
+          `Minimum transfer is ${CKUSDC_CONSTANTS.MIN_TRANSFER} ckUSDC`,
+        );
       }
 
       let transactionId: string;
 
       if (!isDemoMode) {
         // PRODUCTION: Execute real ICRC-1 transfer on ICP mainnet
-        console.log('🚀 Production: Executing ICRC-1 USDC transfer on ICP...');
+        console.log("🚀 Production: Executing ICRC-1 USDC transfer on ICP...");
         const recipientPrincipal = Principal.fromText(request.recipient);
         const ledgerActor = await this.getLedgerActor();
-        
+
         const result: any = await ledgerActor.icrc1_transfer({
           from_subaccount: [],
           to: { owner: recipientPrincipal, subaccount: [] },
-          amount: BigInt(request.amount * Math.pow(10, CKUSDC_CONSTANTS.DECIMALS)),
+          amount: BigInt(
+            request.amount * Math.pow(10, CKUSDC_CONSTANTS.DECIMALS),
+          ),
           fee: [],
-          memo: request.memo ? Array.from(new TextEncoder().encode(request.memo)) : [],
-          created_at_time: []
+          memo: request.memo
+            ? Array.from(new TextEncoder().encode(request.memo))
+            : [],
+          created_at_time: [],
         });
 
         // Check if transfer was successful
-        if ('Err' in result) {
+        if ("Err" in result) {
           // Convert BigInt to string before error message
-          const errorStr = typeof result.Err === 'object' 
-            ? JSON.stringify(result.Err, (_, v) => typeof v === 'bigint' ? v.toString() : v)
-            : String(result.Err);
+          const errorStr =
+            typeof result.Err === "object"
+              ? JSON.stringify(result.Err, (_, v) =>
+                  typeof v === "bigint" ? v.toString() : v,
+                )
+              : String(result.Err);
           throw new Error(`Transfer failed: ${errorStr}`);
         }
 
@@ -419,7 +473,7 @@ export class CkUSDCService {
         console.log(`✅ USDC transfer executed on ICP: ${transactionId}`);
       } else {
         // DEMO: Mock transaction
-        console.log('🎭 Demo Mode: Creating mock USDC transfer...');
+        console.log("🎭 Demo Mode: Creating mock USDC transfer...");
         transactionId = nanoid();
       }
       const fee = 0.001;
@@ -427,9 +481,9 @@ export class CkUSDCService {
       const transaction: CkUSDCTransaction = {
         id: transactionId,
         userId: request.senderId,
-        type: 'transfer',
+        type: "transfer",
         amount: request.amount * Math.pow(10, CKUSDC_CONSTANTS.DECIMALS),
-        status: 'completed',
+        status: "completed",
         recipient: request.recipient,
         fee,
         createdAt: new Date(),
@@ -438,7 +492,7 @@ export class CkUSDCService {
 
       const satellite = this.getSatelliteConfig(useSatellite);
       await setDoc({
-        collection: 'ckusdc_transactions',
+        collection: "ckusdc_transactions",
         satellite,
         doc: {
           key: transactionId,
@@ -446,8 +500,8 @@ export class CkUSDCService {
             ...transaction,
             createdAt: transaction.createdAt.toISOString(),
             updatedAt: transaction.updatedAt.toISOString(),
-          }
-        }
+          },
+        },
       });
 
       return {
@@ -456,10 +510,10 @@ export class CkUSDCService {
         fee,
       };
     } catch (error: any) {
-      console.error('Error transferring ckUSDC:', error);
+      console.error("Error transferring ckUSDC:", error);
       return {
         success: false,
-        error: error.message || 'Failed to transfer ckUSDC',
+        error: error.message || "Failed to transfer ckUSDC",
         fee: 0,
       };
     }
@@ -472,16 +526,19 @@ export class CkUSDCService {
    * @param request - Exchange request with amount, type, currency, user and agent IDs
    * @param useSatellite - Whether to use satellite configuration (true for SMS/USSD, false for web)
    */
-  static async exchange(request: CkUSDCExchangeRequest, useSatellite?: boolean): Promise<CkUSDCExchangeResponse> {
+  static async exchange(
+    request: CkUSDCExchangeRequest,
+    useSatellite?: boolean,
+  ): Promise<CkUSDCExchangeResponse> {
     try {
       // Get exchange rate
       const exchangeRate = await this.getExchangeRate(request.currency);
-      
+
       // Calculate amounts based on type
       let ckusdcAmount: number;
       let localCurrencyAmount: number;
-      
-      if (request.type === 'buy') {
+
+      if (request.type === "buy") {
         // User buying ckUSDC with local currency
         localCurrencyAmount = request.amount;
         ckusdcAmount = localCurrencyAmount / exchangeRate.rate;
@@ -504,9 +561,9 @@ export class CkUSDCService {
       const transaction: CkUSDCTransaction = {
         id: transactionId,
         userId: request.userId,
-        type: request.type === 'buy' ? 'exchange_buy' : 'exchange_sell',
+        type: request.type === "buy" ? "exchange_buy" : "exchange_sell",
         amount: ckusdcAmount * Math.pow(10, CKUSDC_CONSTANTS.DECIMALS),
-        status: 'pending',
+        status: "pending",
         agentId: request.agentId,
         localCurrencyAmount,
         localCurrency: request.currency,
@@ -519,7 +576,7 @@ export class CkUSDCService {
 
       const satellite = this.getSatelliteConfig(useSatellite);
       await setDoc({
-        collection: 'ckusdc_transactions',
+        collection: "ckusdc_transactions",
         satellite,
         doc: {
           key: transactionId,
@@ -528,8 +585,8 @@ export class CkUSDCService {
             createdAt: transaction.createdAt.toISOString(),
             updatedAt: transaction.updatedAt.toISOString(),
             expiresAt: transaction.expiresAt?.toISOString(),
-          }
-        }
+          },
+        },
       });
 
       return {
@@ -544,7 +601,7 @@ export class CkUSDCService {
         exchangeCode,
       };
     } catch (error: any) {
-      console.error('Error exchanging ckUSDC:', error);
+      console.error("Error exchanging ckUSDC:", error);
       return {
         success: false,
         exchangeRate: 0,
@@ -553,7 +610,7 @@ export class CkUSDCService {
         fee: 0,
         feePercentage: 0,
         agentCommission: 0,
-        error: error.message || 'Failed to exchange ckUSDC',
+        error: error.message || "Failed to exchange ckUSDC",
       };
     }
   }
@@ -567,25 +624,25 @@ export class CkUSDCService {
     try {
       // MOCK MODE: Return mock for unit tests or playground
       if (shouldUseMocks()) {
-        console.log('✅ Mock mode: Returning mock USDC exchange rate');
+        console.log("✅ Mock mode: Returning mock USDC exchange rate");
         return { ...MOCK_USDC_RATE, currency };
       }
-      
+
       const currencyUpper = currency.toUpperCase();
-      
+
       // ckUSDC is pegged 1:1 with USD, so we just need USD to local currency rate
       // Use exchangerate-api.com (free, no key needed, supports all currencies)
       const response = await fetch(
-        `https://api.exchangerate-api.com/v4/latest/USD`
+        `https://api.exchangerate-api.com/v4/latest/USD`,
       );
-      
+
       if (!response.ok) {
-        throw new Error('Failed to fetch forex rates');
+        throw new Error("Failed to fetch forex rates");
       }
-      
+
       const data = await response.json();
       const rate = data.rates[currencyUpper];
-      
+
       if (!rate) {
         throw new Error(`Exchange rate not available for ${currency}`);
       }
@@ -594,20 +651,22 @@ export class CkUSDCService {
         currency,
         rate, // 1 USDC = X local currency
         lastUpdated: new Date(),
-        source: 'exchangerate-api',
+        source: "exchangerate-api",
       };
     } catch (error) {
-      console.error('Error fetching exchange rate:', error);
-      throw new Error('Failed to fetch exchange rate');
+      console.error("Error fetching exchange rate:", error);
+      throw new Error("Failed to fetch exchange rate");
     }
   }
 
   /**
    * Get exchange rates for multiple currencies
    */
-  static async getExchangeRates(currencies: string[]): Promise<CkUSDCExchangeRate[]> {
+  static async getExchangeRates(
+    currencies: string[],
+  ): Promise<CkUSDCExchangeRate[]> {
     const rates = await Promise.all(
-      currencies.map(currency => this.getExchangeRate(currency))
+      currencies.map((currency) => this.getExchangeRate(currency)),
     );
     return rates;
   }
@@ -654,7 +713,7 @@ export class CkUSDCService {
    */
   private static formatPhoneNumber(phoneNumber: string): string {
     // Remove any non-digit characters and format for display
-    const digits = phoneNumber.replace(/\D/g, '');
+    const digits = phoneNumber.replace(/\D/g, "");
     if (digits.length >= 10) {
       return `+${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
     }
@@ -666,23 +725,26 @@ export class CkUSDCService {
    * @param agentId - Agent ID to filter transactions
    * @param useSatellite - Whether to use satellite configuration (true for SMS/USSD, false for web)
    */
-  static async getAgentExchangeRequests(agentId?: string, useSatellite?: boolean): Promise<CkUSDCTransaction[]> {
+  static async getAgentExchangeRequests(
+    agentId?: string,
+    useSatellite?: boolean,
+  ): Promise<CkUSDCTransaction[]> {
     try {
       if (!agentId) {
-        console.log('No agent ID provided, returning empty array');
+        console.log("No agent ID provided, returning empty array");
         return [];
       }
 
       const satellite = this.getSatelliteConfig(useSatellite);
       const results = await listDocs({
-        collection: 'ckusdc_transactions',
+        collection: "ckusdc_transactions",
         filter: {
           order: {
             desc: true,
-            field: 'created_at'
-          }
+            field: "created_at",
+          },
         },
-        satellite
+        satellite,
       });
 
       // Filter transactions for this agent that are exchanges
@@ -695,14 +757,15 @@ export class CkUSDCService {
             updatedAt: new Date(data.updatedAt),
           };
         })
-        .filter((tx) => 
-          tx.agentId === agentId && 
-          (tx.type === 'exchange_buy' || tx.type === 'exchange_sell')
+        .filter(
+          (tx) =>
+            tx.agentId === agentId &&
+            (tx.type === "exchange_buy" || tx.type === "exchange_sell"),
         );
 
       return agentExchanges;
     } catch (error) {
-      console.error('Error getting agent exchange requests:', error);
+      console.error("Error getting agent exchange requests:", error);
       return [];
     }
   }
@@ -714,16 +777,16 @@ export class CkUSDCService {
    * @param useSatellite - Whether to use satellite configuration (true for SMS/USSD, false for web)
    */
   static async updateTransactionStatus(
-    transactionId: string, 
-    status: CkUSDCTransactionStatus, 
-    useSatellite?: boolean
+    transactionId: string,
+    status: CkUSDCTransactionStatus,
+    useSatellite?: boolean,
   ): Promise<boolean> {
     try {
       const satellite = this.getSatelliteConfig(useSatellite);
       const existingDoc = await getDoc({
-        collection: 'ckusdc_transactions',
+        collection: "ckusdc_transactions",
         key: transactionId,
-        satellite
+        satellite,
       });
 
       if (!existingDoc) {
@@ -734,23 +797,25 @@ export class CkUSDCService {
       const updatedData = {
         ...existingDoc.data,
         status,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       };
 
       await setDoc({
-        collection: 'ckusdc_transactions',
+        collection: "ckusdc_transactions",
         doc: {
           key: transactionId,
           data: updatedData,
-          version: existingDoc.version || 1n
+          version: existingDoc.version || 1n,
         },
-        satellite
+        satellite,
       });
 
-      console.log(`✅ USDC Transaction ${transactionId} status updated to ${status}`);
+      console.log(
+        `✅ USDC Transaction ${transactionId} status updated to ${status}`,
+      );
       return true;
     } catch (error) {
-      console.error('Error updating USDC transaction status:', error);
+      console.error("Error updating USDC transaction status:", error);
       return false;
     }
   }
@@ -764,48 +829,57 @@ export class CkUSDCService {
    */
   static async updateExchangeTransactionStatus(
     transactionId: string,
-    status: 'pending' | 'confirmed' | 'completed' | 'failed',
+    status: "pending" | "confirmed" | "completed" | "failed",
     agentId?: string,
-    useSatellite?: boolean
+    useSatellite?: boolean,
   ): Promise<{ success: boolean; message: string }> {
     try {
       // Map status to CkUSDCTransactionStatus
       let ckUSDCStatus: CkUSDCTransactionStatus;
       switch (status) {
-        case 'completed':
-          ckUSDCStatus = 'completed';
+        case "completed":
+          ckUSDCStatus = "completed";
           break;
-        case 'failed':
-          ckUSDCStatus = 'failed';
+        case "failed":
+          ckUSDCStatus = "failed";
           break;
-        case 'confirmed':
-          ckUSDCStatus = 'confirming';
+        case "confirmed":
+          ckUSDCStatus = "confirming";
           break;
-        case 'pending':
+        case "pending":
         default:
-          ckUSDCStatus = 'pending';
+          ckUSDCStatus = "pending";
           break;
       }
 
-      const success = await this.updateTransactionStatus(transactionId, ckUSDCStatus, useSatellite);
-      
+      const success = await this.updateTransactionStatus(
+        transactionId,
+        ckUSDCStatus,
+        useSatellite,
+      );
+
       if (success) {
-        console.log(`✅ USDC Transaction ${transactionId} status updated to ${status} by agent ${agentId || 'unknown'}`);
+        console.log(
+          `✅ USDC Transaction ${transactionId} status updated to ${status} by agent ${agentId || "unknown"}`,
+        );
         return {
           success: true,
-          message: `USDC transaction status updated to ${status}`
+          message: `USDC transaction status updated to ${status}`,
         };
       } else {
         return {
           success: false,
-          message: 'Failed to update USDC transaction status'
+          message: "Failed to update USDC transaction status",
         };
       }
     } catch (error) {
-      console.error('Error updating USDC exchange transaction status:', error);
+      console.error("Error updating USDC exchange transaction status:", error);
       return {
         success: false,
-        message: error instanceof Error ? error.message : 'Failed to update USDC transaction status'
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to update USDC transaction status",
       };
     }
   }
@@ -816,17 +890,15 @@ export class CkUSDCService {
    * @param exchanges - Array of ckUSDC exchange transactions
    * @param useSatellite - Whether to use satellite configuration (true for SMS/USSD, false for web)
    */
-  static formatExchangeRequestsForAgent(
-    exchanges: CkUSDCTransaction[]
-  ): Array<{
+  static formatExchangeRequestsForAgent(exchanges: CkUSDCTransaction[]): Array<{
     id: string;
     customerName: string;
     customerPhone: string;
-    type: 'buy' | 'sell';
+    type: "buy" | "sell";
     amount: number;
     currency: string;
     usdcAmount: number;
-    status: 'pending' | 'processing' | 'completed' | 'cancelled';
+    status: "pending" | "processing" | "completed" | "cancelled";
     createdAt: Date;
     location?: string;
     exchangeRate?: number;
@@ -837,29 +909,36 @@ export class CkUSDCService {
       const formattedRequests = exchanges.map((tx) => {
         // Use userId as fallback for customer identification
         // The actual user data fetching should be handled by the calling component
-        const customerName = 'Customer'; // Will be populated by calling component
+        const customerName = "Customer"; // Will be populated by calling component
         const customerPhone = tx.userId; // Use userId as identifier
-        
+
         return {
           id: tx.id,
           customerName,
           customerPhone: this.formatPhoneNumber(customerPhone),
-          type: tx.type === 'exchange_buy' ? 'buy' as const : 'sell' as const,
+          type:
+            tx.type === "exchange_buy" ? ("buy" as const) : ("sell" as const),
           amount: tx.localCurrencyAmount || 0,
-          currency: tx.localCurrency || 'UGX',
+          currency: tx.localCurrency || "UGX",
           usdcAmount: parseFloat(this.formatAmount(tx.amount)),
-          status: tx.status as 'pending' | 'processing' | 'completed' | 'cancelled',
+          status: tx.status as
+            | "pending"
+            | "processing"
+            | "completed"
+            | "cancelled",
           createdAt: tx.createdAt,
           location: undefined, // Could be added from user data if available
           exchangeRate: tx.exchangeRate,
-          agentFee: tx.fee && tx.exchangeRate ? 
-            (tx.fee * tx.exchangeRate * 0.8) : undefined
+          agentFee:
+            tx.fee && tx.exchangeRate
+              ? tx.fee * tx.exchangeRate * 0.8
+              : undefined,
         };
       });
 
       return formattedRequests;
     } catch (error) {
-      console.error('Error formatting exchange requests for agent:', error);
+      console.error("Error formatting exchange requests for agent:", error);
       return [];
     }
   }
@@ -869,13 +948,16 @@ export class CkUSDCService {
    * @param transactionId - Transaction ID to retrieve
    * @param useSatellite - Whether to use satellite configuration (true for SMS/USSD, false for web)
    */
-  static async getTransaction(transactionId: string, useSatellite?: boolean): Promise<CkUSDCTransaction | null> {
+  static async getTransaction(
+    transactionId: string,
+    useSatellite?: boolean,
+  ): Promise<CkUSDCTransaction | null> {
     try {
       const satellite = this.getSatelliteConfig(useSatellite);
       const result = await getDoc({
-        collection: 'ckusdc_transactions',
+        collection: "ckusdc_transactions",
         key: transactionId,
-        satellite
+        satellite,
       });
 
       if (!result) return null;
@@ -888,7 +970,7 @@ export class CkUSDCService {
         expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
       };
     } catch (error) {
-      console.error('Error fetching transaction:', error);
+      console.error("Error fetching transaction:", error);
       return null;
     }
   }
@@ -898,18 +980,21 @@ export class CkUSDCService {
    * @param userId - User's Principal ID
    * @param useSatellite - Whether to use satellite configuration (true for SMS/USSD, false for web)
    */
-  static async getTransactionHistory(userId: string, useSatellite?: boolean): Promise<CkUSDCTransaction[]> {
+  static async getTransactionHistory(
+    userId: string,
+    useSatellite?: boolean,
+  ): Promise<CkUSDCTransaction[]> {
     try {
       const satellite = this.getSatelliteConfig(useSatellite);
       const results = await listDocs({
-        collection: 'ckusdc_transactions',
+        collection: "ckusdc_transactions",
         satellite,
         filter: {
           order: {
             desc: true,
-            field: 'created_at'
-          }
-        }
+            field: "created_at",
+          },
+        },
       });
 
       return results.items
@@ -924,7 +1009,7 @@ export class CkUSDCService {
           };
         });
     } catch (error) {
-      console.error('Error fetching transaction history:', error);
+      console.error("Error fetching transaction history:", error);
       return [];
     }
   }
@@ -936,13 +1021,14 @@ export class CkUSDCService {
    */
   private static async createAgent(): Promise<HttpAgent> {
     const agent = new HttpAgent({
-      host: process.env.NODE_ENV === 'production' 
-        ? 'https://ic0.app' 
-        : 'http://localhost:4943'
+      host:
+        process.env.NODE_ENV === "production"
+          ? "https://ic0.app"
+          : "http://localhost:4943",
     });
 
     // Fetch root key for local development
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env.NODE_ENV !== "production") {
       await agent.fetchRootKey();
     }
 
@@ -954,26 +1040,36 @@ export class CkUSDCService {
    */
   private static async getLedgerActor() {
     const agent = await this.createAgent();
-    
+
     // ICRC-1 Ledger IDL
     const ledgerIdl = ({ IDL }: any) => {
       return IDL.Service({
-        'icrc1_balance_of': IDL.Func(
-          [IDL.Record({ 'owner': IDL.Principal, 'subaccount': IDL.Opt(IDL.Vec(IDL.Nat8)) })],
+        icrc1_balance_of: IDL.Func(
+          [
+            IDL.Record({
+              owner: IDL.Principal,
+              subaccount: IDL.Opt(IDL.Vec(IDL.Nat8)),
+            }),
+          ],
           [IDL.Nat],
-          ['query']
+          ["query"],
         ),
-        'icrc1_transfer': IDL.Func(
-          [IDL.Record({
-            'from_subaccount': IDL.Opt(IDL.Vec(IDL.Nat8)),
-            'to': IDL.Record({ 'owner': IDL.Principal, 'subaccount': IDL.Opt(IDL.Vec(IDL.Nat8)) }),
-            'amount': IDL.Nat,
-            'fee': IDL.Opt(IDL.Nat),
-            'memo': IDL.Opt(IDL.Vec(IDL.Nat8)),
-            'created_at_time': IDL.Opt(IDL.Nat64)
-          })],
-          [IDL.Variant({ 'Ok': IDL.Nat, 'Err': IDL.Text })],
-          []
+        icrc1_transfer: IDL.Func(
+          [
+            IDL.Record({
+              from_subaccount: IDL.Opt(IDL.Vec(IDL.Nat8)),
+              to: IDL.Record({
+                owner: IDL.Principal,
+                subaccount: IDL.Opt(IDL.Vec(IDL.Nat8)),
+              }),
+              amount: IDL.Nat,
+              fee: IDL.Opt(IDL.Nat),
+              memo: IDL.Opt(IDL.Vec(IDL.Nat8)),
+              created_at_time: IDL.Opt(IDL.Nat64),
+            }),
+          ],
+          [IDL.Variant({ Ok: IDL.Nat, Err: IDL.Text })],
+          [],
         ),
       });
     };
@@ -989,22 +1085,29 @@ export class CkUSDCService {
    */
   private static async getMinterActor() {
     const agent = await this.createAgent();
-    
+
     // Minter canister IDL
     const minterIdl = ({ IDL }: any) => {
       return IDL.Service({
-        'get_deposit_address': IDL.Func(
-          [IDL.Record({ 'owner': IDL.Principal, 'subaccount': IDL.Opt(IDL.Vec(IDL.Nat8)) })],
+        get_deposit_address: IDL.Func(
+          [
+            IDL.Record({
+              owner: IDL.Principal,
+              subaccount: IDL.Opt(IDL.Vec(IDL.Nat8)),
+            }),
+          ],
           [IDL.Text],
-          ['query']
+          ["query"],
         ),
-        'withdraw': IDL.Func(
-          [IDL.Record({
-            'amount': IDL.Nat,
-            'address': IDL.Text
-          })],
-          [IDL.Variant({ 'Ok': IDL.Nat, 'Err': IDL.Text })],
-          []
+        withdraw: IDL.Func(
+          [
+            IDL.Record({
+              amount: IDL.Nat,
+              address: IDL.Text,
+            }),
+          ],
+          [IDL.Variant({ Ok: IDL.Nat, Err: IDL.Text })],
+          [],
         ),
       });
     };

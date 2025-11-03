@@ -1,7 +1,7 @@
-import { Agent as DBAgent } from '../services/agentService';
+import { Agent as DBAgent } from "../services/agentService";
 
-export type DepositStep = 'amount' | 'agent' | 'confirmation';
-export type ViewMode = 'list' | 'map';
+export type DepositStep = "amount" | "agent" | "confirmation";
+export type ViewMode = "list" | "map";
 
 export interface DepositFormData {
   amount: string;

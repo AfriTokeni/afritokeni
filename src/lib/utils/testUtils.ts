@@ -9,15 +9,18 @@
  */
 export function shouldUseMocks(): boolean {
   // Unit test mode
-  if (process.env.NODE_ENV === 'unit-test') {
+  if (process.env.NODE_ENV === "unit-test") {
     return true;
   }
-  
+
   // Playground mode (browser only)
-  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+  if (
+    typeof window !== "undefined" &&
+    window.location.hostname === "localhost"
+  ) {
     return true;
   }
-  
+
   return false;
 }
 
@@ -26,5 +29,5 @@ export function shouldUseMocks(): boolean {
  * @returns true if in integration test mode
  */
 export function isIntegrationTest(): boolean {
-  return process.env.NODE_ENV === 'integration';
+  return process.env.NODE_ENV === "integration";
 }

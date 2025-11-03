@@ -16,38 +16,41 @@ declare global {
  */
 export function shouldUseMocks(sessionId?: string): boolean {
   // Check global test flag first (set by test setup)
-  if (typeof globalThis !== 'undefined' && globalThis.__AFRITOKENI_TEST_MODE__) {
-    console.log('🎭 shouldUseMocks: true (global test flag)');
+  if (
+    typeof globalThis !== "undefined" &&
+    globalThis.__AFRITOKENI_TEST_MODE__
+  ) {
+    console.log("🎭 shouldUseMocks: true (global test flag)");
     return true;
   }
-  
+
   // Unit test mode (Node.js environment)
-  if (typeof process !== 'undefined' && process.env) {
+  if (typeof process !== "undefined" && process.env) {
     const nodeEnv = process.env.NODE_ENV;
-    if (nodeEnv === 'unit-test' || nodeEnv === 'test') {
-      console.log('🎭 shouldUseMocks: true (NODE_ENV=' + nodeEnv + ')');
+    if (nodeEnv === "unit-test" || nodeEnv === "test") {
+      console.log("🎭 shouldUseMocks: true (NODE_ENV=" + nodeEnv + ")");
       return true;
     }
   }
-  
+
   // Playground mode - check sessionId (works in both browser and SSR)
-  if (sessionId && sessionId.startsWith('playground_')) {
-    console.log('🎭 shouldUseMocks: true (playground sessionId)');
+  if (sessionId && sessionId.startsWith("playground_")) {
+    console.log("🎭 shouldUseMocks: true (playground sessionId)");
     return true;
   }
-  
+
   // Playground mode (browser only - USSD playground page)
-  if (typeof window !== 'undefined') {
-    const isLocalhost = window.location?.hostname === 'localhost';
-    const isUSSDPlayground = window.location?.pathname?.includes('/ussd');
-    
+  if (typeof window !== "undefined") {
+    const isLocalhost = window.location?.hostname === "localhost";
+    const isUSSDPlayground = window.location?.pathname?.includes("/ussd");
+
     if (isLocalhost && isUSSDPlayground) {
-      console.log('🎭 shouldUseMocks: true (USSD playground mode)');
+      console.log("🎭 shouldUseMocks: true (USSD playground mode)");
       return true;
     }
   }
-  
-  console.log('🎭 shouldUseMocks: false (production mode)');
+
+  console.log("🎭 shouldUseMocks: false (production mode)");
   return false;
 }
 
@@ -56,19 +59,19 @@ export function shouldUseMocks(sessionId?: string): boolean {
  */
 export const MOCK_CKBTC_BALANCE = {
   balanceSatoshis: 50000,
-  balanceBTC: '0.0005',
+  balanceBTC: "0.0005",
   localCurrencyEquivalent: 193208,
-  lastUpdated: new Date()
+  lastUpdated: new Date(),
 };
 
 /**
  * Mock ckUSDC balance
  */
 export const MOCK_CKUSDC_BALANCE = {
-  balanceUSDC: '100.00',
+  balanceUSDC: "100.00",
   balanceCents: 10000,
   localCurrencyEquivalent: 380000,
-  lastUpdated: new Date()
+  lastUpdated: new Date(),
 };
 
 /**
@@ -77,8 +80,8 @@ export const MOCK_CKUSDC_BALANCE = {
 export const MOCK_BTC_RATE = {
   rate: 386416858,
   lastUpdated: new Date(),
-  source: 'Mock',
-  currency: 'UGX'
+  source: "Mock",
+  currency: "UGX",
 };
 
 /**
@@ -87,16 +90,16 @@ export const MOCK_BTC_RATE = {
 export const MOCK_USDC_RATE = {
   rate: 3800,
   lastUpdated: new Date(),
-  source: 'Mock',
-  currency: 'UGX'
+  source: "Mock",
+  currency: "UGX",
 };
 
 /**
  * Mock user balance (1M UGX)
  */
 export const MOCK_USER_BALANCE = {
-  userId: 'mock-user',
+  userId: "mock-user",
   balance: 1000000,
-  currency: 'UGX' as const,
-  lastUpdated: new Date()
+  currency: "UGX" as const,
+  lastUpdated: new Date(),
 };

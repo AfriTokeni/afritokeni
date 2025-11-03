@@ -2,7 +2,7 @@ export interface Notification {
   id: string;
   title: string;
   message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
+  type: "info" | "success" | "warning" | "error";
   timestamp: Date;
   read: boolean;
   actionUrl?: string;
@@ -10,7 +10,13 @@ export interface Notification {
 
 export interface NotificationData {
   userId: string;
-  type: 'deposit' | 'withdrawal' | 'bitcoin_exchange' | 'kyc_update' | 'agent_match' | 'subscription_welcome';
+  type:
+    | "deposit"
+    | "withdrawal"
+    | "bitcoin_exchange"
+    | "kyc_update"
+    | "agent_match"
+    | "subscription_welcome";
   amount?: number;
   currency?: string;
   agentName?: string;
@@ -25,7 +31,7 @@ export interface User {
   phone?: string;
   firstName?: string;
   lastName?: string;
-  authMethod?: 'sms' | 'web';
+  authMethod?: "sms" | "web";
 }
 
 export interface NotificationRequest {

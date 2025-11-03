@@ -3,13 +3,13 @@
  * Handles cancellation of multi-step flows
  */
 
-import type { USSDSession } from '../types.js';
+import type { USSDSession } from "../types.js";
 
 /**
  * Check if user wants to cancel (pressed 0)
  */
 export function isCancelInput(input: string): boolean {
-  return input === '0';
+  return input === "0";
 }
 
 /**

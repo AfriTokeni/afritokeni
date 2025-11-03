@@ -1,6 +1,6 @@
 /**
  * ckUSDC (Chain-Key USDC) Types for AfriTokeni
- * 
+ *
  * ckUSDC is an ICP-native representation of USDC stablecoin
  * Provides price stability for African financial transactions
  */
@@ -20,29 +20,29 @@ export interface CkUSDCConfig {
   /** Sepolia USDC token contract address */
   sepoliaUSDCAddress: string;
   /** Network: 'testnet' (Sepolia) or 'mainnet' */
-  network: 'testnet' | 'mainnet';
+  network: "testnet" | "mainnet";
 }
 
 /**
  * ckUSDC transaction types
  */
-export type CkUSDCTransactionType = 
-  | 'deposit'      // USDC → ckUSDC (Ethereum to ICP)
-  | 'withdrawal'   // ckUSDC → USDC (ICP to Ethereum)
-  | 'transfer'     // ckUSDC → ckUSDC (ICP to ICP)
-  | 'exchange_buy' // Local currency → ckUSDC via agent
-  | 'exchange_sell'; // ckUSDC → Local currency via agent
+export type CkUSDCTransactionType =
+  | "deposit" // USDC → ckUSDC (Ethereum to ICP)
+  | "withdrawal" // ckUSDC → USDC (ICP to Ethereum)
+  | "transfer" // ckUSDC → ckUSDC (ICP to ICP)
+  | "exchange_buy" // Local currency → ckUSDC via agent
+  | "exchange_sell"; // ckUSDC → Local currency via agent
 
 /**
  * ckUSDC transaction status
  */
-export type CkUSDCTransactionStatus = 
-  | 'pending'      // Waiting for confirmation
-  | 'confirming'   // Ethereum transaction confirming
-  | 'minting'      // ckUSDC being minted on ICP
-  | 'completed'    // Transaction successful
-  | 'failed'       // Transaction failed
-  | 'expired';     // Transaction expired (24h timeout)
+export type CkUSDCTransactionStatus =
+  | "pending" // Waiting for confirmation
+  | "confirming" // Ethereum transaction confirming
+  | "minting" // ckUSDC being minted on ICP
+  | "completed" // Transaction successful
+  | "failed" // Transaction failed
+  | "expired"; // Transaction expired (24h timeout)
 
 /**
  * ckUSDC transaction record
@@ -197,7 +197,7 @@ export interface CkUSDCExchangeRequest {
   /** Local currency code */
   currency: string;
   /** Exchange type */
-  type: 'buy' | 'sell';
+  type: "buy" | "sell";
   /** User ID */
   userId: string;
   /** Agent ID */
@@ -256,13 +256,13 @@ export const ERC20_APPROVE_ABI = [
   {
     constant: false,
     inputs: [
-      { name: '_spender', type: 'address' },
-      { name: '_value', type: 'uint256' }
+      { name: "_spender", type: "address" },
+      { name: "_value", type: "uint256" },
     ],
-    name: 'approve',
-    outputs: [{ name: '', type: 'bool' }],
-    type: 'function'
-  }
+    name: "approve",
+    outputs: [{ name: "", type: "bool" }],
+    type: "function",
+  },
 ];
 
 /**
@@ -272,14 +272,14 @@ export const HELPER_CONTRACT_ABI = [
   {
     constant: false,
     inputs: [
-      { name: '_token', type: 'address' },
-      { name: '_amount', type: 'uint256' },
-      { name: '_depositAddress', type: 'bytes32' }
+      { name: "_token", type: "address" },
+      { name: "_amount", type: "uint256" },
+      { name: "_depositAddress", type: "bytes32" },
     ],
-    name: 'deposit',
-    outputs: [{ name: '', type: 'bool' }],
-    type: 'function'
-  }
+    name: "deposit",
+    outputs: [{ name: "", type: "bool" }],
+    type: "function",
+  },
 ];
 
 /**
@@ -306,20 +306,20 @@ export const CKUSDC_CONSTANTS = {
  * Sepolia testnet configuration
  */
 export const SEPOLIA_CONFIG: CkUSDCConfig = {
-  ledgerCanisterId: '', // To be filled after deployment
-  minterCanisterId: '', // To be filled after deployment
-  helperContractAddress: '', // To be filled from tutorial
-  sepoliaUSDCAddress: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
-  network: 'testnet'
+  ledgerCanisterId: "", // To be filled after deployment
+  minterCanisterId: "", // To be filled after deployment
+  helperContractAddress: "", // To be filled from tutorial
+  sepoliaUSDCAddress: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+  network: "testnet",
 };
 
 /**
  * Mainnet configuration (for future use)
  */
 export const MAINNET_CONFIG: CkUSDCConfig = {
-  ledgerCanisterId: '', // To be filled after mainnet deployment
-  minterCanisterId: '', // To be filled after mainnet deployment
-  helperContractAddress: '', // To be filled after mainnet deployment
-  sepoliaUSDCAddress: '', // Mainnet USDC address
-  network: 'mainnet'
+  ledgerCanisterId: "", // To be filled after mainnet deployment
+  minterCanisterId: "", // To be filled after mainnet deployment
+  helperContractAddress: "", // To be filled after mainnet deployment
+  sepoliaUSDCAddress: "", // Mainnet USDC address
+  network: "mainnet",
 };
