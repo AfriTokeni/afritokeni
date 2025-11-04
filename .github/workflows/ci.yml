@@ -37,9 +37,9 @@ jobs:
       - name: Run svelte-check
         run: pnpm run check
         env:
-          AT_USERNAME: ${{ secrets.AT_USERNAME }}
-          AT_API_KEY: ${{ secrets.AT_API_KEY }}
-          AT_SHORT_CODE: ${{ secrets.AT_SHORT_CODE }}
+          AT_USERNAME: "ci-dummy"
+          AT_API_KEY: "ci-dummy"
+          AT_SHORT_CODE: "ci-dummy"
 
   lint:
     name: ESLint
@@ -134,9 +134,9 @@ jobs:
       - name: Build Application
         run: pnpm run build
         env:
-          AT_USERNAME: ${{ secrets.AT_USERNAME }}
-          AT_API_KEY: ${{ secrets.AT_API_KEY }}
-          AT_SHORT_CODE: ${{ secrets.AT_SHORT_CODE }}
+          AT_USERNAME: "ci-dummy"
+          AT_API_KEY: "ci-dummy"
+          AT_SHORT_CODE: "ci-dummy"
       
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4

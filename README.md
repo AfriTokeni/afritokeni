@@ -541,20 +541,25 @@ NO fallbacks, NO localStorage for business data
 
 ## 🚀 Deployment
 
-### PR Previews (Netlify)
+### PR Previews (Vercel)
 - Automatic unique preview URL per PR
-- Free tier: 100GB bandwidth/month
-- Format: `deploy-preview-{PR#}--afritokeni.netlify.app`
+- Auto-comments on PR with preview link
+- Uses development Juno satellite: `atbka-rp777-77775-aaaaq-cai`
+- Free tier: Unlimited previews
 
-**Setup (5 min):**
-1. Sign up at [netlify.com](https://netlify.com)
-2. Connect repo, deploy once
-3. Add GitHub secrets: `NETLIFY_AUTH_TOKEN` + `NETLIFY_SITE_ID`
+**Setup (2 min):**
+1. Sign up at [vercel.com](https://vercel.com) with GitHub
+2. Import `afritokeni-mvp` repo
+3. Add environment variables:
+   - `AT_USERNAME`, `AT_API_KEY`, `AT_SHORT_CODE` (all environments)
+   - `VITE_JUNO_SATELLITE_ID=atbka-rp777-77775-aaaaq-cai` (preview only)
+   - `VITE_JUNO_SATELLITE_ID=dkk74-oyaaa-aaaal-askxq-cai` (production only)
 
 ### Production (Juno/ICP)
 - Deploys on merge to `main`
 - URL: https://dkk74-oyaaa-aaaal-askxq-cai.icp0.io
 - Decentralized blockchain hosting
+- Uses production Juno satellite
 
 ---
 

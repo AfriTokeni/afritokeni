@@ -1,0 +1,18 @@
+{
+  "buildCommand": "pnpm run build",
+  "outputDirectory": "build",
+  "framework": "sveltekit",
+  "installCommand": "pnpm install",
+  "devCommand": "pnpm run dev",
+  "env": {
+    "AT_USERNAME": "@at_username",
+    "AT_API_KEY": "@at_api_key",
+    "AT_SHORT_CODE": "@at_short_code"
+  },
+  "build": {
+    "env": {
+      "VITE_JUNO_SATELLITE_ID": "@vite_juno_satellite_id",
+      "NODE_ENV": "@node_env"
+    }
+  }
+}
