@@ -523,6 +523,25 @@ NO fallbacks, NO localStorage for business data
 
 ---
 
+## 🚀 Deployment
+
+### PR Previews (Netlify)
+- Automatic unique preview URL per PR
+- Free tier: 100GB bandwidth/month
+- Format: `deploy-preview-{PR#}--afritokeni.netlify.app`
+
+**Setup (5 min):**
+1. Sign up at [netlify.com](https://netlify.com)
+2. Connect repo, deploy once
+3. Add GitHub secrets: `NETLIFY_AUTH_TOKEN` + `NETLIFY_SITE_ID`
+
+### Production (Juno/ICP)
+- Deploys on merge to `main`
+- URL: https://dkk74-oyaaa-aaaal-askxq-cai.icp0.io
+- Decentralized blockchain hosting
+
+---
+
 ## 📄 License
 
 MIT License - see [LICENSE](./LICENSE) for details
