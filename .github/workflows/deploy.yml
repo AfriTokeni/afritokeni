@@ -35,6 +35,10 @@ jobs:
       
       - name: TypeScript Check
         run: pnpm run check
+        env:
+          AT_USERNAME: ${{ secrets.AT_USERNAME }}
+          AT_API_KEY: ${{ secrets.AT_API_KEY }}
+          AT_SHORT_CODE: ${{ secrets.AT_SHORT_CODE }}
       
       - name: ESLint (fail on warnings)
         run: pnpm exec eslint . --ext .ts,.tsx,.svelte --max-warnings 0
