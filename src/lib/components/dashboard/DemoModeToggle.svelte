@@ -22,12 +22,13 @@
       : 'bg-gray-200'}"
     role="switch"
     aria-checked={isDemoMode}
+    aria-label="Toggle demo mode"
   >
     <span
       class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {isDemoMode
         ? 'translate-x-6'
         : 'translate-x-1'}"
-    />
+    ></span>
   </button>
 
   {#if isDemoMode}

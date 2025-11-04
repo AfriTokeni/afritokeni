@@ -484,12 +484,11 @@
         class="sticky top-0 flex items-center justify-between rounded-t-2xl border-b border-gray-200 bg-white px-6 py-4"
       >
         <h2 class="text-xl font-bold text-gray-900">Customer Details</h2>
-        <button
-          onclick={closeModal}
+        <button aria-label="Toggle" onclick={closeModal}
           class="text-gray-400 transition-colors hover:text-gray-600"
         >
-          <X class="h-6 w-6" />
-        </button>
+              <X class="h-5 w-5" />
+            </button>
       </div>
 
       <!-- Modal Content -->

@@ -10,9 +10,9 @@
 
   let { agents, userLocation }: Props = $props();
   let mapOptions = {
-    center: userLocation
+    center: (userLocation
       ? [userLocation.lat, userLocation.lng]
-      : [0.3476, 32.5825],
+      : [0.3476, 32.5825]) as [number, number],
     zoom: 13,
   };
   let tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";

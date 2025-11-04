@@ -3,7 +3,7 @@
  */
 
 import { Given, When, Then } from '@cucumber/cucumber';
-import { expect } from 'chai';
+import assert from 'assert';
 import { world } from './setup';
 import { USSDTestHelper } from '../helpers/ussdTestHelpers.js';
 import { USSDService } from '../../src/lib/services/ussdService.js';
@@ -121,6 +121,6 @@ When('I enter chained input {string}', async function (input: string) {
 });
 
 Then('the session language should be {string}', function (expectedLanguage: Language) {
-  expect(world.ussdSession).to.exist;
-  expect(world.ussdSession?.language).to.equal(expectedLanguage);
+  assert(world.ussdSession, 'Session should exist');
+  assert.strictEqual(world.ussdSession?.language, expectedLanguage);
 });

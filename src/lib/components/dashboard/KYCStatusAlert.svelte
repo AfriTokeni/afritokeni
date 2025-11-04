@@ -72,15 +72,13 @@
 </script>
 
 {#if statusConfig}
+  {@const Icon = statusConfig.icon}
   <div
     class="{statusConfig.bgColor} {statusConfig.borderColor} mb-6 rounded-lg border p-4"
   >
     <div class="flex">
       <div class="shrink-0">
-        <svelte:component
-          this={statusConfig.icon}
-          class="h-5 w-5 {statusConfig.textColor.replace('text-', 'text-')}"
-        />
+        <Icon class="h-5 w-5 {statusConfig.textColor.replace('text-', 'text-')}" />
       </div>
       <div class="ml-3 flex-1">
         <h3 class="text-sm font-medium {statusConfig.textColor}">

@@ -3,7 +3,7 @@
  * Supports all African countries with proper country code detection
  */
 
-import { AfricanCurrency } from "../types/currency";
+import type { AfricanCurrency } from "../types/currency";
 
 export interface AfricanCountry {
   name: string;

@@ -45,7 +45,7 @@ Module.prototype.require = function(id: string) {
     };
   }
    
-  return originalRequire.apply(this, arguments);
+  return originalRequire.apply(this, arguments as any);
 };
 
 console.log('✅ Test setup complete - Juno mocked');

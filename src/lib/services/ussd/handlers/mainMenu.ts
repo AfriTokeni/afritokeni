@@ -26,7 +26,7 @@ export async function handleMainMenu(
   if (!input) {
     return continueSession(`${TranslationService.translate("welcome", lang)}
 
-1. ${TranslationService.translate("local_currency", lang)} (${currency})
+1. ${TranslationService.translate("local_currency", lang)} (${_currency})
 2. ${TranslationService.translate("bitcoin", lang)} (ckBTC)
 3. ${TranslationService.translate("usdc", lang)} (ckUSDC)
 4. ${TranslationService.translate("dao_governance", lang)}
@@ -105,7 +105,7 @@ export async function handleMainMenu(
       const lang = session.language || "en";
       return continueSession(`${TranslationService.translate("invalid_option", lang)}
 
-1. ${TranslationService.translate("local_currency", lang)} (${currency})
+1. ${TranslationService.translate("local_currency", lang)} (${_currency})
 2. ${TranslationService.translate("bitcoin", lang)} (ckBTC)
 3. ${TranslationService.translate("usdc", lang)} (ckUSDC)
 4. ${TranslationService.translate("dao_governance", lang)}

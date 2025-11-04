@@ -1,10 +1,8 @@
 import type { USSDSession } from "../types.js";
 import { continueSession, endSession } from "../utils/responses.js";
 import { getSessionCurrency } from "../utils/currency.js";
-import {
-  Agent,
-  WebhookDataService as DataService,
-} from "../../webHookServices.js";
+import type { Agent } from "../../webHookServices.js";
+import { WebhookDataService as DataService } from "../../webHookServices.js";
 import { CkUSDCService } from "../../ckUSDCService.js";
 import { verifyUserPin } from "./pinManagement.js";
 import { TranslationService } from "../../translations.js";

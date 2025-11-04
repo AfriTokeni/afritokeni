@@ -1,4 +1,4 @@
-import { Transaction } from "../types/transaction";
+import type { Transaction } from "../types/transaction";
 
 // Utility functions for transaction handling
 export const formatDate = (date: string | Date): string => {

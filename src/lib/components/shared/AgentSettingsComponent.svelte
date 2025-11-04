@@ -142,7 +142,7 @@
       }
 
       agentDoc = doc;
-      const data = doc.data;
+      const data = doc.data as any; // Type assertion for Juno data
 
       // NO FALLBACKS - use exact data from Juno
       settings = {
@@ -449,10 +449,11 @@
       <div class="space-y-6">
         <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
           <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700"
+            <label for="businessName" class="mb-2 block text-sm font-medium text-gray-700"
               >Business Name</label
             >
             <input
+              id="businessName"
               type="text"
               bind:value={businessName}
               class="w-full rounded-lg border border-gray-200 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-gray-900"
@@ -460,10 +461,11 @@
           </div>
 
           <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700"
+            <label for="phoneNumber" class="mb-2 block text-sm font-medium text-gray-700"
               >Phone Number</label
             >
             <input
+              id="phoneNumber"
               type="tel"
               bind:value={phoneNumber}
               class="w-full rounded-lg border border-gray-200 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-gray-900"
@@ -471,10 +473,11 @@
           </div>
 
           <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700"
+            <label for="location" class="mb-2 block text-sm font-medium text-gray-700"
               >Location</label
             >
             <input
+              id="location"
               type="text"
               bind:value={location}
               class="w-full rounded-lg border border-gray-200 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-gray-900"
@@ -482,10 +485,11 @@
           </div>
 
           <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700"
+            <label for="businessAddress" class="mb-2 block text-sm font-medium text-gray-700"
               >Business Address</label
             >
             <input
+              id="businessAddress"
               type="text"
               bind:value={businessAddress}
               class="w-full rounded-lg border border-gray-200 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-gray-900"
@@ -495,8 +499,8 @@
 
         <!-- Status -->
         <div>
-          <label class="mb-2 block text-sm font-medium text-gray-700"
-            >Current Status</label
+          <span class="mb-2 block text-sm font-medium text-gray-700"
+            >Current Status</span
           >
           <div class="flex flex-wrap gap-2">
             <button
@@ -552,20 +556,22 @@
           <div class="rounded-lg bg-gray-50 p-6">
             <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
-                <label class="mb-3 block text-sm font-medium text-gray-700"
+                <label for="openingTime" class="mb-3 block text-sm font-medium text-gray-700"
                   >Opening Time</label
                 >
                 <input
+                  id="openingTime"
                   type="time"
                   bind:value={settings.operatingHours.start}
                   class="w-full rounded-lg border border-gray-300 px-4 py-3 font-mono text-lg focus:border-transparent focus:ring-2 focus:ring-black"
                 />
               </div>
               <div>
-                <label class="mb-3 block text-sm font-medium text-gray-700"
+                <label for="closingTime" class="mb-3 block text-sm font-medium text-gray-700"
                   >Closing Time</label
                 >
                 <input
+                  id="closingTime"
                   type="time"
                   bind:value={settings.operatingHours.end}
                   class="w-full rounded-lg border border-gray-300 px-4 py-3 font-mono text-lg focus:border-transparent focus:ring-2 focus:ring-black"
@@ -578,7 +584,7 @@
         <!-- Commission Rate Slider -->
         <div>
           <div class="mb-3 flex items-center justify-between">
-            <label class="text-sm font-medium text-gray-700"
+            <label for="commissionRate" class="text-sm font-medium text-gray-700"
               >Commission Rate</label
             >
             <span class="font-mono text-2xl font-bold text-black"
@@ -586,6 +592,7 @@
             >
           </div>
           <input
+            id="commissionRate"
             type="range"
             min={AGENT_SETTINGS_CONFIG.commissionRate.min}
             max={AGENT_SETTINGS_CONFIG.commissionRate.max}
@@ -606,7 +613,7 @@
         <!-- Service Radius Slider -->
         <div>
           <div class="mb-3 flex items-center justify-between">
-            <label class="text-sm font-medium text-gray-700"
+            <label for="serviceRadius" class="text-sm font-medium text-gray-700"
               >Service Radius</label
             >
             <span class="font-mono text-2xl font-bold text-black"
@@ -614,6 +621,7 @@
             >
           </div>
           <input
+            id="serviceRadius"
             type="range"
             min={AGENT_SETTINGS_CONFIG.serviceRadius.min}
             max={AGENT_SETTINGS_CONFIG.serviceRadius.max}
@@ -634,7 +642,7 @@
         <!-- Max Cash Limit Slider -->
         <div>
           <div class="mb-3 flex items-center justify-between">
-            <label class="text-sm font-medium text-gray-700"
+            <label for="maxCashLimit" class="text-sm font-medium text-gray-700"
               >Max Cash Limit</label
             >
             <span class="font-mono text-2xl font-bold text-black"
@@ -642,6 +650,7 @@
             >
           </div>
           <input
+            id="maxCashLimit"
             type="range"
             min={AGENT_SETTINGS_CONFIG.maxCashLimit.min}
             max={AGENT_SETTINGS_CONFIG.maxCashLimit.max}
@@ -666,7 +675,7 @@
         <!-- Minimum Transaction Slider -->
         <div>
           <div class="mb-3 flex items-center justify-between">
-            <label class="text-sm font-medium text-gray-700"
+            <label for="minimumTransaction" class="text-sm font-medium text-gray-700"
               >Minimum Transaction</label
             >
             <span class="font-mono text-2xl font-bold text-black"
@@ -674,6 +683,7 @@
             >
           </div>
           <input
+            id="minimumTransaction"
             type="range"
             min={AGENT_SETTINGS_CONFIG.minimumTransaction.min}
             max={AGENT_SETTINGS_CONFIG.minimumTransaction.max}
@@ -703,8 +713,7 @@
 
         <!-- Toggles -->
         <div class="space-y-4 border-t border-gray-200 pt-4">
-          <label
-            class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100"
+          <div class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100"
           >
             <div>
               <span class="text-sm font-medium text-gray-900"
@@ -716,6 +725,7 @@
             </div>
             <button
               type="button"
+              aria-label="Toggle Bitcoin services"
               onclick={() =>
                 (settings.bitcoinEnabled = !settings.bitcoinEnabled)}
               class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {settings.bitcoinEnabled
@@ -728,10 +738,9 @@
                   : 'translate-x-1'}"
               ></span>
             </button>
-          </label>
+          </div>
 
-          <label
-            class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100"
+          <div class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100"
           >
             <div>
               <span class="text-sm font-medium text-gray-900"
@@ -743,6 +752,7 @@
             </div>
             <button
               type="button"
+              aria-label="Toggle location sharing"
               onclick={() =>
                 (settings.locationSharing = !settings.locationSharing)}
               class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {settings.locationSharing
@@ -755,15 +765,14 @@
                   : 'translate-x-1'}"
               ></span>
             </button>
-          </label>
+          </div>
         </div>
       </div>
     {:else if activeTab === "security"}
       <!-- Security Settings -->
       <div class="space-y-6">
         <div class="space-y-4">
-          <label
-            class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100"
+          <div class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100"
           >
             <div>
               <span class="text-sm font-medium text-gray-900"
@@ -775,6 +784,7 @@
             </div>
             <button
               type="button"
+              aria-label="Toggle security PIN"
               onclick={() =>
                 (settings.securityPinEnabled = !settings.securityPinEnabled)}
               class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {settings.securityPinEnabled
@@ -787,13 +797,14 @@
                   : 'translate-x-1'}"
               ></span>
             </button>
-          </label>
+          </div>
 
           <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700"
+            <label for="autoAcceptLimit" class="mb-2 block text-sm font-medium text-gray-700"
               >Auto-Accept Limit (UGX)</label
             >
             <input
+              id="autoAcceptLimit"
               type="number"
               bind:value={settings.autoAcceptLimit}
               class="w-full rounded-lg border border-gray-200 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-gray-900"
@@ -811,28 +822,31 @@
           </h3>
           <div class="space-y-4">
             <div>
-              <label class="mb-2 block text-sm font-medium text-gray-700"
+              <label for="currentPassword" class="mb-2 block text-sm font-medium text-gray-700"
                 >Current Password</label
               >
               <input
+                id="currentPassword"
                 type="password"
                 class="w-full rounded-lg border border-gray-200 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-gray-900"
               />
             </div>
             <div>
-              <label class="mb-2 block text-sm font-medium text-gray-700"
+              <label for="newPassword" class="mb-2 block text-sm font-medium text-gray-700"
                 >New Password</label
               >
               <input
+                id="newPassword"
                 type="password"
                 class="w-full rounded-lg border border-gray-200 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-gray-900"
               />
             </div>
             <div>
-              <label class="mb-2 block text-sm font-medium text-gray-700"
+              <label for="confirmPassword" class="mb-2 block text-sm font-medium text-gray-700"
                 >Confirm New Password</label
               >
               <input
+                id="confirmPassword"
                 type="password"
                 class="w-full rounded-lg border border-gray-200 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-gray-900"
               />
@@ -844,8 +858,7 @@
       <!-- Notifications Settings -->
       <div class="space-y-6">
         <div class="space-y-4">
-          <label
-            class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100"
+          <div class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100"
           >
             <div>
               <span class="text-sm font-medium text-gray-900"
@@ -857,6 +870,7 @@
             </div>
             <button
               type="button"
+              aria-label="Toggle all notifications"
               onclick={() =>
                 (settings.notificationsEnabled =
                   !settings.notificationsEnabled)}
@@ -870,10 +884,9 @@
                   : 'translate-x-1'}"
               ></span>
             </button>
-          </label>
+          </div>
 
-          <label
-            class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100 {!settings.notificationsEnabled
+          <div class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100 {!settings.notificationsEnabled
               ? 'opacity-50'
               : ''}"
           >
@@ -885,6 +898,7 @@
             </div>
             <button
               type="button"
+              aria-label="Toggle SMS notifications"
               onclick={() =>
                 settings.notificationsEnabled &&
                 (settings.smsNotifications = !settings.smsNotifications)}
@@ -899,10 +913,9 @@
                   : 'translate-x-1'}"
               ></span>
             </button>
-          </label>
+          </div>
 
-          <label
-            class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100 {!settings.notificationsEnabled
+          <div class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100 {!settings.notificationsEnabled
               ? 'opacity-50'
               : ''}"
           >
@@ -916,6 +929,7 @@
             </div>
             <button
               type="button"
+              aria-label="Toggle email notifications"
               onclick={() =>
                 settings.notificationsEnabled &&
                 (settings.emailNotifications = !settings.emailNotifications)}
@@ -930,7 +944,7 @@
                   : 'translate-x-1'}"
               ></span>
             </button>
-          </label>
+          </div>
         </div>
       </div>
     {/if}

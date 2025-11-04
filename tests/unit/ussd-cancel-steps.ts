@@ -3,7 +3,7 @@
  */
 
 import { Given, When, Then } from '@cucumber/cucumber';
-import { expect } from 'chai';
+import assert from 'assert';
 import { world } from './setup';
 import { USSDTestHelper } from '../helpers/ussdTestHelpers.js';
 import { USSDService } from '../../src/lib/services/ussdService.js';
@@ -83,8 +83,8 @@ When('I select {string} for Send Bitcoin', async function (option: string) {
 });
 
 Then('the session data should be empty', function () {
-  expect(world.ussdSession).to.exist;
-  expect(world.ussdSession?.data).to.deep.equal({});
+  assert(world.ussdSession, 'Session should exist');
+  assert.deepStrictEqual(world.ussdSession?.data, {});
 });
 
 // Note: 'the session should end' is defined in ussd-service-steps.ts

@@ -1,6 +1,7 @@
 <script lang="ts">
     import {onMount} from "svelte";
-    import {formatCurrencyAmount,} from "$lib/types/currency";
+    import {formatCurrencyAmount} from "$lib/types/currency";
+    import type {AfricanCurrency} from "$lib/types/currency";
     import {getUserBalance, getUserData} from "$lib/services/user/userService";
     import AmountStep from "./AmountStep.svelte";
     import AgentStep from "./AgentStep.svelte";
@@ -21,7 +22,7 @@
   let withdrawalCode = $state("");
   let finalLocalAmount = $state(0);
   let finalBtcAmount = $state("");
-  let withdrawType = $state<"cash" | "bitcoin" | "ckusd">("cash");
+  let withdrawType = $state<"cash" | "bitcoin" | "ckusdc">("cash");
   let withdrawalFee = $state(0);
   let isCreatingTransaction = $state(false);
   let transactionError = $state<string | null>(null);
@@ -213,7 +214,7 @@
       {userBalance}
       preferredCurrency={userCurrency}
       ckBTCBalance={50000}
-      ckUSDCBalance={10000}
+      ckUSDBalance={10000}
       onCurrencyChange={(currency) => (selectedCurrency = currency)}
       onContinue={(localAmount, btcAmount, fee, type) => {
         finalLocalAmount = parseFloat(localAmount) || 0;

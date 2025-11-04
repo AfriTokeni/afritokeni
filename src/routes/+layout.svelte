@@ -77,46 +77,51 @@
     }
   }
 
-  onMount(async () => {
+  onMount(() => {
     if (!browser) return;
 
-    try {
-      const satelliteId = import.meta.env.VITE_SATELLITE_ID;
-      if (!satelliteId) {
-        throw new Error(
-          "VITE_SATELLITE_ID not provided. Ensure the Juno Vite plugin is configured.",
+    let unsubscribe: (() => void) | undefined;
+    let authUnsubscribe: (() => void) | undefined;
+
+    (async () => {
+      try {
+        const satelliteId = import.meta.env.VITE_SATELLITE_ID;
+        if (!satelliteId) {
+          throw new Error(
+            "VITE_SATELLITE_ID not provided. Ensure the Juno Vite plugin is configured.",
+          );
+        }
+        const useContainer = import.meta.env.DEV === true;
+        console.log(
+          `🚀 Initializing Juno with satellite ${satelliteId} (${useContainer ? "emulator" : "remote"})`,
+        );
+        await initSatellite({
+          container: useContainer,
+        });
+
+        // Initialize auth subscription
+        unsubscribe = initJunoAuth();
+
+        // Subscribe to auth changes and redirect accordingly
+        authUnsubscribe = onAuthStateChange((user) => {
+          if (user) {
+            console.log("👤 User authenticated, checking role...");
+            checkAndRedirectUser(user);
+          }
+        });
+      } catch (error) {
+        console.error("❌ Failed to initialize Juno:", error);
+        console.log(
+          "⚠️  Continuing without Juno - you can still test Internet Identity sign-in",
         );
       }
-      const useContainer = import.meta.env.DEV === true;
-      console.log(
-        `🚀 Initializing Juno with satellite ${satelliteId} (${useContainer ? "emulator" : "remote"})`,
-      );
-      await initSatellite({
-        container: useContainer,
-      });
+    })();
 
-      // Initialize auth subscription
-      const unsubscribe = initJunoAuth();
-
-      // Subscribe to auth changes and redirect accordingly
-      const authUnsubscribe = onAuthStateChange((user) => {
-        if (user) {
-          console.log("👤 User authenticated, checking role...");
-          checkAndRedirectUser(user);
-        }
-      });
-
-      // Cleanup on unmount
-      return () => {
-        if (unsubscribe) unsubscribe();
-        if (authUnsubscribe) authUnsubscribe();
-      };
-    } catch (error) {
-      console.error("❌ Failed to initialize Juno:", error);
-      console.log(
-        "⚠️  Continuing without Juno - you can still test Internet Identity sign-in",
-      );
-    }
+    // Return cleanup function
+    return () => {
+      unsubscribe?.();
+      authUnsubscribe?.();
+    };
   });
 </script>
 

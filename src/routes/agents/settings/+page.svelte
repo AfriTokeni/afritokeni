@@ -82,7 +82,7 @@
       }
 
       agentDoc = doc;
-      const data = doc.data;
+      const data = doc.data as any; // Type assertion for Juno data
 
       // NO FALLBACKS - use exact data from Juno
       agentData = {
@@ -152,7 +152,7 @@
         },
       });
 
-      await loadAgentData();
+      await loadAgentData($demoMode, currentPrincipalId);
       toast.show("success", "Profile updated successfully!");
       showEditModal = false;
     } catch (error: any) {

@@ -20,16 +20,16 @@ console.log('🎭 Test setup: NODE_ENV =', process.env.NODE_ENV);
 process.env.VITE_JUNO_SATELLITE_ID = 'uxrrr-q7777-77774-qaaaq-cai';
 
 // Create a global satellite state that Juno will use
-const mockSatelliteState = {
+const mockSatelliteStateE2E = {
   satelliteId: 'uxrrr-q7777-77774-qaaaq-cai',
   initialized: true
 };
 
 // Mock the @junobuild/core module before it's imported
-const Module = require('module');
-const originalRequire = Module.prototype.require;
+const ModuleE2E = require('module');
+const originalRequireE2E = ModuleE2E.prototype.require;
 
-Module.prototype.require = function(id: string) {
+ModuleE2E.prototype.require = function(id: string) {
   if (id === '@junobuild/core') {
     const mockJuno = require('./mocks/juno');
     return {
@@ -37,13 +37,13 @@ Module.prototype.require = function(id: string) {
       getDoc: mockJuno.mockJuno.getDoc,
       listDocs: mockJuno.mockJuno.listDocs,
       deleteDoc: async () => {},
-      initSatellite: async () => mockSatelliteState,
+      initSatellite: async () => mockSatelliteStateE2E,
       authSubscribe: () => () => {},
       listAssets: async () => ({ items: [], items_length: 0n, matches_length: 0n, items_page: 0n, matches_pages: 0n }),
-      satelliteId: () => mockSatelliteState.satelliteId
+      satelliteId: () => mockSatelliteStateE2E.satelliteId
     };
   }
-  return originalRequire.apply(this, arguments as any);
+  return originalRequireE2E.apply(this, arguments as any);
 };
 
 console.log('✅ Test setup complete - Juno mocked');

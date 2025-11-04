@@ -118,12 +118,12 @@
         >
           <span class="font-semibold text-green-600"
             >{yesPercentage}% Yes ({(
-              proposal.votes?.yes || 0
+              proposal.votesYes || 0
             ).toLocaleString()})</span
           >
           <span class="font-semibold text-red-600"
             >{noPercentage}% No ({(
-              proposal.votes?.no || 0
+              proposal.votesNo || 0
             ).toLocaleString()})</span
           >
         </div>
@@ -162,7 +162,7 @@
         <Clock class="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
         <span class="wrap-break-word"
           >Ends: {new Date(
-            proposal.votingEndsAt || 0,
+            proposal.endsAt || 0,
           ).toLocaleDateString()}</span
         >
       </div>

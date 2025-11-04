@@ -1,5 +1,6 @@
 <script lang="ts">
-    import {formatCurrencyAmount,} from "$lib/types/currency";
+    import {formatCurrencyAmount} from "$lib/types/currency";
+    import type {AfricanCurrency} from "$lib/types/currency";
     import CurrencySelector from "./CurrencySelector.svelte";
 
     interface Props {

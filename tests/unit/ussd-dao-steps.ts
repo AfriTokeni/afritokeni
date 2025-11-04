@@ -73,7 +73,7 @@ Given('I have voted on {int} proposals', function (count: number) {
       timestamp: new Date()
     });
   }
-  world.lockedTokens = world.userVotes.reduce((sum, vote) => sum + vote.amount, 0);
+  world.lockedTokens = world.userVotes.reduce((sum: number, vote: any) => sum + vote.amount, 0);
 });
 
 Given('I have already voted on proposal {int}', async function (proposalNum: number) {

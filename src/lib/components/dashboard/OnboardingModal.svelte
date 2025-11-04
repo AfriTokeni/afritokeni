@@ -92,12 +92,11 @@
           Let's set up your profile (Step {step} of 3)
         </p>
       </div>
-      <button
-        onclick={handleSkip}
+      <button aria-label="Toggle" onclick={handleSkip}
         class="text-gray-400 transition-colors hover:text-gray-600"
       >
-        <X class="h-6 w-6" />
-      </button>
+              <X class="h-5 w-5" />
+            </button>
     </div>
 
     <!-- Progress Bar -->

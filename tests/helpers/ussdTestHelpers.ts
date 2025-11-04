@@ -3,7 +3,8 @@
  * Utilities for testing USSD service and handlers
  */
 
-import { USSDService, USSDSession } from '../../src/lib/services/ussdService';
+import type { USSDSession } from '../../src/lib/services/ussdService';
+import { USSDService } from '../../src/lib/services/ussdService';
 
 export class USSDTestHelper {
   /**

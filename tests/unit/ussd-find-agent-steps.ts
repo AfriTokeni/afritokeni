@@ -9,7 +9,7 @@ Given('there are no agents in my area', function () {
 
 When('I select {string} for Find Agent', async function (option: string) {
   // Reuse the existing select step - it's the same as selecting any option
-  const { USSDTestHelper } = await import('../../helpers/ussdTestHelpers.js');
+  const { USSDTestHelper } = await import('../helpers/ussdTestHelpers');
   const result = await USSDTestHelper.simulateUSSDRequest(
     world.ussdSessionId,
     world.ussdPhoneNumber,

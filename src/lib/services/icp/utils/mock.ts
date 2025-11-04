@@ -79,6 +79,9 @@ export const MOCK_CKBTC_BALANCE = {
 export const MOCK_CKUSD_BALANCE = {
   balance: BigInt(100000000), // 100 ckUSD (in smallest units)
   decimals: 6,
+  balanceUnits: 100, // 100 ckUSD
+  balanceUSD: "100.00",
+  lastUpdated: new Date(),
 };
 
 /**

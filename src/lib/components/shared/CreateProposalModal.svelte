@@ -125,14 +125,13 @@
         class="sticky top-0 flex items-center justify-between border-b border-gray-200 bg-white p-6"
       >
         <h2 class="text-2xl font-bold text-gray-900">Create Proposal</h2>
-        <button
-          onclick={handleClose}
+        <button aria-label="Toggle" onclick={handleClose}
           disabled={isLoading}
           class="rounded-lg p-2 transition-colors hover:bg-gray-100 disabled:opacity-50"
           type="button"
         >
-          <X class="h-5 w-5" />
-        </button>
+              <X class="h-5 w-5" />
+            </button>
       </div>
 
       <!-- Content -->

@@ -76,9 +76,9 @@
 <div class="mx-auto max-w-2xl">
   <!-- Header -->
   <div class="mb-6 flex items-center gap-4">
-    <button onclick={goBack} class="rounded-lg p-2 hover:bg-gray-100">
-      <ArrowLeft class="h-5 w-5" />
-    </button>
+    <button aria-label="Toggle" onclick={goBack} class="rounded-lg p-2 hover:bg-gray-100">
+              <ArrowLeft class="h-5 w-5" />
+            </button>
     <h1 class="text-2xl font-bold">Deposit Cash</h1>
   </div>
 

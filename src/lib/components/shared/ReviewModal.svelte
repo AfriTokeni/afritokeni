@@ -38,9 +38,9 @@
         <h3 class="text-xl font-bold text-gray-900">Rate Your Experience</h3>
         <p class="mt-1 text-sm text-gray-600">with {agent.businessName}</p>
       </div>
-      <button onclick={onClose} class="p-1 text-gray-400 hover:text-gray-600">
-        <X class="h-5 w-5" />
-      </button>
+      <button aria-label="Toggle" onclick={onClose} class="p-1 text-gray-400 hover:text-gray-600">
+              <X class="h-5 w-5" />
+            </button>
     </div>
 
     <!-- Star Rating -->

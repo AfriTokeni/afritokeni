@@ -43,7 +43,7 @@
       error = null;
       const result = await fetchFiatBalance(principal, isDemoMode);
       balance = result.amount;
-      currency = result.currency;
+      currency = result._currency;
       lastUpdated = new Date();
     } catch (err: any) {
       console.error("Error fetching fiat balance:", err);

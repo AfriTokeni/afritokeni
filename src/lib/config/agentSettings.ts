@@ -1,36 +1,13 @@
 /**
  * Agent Settings Configuration Loader
  *
- * Loads configuration from YAML file.
+ * Loads configuration from TypeScript data file.
  * NEVER HARDCODE VALUES IN COMPONENTS!
  */
 
-import configYaml from "./agentSettings.yaml";
+import { AGENT_SETTINGS_DATA } from "./agentSettingsData";
 
-interface RangeConfig {
-  min: number;
-  max: number;
-  step: number;
-  default: number;
-}
-
-interface OperatingHoursConfig {
-  default: {
-    start: string;
-    end: string;
-  };
-}
-
-interface AgentSettingsConfig {
-  commissionRate: RangeConfig;
-  serviceRadius: RangeConfig;
-  maxCashLimit: RangeConfig;
-  minimumTransaction: RangeConfig;
-  autoAcceptLimit: RangeConfig;
-  operatingHours: OperatingHoursConfig;
-}
-
-export const AGENT_SETTINGS_CONFIG = configYaml as AgentSettingsConfig;
+export const AGENT_SETTINGS_CONFIG = AGENT_SETTINGS_DATA;
 
 /**
  * Get formatted label for slider markers

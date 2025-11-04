@@ -1,7 +1,8 @@
 <script lang="ts">
     import {goto} from "$app/navigation";
     import {Banknote} from "@lucide/svelte";
-    import {formatCurrencyAmount,} from "$lib/types/currency";
+    import {formatCurrencyAmount} from "$lib/types/currency";
+    import type {AfricanCurrency} from "$lib/types/currency";
 
     type Agent = {
     id: string;

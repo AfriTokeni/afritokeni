@@ -28,7 +28,7 @@ export class BalanceService {
       return {
         userId: rawData.userId,
         balance: rawData.balance,
-        currency: rawData.currency,
+        _currency: rawData._currency,
         lastUpdated: new Date(rawData.lastUpdated),
       };
     } catch (error) {
@@ -47,7 +47,7 @@ export class BalanceService {
       const userBalance: UserBalance = {
         userId,
         balance,
-        currency,
+        _currency,
         lastUpdated: now,
       };
 
@@ -103,7 +103,7 @@ export class BalanceService {
       userId: senderId,
       type: "send",
       amount,
-      currency,
+      currency: _currency,
       recipientId,
       status: "completed",
       description: `Transfer to ${recipientId}`,

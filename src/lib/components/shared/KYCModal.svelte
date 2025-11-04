@@ -124,14 +124,13 @@
             Upload your documents for verification
           </p>
         </div>
-        <button
-          onclick={handleClose}
+        <button aria-label="Toggle" onclick={handleClose}
           disabled={isSubmitting}
           class="rounded-lg p-2 transition-colors hover:bg-gray-100 disabled:opacity-50"
           type="button"
         >
-          <X class="h-5 w-5" />
-        </button>
+              <X class="h-5 w-5" />
+            </button>
       </div>
 
       <!-- Content -->

@@ -28,18 +28,18 @@ export async function fetchFiatBalance(
       const data = await response.json();
       return {
         amount: data.balance || 0,
-        currency: data.preferredCurrency || "UGX",
+        _currency: data.preferredCurrency || "UGX",
       };
     } catch (error) {
       console.error("Failed to fetch demo fiat balance:", error);
-      return { amount: 0, currency: "UGX" };
+      return { amount: 0, _currency: "UGX" };
     }
   }
 
   // Real mode: query Juno datastore
   if (!principalId) {
     console.warn("No principal ID provided for fiat balance query");
-    return { amount: 0, currency: "UGX" };
+    return { amount: 0, _currency: "UGX" };
   }
 
   try {
@@ -50,17 +50,17 @@ export async function fetchFiatBalance(
 
     if (!result || !result.data) {
       console.warn("No user data found in Juno for principal:", principalId);
-      return { amount: 0, currency: "UGX" };
+      return { amount: 0, _currency: "UGX" };
     }
 
     const userData = result.data as any;
     return {
       amount: userData.balance || 0,
-      currency: userData.preferredCurrency || "UGX",
+      _currency: userData.preferredCurrency || "UGX",
     };
   } catch (error) {
     console.error("Failed to fetch fiat balance from Juno:", error);
-    return { amount: 0, currency: "UGX" };
+    return { amount: 0, _currency: "UGX" };
   }
 }
 
@@ -92,5 +92,5 @@ export function getCurrencySymbol(_currency: string): string {
     RWF: "FRw",
     // Add more as needed
   };
-  return symbols[currency] || currency;
+  return symbols[_currency] || _currency;
 }

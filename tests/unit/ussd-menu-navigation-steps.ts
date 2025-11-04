@@ -1,5 +1,5 @@
 import { Given, When, Then } from '@cucumber/cucumber';
-import { expect } from 'chai';
+import assert from 'assert';
 import { world } from './setup';
 import { USSDTestHelper } from '../helpers/ussdTestHelpers';
 import { UserService } from '../../src/lib/services/userService';

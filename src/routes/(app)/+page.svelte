@@ -1,7 +1,12 @@
 <script lang="ts">
     import {Bitcoin, Globe, Lock, Smartphone, Zap} from "@lucide/svelte";
+    import {goto} from "$app/navigation";
     import SavingsComparisonTable from "$lib/components/landing/SavingsComparisonTable.svelte";
     import SignInButton from "$lib/components/auth/SignInButton.svelte";
+
+    function handleICPLogin() {
+      goto("/auth/login");
+    }
 </script>
 
 <!-- Hero Section -->

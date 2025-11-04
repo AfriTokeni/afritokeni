@@ -9,7 +9,7 @@ Given('I am a new user with no transactions', function () {
 
 When('I select {string} for Transactions', async function (option: string) {
   // Reuse the existing select step - it's the same as selecting any option
-  const { USSDTestHelper } = await import('../../helpers/ussdTestHelpers.js');
+  const { USSDTestHelper } = await import('../helpers/ussdTestHelpers');
   const result = await USSDTestHelper.simulateUSSDRequest(
     world.ussdSessionId,
     world.ussdPhoneNumber,
@@ -21,7 +21,7 @@ When('I select {string} for Transactions', async function (option: string) {
 
 When('I select {string} for filter options', async function (option: string) {
   // Select filter option
-  const { USSDTestHelper } = await import('../../helpers/ussdTestHelpers.js');
+  const { USSDTestHelper } = await import('../helpers/ussdTestHelpers');
   const result = await USSDTestHelper.simulateUSSDRequest(
     world.ussdSessionId,
     world.ussdPhoneNumber,
