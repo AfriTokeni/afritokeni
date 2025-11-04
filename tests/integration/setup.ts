@@ -16,6 +16,45 @@ if (!process.env.NODE_ENV) {
 console.log('🎭 Test setup: __AFRITOKENI_TEST_MODE__ = true');
 console.log('🎭 Test setup: NODE_ENV =', process.env.NODE_ENV);
 
+// Load canister IDs from dfx for local testing
+try {
+  const fs = require('fs');
+  const path = require('path');
+  const canisterIdsPath = path.join(process.cwd(), '.dfx/local/canister_ids.json');
+  
+  if (fs.existsSync(canisterIdsPath)) {
+    const canisterIds = JSON.parse(fs.readFileSync(canisterIdsPath, 'utf8'));
+    
+    // Set environment variables for canister IDs
+    if (canisterIds.ckbtc_ledger?.local) {
+      process.env.CANISTER_ID_CKBTC_LEDGER = canisterIds.ckbtc_ledger.local;
+      console.log(`✅ Set CANISTER_ID_CKBTC_LEDGER = ${canisterIds.ckbtc_ledger.local}`);
+    }
+    
+    if (canisterIds.ckusdc_ledger?.local) {
+      process.env.CANISTER_ID_CKUSDC_LEDGER = canisterIds.ckusdc_ledger.local;
+      console.log(`✅ Set CANISTER_ID_CKUSDC_LEDGER = ${canisterIds.ckusdc_ledger.local}`);
+    }
+    
+    if (canisterIds.deposit_canister?.local) {
+      process.env.CANISTER_ID_DEPOSIT_CANISTER = canisterIds.deposit_canister.local;
+      console.log(`✅ Set CANISTER_ID_DEPOSIT_CANISTER = ${canisterIds.deposit_canister.local}`);
+    }
+    
+    if (canisterIds.exchange_canister?.local) {
+      process.env.CANISTER_ID_EXCHANGE_CANISTER = canisterIds.exchange_canister.local;
+      console.log(`✅ Set CANISTER_ID_EXCHANGE_CANISTER = ${canisterIds.exchange_canister.local}`);
+    }
+    
+    if (canisterIds.withdrawal_canister?.local) {
+      process.env.CANISTER_ID_WITHDRAWAL_CANISTER = canisterIds.withdrawal_canister.local;
+      console.log(`✅ Set CANISTER_ID_WITHDRAWAL_CANISTER = ${canisterIds.withdrawal_canister.local}`);
+    }
+  }
+} catch (error) {
+  console.warn('⚠️ Could not load canister IDs from .dfx/local/canister_ids.json:', error);
+}
+
 // Mock Juno satellite ID globally
 process.env.VITE_JUNO_SATELLITE_ID = 'uxrrr-q7777-77774-qaaaq-cai';
 

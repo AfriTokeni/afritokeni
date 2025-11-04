@@ -189,11 +189,16 @@ async function createAgent(): Promise<HttpAgent> {
     host: IC_HOST,
   });
 
-  // Fetch root key only in development (not needed on mainnet)
-  if (process.env.NODE_ENV === "development") {
+  // Fetch root key for local development/testing (not needed on mainnet)
+  const isLocal = process.env.NODE_ENV === "development" || 
+                  process.env.NODE_ENV === "integration" ||
+                  process.env.NODE_ENV === "unit-test" ||
+                  getEnv("DFX_NETWORK") === "local";
+  
+  if (isLocal) {
     try {
       await agent.fetchRootKey();
-      console.log("✅ Fetched ICP root key for development");
+      console.log("✅ Fetched ICP root key for local development");
     } catch (error) {
       console.warn("⚠️ Could not fetch root key:", error);
     }
