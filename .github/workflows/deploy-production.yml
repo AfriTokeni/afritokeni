@@ -34,7 +34,7 @@ jobs:
       - name: Deploy to Production
         uses: junobuild/juno-action@main
         with:
-          args: deploy --satellite ${{ secrets.JUNO_PRODUCTION_SATELLITE_ID }}
+          args: deploy --mode production
         env:
           JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
       

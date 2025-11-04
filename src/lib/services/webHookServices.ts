@@ -485,7 +485,7 @@ export class WebhookDataService {
       );
 
       // Get user by phone number (stored as email for SMS users)
-      let user = await this.getUserByKey(phoneNumber);
+      const user = await this.getUserByKey(phoneNumber);
       console.log(
         `📍 User lookup result for ${phoneNumber}:`,
         user ? "Found" : "Not found",

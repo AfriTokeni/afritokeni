@@ -7,8 +7,8 @@ export default defineConfig({
       preview: "64njw-oiaaa-aaaal-asppa-cai",
       production: "dkk74-oyaaa-aaaal-askxq-cai"
     },
-    source: "dist",
-    predeploy: ["npm run build"],
+    source: "build",
+    predeploy: ["pnpm run build"],
     collections: {
       datastore: [
         {

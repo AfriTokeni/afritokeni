@@ -224,6 +224,6 @@ jobs:
       - name: Deploy to Juno Preview Satellite
         uses: junobuild/juno-action@main
         with:
-          args: deploy --satellite ${{ secrets.JUNO_PREVIEW_SATELLITE_ID }}
+          args: deploy --mode preview
         env:
           JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
