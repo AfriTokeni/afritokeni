@@ -31,7 +31,7 @@ const originalRequireIntegration = ModuleIntegration.prototype.require;
 
 ModuleIntegration.prototype.require = function(id: string) {
   if (id === '@junobuild/core') {
-    const mockJuno = require('./mocks/juno');
+    const mockJuno = require('$tests/mocks/juno');
     return {
       setDoc: mockJuno.mockJuno.setDoc,
       getDoc: mockJuno.mockJuno.getDoc,
