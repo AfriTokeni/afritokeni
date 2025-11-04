@@ -35,12 +35,6 @@
         (path) => currentPath === path || currentPath.startsWith("/info/"),
       );
 
-      if (isPublicPage) {
-        console.log("✅ Public page - no redirect needed");
-        isCheckingRole = false;
-        return;
-      }
-
       // Check if user has a role
       const roleDoc = await getDoc({
         collection: "user_roles",
@@ -48,10 +42,10 @@
       });
 
       if (roleDoc?.data) {
-        // User has existing role, redirect to dashboard ONLY if on auth pages
+        // User has existing role
         const role = (roleDoc.data as any).role;
 
-        // Only redirect if on auth/role-selection page
+        // Redirect to dashboard if on auth/role-selection page
         if (currentPath === "/auth/role-selection") {
           if (role === "agent") {
             console.log("🔄 Redirecting agent to dashboard");
@@ -61,8 +55,22 @@
             goto("/users/dashboard");
           }
         }
+        // If on public page, no redirect needed
+        if (isPublicPage) {
+          console.log("✅ Public page - user has role, staying here");
+          isCheckingRole = false;
+          return;
+        }
       } else {
-        // New user - redirect to role selection ONLY if trying to access protected routes
+        // New user without role
+        if (isPublicPage) {
+          // On public page, redirect to role selection
+          console.log("🔄 New user on public page - redirecting to role selection");
+          goto("/auth/role-selection");
+          return;
+        }
+
+        // On protected route, redirect to role selection
         const protectedPaths = ["/users", "/agents"];
         const isProtectedRoute = protectedPaths.some((path) =>
           currentPath.startsWith(path),
