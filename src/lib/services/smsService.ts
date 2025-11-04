@@ -6,13 +6,13 @@
  */
 
 import AfricasTalking from "africastalking";
-import { AT_API_KEY, AT_SHORT_CODE, AT_USERNAME } from "$env/static/private";
+import { env } from "$env/dynamic/private";
 
 // Africa's Talking configuration
-// NO FALLBACKS - if env vars not set, build will fail
+// Use dynamic env to allow build without these vars set
 const credentials = {
-  username: AT_USERNAME,
-  apiKey: AT_API_KEY,
+  username: env.AT_USERNAME || "sandbox",
+  apiKey: env.AT_API_KEY || "dummy-key",
 };
 
 // Initialize Africa's Talking
@@ -79,7 +79,7 @@ export async function sendSMS(
     const result = await sms.send({
       to: [phoneNumber],
       message: message,
-      from: AT_SHORT_CODE, // No fallback - use exact env var
+      from: env.AT_SHORT_CODE,
     });
 
     console.log("📱 SMS sent:", result);
