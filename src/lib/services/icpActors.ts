@@ -190,11 +190,12 @@ async function createAgent(): Promise<HttpAgent> {
   });
 
   // Fetch root key for local development/testing (not needed on mainnet)
-  const isLocal = process.env.NODE_ENV === "development" || 
-                  process.env.NODE_ENV === "integration" ||
-                  process.env.NODE_ENV === "unit-test" ||
-                  getEnv("DFX_NETWORK") === "local";
-  
+  const isLocal =
+    process.env.NODE_ENV === "development" ||
+    process.env.NODE_ENV === "integration" ||
+    process.env.NODE_ENV === "unit-test" ||
+    getEnv("DFX_NETWORK") === "local";
+
   if (isLocal) {
     try {
       await agent.fetchRootKey();
