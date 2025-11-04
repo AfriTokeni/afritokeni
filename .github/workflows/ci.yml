@@ -200,12 +200,29 @@ jobs:
           DFX_NETWORK: local
         timeout-minutes: 15
 
-  # Vercel auto-deploys from GitHub - just ensure tests pass
-  tests-complete:
-    name: All Tests Passed
+  # Deploy Juno satellite for PR preview
+  deploy-juno-preview:
+    name: Deploy Juno Preview
     runs-on: ubuntu-latest
     needs: [build, test-unit, test-integration]
     if: github.event_name == 'pull_request'
     steps:
-      - name: Tests passed
-        run: echo "✅ All tests passed! Vercel will auto-deploy and comment on PR."
+      - uses: actions/checkout@v4
+      
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      
+      - run: pnpm install --no-frozen-lockfile
+      
+      - name: Deploy to Juno Preview Satellite
+        uses: junobuild/juno-action@main
+        with:
+          args: deploy --mode preview
+        env:
+          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}

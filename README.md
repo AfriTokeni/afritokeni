@@ -552,7 +552,7 @@ NO fallbacks, NO localStorage for business data
 2. Import `afritokeni` repo
 3. Add environment variables:
    - `AT_USERNAME`, `AT_API_KEY`, `AT_SHORT_CODE` (all environments)
-   - `VITE_JUNO_SATELLITE_ID=atbka-rp777-77775-aaaaq-cai` (preview only)
+   - `VITE_JUNO_SATELLITE_ID=64njw-oiaaa-aaaal-asppa-cai` (preview only)
    - `VITE_JUNO_SATELLITE_ID=dkk74-oyaaa-aaaal-askxq-cai` (production only)
 
 ### Production (Juno/ICP)
