@@ -226,4 +226,4 @@ jobs:
         with:
           args: deploy --mode preview
         env:
-          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN_PREVIEW }}
+          JUNO_TOKEN: ${{ secrets.JUNO_PREVIEW_TOKEN }}
