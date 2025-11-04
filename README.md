@@ -565,9 +565,11 @@ NO fallbacks, NO localStorage for business data
 
 ## 📄 License
 
-Copyright © 2024 AfriTokeni. All Rights Reserved.
+AGPL-3.0 License - see [LICENSE](./LICENSE) for details
 
-This software is proprietary and confidential. Unauthorized copying, distribution, or use is strictly prohibited.
+This project is open source under AGPL-3.0. You are free to use, modify, and distribute this software, but any modifications or services using this code must also be open sourced under AGPL-3.0.
+
+**In simple terms:** If you use our code, you must share your code too. This prevents closed-source competitors from stealing our work.
 
 ---
 
