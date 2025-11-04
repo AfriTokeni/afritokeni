@@ -29,13 +29,13 @@
       "type": "custom",
       "candid": "https://raw.githubusercontent.com/dfinity/ic/master/rs/ledger_suite/icrc1/ledger/ledger.did",
       "wasm": "https://download.dfinity.systems/ic/d87954601e4b22972899e9957e800406a0a6b929/canisters/ic-icrc1-ledger.wasm.gz",
-      "init_arg": "(variant { Init = record { token_name = \"ckBTC\"; token_symbol = \"ckBTC\"; decimals = opt 8; minting_account = record { owner = principal \"aaaaa-aa\" }; transfer_fee = 10; metadata = vec {}; initial_balances = vec {}; archive_options = record { trigger_threshold = 2000; num_blocks_to_archive = 1000; controller_id = principal \"aaaaa-aa\" }; feature_flags = opt record { icrc2 = true }; } })"
+      "init_arg": "(variant { Init = record { token_name = \"ckBTC\"; token_symbol = \"ckBTC\"; decimals = opt 8; minting_account = record { owner = principal \"aaaaa-aa\" }; transfer_fee = 10; metadata = vec {}; initial_balances = vec { record { record { owner = principal \"2vxsx-fae\"; subaccount = null }; 100000000 } }; archive_options = record { trigger_threshold = 2000; num_blocks_to_archive = 1000; controller_id = principal \"aaaaa-aa\" }; feature_flags = opt record { icrc2 = true }; } })"
     },
     "ckusdc_ledger": {
       "type": "custom",
       "candid": "https://raw.githubusercontent.com/dfinity/ic/master/rs/ledger_suite/icrc1/ledger/ledger.did",
       "wasm": "https://download.dfinity.systems/ic/d87954601e4b22972899e9957e800406a0a6b929/canisters/ic-icrc1-ledger.wasm.gz",
-      "init_arg": "(variant { Init = record { token_name = \"ckUSDC\"; token_symbol = \"ckUSDC\"; decimals = opt 6; minting_account = record { owner = principal \"aaaaa-aa\" }; transfer_fee = 10000; metadata = vec {}; initial_balances = vec {}; archive_options = record { trigger_threshold = 2000; num_blocks_to_archive = 1000; controller_id = principal \"aaaaa-aa\" }; feature_flags = opt record { icrc2 = true }; } })"
+      "init_arg": "(variant { Init = record { token_name = \"ckUSDC\"; token_symbol = \"ckUSDC\"; decimals = opt 6; minting_account = record { owner = principal \"aaaaa-aa\" }; transfer_fee = 10000; metadata = vec {}; initial_balances = vec { record { record { owner = principal \"2vxsx-fae\"; subaccount = null }; 1000000000 } }; archive_options = record { trigger_threshold = 2000; num_blocks_to_archive = 1000; controller_id = principal \"aaaaa-aa\" }; feature_flags = opt record { icrc2 = true }; } })"
     },
     "exchange_canister": {
       "type": "rust",

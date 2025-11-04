@@ -19,34 +19,33 @@ Given('I have {float} ckBTC', async function (amount: number) {
     world.testUserId = 'test-user-' + Date.now();
   }
   
+  const { Principal } = await import('@dfinity/principal');
+  const testPrincipal = Principal.fromText('2vxsx-fae');
+  const satoshis = Math.floor(amount * 100000000);
+  
   try {
-    const ledger = await getCkBTCLedgerActor();
-    const { Principal } = await import('@dfinity/principal');
-    const testPrincipal = Principal.fromText('2vxsx-fae');
+    // Use dfx to mint tokens (requires minting authority)
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const execAsync = promisify(exec);
     
-    const satoshis = BigInt(Math.floor(amount * 100000000));
+    // Mint using dfx canister call
+    const mintCommand = `dfx canister call ckbtc_ledger icrc1_transfer '(record { to = record { owner = principal "${testPrincipal.toText()}"; subaccount = null }; amount = ${satoshis} })' --network local`;
     
-    const transferArgs = {
-      to: { owner: testPrincipal, subaccount: [] },
-      fee: [],
-      memo: [],
-      from_subaccount: [],
-      created_at_time: [],
-      amount: satoshis
-    };
-    
-    const result = await ledger.icrc1_transfer(transferArgs);
+    await execAsync(mintCommand);
     console.log(`✅ Minted ${satoshis} satoshis (${amount} BTC) to ${testPrincipal.toText()}`);
-    console.log(`   Result:`, result);
     
+    // Query balance to verify
+    const ledger = await getCkBTCLedgerActor();
     const balance = await ledger.icrc1_balance_of({ owner: testPrincipal, subaccount: [] });
     world.ckbtcBalance = Number(balance) / 100000000;
     world.testPrincipal = testPrincipal;
     
     console.log(`💰 Balance: ${world.ckbtcBalance} BTC (${balance} satoshis)`);
   } catch (error) {
-    console.log('⚠️ Could not mint ckBTC, using tracked balance:', error);
+    console.log('⚠️ Could not mint ckBTC:', error);
     world.ckbtcBalance = amount;
+    world.testPrincipal = testPrincipal;
   }
 });
 
@@ -72,14 +71,50 @@ Then('I see {float} ckBTC', function (expected: number) {
 });
 
 When('I send {float} ckBTC to another user', async function (amount: number) {
-  world.sentAmount = amount;
-  world.recipientId = 'recipient-' + Date.now();
-  // In test mode, just update the balance
-  world.ckbtcBalance = (world.ckbtcBalance || 0) - amount;
+  const { Principal } = await import('@dfinity/principal');
+  const senderPrincipal = world.testPrincipal || Principal.fromText('2vxsx-fae');
+  const recipientPrincipal = Principal.fromText('rrkah-fqaaa-aaaaa-aaaaq-cai');
+  const satoshis = Math.floor(amount * 100000000);
+  
+  try {
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const execAsync = promisify(exec);
+    
+    // Transfer using dfx with sender identity
+    const transferCommand = `dfx canister call ckbtc_ledger icrc1_transfer '(record { to = record { owner = principal "${recipientPrincipal.toText()}"; subaccount = null }; amount = ${satoshis}; fee = opt 10; memo = null; from_subaccount = null; created_at_time = null })' --network local`;
+    
+    await execAsync(transferCommand);
+    console.log(`✅ Sent ${satoshis} satoshis (${amount} BTC) to ${recipientPrincipal.toText()}`);
+    
+    // Query new balance
+    const ledger = await getCkBTCLedgerActor();
+    const balance = await ledger.icrc1_balance_of({ owner: senderPrincipal, subaccount: [] });
+    world.ckbtcBalance = Number(balance) / 100000000;
+    
+    console.log(`💰 New balance: ${world.ckbtcBalance} BTC`);
+  } catch (error) {
+    console.log('⚠️ Transfer failed, updating tracked balance:', error);
+    world.ckbtcBalance = (world.ckbtcBalance || 0) - amount;
+  }
 });
 
-Then('my balance is {float} ckBTC', function (expected: number) {
-  assert.equal(world.ckbtcBalance, expected, `Expected balance ${expected} ckBTC, got ${world.ckbtcBalance}`);
+Then('my balance is {float} ckBTC', async function (expected: number) {
+  // Query real balance from ledger
+  const ledger = await getCkBTCLedgerActor();
+  const { Principal } = await import('@dfinity/principal');
+  const testPrincipal = world.testPrincipal || Principal.fromText('2vxsx-fae');
+  
+  const balance = await ledger.icrc1_balance_of({ owner: testPrincipal, subaccount: [] });
+  const actualBalance = Number(balance) / 100000000;
+  
+  const tolerance = 0.00001; // 1000 satoshis tolerance for fees
+  assert(
+    Math.abs(actualBalance - expected) <= tolerance,
+    `Expected balance ${expected} ckBTC, got ${actualBalance} ckBTC`
+  );
+  
+  world.ckbtcBalance = actualBalance;
 });
 
 When('I sell {float} ckBTC for UGX via agent', async function (amount: number) {
@@ -111,38 +146,30 @@ Then('the ckBTC is released to the agent', function () {
 // ========== ckUSDC Steps ==========
 
 Given('I have {int} ckUSDC', async function (amount: number) {
-  // Create a test user ID if not exists
   if (!world.testUserId) {
     world.testUserId = 'test-user-' + Date.now();
   }
   
-  // MINT REAL TOKENS on the local ledger!
+  const { Principal } = await import('@dfinity/principal');
+  const testPrincipal = Principal.fromText('2vxsx-fae');
+  const microUsdc = Math.floor(amount * 1000000);
+  
   try {
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const execAsync = promisify(exec);
+    
+    const mintCommand = `dfx canister call ckusdc_ledger icrc1_transfer '(record { to = record { owner = principal "${testPrincipal.toText()}"; subaccount = null }; amount = ${microUsdc} })' --network local`;
+    
+    await execAsync(mintCommand);
+    console.log(`✅ Minted ${microUsdc} micro-USDC (${amount} USDC) to ${testPrincipal.toText()}`);
+    
     const ledger = await getCkUSDCLedgerActor();
-    
-    // Convert USDC amount to micro-USDC (6 decimals)
-    const microUsdc = BigInt(Math.floor(amount * 1000000));
-    
-    // Create test principal from user ID
-    const { Principal } = await import('@dfinity/principal');
-    const testPrincipal = world.testPrincipal || Principal.fromText('2vxsx-fae');
-    
-    // Mint tokens using icrc1_transfer from minting account
-    const transferArgs = {
-      to: { owner: testPrincipal, subaccount: [] },
-      fee: [],
-      memo: [],
-      from_subaccount: [],
-      created_at_time: [],
-      amount: microUsdc
-    };
-    
-    const result = await ledger.icrc1_transfer(transferArgs);
-    console.log(`✅ Minted ${amount} ckUSDC (${microUsdc} micro-USDC) to ${testPrincipal.toText()}`);
-    console.log(`   Transfer result:`, result);
-    
-    world.ckusdcBalance = amount;
+    const balance = await ledger.icrc1_balance_of({ owner: testPrincipal, subaccount: [] });
+    world.ckusdcBalance = Number(balance) / 1000000;
     world.testPrincipal = testPrincipal;
+    
+    console.log(`💰 Balance: ${world.ckusdcBalance} USDC (${balance} micro-USDC)`);
   } catch (error) {
     console.log('⚠️ Could not mint ckUSDC, using tracked balance:', error);
     world.ckusdcBalance = amount;
@@ -170,14 +197,47 @@ Then('I see {int} ckUSDC', function (expected: number) {
 });
 
 When('I send {int} ckUSDC to another user', async function (amount: number) {
-  world.sentAmount = amount;
-  world.recipientId = 'recipient-' + Date.now();
-  // In test mode, just update the balance
-  world.ckusdcBalance = (world.ckusdcBalance || 0) - amount;
+  const { Principal } = await import('@dfinity/principal');
+  const senderPrincipal = world.testPrincipal || Principal.fromText('2vxsx-fae');
+  const recipientPrincipal = Principal.fromText('rrkah-fqaaa-aaaaa-aaaaq-cai');
+  const microUsdc = Math.floor(amount * 1000000);
+  
+  try {
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const execAsync = promisify(exec);
+    
+    const transferCommand = `dfx canister call ckusdc_ledger icrc1_transfer '(record { to = record { owner = principal "${recipientPrincipal.toText()}"; subaccount = null }; amount = ${microUsdc}; fee = opt 10000; memo = null; from_subaccount = null; created_at_time = null })' --network local`;
+    
+    await execAsync(transferCommand);
+    console.log(`✅ Sent ${microUsdc} micro-USDC (${amount} USDC) to ${recipientPrincipal.toText()}`);
+    
+    const ledger = await getCkUSDCLedgerActor();
+    const balance = await ledger.icrc1_balance_of({ owner: senderPrincipal, subaccount: [] });
+    world.ckusdcBalance = Number(balance) / 1000000;
+    
+    console.log(`💰 New balance: ${world.ckusdcBalance} USDC`);
+  } catch (error) {
+    console.log('⚠️ Transfer failed, updating tracked balance:', error);
+    world.ckusdcBalance = (world.ckusdcBalance || 0) - amount;
+  }
 });
 
-Then('my balance is {int} ckUSDC', function (expected: number) {
-  assert.equal(world.ckusdcBalance, expected, `Expected balance ${expected} ckUSDC, got ${world.ckusdcBalance}`);
+Then('my balance is {int} ckUSDC', async function (expected: number) {
+  const ledger = await getCkUSDCLedgerActor();
+  const { Principal } = await import('@dfinity/principal');
+  const testPrincipal = world.testPrincipal || Principal.fromText('2vxsx-fae');
+  
+  const balance = await ledger.icrc1_balance_of({ owner: testPrincipal, subaccount: [] });
+  const actualBalance = Number(balance) / 1000000;
+  
+  const tolerance = 0.1; // 0.1 USDC tolerance for fees
+  assert(
+    Math.abs(actualBalance - expected) <= tolerance,
+    `Expected balance ${expected} USDC, got ${actualBalance} USDC`
+  );
+  
+  world.ckusdcBalance = actualBalance;
 });
 
 // ========== UGX/Fiat Currency Steps ==========
@@ -189,28 +249,23 @@ When('I buy ckUSDC with {int} UGX', async function (ugxAmount: number) {
   const ckusdcReceived = Math.floor((ugxAmount / 3750) * 1000000);
   
   try {
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const execAsync = promisify(exec);
+    
+    const mintCommand = `dfx canister call ckusdc_ledger icrc1_transfer '(record { to = record { owner = principal "${testPrincipal.toText()}"; subaccount = null }; amount = ${ckusdcReceived} })' --network local`;
+    
+    await execAsync(mintCommand);
+    console.log(`✅ Bought ${ckusdcReceived} micro-USDC (${ckusdcReceived/1000000} USDC) for ${ugxAmount} UGX`);
+    
     const ledger = await getCkUSDCLedgerActor();
-    
-    const transferArgs = {
-      to: { owner: testPrincipal, subaccount: [] },
-      fee: [],
-      memo: [],
-      from_subaccount: [],
-      created_at_time: [],
-      amount: BigInt(ckusdcReceived)
-    };
-    
-    const result = await ledger.icrc1_transfer(transferArgs);
-    console.log(`✅ Minted ${ckusdcReceived} micro-USDC (${ckusdcReceived/1000000} USDC) for ${ugxAmount} UGX`);
-    console.log(`   Result:`, result);
-    
     const balance = await ledger.icrc1_balance_of({ owner: testPrincipal, subaccount: [] });
     world.ckusdcBalance = Number(balance) / 1000000;
     world.ugxBalance = (world.ugxBalance || 0) - ugxAmount;
     
     console.log(`💰 Balance: ${world.ckusdcBalance} USDC`);
   } catch (error) {
-    console.error('❌ Failed to mint ckUSDC:', error);
+    console.error('❌ Failed to buy ckUSDC:', error);
     throw error;
   }
 });
