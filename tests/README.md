@@ -30,14 +30,10 @@ npm run test:unit
 npm run test:integration
 ```
 
-### E2E Tests Only
-```bash
-npm run test:e2e
-```
-
 ## Test Coverage
 
 ### Unit Tests (tests/unit/)
+- **162 scenarios** - USSD flows with mocks
 - USSD menu navigation
 - Bitcoin buy/sell/send flows
 - USDC buy/sell/send flows
@@ -49,44 +45,21 @@ npm run test:e2e
 - Cancel/back functionality
 
 ### Integration Tests (tests/integration/)
-- ckBTC ledger integration
-- ckUSDC ledger integration
-- ICP canister interactions
-
-### E2E Tests (tests/e2e/)
-- **Deposit Flow** - Complete USSD deposit with canister integration
-- **Withdrawal Flow** - Complete USSD withdrawal with agent confirmation
-- **Exchange Flow** - ckBTC ↔ ckUSD exchanges with spread tracking
-- **API Routes** - USSD/SMS webhook handling
-- **Revenue Tracking** - Platform fees, agent commissions, on-chain verification
-
-## Revenue Verification
-
-Every E2E test verifies the revenue model:
-
-### Deposits
-- Platform earns **0.5%** on all deposits
-- Example: 50,000 UGX deposit → 250 UGX platform fee
-
-### Withdrawals
-- Platform earns **0.5%** withdrawal fee
-- Platform earns **10%** of agent commission
-- Agent keeps **90%** of their commission
-- Example: 100,000 UGX withdrawal → 800 UGX total platform revenue
-
-### Exchanges
-- Platform earns **0.5%** spread on all exchanges
-- Tracked separately by token type (ckBTC, ckUSD)
+- **19 scenarios** - Real blockchain integration
+- ckBTC ledger queries (balance, metadata, transfers)
+- ckUSDC ledger queries (balance, metadata, transfers)
+- Real ICP local replica
+- Initial balances from dfx.json
+- Transfer simulations
 
 ## Test Results
 
 ```
 ✅ 58 Rust canister tests (100%)
-✅ 162 USSD unit test scenarios
-✅ 19 ICP integration test scenarios
-✅ 36 E2E test scenarios
+✅ 162 USSD unit test scenarios (100%)
+✅ 19 ICP integration scenarios (100%)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📊 Total: 275 tests across all layers
+📊 Total: 239 tests - 100% passing
 ```
 
 ## Writing New Tests

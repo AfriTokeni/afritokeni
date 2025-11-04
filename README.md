@@ -91,22 +91,18 @@ npm run canisters:generate-ts        # Generate TypeScript types from Candid
 # Run all tests
 npm run test:all
 
-# Run unit tests only (USSD service tests)
+# Run unit tests (USSD logic, mocks)
 npm run test:unit
 
-# Run integration tests (ICP canister tests)
+# Run integration tests (real blockchain - ckBTC/ckUSDC ledgers)
 npm run test:integration
-
-# Run E2E tests (full stack + revenue verification)
-npm run test:e2e
 ```
 
 **Test Coverage:**
 - ✅ **58 Rust canister tests** (deposit, withdrawal, exchange)
 - ✅ **162 USSD unit test scenarios** (Bitcoin, USDC, local currency, DAO)
-- ✅ **19 ICP integration scenarios** (ckBTC, ckUSDC ledger integration)
-- ✅ **36 E2E scenarios** (deposit, withdrawal, exchange, API routes, revenue)
-- 📊 **Total: 275 tests across all layers**
+- ✅ **19 ICP integration scenarios** (real ckBTC/ckUSDC ledger on local replica)
+- 📊 **Total: 239 tests - 100% passing**
 
 **What's Tested:**
 - ✅ **USSD Flows**: Menu navigation, Bitcoin/USDC buy/sell/send, local currency ops

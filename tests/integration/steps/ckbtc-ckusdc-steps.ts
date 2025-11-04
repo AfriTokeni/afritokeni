@@ -5,9 +5,9 @@
 
 import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'assert';
-import { CkBTCService } from '../../src/lib/services/ckBTCService';
-import { CkUSDCService } from '../../src/lib/services/ckUSDCService';
-import { getCkBTCLedgerActor, getCkUSDCLedgerActor } from '../../src/lib/services/icpActors.js';
+import { CkBTCService } from '$lib/services/ckBTCService';
+import { CkUSDCService } from '$lib/services/ckUSDCService';
+import { getCkBTCLedgerActor, getCkUSDCLedgerActor } from '$lib/services/icpActors.js';
 
 // Shared world object for test state
 const world: any = {};
