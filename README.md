@@ -431,20 +431,36 @@ We welcome contributions! Please follow our coding standards below.
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
+
+# Install Gitleaks (for pre-commit secret detection)
+brew install gitleaks
 
 # Start dev server
-npm run dev
+pnpm run dev
 
 # Run tests
-npm test
+pnpm run test:unit
+pnpm run test:integration
 
 # Build
-npm run build
+pnpm run build
 
 # Lint
-npm run lint
+pnpm run lint
 ```
+
+**Pre-Commit Hooks:** Automatically run on every commit:
+- 🔐 Secret detection (Gitleaks)
+- 📝 Code formatting (Prettier)
+- 🔎 Linting (ESLint)
+- 🔧 Type checking (svelte-check)
+
+**CI Pipeline:** Full security scans on every PR:
+- CodeQL (GitHub security scanner)
+- Semgrep (AI-powered bug detection)
+- Trivy (dependency vulnerabilities)
+- pnpm audit (npm vulnerabilities)
 
 ### Coding Standards
 
