@@ -64,7 +64,9 @@ export class USSDService {
     const savedLanguage = await getLanguagePreference(phoneNumber);
     if (savedLanguage) {
       session.language = savedLanguage;
-      console.log(`🌐 Restored language preference for ${phoneNumber}: ${savedLanguage}`);
+      console.log(
+        `🌐 Restored language preference for ${phoneNumber}: ${savedLanguage}`,
+      );
     }
 
     // TEST/PLAYGROUND MODE: Store in memory instead of Juno
@@ -265,20 +267,22 @@ export class USSDService {
       const inputParts = input.split("*").filter((p) => p.length > 0);
       const isChainedInput = inputParts.length > 1;
       const isAtMenuLevel = session.step === 0;
-      
+
       if (isChainedInput && isAtMenuLevel && !_isPartOfChain) {
-        console.log(`🔗 Processing chained input: ${inputParts.length} parts from menu: ${session.currentMenu}, step: ${session.step}`);
+        console.log(
+          `🔗 Processing chained input: ${inputParts.length} parts from menu: ${session.currentMenu}, step: ${session.step}`,
+        );
 
         // Process each part sequentially
         for (let i = 0; i < inputParts.length; i++) {
           const part = inputParts[i];
-          
+
           // Refresh session state before each part
           const currentSession = await this.getUSSDSession(sessionId);
           if (!currentSession) {
             throw new Error("Session lost during chained input processing");
           }
-          
+
           console.log(
             `  📍 Part ${i + 1}/${inputParts.length}: "${part}" (menu: ${currentSession.currentMenu}, step: ${currentSession.step})`,
           );
@@ -289,7 +293,7 @@ export class USSDService {
             part,
             true, // Mark as part of chain to prevent re-processing
           );
-          
+
           console.log(
             `  ✅ Part ${i + 1} processed, response length: ${result.response.length}, continueSession: ${result.continueSession}`,
           );

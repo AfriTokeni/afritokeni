@@ -14,13 +14,16 @@ const languagePreferences = new Map<string, Language>();
  * Normalize phone number format (remove + prefix for consistent storage)
  */
 function normalizePhoneNumber(phoneNumber: string): string {
-  return phoneNumber.replace(/^\+/, '');
+  return phoneNumber.replace(/^\+/, "");
 }
 
 /**
  * Save language preference for a phone number
  */
-export async function saveLanguagePreference(phoneNumber: string, language: Language): Promise<void> {
+export async function saveLanguagePreference(
+  phoneNumber: string,
+  language: Language,
+): Promise<void> {
   const normalized = normalizePhoneNumber(phoneNumber);
   languagePreferences.set(normalized, language);
   console.log(`💾 Saved language preference for ${normalized}: ${language}`);
@@ -30,10 +33,14 @@ export async function saveLanguagePreference(phoneNumber: string, language: Lang
 /**
  * Get language preference for a phone number
  */
-export async function getLanguagePreference(phoneNumber: string): Promise<Language | null> {
+export async function getLanguagePreference(
+  phoneNumber: string,
+): Promise<Language | null> {
   const normalized = normalizePhoneNumber(phoneNumber);
   const language = languagePreferences.get(normalized) || null;
-  console.log(`🔍 Retrieved language preference for ${normalized}: ${language}`);
+  console.log(
+    `🔍 Retrieved language preference for ${normalized}: ${language}`,
+  );
   return language;
 }
 
@@ -42,7 +49,7 @@ export async function getLanguagePreference(phoneNumber: string): Promise<Langua
  */
 export function clearLanguagePreferences(): void {
   languagePreferences.clear();
-  console.log('🧹 Cleared all language preferences');
+  console.log("🧹 Cleared all language preferences");
 }
 
 /**

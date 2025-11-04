@@ -209,16 +209,20 @@ ${TranslationService.translate("please_select_option", lang)}
         async (session) => {
           session.currentMenu = "usdc_sell";
           session.step = 2;
-          
+
           try {
-            const user = await DataService.findUserByPhoneNumber(`+${session.phoneNumber}`);
+            const user = await DataService.findUserByPhoneNumber(
+              `+${session.phoneNumber}`,
+            );
             if (!user) {
               return endSession(
                 `${TranslationService.translate("error_try_again", lang)}\n\n${TranslationService.translate("thank_you", lang)}`,
               );
             }
 
-            const principalId = user.principalId || (await generatePrincipalFromIdentifier(user.email || user.id));
+            const principalId =
+              user.principalId ||
+              (await generatePrincipalFromIdentifier(user.email || user.id));
             const balance = await CkUSDCService.getBalance(principalId, true);
             const usdcBalance = parseFloat(balance.balanceUSDC);
             session.data.usdcBalance = usdcBalance;

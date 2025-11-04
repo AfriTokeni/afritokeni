@@ -12,7 +12,10 @@ import { type Language, TranslationService } from "../../translations.js";
 /**
  * Handler function type for post-PIN operations
  */
-export type PostPinHandler = (session: USSDSession, input: string) => Promise<string>;
+export type PostPinHandler = (
+  session: USSDSession,
+  input: string,
+) => Promise<string>;
 
 /**
  * Check if user has a PIN set
@@ -93,7 +96,7 @@ export function requiresPinVerification(session: USSDSession): boolean {
 /**
  * Initiate PIN verification for sensitive operations
  * Takes a direct callback function to execute after PIN verification
- * 
+ *
  * @param session - Current USSD session
  * @param operation - Description of operation (shown to user)
  * @param callback - Function to call after successful PIN verification

@@ -422,7 +422,7 @@ export async function handleTransactionHistory(
       try {
         const currency = getSessionCurrency(session);
         console.log(`Getting transaction history for ${session.phoneNumber}`);
-        
+
         // TEST/PLAYGROUND MODE: Return mock transactions
         let transactions;
         const { shouldUseMocks } = await import("../../mockService.js");

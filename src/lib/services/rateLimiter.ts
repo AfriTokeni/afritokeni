@@ -48,7 +48,10 @@ export class RateLimiter {
     type: "sms" | "ussd" | "transaction",
   ): { allowed: boolean; message?: string; retryAfter?: number } {
     // Disable rate limiting in test environment
-    if (process.env.NODE_ENV === "test" || process.env.NODE_ENV === "unit-test") {
+    if (
+      process.env.NODE_ENV === "test" ||
+      process.env.NODE_ENV === "unit-test"
+    ) {
       return { allowed: true };
     }
 
