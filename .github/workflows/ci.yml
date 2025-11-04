@@ -161,9 +161,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, test-unit, test-integration]
     if: github.event_name == 'pull_request'
-    environment:
-      name: preview
-      url: https://atbka-rp777-77775-aaaaq-cai.icp0.io
     steps:
       - uses: actions/checkout@v4
       
@@ -178,23 +175,22 @@ jobs:
       
       - run: pnpm install --no-frozen-lockfile
       
-      - name: Deploy to Preview
-        uses: junobuild/juno-action@main
-        with:
-          args: deploy --mode development
+      - name: Build for Preview
+        run: pnpm run build
         env:
-          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+          AT_USERNAME: ${{ secrets.AT_USERNAME }}
+          AT_API_KEY: ${{ secrets.AT_API_KEY }}
+          AT_SHORT_CODE: ${{ secrets.AT_SHORT_CODE }}
       
-      - name: Comment PR with Preview URL
-        uses: actions/github-script@v7
+      - name: Deploy to Netlify
+        uses: nwtgck/actions-netlify@v3.0
         with:
-          script: |
-            const url = 'https://atbka-rp777-77775-aaaaq-cai.icp0.io';
-            const body = `## 🚀 Preview Deployment\n\n✅ **Preview deployed successfully!**\n\n**URL:** ${url}\n**Commit:** \`${context.sha.substring(0, 7)}\`\n\nTest your changes before merging.`;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body
-            });
+          publish-dir: './build'
+          production-deploy: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy from PR #${{ github.event.number }}"
+          alias: pr-${{ github.event.number }}
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        timeout-minutes: 5
