@@ -101,6 +101,3 @@ export const POST: RequestHandler = async ({ request }) => {
     );
   }
 };
-
-// Export for use in other routes
-export { verificationCodes };
