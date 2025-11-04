@@ -17,21 +17,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
-      
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-      
-      - run: pnpm install --no-frozen-lockfile
-      
-      - name: Deploy Juno Config to Production Satellite
+      - name: Apply Juno Config to Production Satellite
         uses: junobuild/juno-action@main
         with:
-          args: config --mode production
+          args: config apply --force --mode production
         env:
           JUNO_TOKEN: ${{ secrets.JUNO_PRODUCTION_TOKEN }}
       
