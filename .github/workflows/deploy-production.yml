@@ -28,13 +28,10 @@ jobs:
       
       - run: pnpm install --no-frozen-lockfile
       
-      - name: Build
-        run: pnpm run build
-      
-      - name: Deploy to Production
+      - name: Deploy Juno Config to Production Satellite
         uses: junobuild/juno-action@main
         with:
-          args: deploy --mode production
+          args: config --mode production
         env:
           JUNO_TOKEN: ${{ secrets.JUNO_PRODUCTION_TOKEN }}
       
