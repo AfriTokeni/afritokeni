@@ -30,7 +30,7 @@ export async function hasUserPin(phoneNumber: string): Promise<boolean> {
       console.log(
         `🔍 UserPin details - PIN: ${userPin.pin}, isSet: ${userPin.isSet}`,
       );
-      const hasPin = userPin !== null && userPin.isSet;
+      const hasPin = userPin.isSet;
       console.log(`🔍 Final hasUserPin result for ${phoneNumber}: ${hasPin}`);
       return hasPin;
     } else {
