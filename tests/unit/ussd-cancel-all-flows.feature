@@ -5,10 +5,10 @@ Feature: Cancel Functionality Across All USSD Flows
 
   Background:
     Given I am a registered USSD user with balance
+    And my language preference is "en"
 
   # ==================== SEND MONEY ====================
   Scenario: Cancel Send Money at phone entry (English)
-    Given I am a registered USSD user with balance
     When I dial "*229#"
     And I select "1" for Local Currency
     And I select "1" for Send Money
@@ -18,6 +18,7 @@ Feature: Cancel Functionality Across All USSD Flows
 
   Scenario: Cancel Send Money at amount entry (Luganda)
     Given my language preference is "lg"
+    And I am a registered USSD user
     When I dial "*229#"
     And I select "1" for Local Currency
     And I select "1" for Send Money
@@ -27,7 +28,8 @@ Feature: Cancel Functionality Across All USSD Flows
     Then I should see "Ssente z'omu Uganda" in USSD response
 
   Scenario: Cancel Send Money at PIN entry (Swahili)
-    Given my language preference is "sw"
+    Given I am a registered USSD user
+    And my language preference is "sw"
     When I dial "*229#"
     And I select "1" for Local Currency
     And I select "1" for Send Money
@@ -47,7 +49,8 @@ Feature: Cancel Functionality Across All USSD Flows
     Then I should see "Local Currency" in USSD response
 
   Scenario: Cancel Withdraw at agent selection (Luganda)
-    Given my language preference is "lg"
+    Given I am a registered USSD user
+    And my language preference is "lg"
     When I dial "*229#"
     And I select "1" for Local Currency
     And I select "4" for Withdraw
@@ -57,7 +60,8 @@ Feature: Cancel Functionality Across All USSD Flows
     Then I should see "Ssente z'omu Uganda" in USSD response
 
   Scenario: Cancel Withdraw at PIN entry (Swahili)
-    Given my language preference is "sw"
+    Given I am a registered USSD user
+    And my language preference is "sw"
     When I dial "*229#"
     And I select "1" for Local Currency
     And I select "4" for Withdraw
@@ -77,7 +81,8 @@ Feature: Cancel Functionality Across All USSD Flows
     Then I should see "Local Currency" in USSD response
 
   Scenario: Cancel Deposit at agent selection (Luganda)
-    Given my language preference is "lg"
+    Given I am a registered USSD user
+    And my language preference is "lg"
     When I dial "*229#"
     And I select "1" for Local Currency
     And I select "3" for Deposit
@@ -99,7 +104,8 @@ Feature: Cancel Functionality Across All USSD Flows
 
   # ==================== BITCOIN SELL ====================
   Scenario: Cancel Bitcoin Sell at amount entry (Luganda)
-    Given my language preference is "lg"
+    Given I am a registered USSD user
+    And my language preference is "lg"
     When I dial "*229#"
     And I select "2" for Bitcoin
     And I select "4" for Sell Bitcoin

@@ -28,7 +28,12 @@ Given('I have a valid phone number {string}', async function (phoneNumber: strin
 
 Given('I have a phone number {string}', async function (phoneNumber: string) {
   world.ussdPhoneNumber = phoneNumber;
-  world.ussdSessionId = world.ussdSessionId || USSDTestHelper.generateSessionId();
+  // Always generate a fresh session ID for each scenario
+  world.ussdSessionId = USSDTestHelper.generateSessionId();
+  
+  // Clear rate limiter for this test
+  const { RateLimiter } = await import('../../src/lib/services/rateLimiter.js');
+  RateLimiter.clearAll();
   
   // Create user in database so they exist for USSD operations
   try {

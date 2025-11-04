@@ -2,6 +2,9 @@
 Feature: USSD Service Core Logic
   Test the USSDService routing and session management
 
+  Background:
+    Given my language preference is "en"
+
   Scenario: Create new USSD session on first dial
     When I dial "*229#" as a new user
     Then a new USSD session should be created

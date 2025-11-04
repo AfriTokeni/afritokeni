@@ -284,6 +284,11 @@ export class TranslationService {
     },
 
     // Language selection
+    language_selection: {
+      en: "Language Selection",
+      lg: "Olulimi",
+      sw: "Lugha",
+    },
     select_language: {
       en: "Select language:\n1. English\n2. Luganda\n3. Swahili",
       lg: "Londa olulimi:\n1. English\n2. Luganda\n3. Swahili",

@@ -128,8 +128,9 @@ export class USSDTestHelper {
 
   /**
    * Generate test phone number
+   * Returns a consistent number for all tests to ensure language preferences persist
    */
   static generatePhoneNumber(): string {
-    return `+256700${Math.floor(100000 + Math.random() * 900000)}`;
+    return '+256700999888';
   }
 }

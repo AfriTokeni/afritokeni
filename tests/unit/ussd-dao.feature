@@ -6,6 +6,7 @@ Feature: USSD DAO Governance
   Background:
     Given I am a registered USSD user with 5000 AFRI tokens
     And there are active DAO proposals
+    And my language preference is "en"
 
   Scenario: Access DAO menu from main menu
     When I dial "*229#"
@@ -93,10 +94,10 @@ Feature: USSD DAO Governance
     Then I should see "Your Active Votes" in USSD response
 
   Scenario: Cannot vote twice on same proposal
-    Given I have already voted on proposal 1
     When I dial "*229#"
     And I select "4" for DAO Governance
     And I select "1" for View Proposals
+    Given I have already voted on proposal 1
     And I select "1" for first proposal
     Then I should see "Already voted" in USSD response
 

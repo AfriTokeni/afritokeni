@@ -2,6 +2,9 @@
 Feature: USSD Error Handling
   Test error scenarios and edge cases
 
+  Background:
+    Given my language preference is "en"
+
   Scenario: Insufficient balance for send money
     Given I have 5000 UGX balance
     When I try to send 10000 UGX via USSD for error test

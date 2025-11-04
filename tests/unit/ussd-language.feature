@@ -5,6 +5,7 @@ Feature: USSD Language Selection
 
   Background:
     Given I am a registered USSD user
+    And my language preference is "en"
 
   Scenario: Access language selection from main menu
     When I dial "*229#"
@@ -117,7 +118,8 @@ Feature: USSD Language Selection
     And the session language should be "lg"
 
   Scenario: Error messages show in selected language
-    Given my language preference is "lg"
+    Given I am a registered USSD user
+    And my language preference is "lg"
     When I dial "*229#"
     And I select "99" for invalid option
     Then I should see "Ekiragiro si kituufu" in USSD response

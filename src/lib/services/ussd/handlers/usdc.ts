@@ -4,7 +4,7 @@ import { getSessionCurrency } from "../utils/currency.js";
 import type { Agent } from "../../webHookServices.js";
 import { WebhookDataService as DataService } from "../../webHookServices.js";
 import { CkUSDCService } from "../../ckUSDCService.js";
-import { verifyUserPin } from "./pinManagement.js";
+import { verifyUserPin, requestPinVerification } from "./pinManagement.js";
 import { TranslationService } from "../../translations.js";
 import { generatePrincipalFromIdentifier } from "../../../utils/principalUtils.js";
 import { shouldUseMocks } from "../../mockService.js";
@@ -187,24 +187,70 @@ ${TranslationService.translate("please_select_option", lang)}
       return await handleUSDCRate("", session);
 
     case "3":
-      session.currentMenu = "usdc_buy";
-      session.step = 1;
-      return continueSession(
-        `${TranslationService.translate("buy_usdc", lang)}\n${TranslationService.translate("enter_pin_4digit", lang)}:`,
+      // Buy USDC - request PIN verification first
+      return requestPinVerification(
+        session,
+        TranslationService.translate("buy_usdc", lang),
+        async (session) => {
+          session.currentMenu = "usdc_buy";
+          session.step = 2;
+          const currency = getSessionCurrency(session);
+          return continueSession(
+            `${TranslationService.translate("buy_usdc", lang)}\n${TranslationService.translate("enter_amount", lang)} (${currency}):`,
+          );
+        },
       );
 
     case "4":
-      session.currentMenu = "usdc_sell";
-      session.step = 1;
-      return continueSession(
-        `${TranslationService.translate("sell_usdc", lang)}\n${TranslationService.translate("enter_pin_4digit", lang)}:`,
+      // Sell USDC - request PIN verification first
+      return requestPinVerification(
+        session,
+        TranslationService.translate("sell_usdc", lang),
+        async (session) => {
+          session.currentMenu = "usdc_sell";
+          session.step = 2;
+          
+          try {
+            const user = await DataService.findUserByPhoneNumber(`+${session.phoneNumber}`);
+            if (!user) {
+              return endSession(
+                `${TranslationService.translate("error_try_again", lang)}\n\n${TranslationService.translate("thank_you", lang)}`,
+              );
+            }
+
+            const principalId = user.principalId || (await generatePrincipalFromIdentifier(user.email || user.id));
+            const balance = await CkUSDCService.getBalance(principalId, true);
+            const usdcBalance = parseFloat(balance.balanceUSDC);
+            session.data.usdcBalance = usdcBalance;
+
+            return continueSession(`${TranslationService.translate("sell", lang)} USDC
+${TranslationService.translate("your_balance", lang)}: $${usdcBalance.toFixed(2)} USDC
+
+${TranslationService.translate("enter_amount", lang)} (${getSessionCurrency(session)}):
+
+${TranslationService.translate("back_or_menu", lang)}`);
+          } catch (error) {
+            console.error("Error fetching USDC balance:", error);
+            return endSession(
+              `${TranslationService.translate("error_try_again", lang)}\n\n${TranslationService.translate("thank_you", lang)}`,
+            );
+          }
+        },
       );
 
     case "5":
-      session.currentMenu = "usdc_send";
-      session.step = 1;
-      return continueSession(
-        `${TranslationService.translate("send_usdc", lang)}\n${TranslationService.translate("enter_pin_4digit", lang)}:`,
+      // Send USDC - request PIN verification first
+      return requestPinVerification(
+        session,
+        TranslationService.translate("send_usdc", lang),
+        async (session) => {
+          session.currentMenu = "usdc_send";
+          session.step = 2;
+          return continueSession(`${TranslationService.translate("send_usdc", lang)}
+${TranslationService.translate("enter_recipient_phone", lang)}:
+
+${TranslationService.translate("back_or_menu", lang)}`);
+        },
       );
 
     case "0":
@@ -362,53 +408,11 @@ async function handleUSDCBuy(
 ): Promise<string> {
   const lang = session.language || "en";
   const inputParts = input.split("*");
-  let currentInput = inputParts[inputParts.length - 1] || "";
+  const currentInput = inputParts[inputParts.length - 1] || "";
 
-  // CRITICAL FIX: AfricasTalking sends full concatenated input (e.g., "331234" not "33*1234")
-  // For PIN entry (step 1), extract last 4 characters if input is longer than 4 digits
-  if (
-    session.step === 1 &&
-    currentInput.length > 4 &&
-    /^\d+$/.test(currentInput)
-  ) {
-    currentInput = currentInput.slice(-4);
-    console.log(`🔧 Extracted PIN from concatenated input: ${currentInput}`);
-  }
-
+  // PIN is now handled centrally by handlePinCheck
+  // This handler starts at step 2 (amount entry)
   switch (session.step) {
-    case 1: {
-      // PIN verification step
-      if (!/^\d{4}$/.test(currentInput)) {
-        return continueSession(
-          `${TranslationService.translate("invalid_pin_format", lang)}.\n${TranslationService.translate("enter_pin_4digit", lang)}:`,
-        );
-      }
-
-      // Verify PIN
-      let pinCorrect = false;
-      try {
-        pinCorrect = await verifyUserPin(session.phoneNumber, currentInput);
-      } catch (error) {
-        console.log("PIN verification error (demo mode):", error);
-      }
-
-      // If PIN verification failed, check for demo PIN
-      if (!pinCorrect && currentInput === "1234") {
-        console.log("Using demo PIN 1234 for playground");
-        pinCorrect = true;
-      }
-      if (!pinCorrect) {
-        return continueSession(
-          `${TranslationService.translate("incorrect_pin", lang)}.\n${TranslationService.translate("enter_pin_4digit", lang)}:`,
-        );
-      }
-
-      session.step = 2;
-      return continueSession(
-        `${TranslationService.translate("buy_usdc", lang)}\n${TranslationService.translate("enter_amount", lang)} (${getSessionCurrency(session)}):`,
-      );
-    }
-
     case 2: {
       // Amount entry step
       const amountUGX = parseFloat(currentInput);
@@ -595,81 +599,11 @@ async function handleUSDCSell(
 ): Promise<string> {
   const lang = session.language || "en";
   const inputParts = input.split("*");
-  let currentInput = inputParts[inputParts.length - 1] || "";
+  const currentInput = inputParts[inputParts.length - 1] || "";
 
-  // CRITICAL FIX: AfricasTalking sends full concatenated input (e.g., "341234" not "34*1234")
-  // For PIN entry (step 1), extract last 4 characters if input is longer than 4 digits
-  if (
-    session.step === 1 &&
-    currentInput.length > 4 &&
-    /^\d+$/.test(currentInput)
-  ) {
-    currentInput = currentInput.slice(-4);
-    console.log(`🔧 Extracted PIN from concatenated input: ${currentInput}`);
-  }
-
+  // PIN is now handled centrally by handlePinCheck
+  // This handler starts at step 2 (amount entry)
   switch (session.step) {
-    case 1: {
-      // PIN verification step
-      if (!/^\d{4}$/.test(currentInput)) {
-        return continueSession(
-          `${TranslationService.translate("invalid_pin_format", lang)}.\n${TranslationService.translate("enter_pin_4digit", lang)}:`,
-        );
-      }
-
-      // Verify PIN
-      let pinCorrect = false;
-      try {
-        pinCorrect = await verifyUserPin(session.phoneNumber, currentInput);
-      } catch (error) {
-        console.log("PIN verification error (demo mode):", error);
-      }
-
-      // If PIN verification failed, check for demo PIN
-      if (!pinCorrect && currentInput === "1234") {
-        console.log("Using demo PIN 1234 for playground");
-        pinCorrect = true;
-      }
-      if (!pinCorrect) {
-        return continueSession(
-          `${TranslationService.translate("incorrect_pin", lang)}.\n${TranslationService.translate("enter_pin_4digit", lang)}:`,
-        );
-      }
-
-      session.step = 2;
-
-      try {
-        // Get user from DataService to get Principal ID
-        const user = await DataService.findUserByPhoneNumber(
-          `+${session.phoneNumber}`,
-        );
-        if (!user) {
-          return endSession(
-            `${TranslationService.translate("error_try_again", lang)}\n\n${TranslationService.translate("thank_you", lang)}`,
-          );
-        }
-
-        // Get real USDC balance using CkUSDCService
-        const principalId = await ensurePrincipalId(user);
-        const balance = await safeGetBalanceSimple(principalId, true); // useSatellite = true for SMS
-        const usdcBalance = parseFloat(balance.balanceUSDC);
-
-        // Store balance for later use
-        session.data.usdcBalance = usdcBalance;
-
-        return continueSession(`${TranslationService.translate("sell", lang)} USDC
-${TranslationService.translate("your_balance", lang)}: $${usdcBalance.toFixed(2)} USDC
-
-${TranslationService.translate("enter_amount", lang)} (USDC):
-(${TranslationService.translate("minimum_amount", lang)}: $1.00, Max: $${usdcBalance.toFixed(2)})`);
-      } catch (error) {
-        console.error("Error getting USDC balance:", error);
-        return continueSession(`${TranslationService.translate("error_try_again", lang)}.
-
-${TranslationService.translate("enter_pin_4digit", lang)}:`);
-      }
-    }
-
     case 2: {
       // Amount entry step
       const usdcAmount = parseFloat(currentInput);
@@ -840,56 +774,11 @@ async function handleUSDCSend(
 ): Promise<string> {
   const lang = session.language || "en";
   const inputParts = input.split("*");
-  let currentInput = inputParts[inputParts.length - 1] || "";
+  const currentInput = inputParts[inputParts.length - 1] || "";
 
-  // CRITICAL FIX: AfricasTalking sends full concatenated input (e.g., "351234" not "35*1234")
-  // For PIN entry (step 1), extract last 4 characters if input is longer than 4 digits
-  if (
-    session.step === 1 &&
-    currentInput.length > 4 &&
-    /^\d+$/.test(currentInput)
-  ) {
-    currentInput = currentInput.slice(-4);
-    console.log(`🔧 Extracted PIN from concatenated input: ${currentInput}`);
-  }
-
+  // PIN is now handled centrally by handlePinCheck
+  // This handler starts at step 2 (phone number entry)
   switch (session.step) {
-    case 1: {
-      // PIN verification step
-      if (!/^\d{4}$/.test(currentInput)) {
-        return continueSession(
-          `${TranslationService.translate("invalid_pin_format", lang)}.\n${TranslationService.translate("enter_pin_4digit", lang)}:`,
-        );
-      }
-
-      // Verify PIN
-      let pinCorrect = false;
-      try {
-        pinCorrect = await verifyUserPin(session.phoneNumber, currentInput);
-      } catch (error) {
-        console.log("PIN verification error (demo mode):", error);
-      }
-
-      // If PIN verification failed, check for demo PIN
-      if (!pinCorrect && currentInput === "1234") {
-        console.log("Using demo PIN 1234 for playground");
-        pinCorrect = true;
-      }
-      if (!pinCorrect) {
-        return continueSession(
-          `${TranslationService.translate("incorrect_pin", lang)}.\n${TranslationService.translate("enter_pin_4digit", lang)}:`,
-        );
-      }
-
-      session.step = 2;
-
-      // Ask for recipient phone number
-      return continueSession(`${TranslationService.translate("send_usdc", lang)}
-${TranslationService.translate("enter_recipient_phone", lang)}:
-
-${TranslationService.translate("back_or_menu", lang)}`);
-    }
-
     case 2: {
       // Recipient phone number entry (after PIN)
       let recipientPhone = currentInput.trim();

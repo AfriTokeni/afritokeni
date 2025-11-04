@@ -5,6 +5,7 @@ Feature: USSD Cancel/Go Back Functionality
 
   Background:
     Given I am a registered USSD user with balance
+    And my language preference is "en"
 
   Scenario: Cancel Send Money at phone number entry
     When I dial "*229#"
@@ -42,7 +43,8 @@ Feature: USSD Cancel/Go Back Functionality
     Then I should see "amount" in USSD response
 
   Scenario: Cancel works in Luganda
-    Given my language preference is "lg"
+    Given I am a registered USSD user
+    And my language preference is "lg"
     When I dial "*229#"
     And I select "1" for Local Currency
     And I select "1" for Send Money
@@ -51,7 +53,8 @@ Feature: USSD Cancel/Go Back Functionality
     Then I should see "Ssente z'omu Uganda" in USSD response
 
   Scenario: Cancel works in Swahili
-    Given my language preference is "sw"
+    Given I am a registered USSD user
+    And my language preference is "sw"
     When I dial "*229#"
     And I select "1" for Local Currency
     And I select "1" for Send Money

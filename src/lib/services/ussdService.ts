@@ -2,6 +2,7 @@ import { getDoc, setDoc } from "@junobuild/core";
 import { RateLimiter } from "./rateLimiter";
 import type { USSDSession } from "./ussd/types";
 import { USSDSessionImpl } from "./ussd/types";
+import { getLanguagePreference } from "./ussd/handlers/language";
 import { handleMainMenu } from "./ussd/handlers/mainMenu";
 import {
   handleLocalCurrency,
@@ -59,6 +60,13 @@ export class USSDService {
     // USSD sessions start at main menu (not registration_check)
     session.currentMenu = "main";
 
+    // Retrieve and set language preference if it exists
+    const savedLanguage = await getLanguagePreference(phoneNumber);
+    if (savedLanguage) {
+      session.language = savedLanguage;
+      console.log(`🌐 Restored language preference for ${phoneNumber}: ${savedLanguage}`);
+    }
+
     // TEST/PLAYGROUND MODE: Store in memory instead of Juno
     if (sessionId.startsWith("playground_") || shouldUseMocks()) {
       this.playgroundSessions.set(sessionId, session);
@@ -94,7 +102,15 @@ export class USSDService {
   static async getUSSDSession(sessionId: string): Promise<USSDSession | null> {
     // TEST/PLAYGROUND MODE: Get from memory
     if (sessionId.startsWith("playground_") || shouldUseMocks()) {
-      return this.playgroundSessions.get(sessionId) || null;
+      const session = this.playgroundSessions.get(sessionId) || null;
+      if (session) {
+        // Ensure language preference is loaded from storage
+        const savedLanguage = await getLanguagePreference(session.phoneNumber);
+        if (savedLanguage && !session.language) {
+          session.language = savedLanguage;
+        }
+      }
+      return session;
     }
 
     try {
@@ -113,7 +129,15 @@ export class USSDService {
       session.data = data.data || {};
       session.step = data.step || 0;
       session.lastActivity = data.lastActivity || Date.now();
-      session.language = data.language; // Restore language preference!
+      session.language = data.language; // Restore language preference from session
+
+      // Also check language preferences storage as fallback
+      if (!session.language) {
+        const savedLanguage = await getLanguagePreference(session.phoneNumber);
+        if (savedLanguage) {
+          session.language = savedLanguage;
+        }
+      }
 
       return session;
     } catch (error) {
@@ -187,6 +211,7 @@ export class USSDService {
     sessionId: string,
     phoneNumber: string,
     text: string,
+    _isPartOfChain = false,
   ): Promise<{ response: string; continueSession: boolean }> {
     try {
       const input = text.trim();
@@ -234,23 +259,39 @@ export class USSDService {
       // Update activity for normal requests
       session.updateActivity();
 
-      // Handle chained input (e.g., "3*1*1234" from main menu)
-      // Process each part sequentially if we're at main menu and have multiple parts
+      // Handle chained input (e.g., "3*1*1234" from any menu)
+      // AfricasTalking sends cumulative input, so we need to process it sequentially
+      // Only process as chained if we're at a menu (step 0) with multiple parts AND not already part of a chain
       const inputParts = input.split("*").filter((p) => p.length > 0);
-      if (session.currentMenu === "main" && inputParts.length > 1) {
-        console.log(`🔗 Processing chained input: ${inputParts.length} parts`);
+      const isChainedInput = inputParts.length > 1;
+      const isAtMenuLevel = session.step === 0;
+      
+      if (isChainedInput && isAtMenuLevel && !_isPartOfChain) {
+        console.log(`🔗 Processing chained input: ${inputParts.length} parts from menu: ${session.currentMenu}, step: ${session.step}`);
 
         // Process each part sequentially
         for (let i = 0; i < inputParts.length; i++) {
           const part = inputParts[i];
+          
+          // Refresh session state before each part
+          const currentSession = await this.getUSSDSession(sessionId);
+          if (!currentSession) {
+            throw new Error("Session lost during chained input processing");
+          }
+          
           console.log(
-            `  Part ${i + 1}/${inputParts.length}: "${part}" (menu: ${session.currentMenu})`,
+            `  📍 Part ${i + 1}/${inputParts.length}: "${part}" (menu: ${currentSession.currentMenu}, step: ${currentSession.step})`,
           );
 
           const result = await this.processUSSDRequest(
             sessionId,
             phoneNumber,
             part,
+            true, // Mark as part of chain to prevent re-processing
+          );
+          
+          console.log(
+            `  ✅ Part ${i + 1} processed, response length: ${result.response.length}, continueSession: ${result.continueSession}`,
           );
 
           // If this is the last part, return its response
@@ -689,6 +730,6 @@ export class USSDService {
 3. ${TranslationService.translate("usdc", language)} (ckUSDC)
 4. ${TranslationService.translate("dao_governance", language)}
 5. ${TranslationService.translate("help", language)}
-6. Language Selection`;
+6. ${TranslationService.translate("language_selection", language)}`;
   }
 }

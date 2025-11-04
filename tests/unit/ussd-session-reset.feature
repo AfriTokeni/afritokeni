@@ -6,6 +6,7 @@ Feature: USSD Session Reset
   Background:
     Given I am a registered user with phone number "256788123456"
     And my PIN is "1234"
+    And my language preference is "en"
 
   Scenario: Reset session from main menu
     When I dial "*384*22948#"
@@ -59,11 +60,14 @@ Feature: USSD Session Reset
     Then I should see "Welcome to AfriTokeni" in USSD response
     And the session should continue
 
-  Scenario: Reset session does not preserve language (creates fresh session)
+  Scenario: Reset session preserves language preference
+    Given my language preference is "lg"
     When I dial "*384*22948#"
-    And I enter "6"
+    Then I should see "Tukusanyukidde ku AfriTokeni" in USSD response
+    And I should see "Ssente z'omu Uganda" in USSD response
+    When I enter "6"
     And I enter "2"
     Then I should see "Luganda" in USSD response
     When I dial "*384*22948#"
-    Then I should see "Welcome to AfriTokeni" in USSD response
-    And I should see "1. Local Currency" in USSD response
+    Then I should see "Tukusanyukidde ku AfriTokeni" in USSD response
+    And I should see "Ssente z'omu Uganda" in USSD response

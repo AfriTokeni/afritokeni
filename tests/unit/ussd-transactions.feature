@@ -12,7 +12,7 @@ Feature: USSD Transaction History
     And I select "1" for Local Currency
     And I select "5" for Transactions
     Then I should see "Transaction History" in USSD response
-    And I should see "enter your 4-digit PIN" in USSD response
+    And I should see "Enter your 4-digit PIN" in USSD response
     When I enter PIN "1234"
     Then I should see "Recent Transactions" in USSD response
     And I should see transaction details

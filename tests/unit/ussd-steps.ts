@@ -152,12 +152,11 @@ When('I dial {string}', async function (ussdCode: string) {
   }
   
   // Actually call the USSD service
-  // For session reset codes, send them as input. Otherwise send empty string.
-  const inputToSend = (ussdCode === '*384*22948#') ? ussdCode : '';
+  // Send the USSD code as input to trigger proper session initialization
   const result = await USSDTestHelper.simulateUSSDRequest(
     world.ussdSessionId,
     world.ussdPhoneNumber,
-    inputToSend
+    ussdCode
   );
   
   world.ussdResponse = result.response;

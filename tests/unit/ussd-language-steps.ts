@@ -8,6 +8,7 @@ import { world } from './setup';
 import { USSDTestHelper } from '../helpers/ussdTestHelpers.js';
 import { USSDService } from '../../src/lib/services/ussdService.js';
 import type { Language } from '../../src/lib/services/translations.js';
+import { getLanguagePreference, saveLanguagePreference } from '../../src/lib/services/ussd/handlers/language.js';
 
 Given('I am a registered USSD user', async function () {
   world.ussdPhoneNumber = USSDTestHelper.generatePhoneNumber();
@@ -26,7 +27,13 @@ Given('I am a registered USSD user', async function () {
 });
 
 Given('my language preference is {string}', async function (language: Language) {
-  // Set language in the session
+  // Use the consistent test phone number (same one used by generatePhoneNumber)
+  const phoneNumber = world.ussdPhoneNumber || '+256700999888';
+  
+  // Save language preference for this phone number
+  await saveLanguagePreference(phoneNumber, language);
+  
+  // Also set it on the current session if it exists
   if (world.ussdSession) {
     world.ussdSession.language = language;
     // Update the session in storage

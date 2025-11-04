@@ -11,6 +11,13 @@ interface RateLimitRecord {
 export class RateLimiter {
   private static records: Map<string, RateLimitRecord> = new Map();
 
+  /**
+   * Clear all rate limit records (for testing)
+   */
+  static clearAll(): void {
+    this.records.clear();
+  }
+
   // Rate limit configurations
   private static readonly LIMITS = {
     // Per minute limits
@@ -41,7 +48,7 @@ export class RateLimiter {
     type: "sms" | "ussd" | "transaction",
   ): { allowed: boolean; message?: string; retryAfter?: number } {
     // Disable rate limiting in test environment
-    if (process.env.NODE_ENV === "test") {
+    if (process.env.NODE_ENV === "test" || process.env.NODE_ENV === "unit-test") {
       return { allowed: true };
     }
 

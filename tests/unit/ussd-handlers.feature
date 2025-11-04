@@ -4,6 +4,7 @@ Feature: USSD Handler Logic
 
   Background:
     Given I am a registered USSD user with balance
+    And my language preference is "en"
 
   # Main Menu Handler Tests
   Scenario: Main menu shows all options

@@ -31,7 +31,7 @@ export async function handleMainMenu(
 3. ${TranslationService.translate("usdc", lang)} (ckUSDC)
 4. ${TranslationService.translate("dao_governance", lang)}
 5. ${TranslationService.translate("help", lang)}
-6. Language Selection`);
+6. ${TranslationService.translate("language_selection", lang)}`);
   }
 
   console.log(`Main menu input: ${input}`);
@@ -110,7 +110,7 @@ export async function handleMainMenu(
 3. ${TranslationService.translate("usdc", lang)} (ckUSDC)
 4. ${TranslationService.translate("dao_governance", lang)}
 5. ${TranslationService.translate("help", lang)}
-6. Language Selection`);
+6. ${TranslationService.translate("language_selection", lang)}`);
     }
   }
 }

@@ -1,6 +1,6 @@
 /**
  * PIN Management Handlers
- * Handles PIN setup, verification, and security
+ * Handles PIN setup, verification, and security with handler registry pattern
  */
 
 import type { USSDSession } from "../types.js";
@@ -8,43 +8,11 @@ import { continueSession, endSession } from "../utils/responses.js";
 import { getSessionCurrency } from "../utils/currency.js";
 import { WebhookDataService as DataService } from "../../webHookServices.js";
 import { type Language, TranslationService } from "../../translations.js";
-import {
-  handleCheckBalance,
-  handleTransactionHistory,
-} from "./localCurrency.js";
 
-type PendingOperationResolver = (
-  menu: string,
-  session: USSDSession,
-) => Promise<string>;
-
-async function defaultPendingOperationResolver(
-  menu: string,
-  session: USSDSession,
-): Promise<string> {
-  session.step = 1;
-  switch (menu) {
-    case "check_balance":
-      session.currentMenu = "check_balance" as const;
-      return await handleCheckBalance("", session);
-    case "transaction_history":
-      session.currentMenu = "transaction_history" as const;
-      return await handleTransactionHistory("", session);
-    default: {
-      const lang = session.language || "en";
-      session.currentMenu = "main";
-      session.step = 0;
-      const currency = getSessionCurrency(session);
-      return continueSession(`${TranslationService.translate("welcome_back", lang)}
-${TranslationService.translate("please_select_option", lang)}:
-1. ${TranslationService.translate("local_currency_menu", lang)} (${currency})
-2. ${TranslationService.translate("bitcoin", lang)} (ckBTC)
-3. ${TranslationService.translate("usdc", lang)} (ckUSDC)
-4. ${TranslationService.translate("dao_governance", lang)}
-0. Exit`);
-    }
-  }
-}
+/**
+ * Handler function type for post-PIN operations
+ */
+export type PostPinHandler = (session: USSDSession, input: string) => Promise<string>;
 
 /**
  * Check if user has a PIN set
@@ -124,30 +92,35 @@ export function requiresPinVerification(session: USSDSession): boolean {
 
 /**
  * Initiate PIN verification for sensitive operations
+ * Takes a direct callback function to execute after PIN verification
+ * 
+ * @param session - Current USSD session
+ * @param operation - Description of operation (shown to user)
+ * @param callback - Function to call after successful PIN verification
  */
 export function requestPinVerification(
   session: USSDSession,
   operation: string,
-  nextMenu: string,
+  callback: PostPinHandler,
 ): string {
   const lang = session.language || "en";
   session.currentMenu = "pin_check";
   session.step = 1;
   session.data.pendingOperation = operation;
-  session.data.nextMenu = nextMenu;
+  session.data.postPinCallback = callback; // Store the callback directly
   session.data.pinAttempts = 0;
   return continueSession(
-    `${operation}\nFor security, please enter your 4-digit PIN:\n\n${TranslationService.translate("back_or_menu", lang)}`,
+    `${operation}\n${TranslationService.translate("enter_pin_4digit", lang)}:\n\n${TranslationService.translate("back_or_menu", lang)}`,
   );
 }
 
 /**
  * Handle PIN check - verify existing PIN
+ * After successful verification, calls the registered handler
  */
 export async function handlePinCheck(
   input: string,
   session: USSDSession,
-  resolvePendingOperation: PendingOperationResolver = defaultPendingOperationResolver,
 ): Promise<string> {
   const lang = session.language || "en";
   console.log(
@@ -197,19 +170,19 @@ export async function handlePinCheck(
         console.log(`✅ PIN verified successfully for ${session.phoneNumber}`);
         session.data.pinVerified = true; // Mark PIN as verified in this session
 
-        // Check if there's a pending operation to complete
-        if (session.data.pendingOperation && session.data.nextMenu) {
+        // Check if there's a callback to execute
+        if (session.data.pendingOperation && session.data.postPinCallback) {
           console.log(
             `🔄 Completing pending operation: ${session.data.pendingOperation}`,
           );
-          const nextMenu = session.data.nextMenu;
+          const callback = session.data.postPinCallback;
 
           // Clear pending operation data
           delete session.data.pendingOperation;
-          delete session.data.nextMenu;
+          delete session.data.postPinCallback;
 
-          // Route to the appropriate handler
-          return await resolvePendingOperation(nextMenu, session);
+          // Call the callback directly
+          return await callback(session, input);
         }
 
         // No pending operation - go to main menu

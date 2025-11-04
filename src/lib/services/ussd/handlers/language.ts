@@ -5,7 +5,45 @@
 
 import type { USSDSession } from "../types.js";
 import { continueSession } from "../utils/responses.js";
-import { TranslationService } from "../../translations.js";
+import { TranslationService, type Language } from "../../translations.js";
+
+// In-memory storage for language preferences (in production, this would be in a database)
+const languagePreferences = new Map<string, Language>();
+
+/**
+ * Normalize phone number format (remove + prefix for consistent storage)
+ */
+function normalizePhoneNumber(phoneNumber: string): string {
+  return phoneNumber.replace(/^\+/, '');
+}
+
+/**
+ * Save language preference for a phone number
+ */
+export async function saveLanguagePreference(phoneNumber: string, language: Language): Promise<void> {
+  const normalized = normalizePhoneNumber(phoneNumber);
+  languagePreferences.set(normalized, language);
+  console.log(`💾 Saved language preference for ${normalized}: ${language}`);
+  console.log(`📊 Total preferences in map: ${languagePreferences.size}`);
+}
+
+/**
+ * Get language preference for a phone number
+ */
+export async function getLanguagePreference(phoneNumber: string): Promise<Language | null> {
+  const normalized = normalizePhoneNumber(phoneNumber);
+  const language = languagePreferences.get(normalized) || null;
+  console.log(`🔍 Retrieved language preference for ${normalized}: ${language}`);
+  return language;
+}
+
+/**
+ * Clear all language preferences (for testing)
+ */
+export function clearLanguagePreferences(): void {
+  languagePreferences.clear();
+  console.log('🧹 Cleared all language preferences');
+}
 
 /**
  * Handle language selection menu
@@ -33,18 +71,21 @@ export async function handleLanguageSelection(
   switch (currentInput) {
     case "1":
       session.language = "en";
+      await saveLanguagePreference(session.phoneNumber, "en");
       return continueSession(
         `${TranslationService.translate("language_set", "en")}\n\n${TranslationService.translate("back_or_menu", "en")}`,
       );
 
     case "2":
       session.language = "lg";
+      await saveLanguagePreference(session.phoneNumber, "lg");
       return continueSession(
         `${TranslationService.translate("language_set", "lg")}\n\n${TranslationService.translate("back_or_menu", "lg")}`,
       );
 
     case "3":
       session.language = "sw";
+      await saveLanguagePreference(session.phoneNumber, "sw");
       return continueSession(
         `${TranslationService.translate("language_set", "sw")}\n\n${TranslationService.translate("back_or_menu", "sw")}`,
       );

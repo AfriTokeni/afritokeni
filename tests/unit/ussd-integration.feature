@@ -4,6 +4,7 @@ Feature: USSD End-to-End Integration
 
   Background:
     Given I am a registered user with 100000 UGX balance
+    And my language preference is "en"
 
   Scenario: Complete check balance flow
     When I dial "*229#" for integration
