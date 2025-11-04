@@ -36,7 +36,7 @@ jobs:
         with:
           args: deploy --mode production
         env:
-          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN_PRODUCTION }}
       
       - name: Deployment Summary
         run: |
