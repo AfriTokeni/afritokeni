@@ -1,0 +1,15 @@
+[build]
+  command = "pnpm run build"
+  publish = "build"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NPM_FLAGS = "--version" # Dummy flag, we use pnpm
+
+# Enable pnpm
+[build.processing]
+  skip_processing = false
+
+# Use pnpm instead of npm
+[[plugins]]
+  package = "@netlify/plugin-pnpm"
