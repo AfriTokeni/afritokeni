@@ -157,40 +157,28 @@ jobs:
           DFX_NETWORK: local
 
   deploy-preview:
-    name: Deploy Preview
+    name: Wait for Netlify Preview
     runs-on: ubuntu-latest
     needs: [build, test-unit, test-integration]
     if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@v4
-      
-      - uses: pnpm/action-setup@v3
+      - name: Wait for Netlify Deploy
+        uses: josephduffy/wait-for-netlify-action@v1
+        id: netlify
         with:
-          version: 9
+          site_name: "afritokeni"
+          max_timeout: 300
       
-      - uses: actions/setup-node@v4
+      - name: Comment PR with Preview URL
+        uses: actions/github-script@v7
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-      
-      - run: pnpm install --no-frozen-lockfile
-      
-      - name: Build for Preview
-        run: pnpm run build
-        env:
-          AT_USERNAME: ${{ secrets.AT_USERNAME }}
-          AT_API_KEY: ${{ secrets.AT_API_KEY }}
-          AT_SHORT_CODE: ${{ secrets.AT_SHORT_CODE }}
-      
-      - name: Deploy to Netlify
-        uses: nwtgck/actions-netlify@v3.0
-        with:
-          publish-dir: './build'
-          production-deploy: false
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "Deploy from PR #${{ github.event.number }}"
-          alias: pr-${{ github.event.number }}
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-        timeout-minutes: 5
+          script: |
+            const url = '${{ steps.netlify.outputs.url }}';
+            const body = `## 🚀 Netlify Preview Deployed\n\n✅ **Preview URL:** ${url}\n\n**Commit:** \`${context.sha.substring(0, 7)}\`\n\nTests passed! Ready for review.`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
