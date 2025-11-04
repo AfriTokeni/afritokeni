@@ -91,6 +91,10 @@ jobs:
       
       - name: Build Application
         run: pnpm run build
+        env:
+          AT_USERNAME: ${{ secrets.AT_USERNAME }}
+          AT_API_KEY: ${{ secrets.AT_API_KEY }}
+          AT_SHORT_CODE: ${{ secrets.AT_SHORT_CODE }}
       
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4

@@ -9,7 +9,7 @@ import AfricasTalking from "africastalking";
 import { AT_API_KEY, AT_SHORT_CODE, AT_USERNAME } from "$env/static/private";
 
 // Africa's Talking configuration
-// NO FALLBACKS - if env vars not set, service won't initialize (demo mode)
+// NO FALLBACKS - if env vars not set, build will fail
 const credentials = {
   username: AT_USERNAME,
   apiKey: AT_API_KEY,
