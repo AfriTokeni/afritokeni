@@ -99,8 +99,8 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist
-          path: dist/
+          name: build
+          path: build/
           retention-days: 7
 
   test-unit:
