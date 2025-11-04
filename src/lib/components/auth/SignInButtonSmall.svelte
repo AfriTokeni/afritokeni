@@ -7,10 +7,10 @@
   async function handleSignIn() {
     isLoading = true;
     try {
-      const isProduction = import.meta.env.PROD;
+      const isProd = import.meta.env.PROD && window.location.hostname === "afritokeni.com";
 
-      if (isProduction) {
-        // Production: Use id.ai with derivationOrigin
+      if (isProd) {
+        // Production domain only: Use id.ai with derivationOrigin
         await signIn({
           internet_identity: {
             options: {
@@ -20,7 +20,7 @@
           },
         });
       } else {
-        // Local development: Use default Internet Identity
+        // Local dev and preview: Use default Internet Identity
         await signIn({
           internet_identity: {},
         });
