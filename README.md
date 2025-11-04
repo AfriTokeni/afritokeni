@@ -565,7 +565,9 @@ NO fallbacks, NO localStorage for business data
 
 ## 📄 License
 
-MIT License - see [LICENSE](./LICENSE) for details
+Copyright © 2024 AfriTokeni. All Rights Reserved.
+
+This software is proprietary and confidential. Unauthorized copying, distribution, or use is strictly prohibited.
 
 ---
 
