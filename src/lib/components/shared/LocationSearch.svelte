@@ -1,8 +1,8 @@
 <script lang="ts">
-    import {MapPin, Search, X} from "@lucide/svelte";
-    import type {LocationSuggestion} from "$lib/types/auth";
+  import { MapPin, Search, X } from "@lucide/svelte";
+  import type { LocationSuggestion } from "$lib/types/auth";
 
-    interface Props {
+  interface Props {
     value?: LocationSuggestion | null;
     onChange: (location: LocationSuggestion | null) => void;
     placeholder?: string;

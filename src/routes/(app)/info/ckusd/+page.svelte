@@ -1,5 +1,13 @@
 <script lang="ts">
-    import {AlertCircle, ArrowRight, CircleCheckBig, DollarSign, Lock, Shield, TrendingUp,} from "@lucide/svelte";
+  import {
+    AlertCircle,
+    ArrowRight,
+    CircleCheckBig,
+    DollarSign,
+    Lock,
+    Shield,
+    TrendingUp,
+  } from "@lucide/svelte";
 </script>
 
 <svelte:head>

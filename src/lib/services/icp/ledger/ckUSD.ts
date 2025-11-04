@@ -45,7 +45,7 @@ import {
   CkUSDUtils,
   type CkUSDWithdrawalRequest,
   type CkUSDWithdrawalResponse,
-  type USDExchangeRate
+  type USDExchangeRate,
 } from "./types";
 import { CKUSD_LEDGER_CANISTER_ID } from "../canisters/config";
 import {
@@ -54,7 +54,7 @@ import {
   MOCK_CKUSD_BALANCE,
   MOCK_USD_RATE,
   shouldUseMocks,
-  simulateICPDelay
+  simulateICPDelay,
 } from "../utils/mock";
 
 /**
@@ -266,7 +266,7 @@ export class CkUSDService {
 
       // Get ledger actor
       const ledgerActor = await getCkUSDLedgerActor();
-      const senderPrincipal = toPrincipal(request.senderId);
+      const _senderPrincipal = toPrincipal(request.senderId);
       const recipientPrincipal = toPrincipal(request.recipient);
 
       console.log(`📤 Sender: ${request.senderId}`);

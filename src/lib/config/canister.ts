@@ -10,7 +10,8 @@ import * as env from "$env/static/public";
 // Get canister IDs from environment variables (with fallbacks for development)
 export const CANISTER_IDS = {
   // SNS Governance - handles proposals and voting
-  SNS_GOVERNANCE: (env as Record<string, string>).PUBLIC_SNS_GOVERNANCE_CANISTER || "",
+  SNS_GOVERNANCE:
+    (env as Record<string, string>).PUBLIC_SNS_GOVERNANCE_CANISTER || "",
 
   // SNS Index - indexes ledger transactions
   SNS_INDEX: (env as Record<string, string>).PUBLIC_SNS_INDEX_CANISTER || "",
@@ -35,7 +36,8 @@ export const NETWORK = {
 } as const;
 
 // Determine if we should use local replica
-export const USE_LOCAL_REPLICA = (env as Record<string, string>).PUBLIC_USE_LOCAL_REPLICA === "true";
+export const USE_LOCAL_REPLICA =
+  (env as Record<string, string>).PUBLIC_USE_LOCAL_REPLICA === "true";
 
 // Get the appropriate host
 export const getHost = () =>
@@ -43,9 +45,15 @@ export const getHost = () =>
 
 // DAO Governance Configuration (with sensible defaults)
 export const DAO_CONFIG = {
-  MIN_TOKENS_TO_PROPOSE: Number((env as Record<string, string>).PUBLIC_DAO_MIN_TOKENS_TO_PROPOSE) || 1000,
-  MIN_TOKENS_TO_VOTE: Number((env as Record<string, string>).PUBLIC_DAO_MIN_TOKENS_TO_VOTE) || 1,
-  QUORUM_PERCENTAGE: Number((env as Record<string, string>).PUBLIC_DAO_QUORUM_PERCENTAGE) || 20,
-  PASS_THRESHOLD: Number((env as Record<string, string>).PUBLIC_DAO_PASS_THRESHOLD) || 51,
-  VOTING_PERIOD_DAYS: Number((env as Record<string, string>).PUBLIC_DAO_VOTING_PERIOD_DAYS) || 7,
+  MIN_TOKENS_TO_PROPOSE:
+    Number((env as Record<string, string>).PUBLIC_DAO_MIN_TOKENS_TO_PROPOSE) ||
+    1000,
+  MIN_TOKENS_TO_VOTE:
+    Number((env as Record<string, string>).PUBLIC_DAO_MIN_TOKENS_TO_VOTE) || 1,
+  QUORUM_PERCENTAGE:
+    Number((env as Record<string, string>).PUBLIC_DAO_QUORUM_PERCENTAGE) || 20,
+  PASS_THRESHOLD:
+    Number((env as Record<string, string>).PUBLIC_DAO_PASS_THRESHOLD) || 51,
+  VOTING_PERIOD_DAYS:
+    Number((env as Record<string, string>).PUBLIC_DAO_VOTING_PERIOD_DAYS) || 7,
 } as const;

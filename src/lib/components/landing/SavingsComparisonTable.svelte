@@ -1,8 +1,12 @@
 <script lang="ts">
-    import {Bitcoin, Check, TrendingDown, X, Zap} from "@lucide/svelte";
-    import {AFRICAN_CURRENCIES, type AfricanCurrency, getActiveCurrencies,} from "$lib/types/currency";
+  import { Bitcoin, Check, TrendingDown, X, Zap } from "@lucide/svelte";
+  import {
+    AFRICAN_CURRENCIES,
+    type AfricanCurrency,
+    getActiveCurrencies,
+  } from "$lib/types/currency";
 
-    let amount = $state("100");
+  let amount = $state("100");
   let toCountry = $state<AfricanCurrency>("UGX");
   let location = $state<"urban" | "suburban" | "rural" | "remote">("urban");
 
@@ -119,7 +123,10 @@
       <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
         <!-- Amount -->
         <div class="group">
-          <label class="mb-2.5 block text-sm font-medium text-gray-700">
+          <label
+            for="transferAmount"
+            class="mb-2.5 block text-sm font-medium text-gray-700"
+          >
             Transfer Amount
           </label>
           <div class="relative">
@@ -128,6 +135,7 @@
               >$</span
             >
             <input
+              id="transferAmount"
               type="text"
               value={amount}
               oninput={handleAmountChange}
@@ -142,11 +150,15 @@
 
         <!-- Destination -->
         <div class="group">
-          <label class="mb-2.5 block text-sm font-medium text-gray-700">
+          <label
+            for="destinationCountry"
+            class="mb-2.5 block text-sm font-medium text-gray-700"
+          >
             Destination Country
           </label>
           <div class="relative">
             <select
+              id="destinationCountry"
               bind:value={toCountry}
               class="w-full cursor-pointer appearance-none rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-base
 							font-medium text-gray-900 shadow-sm transition-all
@@ -164,11 +176,15 @@
 
         <!-- Location -->
         <div class="group">
-          <label class="mb-2.5 block text-sm font-medium text-gray-700">
+          <label
+            for="recipientLocation"
+            class="mb-2.5 block text-sm font-medium text-gray-700"
+          >
             Recipient Location
           </label>
           <div class="relative">
             <select
+              id="recipientLocation"
               bind:value={location}
               class="w-full cursor-pointer appearance-none rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-base
 							font-medium text-gray-900 shadow-sm transition-all

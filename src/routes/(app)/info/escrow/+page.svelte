@@ -1,5 +1,12 @@
 <script lang="ts">
-    import {AlertTriangle, ArrowRight, CircleCheckBig, Clock, Lock, Shield,} from "@lucide/svelte";
+  import {
+    AlertTriangle,
+    ArrowRight,
+    CircleCheckBig,
+    Clock,
+    Lock,
+    Shield,
+  } from "@lucide/svelte";
 </script>
 
 <svelte:head>

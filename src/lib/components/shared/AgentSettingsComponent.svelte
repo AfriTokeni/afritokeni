@@ -1,13 +1,24 @@
 <script lang="ts">
-    import {demoMode} from "$lib/stores/demoMode";
-    import {principalId} from "$lib/stores/auth";
-    import {toast} from "$lib/stores/toast";
-    import {AlertCircle, Bell, Globe, RotateCcw, Save, Shield, User,} from "@lucide/svelte";
-    import {onMount} from "svelte";
-    import {getDoc, setDoc} from "@junobuild/core";
-    import {AGENT_SETTINGS_CONFIG, getSliderLabel,} from "$lib/config/agentSettings";
+  import { demoMode } from "$lib/stores/demoMode";
+  import { principalId } from "$lib/stores/auth";
+  import { toast } from "$lib/stores/toast";
+  import {
+    AlertCircle,
+    Bell,
+    Globe,
+    RotateCcw,
+    Save,
+    Shield,
+    User,
+  } from "@lucide/svelte";
+  import { onMount } from "svelte";
+  import { getDoc, setDoc } from "@junobuild/core";
+  import {
+    AGENT_SETTINGS_CONFIG,
+    getSliderLabel,
+  } from "$lib/config/agentSettings";
 
-    interface AgentSettings {
+  interface AgentSettings {
     commissionRate: number;
     maxCashLimit: number;
     operatingHours: { start: string; end: string };
@@ -449,7 +460,9 @@
       <div class="space-y-6">
         <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
           <div>
-            <label for="businessName" class="mb-2 block text-sm font-medium text-gray-700"
+            <label
+              for="businessName"
+              class="mb-2 block text-sm font-medium text-gray-700"
               >Business Name</label
             >
             <input
@@ -461,7 +474,9 @@
           </div>
 
           <div>
-            <label for="phoneNumber" class="mb-2 block text-sm font-medium text-gray-700"
+            <label
+              for="phoneNumber"
+              class="mb-2 block text-sm font-medium text-gray-700"
               >Phone Number</label
             >
             <input
@@ -473,7 +488,9 @@
           </div>
 
           <div>
-            <label for="location" class="mb-2 block text-sm font-medium text-gray-700"
+            <label
+              for="location"
+              class="mb-2 block text-sm font-medium text-gray-700"
               >Location</label
             >
             <input
@@ -485,7 +502,9 @@
           </div>
 
           <div>
-            <label for="businessAddress" class="mb-2 block text-sm font-medium text-gray-700"
+            <label
+              for="businessAddress"
+              class="mb-2 block text-sm font-medium text-gray-700"
               >Business Address</label
             >
             <input
@@ -556,7 +575,9 @@
           <div class="rounded-lg bg-gray-50 p-6">
             <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
-                <label for="openingTime" class="mb-3 block text-sm font-medium text-gray-700"
+                <label
+                  for="openingTime"
+                  class="mb-3 block text-sm font-medium text-gray-700"
                   >Opening Time</label
                 >
                 <input
@@ -567,7 +588,9 @@
                 />
               </div>
               <div>
-                <label for="closingTime" class="mb-3 block text-sm font-medium text-gray-700"
+                <label
+                  for="closingTime"
+                  class="mb-3 block text-sm font-medium text-gray-700"
                   >Closing Time</label
                 >
                 <input
@@ -584,8 +607,9 @@
         <!-- Commission Rate Slider -->
         <div>
           <div class="mb-3 flex items-center justify-between">
-            <label for="commissionRate" class="text-sm font-medium text-gray-700"
-              >Commission Rate</label
+            <label
+              for="commissionRate"
+              class="text-sm font-medium text-gray-700">Commission Rate</label
             >
             <span class="font-mono text-2xl font-bold text-black"
               >{settings.commissionRate}%</span
@@ -675,7 +699,9 @@
         <!-- Minimum Transaction Slider -->
         <div>
           <div class="mb-3 flex items-center justify-between">
-            <label for="minimumTransaction" class="text-sm font-medium text-gray-700"
+            <label
+              for="minimumTransaction"
+              class="text-sm font-medium text-gray-700"
               >Minimum Transaction</label
             >
             <span class="font-mono text-2xl font-bold text-black"
@@ -713,7 +739,8 @@
 
         <!-- Toggles -->
         <div class="space-y-4 border-t border-gray-200 pt-4">
-          <div class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100"
+          <div
+            class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100"
           >
             <div>
               <span class="text-sm font-medium text-gray-900"
@@ -740,7 +767,8 @@
             </button>
           </div>
 
-          <div class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100"
+          <div
+            class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100"
           >
             <div>
               <span class="text-sm font-medium text-gray-900"
@@ -772,7 +800,8 @@
       <!-- Security Settings -->
       <div class="space-y-6">
         <div class="space-y-4">
-          <div class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100"
+          <div
+            class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100"
           >
             <div>
               <span class="text-sm font-medium text-gray-900"
@@ -800,7 +829,9 @@
           </div>
 
           <div>
-            <label for="autoAcceptLimit" class="mb-2 block text-sm font-medium text-gray-700"
+            <label
+              for="autoAcceptLimit"
+              class="mb-2 block text-sm font-medium text-gray-700"
               >Auto-Accept Limit (UGX)</label
             >
             <input
@@ -822,7 +853,9 @@
           </h3>
           <div class="space-y-4">
             <div>
-              <label for="currentPassword" class="mb-2 block text-sm font-medium text-gray-700"
+              <label
+                for="currentPassword"
+                class="mb-2 block text-sm font-medium text-gray-700"
                 >Current Password</label
               >
               <input
@@ -832,7 +865,9 @@
               />
             </div>
             <div>
-              <label for="newPassword" class="mb-2 block text-sm font-medium text-gray-700"
+              <label
+                for="newPassword"
+                class="mb-2 block text-sm font-medium text-gray-700"
                 >New Password</label
               >
               <input
@@ -842,7 +877,9 @@
               />
             </div>
             <div>
-              <label for="confirmPassword" class="mb-2 block text-sm font-medium text-gray-700"
+              <label
+                for="confirmPassword"
+                class="mb-2 block text-sm font-medium text-gray-700"
                 >Confirm New Password</label
               >
               <input
@@ -858,7 +895,8 @@
       <!-- Notifications Settings -->
       <div class="space-y-6">
         <div class="space-y-4">
-          <div class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100"
+          <div
+            class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100"
           >
             <div>
               <span class="text-sm font-medium text-gray-900"
@@ -886,7 +924,8 @@
             </button>
           </div>
 
-          <div class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100 {!settings.notificationsEnabled
+          <div
+            class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100 {!settings.notificationsEnabled
               ? 'opacity-50'
               : ''}"
           >
@@ -915,7 +954,8 @@
             </button>
           </div>
 
-          <div class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100 {!settings.notificationsEnabled
+          <div
+            class="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100 {!settings.notificationsEnabled
               ? 'opacity-50'
               : ''}"
           >

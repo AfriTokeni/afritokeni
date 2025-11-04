@@ -11,16 +11,20 @@
  * Usage: <AgentFinder />
 -->
 <script lang="ts">
-    import {Navigation} from "lucide-svelte";
-    import {demoMode} from "$lib/stores/demoMode";
-    import {fetchAgents} from "$lib/services/data/agentsData";
-    import {type Agent, calculateDistance, type UserLocation,} from "$lib/utils/agents";
-    import AgentSearchFilters from "./AgentSearchFilters.svelte";
-    import AgentCard from "./AgentCard.svelte";
-    import AgentMap from "./AgentMap.svelte";
-    import "leaflet/dist/leaflet.css";
+  import { Navigation } from "lucide-svelte";
+  import { demoMode } from "$lib/stores/demoMode";
+  import { fetchAgents } from "$lib/services/data/agentsData";
+  import {
+    type Agent,
+    calculateDistance,
+    type UserLocation,
+  } from "$lib/utils/agents";
+  import AgentSearchFilters from "./AgentSearchFilters.svelte";
+  import AgentCard from "./AgentCard.svelte";
+  import AgentMap from "./AgentMap.svelte";
+  import "leaflet/dist/leaflet.css";
 
-    // Internal state
+  // Internal state
   let agents = $state<Agent[]>([]);
   let userLocation = $state<UserLocation | null>(null);
   let searchQuery = $state("");

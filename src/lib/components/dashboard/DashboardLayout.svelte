@@ -1,14 +1,14 @@
 <script lang="ts">
-    import {goto} from "$app/navigation";
-    import {page} from "$app/state";
-    // Import user routes
-    import {Search} from "@lucide/svelte";
-    import CollapsibleSidebar from "./CollapsibleSidebar.svelte";
-    import {user_desktop_routes} from "$lib/routes/userRoutes";
-    import {agent_desktop_routes} from "$lib/routes/agentRoutes";
-    import DemoModeToggle from "$lib/components/shared/DemoModeToggle.svelte";
+  import { goto } from "$app/navigation";
+  import { page } from "$app/state";
+  // Import user routes
+  import { Search } from "@lucide/svelte";
+  import CollapsibleSidebar from "./CollapsibleSidebar.svelte";
+  import { user_desktop_routes } from "$lib/routes/userRoutes";
+  import { agent_desktop_routes } from "$lib/routes/agentRoutes";
+  import DemoModeToggle from "$lib/components/shared/DemoModeToggle.svelte";
 
-    interface Route {
+  interface Route {
     id: string;
     path: string;
     label: string;

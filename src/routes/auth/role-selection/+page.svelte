@@ -1,12 +1,12 @@
 <script lang="ts">
-    import {goto} from "$app/navigation";
-    import {ArrowRight, Shield, User} from "@lucide/svelte";
-    import {toast} from "$lib/stores/toast";
-    import {authUser} from "$lib/stores/auth";
-    import {setDoc} from "@junobuild/core";
-    import {onMount} from "svelte";
+  import { goto } from "$app/navigation";
+  import { ArrowRight, Shield, User } from "@lucide/svelte";
+  import { toast } from "$lib/stores/toast";
+  import { authUser } from "$lib/stores/auth";
+  import { setDoc } from "@junobuild/core";
+  import { onMount } from "svelte";
 
-    type UserRole = "user" | "agent";
+  type UserRole = "user" | "agent";
 
   let selectedRole = $state<UserRole | null>(null);
   let isLoading = $state(false);

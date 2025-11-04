@@ -1,10 +1,10 @@
 <script lang="ts">
-    import "../../app.css";
-    import favicon from "$lib/assets/favicon.svg";
-    import Header from "$lib/components/layout/Header.svelte";
-    import Footer from "$lib/components/layout/Footer.svelte";
+  import "../../app.css";
+  import favicon from "$lib/assets/favicon.svg";
+  import Header from "$lib/components/layout/Header.svelte";
+  import Footer from "$lib/components/layout/Footer.svelte";
 
-    let { children } = $props();
+  let { children } = $props();
 </script>
 
 <svelte:head>

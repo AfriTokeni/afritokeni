@@ -3,10 +3,10 @@
  * Allows users to start KYC verification process
  -->
 <script lang="ts">
-    import {AlertCircle, Camera, FileText, Upload, X} from "lucide-svelte";
-    import {toast} from "$lib/stores/toast";
+  import { AlertCircle, Camera, FileText, Upload, X } from "lucide-svelte";
+  import { toast } from "$lib/stores/toast";
 
-    interface Props {
+  interface Props {
     isOpen: boolean;
     onClose: () => void;
     onSubmit: (kycData: any) => Promise<void>;
@@ -124,13 +124,15 @@
             Upload your documents for verification
           </p>
         </div>
-        <button aria-label="Toggle" onclick={handleClose}
+        <button
+          aria-label="Toggle"
+          onclick={handleClose}
           disabled={isSubmitting}
           class="rounded-lg p-2 transition-colors hover:bg-gray-100 disabled:opacity-50"
           type="button"
         >
-              <X class="h-5 w-5" />
-            </button>
+          <X class="h-5 w-5" />
+        </button>
       </div>
 
       <!-- Content -->
@@ -152,10 +154,14 @@
 
         <!-- Document Type -->
         <div>
-          <label class="mb-2 block text-sm font-medium text-gray-700">
+          <label
+            for="documentType"
+            class="mb-2 block text-sm font-medium text-gray-700"
+          >
             Document Type *
           </label>
           <select
+            id="documentType"
             bind:value={documentType}
             class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-transparent focus:ring-2 focus:ring-purple-600"
           >
@@ -184,9 +190,9 @@
 
         <!-- Document Front -->
         <div>
-          <label class="mb-2 block text-sm font-medium text-gray-700">
+          <span class="mb-2 block text-sm font-medium text-gray-700">
             Document Front * {documentFront ? "✓" : ""}
-          </label>
+          </span>
           <label
             class="flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 transition-colors hover:bg-gray-50"
           >
@@ -211,9 +217,9 @@
         <!-- Document Back (for National ID) -->
         {#if documentType === "national_id"}
           <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700">
+            <span class="mb-2 block text-sm font-medium text-gray-700">
               Document Back * {documentBack ? "✓" : ""}
-            </label>
+            </span>
             <label
               class="flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 transition-colors hover:bg-gray-50"
             >
@@ -238,9 +244,9 @@
 
         <!-- Selfie -->
         <div>
-          <label class="mb-2 block text-sm font-medium text-gray-700">
+          <span class="mb-2 block text-sm font-medium text-gray-700">
             Selfie with Document * {selfie ? "✓" : ""}
-          </label>
+          </span>
           <label
             class="flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 transition-colors hover:bg-gray-50"
           >

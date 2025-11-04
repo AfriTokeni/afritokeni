@@ -1,7 +1,7 @@
 <script lang="ts">
-    import CkBTCBalanceCard from "$lib/components/shared/CkBTCBalanceCard.svelte";
-    import CkUSDBalanceCard from "$lib/components/shared/CkUSDBalanceCard.svelte";
-    import ProcessWithdrawalsComponent from "$lib/components/shared/ProcessWithdrawalsComponent.svelte";
+  import CkBTCBalanceCard from "$lib/components/shared/CkBTCBalanceCard.svelte";
+  import CkUSDBalanceCard from "$lib/components/shared/CkUSDBalanceCard.svelte";
+  import ProcessWithdrawalsComponent from "$lib/components/shared/ProcessWithdrawalsComponent.svelte";
 </script>
 
 <svelte:head>

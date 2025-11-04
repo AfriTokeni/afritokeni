@@ -5,10 +5,16 @@
  * Provides quick actions for deposit, send, and exchange
 -->
 <script lang="ts">
-    import {onMount} from "svelte";
-    import {DollarSign, Download, RefreshCw, Send, TrendingUp,} from "@lucide/svelte";
+  import { onMount } from "svelte";
+  import {
+    DollarSign,
+    Download,
+    RefreshCw,
+    Send,
+    TrendingUp,
+  } from "@lucide/svelte";
 
-    interface Props {
+  interface Props {
     principalId: string;
     preferredCurrency?: string;
     showActions?: boolean;

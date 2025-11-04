@@ -277,7 +277,7 @@ export async function handleVerification(
   session: USSDSession,
 ): Promise<string> {
   const lang = session.language || "en";
-  const translationService = new TranslationService();
+  const _translationService = new TranslationService();
   const sanitized_input = input.split("*")[input.split("*").length - 1];
   console.log(
     `🔍 Verification for ${session.phoneNumber}, attempt ${(session.data.verificationAttempts || 0) + 1}, input: "${sanitized_input}"`,

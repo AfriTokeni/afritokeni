@@ -1,7 +1,7 @@
 <script lang="ts">
-    import {X, Zap} from "@lucide/svelte";
+  import { X, Zap } from "@lucide/svelte";
 
-    interface Props {
+  interface Props {
     isDemoMode: boolean;
     onDisableDemo: () => void;
   }

@@ -1,9 +1,9 @@
 <script lang="ts">
-    import {Star, X} from "@lucide/svelte";
-    import type {Agent} from "$lib/utils/agents";
-    import {toast} from "$lib/stores/toast";
+  import { Star, X } from "@lucide/svelte";
+  import type { Agent } from "$lib/utils/agents";
+  import { toast } from "$lib/stores/toast";
 
-    interface Props {
+  interface Props {
     agent: Agent;
     onClose: () => void;
     onSubmit: (rating: number, comment: string) => void;
@@ -38,9 +38,13 @@
         <h3 class="text-xl font-bold text-gray-900">Rate Your Experience</h3>
         <p class="mt-1 text-sm text-gray-600">with {agent.businessName}</p>
       </div>
-      <button aria-label="Toggle" onclick={onClose} class="p-1 text-gray-400 hover:text-gray-600">
-              <X class="h-5 w-5" />
-            </button>
+      <button
+        aria-label="Toggle"
+        onclick={onClose}
+        class="p-1 text-gray-400 hover:text-gray-600"
+      >
+        <X class="h-5 w-5" />
+      </button>
     </div>
 
     <!-- Star Rating -->
@@ -76,10 +80,14 @@
 
     <!-- Comment -->
     <div>
-      <label class="mb-2 block text-sm font-medium text-gray-700">
+      <label
+        for="reviewComment"
+        class="mb-2 block text-sm font-medium text-gray-700"
+      >
         Share your experience (optional)
       </label>
       <textarea
+        id="reviewComment"
         bind:value={comment}
         placeholder="Tell us about your experience with this agent..."
         rows={4}

@@ -10,11 +10,11 @@
  * Usage: <Leaderboard maxEntries={10} />
 -->
 <script lang="ts">
-    import {Award, RefreshCw, TrendingUp, Trophy} from "lucide-svelte";
-    import {demoMode} from "$lib/stores/demoMode";
-    import {fetchLeaderboard} from "$lib/services/data/daoData";
+  import { Award, RefreshCw, TrendingUp, Trophy } from "lucide-svelte";
+  import { demoMode } from "$lib/stores/demoMode";
+  import { fetchLeaderboard } from "$lib/services/data/daoData";
 
-    interface Props {
+  interface Props {
     maxEntries?: number;
   }
 

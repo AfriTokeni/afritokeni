@@ -7,7 +7,11 @@
  */
 
 import { CkUSDService } from "$lib/services/icp";
-import { generatePrincipalFromIdentifier, generatePrincipalFromPhone, isPhoneNumber } from "$lib/utils/principalUtils";
+import {
+  generatePrincipalFromIdentifier,
+  generatePrincipalFromPhone,
+  isPhoneNumber,
+} from "$lib/utils/principalUtils";
 
 /**
  * Fetch ckUSD balance

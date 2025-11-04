@@ -1,8 +1,8 @@
 <script lang="ts">
-    import {signIn} from "@junobuild/core";
-    import {toast} from "$lib/stores/toast";
+  import { signIn } from "@junobuild/core";
+  import { toast } from "$lib/stores/toast";
 
-    let isLoading = $state(false);
+  let isLoading = $state(false);
 
   async function handleSignIn() {
     isLoading = true;

@@ -1,8 +1,8 @@
 <script lang="ts">
-    import {MapPin, Phone, User, X} from "@lucide/svelte";
-    import {Modal} from "flowbite-svelte";
+  import { MapPin, Phone, User, X } from "@lucide/svelte";
+  import { Modal } from "flowbite-svelte";
 
-    interface OnboardingData {
+  interface OnboardingData {
     firstName: string;
     lastName: string;
     email: string;
@@ -92,11 +92,13 @@
           Let's set up your profile (Step {step} of 3)
         </p>
       </div>
-      <button aria-label="Toggle" onclick={handleSkip}
+      <button
+        aria-label="Toggle"
+        onclick={handleSkip}
         class="text-gray-400 transition-colors hover:text-gray-600"
       >
-              <X class="h-5 w-5" />
-            </button>
+        <X class="h-5 w-5" />
+      </button>
     </div>
 
     <!-- Progress Bar -->
@@ -132,10 +134,13 @@
           </div>
 
           <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700"
+            <label
+              for="firstName"
+              class="mb-2 block text-sm font-medium text-gray-700"
               >First Name *</label
             >
             <input
+              id="firstName"
               type="text"
               bind:value={formData.firstName}
               class="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-gray-500 focus:outline-none {errors.firstName
@@ -149,10 +154,13 @@
           </div>
 
           <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700"
+            <label
+              for="lastName"
+              class="mb-2 block text-sm font-medium text-gray-700"
               >Last Name *</label
             >
             <input
+              id="lastName"
               type="text"
               bind:value={formData.lastName}
               class="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-gray-500 focus:outline-none {errors.lastName
@@ -183,10 +191,13 @@
           </div>
 
           <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700"
+            <label
+              for="phone"
+              class="mb-2 block text-sm font-medium text-gray-700"
               >Phone Number *</label
             >
             <input
+              id="phone"
               type="tel"
               bind:value={formData.phone}
               class="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-gray-500 focus:outline-none {errors.phone
@@ -200,10 +211,13 @@
           </div>
 
           <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700"
+            <label
+              for="preferredCurrency"
+              class="mb-2 block text-sm font-medium text-gray-700"
               >Preferred Currency *</label
             >
             <select
+              id="preferredCurrency"
               bind:value={formData.preferredCurrency}
               class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-gray-500 focus:outline-none"
             >
@@ -233,10 +247,13 @@
           </div>
 
           <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700"
+            <label
+              for="country"
+              class="mb-2 block text-sm font-medium text-gray-700"
               >Country *</label
             >
             <input
+              id="country"
               type="text"
               bind:value={formData.country}
               class="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-gray-500 focus:outline-none {errors.country
@@ -250,10 +267,12 @@
           </div>
 
           <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700"
-              >City *</label
+            <label
+              for="city"
+              class="mb-2 block text-sm font-medium text-gray-700">City *</label
             >
             <input
+              id="city"
               type="text"
               bind:value={formData.city}
               class="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-gray-500 focus:outline-none {errors.city

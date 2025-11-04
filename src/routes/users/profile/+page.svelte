@@ -1,20 +1,20 @@
 <script lang="ts">
-    import {onMount} from "svelte";
-    import {AlertCircle, LogOut} from "@lucide/svelte";
-    import {goto} from "$app/navigation";
-    import {principalId} from "$lib/stores/auth";
-    import {toast} from "$lib/stores/toast";
-    import ProfileHeader from "./ProfileHeader.svelte";
-    import ProfileInfoCards from "./ProfileInfoCards.svelte";
-    import AccountSettings from "./AccountSettings.svelte";
-    import SecurityPrivacy from "./SecurityPrivacy.svelte";
-    import TransactionLimits from "./TransactionLimits.svelte";
-    import HelpSupport from "./HelpSupport.svelte";
-    import ProfileOnboardingModal from "$lib/components/shared/ProfileOnboardingModal.svelte";
-    import KYCModal from "$lib/components/shared/KYCModal.svelte";
-    import {getDoc, setDoc, signOut, uploadFile} from "@junobuild/core";
+  import { onMount } from "svelte";
+  import { AlertCircle, LogOut } from "@lucide/svelte";
+  import { goto } from "$app/navigation";
+  import { principalId } from "$lib/stores/auth";
+  import { toast } from "$lib/stores/toast";
+  import ProfileHeader from "./ProfileHeader.svelte";
+  import ProfileInfoCards from "./ProfileInfoCards.svelte";
+  import AccountSettings from "./AccountSettings.svelte";
+  import SecurityPrivacy from "./SecurityPrivacy.svelte";
+  import TransactionLimits from "./TransactionLimits.svelte";
+  import HelpSupport from "./HelpSupport.svelte";
+  import ProfileOnboardingModal from "$lib/components/shared/ProfileOnboardingModal.svelte";
+  import KYCModal from "$lib/components/shared/KYCModal.svelte";
+  import { getDoc, setDoc, signOut, uploadFile } from "@junobuild/core";
 
-    // Real user data from Juno
+  // Real user data from Juno
   let userData = $state<any>(null);
   let userDoc = $state<any>(null); // Store the full document with version
   let isLoading = $state(true);

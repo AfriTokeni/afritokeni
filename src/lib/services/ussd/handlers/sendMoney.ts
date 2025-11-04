@@ -16,7 +16,7 @@ export async function handleSendMoney(
   input: string,
   session: USSDSession,
   sendSMS: (phone: string, msg: string) => Promise<any>,
-  goBackToMenu?: () => Promise<string>,
+  _goBackToMenu?: () => Promise<string>,
 ): Promise<string> {
   // Parse input for multi-step USSD
   const inputParts = input.split("*");
@@ -226,10 +226,12 @@ ${TranslationService.translate("thank_you", lang)}`);
 0. ${TranslationService.translate("exit", lang)}`);
       }
 
-      const currency = getSessionCurrency(session);
-      session.step = 1;
-      return continueSession(
-        `${TranslationService.translate("enter_amount", lang)} (${currency}):`,
-      );
+      {
+        const currency = getSessionCurrency(session);
+        session.step = 1;
+        return continueSession(
+          `${TranslationService.translate("enter_amount", lang)} (${currency}):`,
+        );
+      }
   }
 }

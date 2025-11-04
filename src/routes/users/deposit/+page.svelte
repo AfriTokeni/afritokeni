@@ -1,12 +1,12 @@
 <script lang="ts">
-    import {goto} from "$app/navigation";
-    import {ArrowLeft, Check, MapPin} from "@lucide/svelte";
-    import {toast} from "$lib/stores/toast";
-    import {demoMode} from "$lib/stores/demoMode";
-    import {fetchAgents} from "$lib/services/data/agentsData";
-    import {onMount} from "svelte";
+  import { goto } from "$app/navigation";
+  import { ArrowLeft, Check, MapPin } from "@lucide/svelte";
+  import { toast } from "$lib/stores/toast";
+  import { demoMode } from "$lib/stores/demoMode";
+  import { fetchAgents } from "$lib/services/data/agentsData";
+  import { onMount } from "svelte";
 
-    // State
+  // State
   let step = $state<"amount" | "agent" | "confirmation">("amount");
   let amount = $state("");
   let selectedAgent = $state<any>(null);
@@ -76,9 +76,13 @@
 <div class="mx-auto max-w-2xl">
   <!-- Header -->
   <div class="mb-6 flex items-center gap-4">
-    <button aria-label="Toggle" onclick={goBack} class="rounded-lg p-2 hover:bg-gray-100">
-              <ArrowLeft class="h-5 w-5" />
-            </button>
+    <button
+      aria-label="Toggle"
+      onclick={goBack}
+      class="rounded-lg p-2 hover:bg-gray-100"
+    >
+      <ArrowLeft class="h-5 w-5" />
+    </button>
     <h1 class="text-2xl font-bold">Deposit Cash</h1>
   </div>
 
@@ -127,10 +131,13 @@
       <h2 class="mb-4 text-xl font-bold">Enter Amount</h2>
       <div class="space-y-4">
         <div>
-          <label class="mb-2 block text-sm font-medium text-gray-700"
+          <label
+            for="depositAmount"
+            class="mb-2 block text-sm font-medium text-gray-700"
             >Amount (UGX)</label
           >
           <input
+            id="depositAmount"
             type="number"
             bind:value={amount}
             placeholder="Enter amount"

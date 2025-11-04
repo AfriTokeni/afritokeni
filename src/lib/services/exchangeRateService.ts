@@ -33,8 +33,12 @@ import * as env from "$env/static/public";
 const API_URL =
   (env as Record<string, string>).PUBLIC_EXCHANGE_RATE_API_URL ||
   "https://api.exchangerate-api.com/v4/latest/USD";
-const CACHE_DURATION = Number((env as Record<string, string>).PUBLIC_EXCHANGE_RATE_CACHE_DURATION) || 3600000; // 1 hour
-const SPREAD_PERCENTAGE = Number((env as Record<string, string>).PUBLIC_EXCHANGE_SPREAD_PERCENTAGE) || 0.5;
+const CACHE_DURATION =
+  Number((env as Record<string, string>).PUBLIC_EXCHANGE_RATE_CACHE_DURATION) ||
+  3600000; // 1 hour
+const SPREAD_PERCENTAGE =
+  Number((env as Record<string, string>).PUBLIC_EXCHANGE_SPREAD_PERCENTAGE) ||
+  0.5;
 
 let cachedRates: ExchangeRates | null = null;
 let lastFetch: number = 0;

@@ -1,7 +1,12 @@
 <script lang="ts">
-    import {ChevronDown, ChevronUp, HelpCircle, MessageCircle,} from "@lucide/svelte";
+  import {
+    ChevronDown,
+    ChevronUp,
+    HelpCircle,
+    MessageCircle,
+  } from "@lucide/svelte";
 
-    interface Props {
+  interface Props {
     expanded: boolean;
     onToggle: () => void;
   }

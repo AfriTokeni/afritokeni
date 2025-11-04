@@ -1,7 +1,7 @@
 <script lang="ts">
-    import type {ProgressIndicatorProps} from "$lib/types/depositTypes";
+  import type { ProgressIndicatorProps } from "$lib/types/depositTypes";
 
-    interface Props extends ProgressIndicatorProps {}
+  interface Props extends ProgressIndicatorProps {}
 
   let { currentStep, steps }: Props = $props();
 

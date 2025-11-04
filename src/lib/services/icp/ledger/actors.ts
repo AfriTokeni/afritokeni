@@ -28,7 +28,7 @@ import {
   CKBTC_MINTER_CANISTER_ID,
   CKUSD_LEDGER_CANISTER_ID,
   IC_HOST,
-  IS_LOCAL_DEV
+  IS_LOCAL_DEV,
 } from "../canisters/config";
 
 /**

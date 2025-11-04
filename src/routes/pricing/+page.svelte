@@ -1,21 +1,21 @@
 <script lang="ts">
-    import Header from "$lib/components/layout/Header.svelte";
-    import Footer from "$lib/components/layout/Footer.svelte";
-    import {
-        Bitcoin,
-        Calculator,
-        CircleCheckBig,
-        Clock,
-        Info,
-        MapPin,
-        Shield,
-        TrendingDown,
-        TrendingUp,
-        Users,
-        Zap,
-    } from "@lucide/svelte";
+  import Header from "$lib/components/layout/Header.svelte";
+  import Footer from "$lib/components/layout/Footer.svelte";
+  import {
+    Bitcoin,
+    Calculator,
+    CircleCheckBig,
+    Clock,
+    Info,
+    MapPin,
+    Shield,
+    TrendingDown,
+    TrendingUp,
+    Users,
+    Zap,
+  } from "@lucide/svelte";
 
-    let activeSection = $state<"overview" | "calculator" | "examples">(
+  let activeSection = $state<"overview" | "calculator" | "examples">(
     "overview",
   );
 
@@ -172,6 +172,7 @@
         class="flex w-full max-w-md gap-1 rounded-xl bg-gray-100 p-1 sm:max-w-lg"
       >
         {#each [{ id: "overview", label: "Overview", icon: Info }, { id: "calculator", label: "Calculator", icon: Calculator }, { id: "examples", label: "Examples", icon: TrendingUp }] as { id, label, icon }}
+          {@const Icon = icon}
           <button
             onclick={() =>
               (activeSection = id as "overview" | "calculator" | "examples")}
@@ -180,7 +181,7 @@
               ? 'bg-white text-gray-900 shadow-sm'
               : 'text-gray-600 hover:text-gray-900'}"
           >
-            <svelte:component this={icon} class="h-3 w-3 sm:h-4 sm:w-4" />
+            <Icon class="h-3 w-3 sm:h-4 sm:w-4" />
             <span class="hidden sm:inline">{label}</span>
             <span class="sm:hidden">{label.slice(0, 3)}</span>
           </button>

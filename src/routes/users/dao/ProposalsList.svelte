@@ -1,8 +1,21 @@
 <script lang="ts">
-    import {CheckCircle, Clock, DollarSign, FileText, Globe, Lightbulb, Shield, XCircle,} from "@lucide/svelte";
-    import {calculateVotePercentage, getTotalVotes, type Proposal,} from "$lib/utils/dao";
+  import {
+    CheckCircle,
+    Clock,
+    DollarSign,
+    FileText,
+    Globe,
+    Lightbulb,
+    Shield,
+    XCircle,
+  } from "@lucide/svelte";
+  import {
+    calculateVotePercentage,
+    getTotalVotes,
+    type Proposal,
+  } from "$lib/utils/dao";
 
-    interface Props {
+  interface Props {
     proposals: Proposal[];
     onVote: (proposalId: string, choice: "yes" | "no" | "abstain") => void;
   }
@@ -161,9 +174,7 @@
       >
         <Clock class="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
         <span class="wrap-break-word"
-          >Ends: {new Date(
-            proposal.endsAt || 0,
-          ).toLocaleDateString()}</span
+          >Ends: {new Date(proposal.endsAt || 0).toLocaleDateString()}</span
         >
       </div>
     </div>

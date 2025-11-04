@@ -3,7 +3,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "public/workers", ".svelte-kit", "build", "**/*.svelte", "**/*.feature", "tests/**", "scripts/**"] },
+  { ignores: ["dist", "public/workers", ".svelte-kit", "build", "**/*.svelte", "**/*.feature", "tests/**", "scripts/**", ".dfx/**"] },
   // Strict rules for src/ files
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],

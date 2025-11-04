@@ -1,8 +1,8 @@
 <script lang="ts">
-    import {AlertCircle, ArrowRight, X} from "@lucide/svelte";
-    import {goto} from "$app/navigation";
+  import { AlertCircle, ArrowRight, X } from "@lucide/svelte";
+  import { goto } from "$app/navigation";
 
-    interface Props {
+  interface Props {
     missingFields: string[];
     onDismiss: () => void;
     onComplete: () => void;

@@ -1,8 +1,13 @@
 <script lang="ts">
-    import {AlertTriangle, ArrowRight, DollarSign, TrendingDown,} from "@lucide/svelte";
-    import {formatCurrencyAmount} from "$lib/types/currency";
+  import {
+    AlertTriangle,
+    ArrowRight,
+    DollarSign,
+    TrendingDown,
+  } from "@lucide/svelte";
+  import { formatCurrencyAmount } from "$lib/types/currency";
 
-    interface Props {
+  interface Props {
     type: "low_digital" | "low_cash" | "critical_digital" | "critical_cash";
     currentBalance: number;
     currency?: string;

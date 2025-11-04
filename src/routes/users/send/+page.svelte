@@ -1,14 +1,23 @@
 <script lang="ts">
-    import {onMount} from "svelte";
-    import {goto} from "$app/navigation";
-    import {AlertCircle, Bitcoin, DollarSign, Search, Send,} from "@lucide/svelte";
-    import {type AfricanCurrency, formatCurrencyAmount,} from "$lib/types/currency";
-    import PrimaryBalanceCard from "$lib/components/dashboard/PrimaryBalanceCard.svelte";
-    import CkBTCBalanceCard from "$lib/components/shared/CkBTCBalanceCard.svelte";
-    import CkUSDBalanceCard from "$lib/components/shared/CkUSDBalanceCard.svelte";
-    import {getUserBalance, getUserData} from "$lib/services/user/userService";
+  import { onMount } from "svelte";
+  import { goto } from "$app/navigation";
+  import {
+    AlertCircle,
+    Bitcoin,
+    DollarSign,
+    Search,
+    Send,
+  } from "@lucide/svelte";
+  import {
+    type AfricanCurrency,
+    formatCurrencyAmount,
+  } from "$lib/types/currency";
+  import PrimaryBalanceCard from "$lib/components/dashboard/PrimaryBalanceCard.svelte";
+  import CkBTCBalanceCard from "$lib/components/shared/CkBTCBalanceCard.svelte";
+  import CkUSDBalanceCard from "$lib/components/shared/CkUSDBalanceCard.svelte";
+  import { getUserBalance, getUserData } from "$lib/services/user/userService";
 
-    type SendType = "local" | "ckbtc" | "ckusd";
+  type SendType = "local" | "ckbtc" | "ckusd";
   type SendStep = "amount" | "recipient" | "confirmation";
 
   // State

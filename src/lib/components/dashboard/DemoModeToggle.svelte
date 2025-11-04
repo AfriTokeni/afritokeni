@@ -1,7 +1,7 @@
 <script lang="ts">
-    import {Zap} from "@lucide/svelte";
+  import { Zap } from "@lucide/svelte";
 
-    interface Props {
+  interface Props {
     isDemoMode: boolean;
     onToggle: () => void;
   }

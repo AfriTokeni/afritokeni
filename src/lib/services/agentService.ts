@@ -207,7 +207,7 @@ export class AgentService {
   static async depositCashToAgent(
     agentId: string,
     amount: number,
-    description?: string,
+    _description: string,
   ): Promise<boolean> {
     try {
       const agent = await this.getAgent(agentId);

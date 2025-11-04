@@ -269,7 +269,7 @@ export class UserService {
 
   static async getUserPin(
     phoneNumber: string,
-    satellite?: any,
+    _satellite?: any,
   ): Promise<UserPin | null> {
     try {
       const doc = await getDoc({

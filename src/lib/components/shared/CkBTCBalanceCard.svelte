@@ -11,12 +11,15 @@
  * Usage: <CkBTCBalanceCard onDeposit={...} onSend={...} />
 -->
 <script lang="ts">
-    import {Bitcoin, Download, RefreshCw, Send,} from "lucide-svelte";
-    import {demoMode} from "$lib/stores/demoMode";
-    import {principalId} from "$lib/stores/auth";
-    import {fetchCkBTCBalance, satoshisToBTC,} from "$lib/services/data/ckbtcData";
+  import { Bitcoin, Download, RefreshCw, Send } from "lucide-svelte";
+  import { demoMode } from "$lib/stores/demoMode";
+  import { principalId } from "$lib/stores/auth";
+  import {
+    fetchCkBTCBalance,
+    satoshisToBTC,
+  } from "$lib/services/data/ckbtcData";
 
-    interface Props {
+  interface Props {
     showActions?: boolean;
     preferredCurrency?: string;
     onDeposit?: () => void;

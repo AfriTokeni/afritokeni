@@ -1,10 +1,10 @@
 <script lang="ts">
-    import {goto} from "$app/navigation";
-    import {page} from "$app/state";
-    import {ChevronRight, LogOut} from "@lucide/svelte";
-    import {signOut} from "@junobuild/core";
+  import { goto } from "$app/navigation";
+  import { page } from "$app/state";
+  import { ChevronRight, LogOut } from "@lucide/svelte";
+  import { signOut } from "@junobuild/core";
 
-    interface Route {
+  interface Route {
     id: string;
     path: string;
     label: string;

@@ -11,12 +11,16 @@
  * Usage: <FiatBalanceCard onDeposit={...} onWithdraw={...} />
 -->
 <script lang="ts">
-    import {Download, RefreshCw, Send, Upload, Wallet} from "lucide-svelte";
-    import {demoMode} from "$lib/stores/demoMode";
-    import {principalId} from "$lib/stores/auth";
-    import {fetchFiatBalance, formatCurrency, getCurrencySymbol,} from "$lib/services/data/fiatData";
+  import { Download, RefreshCw, Send, Upload, Wallet } from "lucide-svelte";
+  import { demoMode } from "$lib/stores/demoMode";
+  import { principalId } from "$lib/stores/auth";
+  import {
+    fetchFiatBalance,
+    formatCurrency,
+    getCurrencySymbol,
+  } from "$lib/services/data/fiatData";
 
-    interface Props {
+  interface Props {
     showActions?: boolean;
     onDeposit?: () => void;
     onWithdraw?: () => void;

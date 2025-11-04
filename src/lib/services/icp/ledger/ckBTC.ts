@@ -47,7 +47,7 @@ import {
   type CkBTCTransferResponse,
   CkBTCUtils,
   type CkBTCWithdrawalRequest,
-  type CkBTCWithdrawalResponse
+  type CkBTCWithdrawalResponse,
 } from "./types";
 import {
   generateMockTransactionId,
@@ -55,7 +55,7 @@ import {
   MOCK_BTC_RATE,
   MOCK_CKBTC_BALANCE,
   shouldUseMocks,
-  simulateICPDelay
+  simulateICPDelay,
 } from "../utils/mock";
 
 /**

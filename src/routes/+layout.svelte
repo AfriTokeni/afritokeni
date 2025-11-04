@@ -1,13 +1,18 @@
 <script lang="ts">
-    import "../app.css";
-    import DemoModeBanner from "$lib/components/shared/DemoModeBanner.svelte";
-    import {onMount} from "svelte";
-    import {getDoc, initSatellite, onAuthStateChange, type User as JunoUser,} from "@junobuild/core";
-    import {initJunoAuth} from "$lib/stores/auth";
-    import {browser} from "$app/environment";
-    import {goto} from "$app/navigation";
+  import "../app.css";
+  import DemoModeBanner from "$lib/components/shared/DemoModeBanner.svelte";
+  import { onMount } from "svelte";
+  import {
+    getDoc,
+    initSatellite,
+    onAuthStateChange,
+    type User as JunoUser,
+  } from "@junobuild/core";
+  import { initJunoAuth } from "$lib/stores/auth";
+  import { browser } from "$app/environment";
+  import { goto } from "$app/navigation";
 
-    let { children } = $props();
+  let { children } = $props();
   let isCheckingRole = $state(false);
 
   async function checkAndRedirectUser(junoUser: JunoUser) {

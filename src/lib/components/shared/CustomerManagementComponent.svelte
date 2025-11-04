@@ -1,26 +1,26 @@
 <script lang="ts">
-    import {demoMode} from "$lib/stores/demoMode";
-    import {principalId} from "$lib/stores/auth";
-    import {toast} from "$lib/stores/toast";
-    import {fetchAgentCustomers} from "$lib/services/data/customersData";
-    import TransactionHistory from "$lib/components/shared/TransactionHistory.svelte";
-    import {
-        Ban,
-        Calendar,
-        CheckCircle,
-        History,
-        Loader2,
-        MapPin,
-        Phone,
-        PhoneCall,
-        Search,
-        Shield,
-        TrendingUp,
-        User,
-        X,
-    } from "@lucide/svelte";
+  import { demoMode } from "$lib/stores/demoMode";
+  import { principalId } from "$lib/stores/auth";
+  import { toast } from "$lib/stores/toast";
+  import { fetchAgentCustomers } from "$lib/services/data/customersData";
+  import TransactionHistory from "$lib/components/shared/TransactionHistory.svelte";
+  import {
+    Ban,
+    Calendar,
+    CheckCircle,
+    History,
+    Loader2,
+    MapPin,
+    Phone,
+    PhoneCall,
+    Search,
+    Shield,
+    TrendingUp,
+    User,
+    X,
+  } from "@lucide/svelte";
 
-    interface Customer {
+  interface Customer {
     id: string;
     name: string;
     phone: string;
@@ -367,6 +367,7 @@
           <div
             class="cursor-pointer rounded-2xl border border-gray-200 bg-white p-3 transition-all duration-200 hover:border-gray-300 hover:shadow-md sm:p-4 md:p-5 lg:p-6"
             onclick={() => openCustomerModal(customer)}
+            onkeydown={(e) => e.key === "Enter" && openCustomerModal(customer)}
             role="button"
             tabindex="0"
           >
@@ -470,25 +471,30 @@
   <div
     class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4"
     onclick={closeModal}
+    onkeydown={(e) => e.key === "Escape" && closeModal()}
     role="button"
     tabindex="-1"
   >
     <div
       class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white"
       onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
       role="dialog"
       aria-modal="true"
+      tabindex="-1"
     >
       <!-- Modal Header -->
       <div
         class="sticky top-0 flex items-center justify-between rounded-t-2xl border-b border-gray-200 bg-white px-6 py-4"
       >
         <h2 class="text-xl font-bold text-gray-900">Customer Details</h2>
-        <button aria-label="Toggle" onclick={closeModal}
+        <button
+          aria-label="Toggle"
+          onclick={closeModal}
           class="text-gray-400 transition-colors hover:text-gray-600"
         >
-              <X class="h-5 w-5" />
-            </button>
+          <X class="h-5 w-5" />
+        </button>
       </div>
 
       <!-- Modal Content -->
@@ -637,14 +643,17 @@
   <div
     class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4"
     onclick={() => (showBlockConfirm = false)}
+    onkeydown={(e) => e.key === "Escape" && (showBlockConfirm = false)}
     role="button"
     tabindex="-1"
   >
     <div
       class="w-full max-w-md rounded-2xl bg-white p-6"
       onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
       role="dialog"
       aria-modal="true"
+      tabindex="-1"
     >
       <h3 class="mb-4 text-xl font-bold text-gray-900">Block Customer?</h3>
       <p class="mb-6 text-gray-600">
@@ -674,14 +683,17 @@
   <div
     class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4"
     onclick={() => (showHistoryModal = false)}
+    onkeydown={(e) => e.key === "Escape" && (showHistoryModal = false)}
     role="button"
     tabindex="-1"
   >
     <div
       class="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white"
       onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
       role="dialog"
       aria-modal="true"
+      tabindex="-1"
     >
       <!-- Header -->
       <div

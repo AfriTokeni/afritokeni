@@ -1,7 +1,7 @@
 <script lang="ts" module>
-    import type {AfricanCurrency} from "$lib/types/currency";
+  import type { AfricanCurrency } from "$lib/types/currency";
 
-    export interface AgentOnboardingData {
+  export interface AgentOnboardingData {
     businessName: string;
     ownerName: string;
     email: string;

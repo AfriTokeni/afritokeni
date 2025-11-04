@@ -70,7 +70,7 @@ export async function generatePrincipalFromIdentifier(
  * @returns true if it looks like a phone number
  */
 export function isPhoneNumber(input: string): boolean {
-  return /^[\+\d\s\-\(\)]+$/.test(input);
+  return /^[+\d\s\-()]+$/.test(input);
 }
 
 /**

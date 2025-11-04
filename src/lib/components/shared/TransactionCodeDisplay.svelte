@@ -1,8 +1,8 @@
 <script lang="ts">
-    import {Copy, Eye, EyeOff, QrCode} from "@lucide/svelte";
-    import QRCodeGenerator from "./QRCodeGenerator.svelte";
+  import { Copy, Eye, EyeOff, QrCode } from "@lucide/svelte";
+  import QRCodeGenerator from "./QRCodeGenerator.svelte";
 
-    interface Props {
+  interface Props {
     code: string;
     title: string;
     description?: string;

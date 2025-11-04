@@ -5,12 +5,19 @@
  * Allows users to create governance proposals for the DAO
  -->
 <script lang="ts">
-    import {DollarSign, FileText, Globe, Lightbulb, Shield, X,} from "lucide-svelte";
-    import {demoMode} from "$lib/stores/demoMode";
-    import {DAO_CONSTANTS} from "$lib/services/data/daoData";
-    import {toast} from "$lib/stores/toast";
+  import {
+    DollarSign,
+    FileText,
+    Globe,
+    Lightbulb,
+    Shield,
+    X,
+  } from "lucide-svelte";
+  import { demoMode } from "$lib/stores/demoMode";
+  import { DAO_CONSTANTS } from "$lib/services/data/daoData";
+  import { toast } from "$lib/stores/toast";
 
-    interface Props {
+  interface Props {
     isOpen: boolean;
     onClose: () => void;
     userId: string;
@@ -125,13 +132,15 @@
         class="sticky top-0 flex items-center justify-between border-b border-gray-200 bg-white p-6"
       >
         <h2 class="text-2xl font-bold text-gray-900">Create Proposal</h2>
-        <button aria-label="Toggle" onclick={handleClose}
+        <button
+          aria-label="Toggle"
+          onclick={handleClose}
           disabled={isLoading}
           class="rounded-lg p-2 transition-colors hover:bg-gray-100 disabled:opacity-50"
           type="button"
         >
-              <X class="h-5 w-5" />
-            </button>
+          <X class="h-5 w-5" />
+        </button>
       </div>
 
       <!-- Content -->
@@ -150,9 +159,9 @@
 
         <!-- Proposal Type -->
         <div>
-          <label class="mb-3 block text-sm font-semibold text-gray-900">
+          <span class="mb-3 block text-sm font-semibold text-gray-900">
             Proposal Type
-          </label>
+          </span>
           <div class="grid grid-cols-2 gap-3 md:grid-cols-3">
             {#each proposalTypes as type}
               {@const Icon = type.icon}

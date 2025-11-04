@@ -11,7 +11,7 @@ declare global {
 }
 
 // YAML module declarations
-declare module '*.yaml' {
+declare module "*.yaml" {
   const content: any;
   export default content;
 }

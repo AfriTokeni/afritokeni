@@ -1,6 +1,6 @@
 <script lang="ts">
-    import {X, Zap} from "@lucide/svelte";
-    import {demoMode} from "$lib/stores/demoMode";
+  import { X, Zap } from "@lucide/svelte";
+  import { demoMode } from "$lib/stores/demoMode";
 </script>
 
 {#if $demoMode}

@@ -1,7 +1,7 @@
 <script lang="ts">
-    import {ChevronDown, ChevronUp, User} from "@lucide/svelte";
+  import { ChevronDown, ChevronUp, User } from "@lucide/svelte";
 
-    interface Props {
+  interface Props {
     expanded: boolean;
     onToggle: () => void;
     userData: any;
@@ -47,10 +47,12 @@
         <div class="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
           <div>
             <label
+              for="firstName"
               class="mb-1.5 block text-xs font-medium text-gray-700 sm:mb-2 sm:text-sm"
               >First Name</label
             >
             <input
+              id="firstName"
               type="text"
               bind:value={form.firstName}
               class="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:ring-2 focus:ring-gray-500 focus:outline-none sm:text-sm"
@@ -59,10 +61,12 @@
           </div>
           <div>
             <label
+              for="lastName"
               class="mb-1.5 block text-xs font-medium text-gray-700 sm:mb-2 sm:text-sm"
               >Last Name</label
             >
             <input
+              id="lastName"
               type="text"
               bind:value={form.lastName}
               class="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:ring-2 focus:ring-gray-500 focus:outline-none sm:text-sm"
@@ -71,10 +75,12 @@
           </div>
           <div>
             <label
+              for="emailAddress"
               class="mb-1.5 block text-xs font-medium text-gray-700 sm:mb-2 sm:text-sm"
               >Email Address</label
             >
             <input
+              id="emailAddress"
               type="email"
               bind:value={form.email}
               class="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs break-all focus:ring-2 focus:ring-gray-500 focus:outline-none sm:text-sm"
@@ -83,10 +89,12 @@
           </div>
           <div>
             <label
+              for="phoneNumber"
               class="mb-1.5 block text-xs font-medium text-gray-700 sm:mb-2 sm:text-sm"
               >Phone Number</label
             >
             <input
+              id="phoneNumber"
               type="tel"
               bind:value={form.phone}
               class="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:ring-2 focus:ring-gray-500 focus:outline-none sm:text-sm"
@@ -95,10 +103,12 @@
           </div>
           <div>
             <label
+              for="country"
               class="mb-1.5 block text-xs font-medium text-gray-700 sm:mb-2 sm:text-sm"
               >Country</label
             >
             <input
+              id="country"
               type="text"
               bind:value={form.country}
               class="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:ring-2 focus:ring-gray-500 focus:outline-none sm:text-sm"
@@ -107,10 +117,12 @@
           </div>
           <div>
             <label
+              for="city"
               class="mb-1.5 block text-xs font-medium text-gray-700 sm:mb-2 sm:text-sm"
               >City</label
             >
             <input
+              id="city"
               type="text"
               bind:value={form.city}
               class="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:ring-2 focus:ring-gray-500 focus:outline-none sm:text-sm"

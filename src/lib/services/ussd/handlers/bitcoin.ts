@@ -131,11 +131,11 @@ let sendSMSNotification: (phone: string, msg: string) => Promise<any> = async (
   );
   return Promise.resolve();
 };
-let handleMainMenu: any;
+let _handleMainMenu: any;
 
 export function initBitcoinHandlers(smsFunc: any, mainMenuFunc: any) {
   sendSMSNotification = smsFunc;
-  handleMainMenu = mainMenuFunc;
+  _handleMainMenu = mainMenuFunc;
 }
 
 async function handleBitcoin(

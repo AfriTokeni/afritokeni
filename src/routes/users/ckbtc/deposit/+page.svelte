@@ -1,10 +1,10 @@
 <script lang="ts">
-    import {goto} from "$app/navigation";
-    import {ArrowLeft, Check, Copy} from "@lucide/svelte";
-    import {toast} from "$lib/stores/toast";
-    import {principalId} from "$lib/stores/auth";
+  import { goto } from "$app/navigation";
+  import { ArrowLeft, Check, Copy } from "@lucide/svelte";
+  import { toast } from "$lib/stores/toast";
+  import { principalId } from "$lib/stores/auth";
 
-    let copied = $state(false);
+  let copied = $state(false);
 
   async function copyPrincipal() {
     try {
@@ -40,11 +40,14 @@
     </div>
 
     <div>
-      <label class="mb-2 block text-sm font-medium text-gray-700"
+      <label
+        for="principalId"
+        class="mb-2 block text-sm font-medium text-gray-700"
         >Your Principal ID</label
       >
       <div class="flex gap-2">
         <input
+          id="principalId"
           type="text"
           value={$principalId || "Not signed in"}
           readonly

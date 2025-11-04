@@ -148,6 +148,8 @@ export const idlFactory: IDL.InterfaceFactory = ({ IDL }) => {
     mark_settlement_paid: IDL.Func([IDL.Text, IDL.Principal], [Result_2], []),
   });
 };
-export const init: (args: { IDL: typeof IDL }) => IDL.Type[] = ({ IDL }) => {
+export const init: (args: { IDL: typeof IDL }) => IDL.Type[] = ({
+  IDL: _IDL,
+}) => {
   return [];
 };

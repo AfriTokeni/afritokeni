@@ -17,7 +17,7 @@ import type {
   AgentBalance,
   ConfirmDepositRequest,
   CreateDepositRequest,
-  DepositTransaction
+  DepositTransaction,
 } from "./depositCanister";
 import { idlFactory } from "./depositCanister";
 import { IC_HOST } from "./config";

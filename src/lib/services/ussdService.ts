@@ -431,7 +431,7 @@ export class USSDService {
           }
           break;
 
-        case "btc_buy":
+        case "btc_buy": {
           const { handleBTCBuy } = await import("./ussd/handlers/bitcoin.js");
           response = await handleBTCBuy(input, session);
 
@@ -440,8 +440,9 @@ export class USSDService {
             response = await handleBitcoin("", session);
           }
           break;
+        }
 
-        case "btc_sell":
+        case "btc_sell": {
           const { handleBTCSell } = await import("./ussd/handlers/bitcoin.js");
           response = await handleBTCSell(input, session);
 
@@ -450,8 +451,9 @@ export class USSDService {
             response = await handleBitcoin("", session);
           }
           break;
+        }
 
-        case "btc_send":
+        case "btc_send": {
           const { handleBTCSend } = await import("./ussd/handlers/bitcoin.js");
           response = await handleBTCSend(input, session);
 
@@ -460,6 +462,7 @@ export class USSDService {
             response = await handleBitcoin("", session);
           }
           break;
+        }
 
         case "usdc":
           response = await handleUSDC(input, session);
@@ -500,7 +503,7 @@ export class USSDService {
           }
           break;
 
-        case "usdc_buy":
+        case "usdc_buy": {
           const { handleUSDCBuy } = await import("./ussd/handlers/usdc.js");
           response = await handleUSDCBuy(input, session);
 
@@ -509,8 +512,9 @@ export class USSDService {
             response = await handleUSDC("", session);
           }
           break;
+        }
 
-        case "usdc_sell":
+        case "usdc_sell": {
           const { handleUSDCSell } = await import("./ussd/handlers/usdc.js");
           response = await handleUSDCSell(input, session);
 
@@ -519,8 +523,9 @@ export class USSDService {
             response = await handleUSDC("", session);
           }
           break;
+        }
 
-        case "usdc_send":
+        case "usdc_send": {
           const { handleUSDCSend } = await import("./ussd/handlers/usdc.js");
           response = await handleUSDCSend(input, session);
 
@@ -529,6 +534,7 @@ export class USSDService {
             response = await handleUSDC("", session);
           }
           break;
+        }
 
         case "dao":
           response = await handleDAO(input, session);
@@ -564,7 +570,7 @@ export class USSDService {
           }
           break;
 
-        case "language_selection":
+        case "language_selection": {
           const { handleLanguageSelection } = await import(
             "./ussd/handlers/language.js"
           );
@@ -586,6 +592,7 @@ export class USSDService {
             );
           }
           break;
+        }
 
         default:
           if (input === "" || input === "*229#") {

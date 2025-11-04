@@ -113,7 +113,7 @@ export class CkUSDCService {
   static async getBalance(
     principalId: string,
     useSatellite?: boolean,
-    isDemoMode = false,
+    _isDemoMode = false,
   ): Promise<CkUSDCBalance> {
     try {
       // MOCK MODE: Return mock for unit tests or playground

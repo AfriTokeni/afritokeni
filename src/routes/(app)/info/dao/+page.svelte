@@ -1,5 +1,14 @@
 <script lang="ts">
-    import {ArrowRight, CircleCheckBig, Coins, Shield, TrendingUp, Users, Vote, Zap,} from "@lucide/svelte";
+  import {
+    ArrowRight,
+    CircleCheckBig,
+    Coins,
+    Shield,
+    TrendingUp,
+    Users,
+    Vote,
+    Zap,
+  } from "@lucide/svelte";
 </script>
 
 <svelte:head>

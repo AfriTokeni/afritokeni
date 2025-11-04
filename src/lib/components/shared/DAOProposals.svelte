@@ -11,11 +11,18 @@
  * Usage: <DAOProposals onVote={(proposalId, vote) => ...} onCreateProposal={() => ...} />
 -->
 <script lang="ts">
-    import {CheckCircle, Clock, Plus, RefreshCw, Vote, XCircle,} from "lucide-svelte";
-    import {demoMode} from "$lib/stores/demoMode";
-    import {DAO_CONSTANTS, fetchDAOProposals} from "$lib/services/data/daoData";
+  import {
+    CheckCircle,
+    Clock,
+    Plus,
+    RefreshCw,
+    Vote,
+    XCircle,
+  } from "lucide-svelte";
+  import { demoMode } from "$lib/stores/demoMode";
+  import { DAO_CONSTANTS, fetchDAOProposals } from "$lib/services/data/daoData";
 
-    interface Props {
+  interface Props {
     onVote?: (proposalId: string, vote: "yes" | "no" | "abstain") => void;
     onCreateProposal?: () => void;
     maxProposals?: number;

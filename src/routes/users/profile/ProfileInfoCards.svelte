@@ -1,7 +1,7 @@
 <script lang="ts">
-    import {Calendar, Key, Phone, Shield} from "@lucide/svelte";
+  import { Calendar, Key, Phone, Shield } from "@lucide/svelte";
 
-    interface Props {
+  interface Props {
     userData: any;
     onStartKYC?: () => void;
   }

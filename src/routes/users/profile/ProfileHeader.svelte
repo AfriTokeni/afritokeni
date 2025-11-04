@@ -1,7 +1,7 @@
 <script lang="ts">
-    import {Camera, Check, Edit3} from "@lucide/svelte";
+  import { Camera, Check, Edit3 } from "@lucide/svelte";
 
-    interface Props {
+  interface Props {
     userData: any;
     onToggleEdit: () => void;
     onProfilePictureUpload: (event: Event) => void;

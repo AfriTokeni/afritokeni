@@ -21,7 +21,7 @@ import type {
   AgentEarnings,
   ConfirmWithdrawalRequest,
   CreateWithdrawalRequest,
-  WithdrawalTransaction
+  WithdrawalTransaction,
 } from "./withdrawalCanister";
 import { idlFactory } from "./withdrawalCanister";
 import { IC_HOST } from "./config";

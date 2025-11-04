@@ -122,6 +122,8 @@ export const idlFactory: IDL.InterfaceFactory = ({ IDL }) => {
     ),
   });
 };
-export const init: (args: { IDL: typeof IDL }) => IDL.Type[] = ({ IDL }) => {
+export const init: (args: { IDL: typeof IDL }) => IDL.Type[] = ({
+  IDL: _IDL,
+}) => {
   return [];
 };

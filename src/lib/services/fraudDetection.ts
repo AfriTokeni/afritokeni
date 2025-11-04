@@ -260,7 +260,7 @@ export class FraudDetectionService {
           : user.createdAt;
       const accountAge = Date.now() - createdDate.getTime();
       return accountAge < 24 * 60 * 60 * 1000; // Less than 24 hours
-    } catch (error) {
+    } catch {
       return true; // Error = treat as new for safety
     }
   }

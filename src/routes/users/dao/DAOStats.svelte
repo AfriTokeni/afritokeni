@@ -1,7 +1,7 @@
 <script lang="ts">
-    import {Coins, TrendingUp, Users} from "@lucide/svelte";
+  import { Coins, TrendingUp, Users } from "@lucide/svelte";
 
-    interface Props {
+  interface Props {
     tokenBalance: number;
     totalSupply: number;
     totalHolders: number;

@@ -1,4 +1,4 @@
-declare module './agentSettings.yaml' {
+declare module "./agentSettings.yaml" {
   interface RangeConfig {
     min: number;
     max: number;

@@ -28,7 +28,7 @@ export interface USSDPrincipalInfo {
 /**
  * Simple SHA256 implementation for subaccount generation
  */
-async function sha256Hash(data: Uint8Array): Promise<Uint8Array> {
+async function _sha256Hash(data: Uint8Array): Promise<Uint8Array> {
   const hashBuffer = await crypto.subtle.digest(
     "SHA-256",
     data as BufferSource,

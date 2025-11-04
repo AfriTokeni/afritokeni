@@ -1,8 +1,8 @@
 <script lang="ts">
-    import {Globe, Send, Smartphone} from "@lucide/svelte";
-    import {onMount} from "svelte";
+  import { Globe, Send, Smartphone } from "@lucide/svelte";
+  import { onMount } from "svelte";
 
-    interface Message {
+  interface Message {
     type: "sent" | "received";
     text: string;
     timestamp: string;

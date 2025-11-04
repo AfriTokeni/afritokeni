@@ -1,8 +1,8 @@
 <script lang="ts">
-    import {ChevronDown, ChevronUp, CreditCard} from "@lucide/svelte";
-    import {formatCurrencyAmount} from "$lib/types/currency";
+  import { ChevronDown, ChevronUp, CreditCard } from "@lucide/svelte";
+  import { formatCurrencyAmount } from "$lib/types/currency";
 
-    interface Props {
+  interface Props {
     expanded: boolean;
     onToggle: () => void;
   }

@@ -1,16 +1,16 @@
 <script lang="ts">
-    import {goto} from "$app/navigation";
-    import {toast} from "$lib/stores/toast";
-    import {principalId} from "$lib/stores/auth";
-    import {demoMode} from "$lib/stores/demoMode";
-    import {getDoc, setDoc, uploadFile} from "@junobuild/core";
-    import AgentProfileHeader from "./AgentProfileHeader.svelte";
-    import AgentInfoCards from "./AgentInfoCards.svelte";
-    import AgentReviews from "./AgentReviews.svelte";
-    import AgentSettingsComponent from "$lib/components/shared/AgentSettingsComponent.svelte";
-    import KYCModal from "$lib/components/shared/KYCModal.svelte";
+  import { goto } from "$app/navigation";
+  import { toast } from "$lib/stores/toast";
+  import { principalId } from "$lib/stores/auth";
+  import { demoMode } from "$lib/stores/demoMode";
+  import { getDoc, setDoc, uploadFile } from "@junobuild/core";
+  import AgentProfileHeader from "./AgentProfileHeader.svelte";
+  import AgentInfoCards from "./AgentInfoCards.svelte";
+  import AgentReviews from "./AgentReviews.svelte";
+  import AgentSettingsComponent from "$lib/components/shared/AgentSettingsComponent.svelte";
+  import KYCModal from "$lib/components/shared/KYCModal.svelte";
 
-    // Agent data
+  // Agent data
   let agentData = $state<any>(null);
   let agentDoc = $state<any>(null);
   let isLoading = $state(true);
