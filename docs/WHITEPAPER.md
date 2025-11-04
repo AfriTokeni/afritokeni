@@ -1142,7 +1142,7 @@ We provide a complete financial system that serves the unbanked, empowers agents
 
 - **Website**: https://afritokeni.com
 - **Live App**: https://afritokeni.com
-- **GitHub**: https://github.com/AfriTokeni/afritokeni-mvp
+- **GitHub**: https://github.com/AfriTokeni/afritokeni
 - **Email**: hello@afritokeni.com
 - **Twitter**: @AfriTokeni
 
