@@ -498,7 +498,7 @@ export class WebhookDataService {
       if (!user) {
         console.log(`📍 Creating new user for ${phoneNumber} with PIN`);
         // Create new user if doesn't exist
-        user = await this.createUser({
+        await this.createUser({
           firstName: "USSD",
           lastName: "User",
           email: phoneNumber,
