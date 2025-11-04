@@ -9,6 +9,12 @@ on:
       - 'fix/**'
       - 'hotfix/**'
 
+permissions:
+  contents: read
+  pull-requests: write
+  deployments: write
+  statuses: write
+
 env:
   NODE_VERSION: 22
 
