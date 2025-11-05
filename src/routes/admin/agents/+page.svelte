@@ -135,6 +135,24 @@
   // Real agent data from Juno
   let agents = $state<AgentProfile[]>(data.agents);
   let stats = $state(data.stats);
+  let isLoading = $state(true);
+
+  // Load data after Juno is initialized
+  onMount(async () => {
+    try {
+      const [agentsData, statsData] = await Promise.all([
+        listAgents({ limit: 100 }),
+        getAgentStats(),
+      ]);
+      agents = agentsData;
+      stats = statsData;
+    } catch (error) {
+      console.error("Error loading agent data:", error);
+      toast.show("error", "Failed to load agent data");
+    } finally {
+      isLoading = false;
+    }
+  });
 
   // Filter, sort and paginate agents
   let filteredAgents = $derived(
@@ -154,9 +172,9 @@
           comparison =
             new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime();
         } else if (sortBy === "commission") {
-          comparison = a.commission - b.commission;
+          comparison = (a.commission ?? 0) - (b.commission ?? 0);
         } else if (sortBy === "revenue") {
-          comparison = a.revenue - b.revenue;
+          comparison = (a.revenue ?? 0) - (b.revenue ?? 0);
         } else if (sortBy === "rating") {
           comparison = a.rating - b.rating;
         }
@@ -260,7 +278,7 @@
 
     <StatCard
       label="Total Revenue"
-      value={`$${stats.totalRevenue.toLocaleString()}`}
+      value={`$${(stats.totalRevenue ?? 0).toLocaleString()}`}
       valueColor="text-purple-600"
     />
   </div>
@@ -425,7 +443,7 @@
               <div class="text-right">
                 <p class="text-sm font-semibold text-gray-500">Revenue</p>
                 <p class="font-mono text-lg font-bold text-gray-900">
-                  ${agent.revenue.toLocaleString()}
+                  ${(agent.revenue ?? 0).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -442,7 +460,7 @@
               <div>
                 <p class="text-xs text-gray-500">Commission Owed</p>
                 <p class="mt-1 font-mono text-sm font-semibold text-green-600">
-                  ${agent.commission}
+                  ${(agent.commission ?? 0).toLocaleString()}
                 </p>
               </div>
               <div>
@@ -568,7 +586,7 @@
                 <div>
                   <p class="text-xs font-semibold text-gray-500">Revenue</p>
                   <p class="mt-2 font-mono text-2xl font-bold text-blue-600">
-                    ${selectedAgent.revenue.toLocaleString()}
+                    ${(selectedAgent.revenue ?? 0).toLocaleString()}
                   </p>
                 </div>
                 <DollarSign class="h-8 w-8 text-blue-600 opacity-50" />
@@ -596,7 +614,7 @@
                 <div>
                   <p class="text-xs font-semibold text-gray-500">Commission</p>
                   <p class="mt-2 font-mono text-2xl font-bold text-purple-600">
-                    ${selectedAgent.commission}
+                    ${(selectedAgent.commission ?? 0).toLocaleString()}
                   </p>
                 </div>
                 <TrendingUp class="h-8 w-8 text-purple-600 opacity-50" />
