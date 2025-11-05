@@ -18,7 +18,7 @@ export interface Route {
 export const admin_desktop_routes: Route[] = [
   {
     id: "overview",
-    path: "/admin",
+    path: "/admin/dashboard",
     label: "Overview",
     icon: LayoutDashboard,
   },

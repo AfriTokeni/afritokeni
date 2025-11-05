@@ -3,14 +3,5 @@
   "outputDirectory": "build",
   "framework": "sveltekit",
   "installCommand": "pnpm install",
-  "devCommand": "pnpm run dev",
-  "routes": [
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
-  ]
+  "devCommand": "pnpm run dev"
 }
