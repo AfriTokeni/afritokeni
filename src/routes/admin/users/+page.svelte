@@ -476,7 +476,9 @@
                   </div>
                   <div>
                     <p class="text-xs text-gray-500">Balance</p>
-                    <p class="mt-1 font-mono text-base font-bold text-green-600">
+                    <p
+                      class="mt-1 font-mono text-base font-bold text-green-600"
+                    >
                       ${selectedUser.balance.toLocaleString()}
                     </p>
                   </div>
@@ -493,10 +495,14 @@
 
           <!-- Activity Stats -->
           <div class="grid grid-cols-3 gap-4">
-            <div class="rounded-xl border border-gray-200 bg-gradient-to-br from-blue-50 to-white p-4 shadow-sm">
+            <div
+              class="rounded-xl border border-gray-200 bg-gradient-to-br from-blue-50 to-white p-4 shadow-sm"
+            >
               <div class="flex items-center justify-between">
                 <div>
-                  <p class="text-xs font-semibold text-gray-500">Transactions</p>
+                  <p class="text-xs font-semibold text-gray-500">
+                    Transactions
+                  </p>
                   <p class="mt-2 font-mono text-2xl font-bold text-blue-600">
                     {Math.floor(Math.random() * 50) + 10}
                   </p>
@@ -504,7 +510,9 @@
                 <Activity class="h-8 w-8 text-blue-600 opacity-50" />
               </div>
             </div>
-            <div class="rounded-xl border border-gray-200 bg-gradient-to-br from-green-50 to-white p-4 shadow-sm">
+            <div
+              class="rounded-xl border border-gray-200 bg-gradient-to-br from-green-50 to-white p-4 shadow-sm"
+            >
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-xs font-semibold text-gray-500">Fees Paid</p>
@@ -515,7 +523,9 @@
                 <DollarSign class="h-8 w-8 text-green-600 opacity-50" />
               </div>
             </div>
-            <div class="rounded-xl border border-gray-200 bg-gradient-to-br from-purple-50 to-white p-4 shadow-sm">
+            <div
+              class="rounded-xl border border-gray-200 bg-gradient-to-br from-purple-50 to-white p-4 shadow-sm"
+            >
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-xs font-semibold text-gray-500">Reviews</p>
@@ -523,8 +533,14 @@
                     {Math.floor(Math.random() * 20) + 1}
                   </p>
                 </div>
-                <svg class="h-8 w-8 text-purple-600 opacity-50" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                <svg
+                  class="h-8 w-8 text-purple-600 opacity-50"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+                  />
                 </svg>
               </div>
             </div>
@@ -538,7 +554,9 @@
               KYC Status
             </h4>
             <div class="flex items-center justify-between">
-              <span class="text-lg font-semibold text-gray-900">Verification Status</span>
+              <span class="text-lg font-semibold text-gray-900"
+                >Verification Status</span
+              >
               <span
                 class="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold {getKYCStatusColor(
                   selectedUser.kycStatus,

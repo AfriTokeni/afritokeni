@@ -19,31 +19,83 @@
   let filterStatus = $state("all");
   let selectedAgent = $state<any>(null);
   let showAgentModal = $state(false);
-  let sortBy = $state<"joinDate" | "commission" | "revenue" | "rating">("joinDate");
+  let sortBy = $state<"joinDate" | "commission" | "revenue" | "rating">(
+    "joinDate",
+  );
   let sortOrder = $state<"asc" | "desc">("desc");
-  
+
   // Review filtering and pagination
   let reviewFilterRating = $state<number | "all">("all");
   let displayedReviewsCount = $state(5);
-  
+
   // Mock reviews data
   let mockReviews = $state([
-    { user: "John Doe", rating: 5, comment: "Excellent service! Very professional and quick.", date: "2 days ago" },
-    { user: "Jane Smith", rating: 4, comment: "Good experience overall. Would use again.", date: "5 days ago" },
-    { user: "Bob Johnson", rating: 5, comment: "Great agent! Highly recommended for transactions.", date: "1 week ago" },
-    { user: "Alice Williams", rating: 3, comment: "Decent service but could be faster.", date: "1 week ago" },
-    { user: "Charlie Brown", rating: 5, comment: "Fast and reliable. No issues at all!", date: "2 weeks ago" },
-    { user: "Diana Prince", rating: 4, comment: "Professional and courteous. Good rates.", date: "2 weeks ago" },
-    { user: "Ethan Hunt", rating: 5, comment: "Best agent I've worked with. Highly efficient.", date: "3 weeks ago" },
-    { user: "Fiona Green", rating: 2, comment: "Service was slow and communication could be better.", date: "3 weeks ago" },
-    { user: "George Miller", rating: 4, comment: "Reliable and trustworthy. Would recommend.", date: "1 month ago" },
-    { user: "Hannah Lee", rating: 5, comment: "Outstanding service! Very happy with the experience.", date: "1 month ago" },
+    {
+      user: "John Doe",
+      rating: 5,
+      comment: "Excellent service! Very professional and quick.",
+      date: "2 days ago",
+    },
+    {
+      user: "Jane Smith",
+      rating: 4,
+      comment: "Good experience overall. Would use again.",
+      date: "5 days ago",
+    },
+    {
+      user: "Bob Johnson",
+      rating: 5,
+      comment: "Great agent! Highly recommended for transactions.",
+      date: "1 week ago",
+    },
+    {
+      user: "Alice Williams",
+      rating: 3,
+      comment: "Decent service but could be faster.",
+      date: "1 week ago",
+    },
+    {
+      user: "Charlie Brown",
+      rating: 5,
+      comment: "Fast and reliable. No issues at all!",
+      date: "2 weeks ago",
+    },
+    {
+      user: "Diana Prince",
+      rating: 4,
+      comment: "Professional and courteous. Good rates.",
+      date: "2 weeks ago",
+    },
+    {
+      user: "Ethan Hunt",
+      rating: 5,
+      comment: "Best agent I've worked with. Highly efficient.",
+      date: "3 weeks ago",
+    },
+    {
+      user: "Fiona Green",
+      rating: 2,
+      comment: "Service was slow and communication could be better.",
+      date: "3 weeks ago",
+    },
+    {
+      user: "George Miller",
+      rating: 4,
+      comment: "Reliable and trustworthy. Would recommend.",
+      date: "1 month ago",
+    },
+    {
+      user: "Hannah Lee",
+      rating: 5,
+      comment: "Outstanding service! Very happy with the experience.",
+      date: "1 month ago",
+    },
   ]);
-  
+
   function loadMoreReviews() {
     displayedReviewsCount += 5;
   }
-  
+
   function toggleSort(field: typeof sortBy) {
     if (sortBy === field) {
       sortOrder = sortOrder === "asc" ? "desc" : "asc";
@@ -65,8 +117,8 @@
 
   function banAgent(agent: any) {
     // TODO: Implement ban logic with Juno
-    console.log('Banning agent:', agent.name);
-    agent.status = 'offline';
+    console.log("Banning agent:", agent.name);
+    agent.status = "offline";
     closeModal();
   }
 
@@ -154,7 +206,8 @@
   let filteredAgents = $derived(
     agents
       .filter((agent) => {
-        const matchesStatus = filterStatus === "all" || agent.status === filterStatus;
+        const matchesStatus =
+          filterStatus === "all" || agent.status === filterStatus;
         const matchesSearch =
           !searchQuery ||
           agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -164,7 +217,8 @@
       .sort((a, b) => {
         let comparison = 0;
         if (sortBy === "joinDate") {
-          comparison = new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime();
+          comparison =
+            new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime();
         } else if (sortBy === "commission") {
           comparison = a.commission - b.commission;
         } else if (sortBy === "revenue") {
@@ -175,15 +229,19 @@
         return sortOrder === "asc" ? comparison : -comparison;
       }),
   );
-  
+
   // Filter and paginate reviews
   let filteredReviews = $derived(
     mockReviews.filter((review) => {
-      return reviewFilterRating === "all" || review.rating === reviewFilterRating;
+      return (
+        reviewFilterRating === "all" || review.rating === reviewFilterRating
+      );
     }),
   );
-  
-  let displayedReviews = $derived(filteredReviews.slice(0, displayedReviewsCount));
+
+  let displayedReviews = $derived(
+    filteredReviews.slice(0, displayedReviewsCount),
+  );
   let hasMoreReviews = $derived(displayedReviewsCount < filteredReviews.length);
 
   let displayedAgents = $derived(filteredAgents.slice(0, displayedCount));
@@ -419,27 +477,55 @@
         <div class="flex gap-2">
           <button
             onclick={() => toggleSort("joinDate")}
-            class="rounded-lg border px-3 py-2 text-xs font-medium transition-colors {sortBy === 'joinDate' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}"
+            class="rounded-lg border px-3 py-2 text-xs font-medium transition-colors {sortBy ===
+            'joinDate'
+              ? 'border-blue-600 bg-blue-50 text-blue-600'
+              : 'border-gray-200 text-gray-600 hover:bg-gray-50'}"
           >
-            Join Date {sortBy === "joinDate" ? (sortOrder === "asc" ? "↑" : "↓") : ""}
+            Join Date {sortBy === "joinDate"
+              ? sortOrder === "asc"
+                ? "↑"
+                : "↓"
+              : ""}
           </button>
           <button
             onclick={() => toggleSort("commission")}
-            class="rounded-lg border px-3 py-2 text-xs font-medium transition-colors {sortBy === 'commission' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}"
+            class="rounded-lg border px-3 py-2 text-xs font-medium transition-colors {sortBy ===
+            'commission'
+              ? 'border-blue-600 bg-blue-50 text-blue-600'
+              : 'border-gray-200 text-gray-600 hover:bg-gray-50'}"
           >
-            Commission {sortBy === "commission" ? (sortOrder === "asc" ? "↑" : "↓") : ""}
+            Commission {sortBy === "commission"
+              ? sortOrder === "asc"
+                ? "↑"
+                : "↓"
+              : ""}
           </button>
           <button
             onclick={() => toggleSort("revenue")}
-            class="rounded-lg border px-3 py-2 text-xs font-medium transition-colors {sortBy === 'revenue' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}"
+            class="rounded-lg border px-3 py-2 text-xs font-medium transition-colors {sortBy ===
+            'revenue'
+              ? 'border-blue-600 bg-blue-50 text-blue-600'
+              : 'border-gray-200 text-gray-600 hover:bg-gray-50'}"
           >
-            Revenue {sortBy === "revenue" ? (sortOrder === "asc" ? "↑" : "↓") : ""}
+            Revenue {sortBy === "revenue"
+              ? sortOrder === "asc"
+                ? "↑"
+                : "↓"
+              : ""}
           </button>
           <button
             onclick={() => toggleSort("rating")}
-            class="rounded-lg border px-3 py-2 text-xs font-medium transition-colors {sortBy === 'rating' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}"
+            class="rounded-lg border px-3 py-2 text-xs font-medium transition-colors {sortBy ===
+            'rating'
+              ? 'border-blue-600 bg-blue-50 text-blue-600'
+              : 'border-gray-200 text-gray-600 hover:bg-gray-50'}"
           >
-            Rating {sortBy === "rating" ? (sortOrder === "asc" ? "↑" : "↓") : ""}
+            Rating {sortBy === "rating"
+              ? sortOrder === "asc"
+                ? "↑"
+                : "↓"
+              : ""}
           </button>
         </div>
       </div>
@@ -617,7 +703,9 @@
 
           <!-- Performance Stats -->
           <div class="grid grid-cols-3 gap-4">
-            <div class="rounded-xl border border-gray-200 bg-gradient-to-br from-blue-50 to-white p-4 shadow-sm">
+            <div
+              class="rounded-xl border border-gray-200 bg-gradient-to-br from-blue-50 to-white p-4 shadow-sm"
+            >
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-xs font-semibold text-gray-500">Revenue</p>
@@ -628,10 +716,14 @@
                 <DollarSign class="h-8 w-8 text-blue-600 opacity-50" />
               </div>
             </div>
-            <div class="rounded-xl border border-gray-200 bg-gradient-to-br from-green-50 to-white p-4 shadow-sm">
+            <div
+              class="rounded-xl border border-gray-200 bg-gradient-to-br from-green-50 to-white p-4 shadow-sm"
+            >
               <div class="flex items-center justify-between">
                 <div>
-                  <p class="text-xs font-semibold text-gray-500">Transactions</p>
+                  <p class="text-xs font-semibold text-gray-500">
+                    Transactions
+                  </p>
                   <p class="mt-2 font-mono text-2xl font-bold text-green-600">
                     {selectedAgent.transactions}
                   </p>
@@ -639,7 +731,9 @@
                 <Activity class="h-8 w-8 text-green-600 opacity-50" />
               </div>
             </div>
-            <div class="rounded-xl border border-gray-200 bg-gradient-to-br from-purple-50 to-white p-4 shadow-sm">
+            <div
+              class="rounded-xl border border-gray-200 bg-gradient-to-br from-purple-50 to-white p-4 shadow-sm"
+            >
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-xs font-semibold text-gray-500">Commission</p>
@@ -655,20 +749,28 @@
           <!-- Reviews Section -->
           <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <div class="mb-4 flex items-center justify-between">
-              <h4 class="text-sm font-semibold tracking-wide text-gray-500 uppercase">
+              <h4
+                class="text-sm font-semibold tracking-wide text-gray-500 uppercase"
+              >
                 Reviews ({filteredReviews.length})
               </h4>
               <div class="flex gap-2">
                 <button
                   onclick={() => (reviewFilterRating = "all")}
-                  class="rounded-lg px-3 py-1 text-xs font-medium transition-colors {reviewFilterRating === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
+                  class="rounded-lg px-3 py-1 text-xs font-medium transition-colors {reviewFilterRating ===
+                  'all'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
                 >
                   All
                 </button>
                 {#each [5, 4, 3, 2, 1] as rating}
                   <button
                     onclick={() => (reviewFilterRating = rating)}
-                    class="rounded-lg px-3 py-1 text-xs font-medium transition-colors {reviewFilterRating === rating ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
+                    class="rounded-lg px-3 py-1 text-xs font-medium transition-colors {reviewFilterRating ===
+                    rating
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
                   >
                     {rating}★
                   </button>
@@ -685,7 +787,9 @@
                         <div class="flex items-center gap-1">
                           {#each Array(5) as _, starIndex}
                             <Star
-                              class="h-3 w-3 {starIndex < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}"
+                              class="h-3 w-3 {starIndex < review.rating
+                                ? 'fill-yellow-400 text-yellow-400'
+                                : 'text-gray-300'}"
                             />
                           {/each}
                         </div>
@@ -698,14 +802,15 @@
                   </div>
                 </div>
               {/each}
-              
+
               <!-- Load More Reviews Button -->
               {#if hasMoreReviews}
                 <button
                   onclick={loadMoreReviews}
                   class="w-full rounded-lg border-2 border-dashed border-gray-300 py-3 text-sm font-medium text-gray-600 transition-colors hover:border-blue-600 hover:text-blue-600"
                 >
-                  Load More Reviews ({filteredReviews.length - displayedReviewsCount} remaining)
+                  Load More Reviews ({filteredReviews.length -
+                    displayedReviewsCount} remaining)
                 </button>
               {/if}
             </div>
