@@ -14,8 +14,10 @@
     RefreshCw,
     ChevronDown,
   } from "@lucide/svelte";
+  import { onMount } from "svelte";
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
+  import StatCard from "$lib/components/admin/StatCard.svelte";
   import { Button, Dropdown, DropdownItem } from "flowbite-svelte";
   import {
     banAgent,
@@ -162,7 +164,7 @@
 
   // Filter and paginate reviews
   let filteredReviews = $derived(
-    mockReviews.filter((review) => {
+    agentReviews.filter((review) => {
       return (
         reviewFilterRating === "all" || review.rating === reviewFilterRating
       );
@@ -237,113 +239,28 @@
 <div class="space-y-4 sm:space-y-6">
   <!-- Stats Overview -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-5">
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all sm:rounded-2xl sm:p-6"
-    >
-      <div class="mb-3 flex items-center justify-between">
-        <div class="flex-1">
-          <p class="text-sm font-semibold text-gray-500">Total Agents</p>
-          <p
-            class="mt-2 font-mono text-2xl font-bold text-gray-900 sm:text-3xl"
-          >
-            {stats.total}
-          </p>
-          <p class="mt-2 text-xs text-gray-500">Last updated: {lastUpdated}</p>
-        </div>
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50"
-        >
-          <MapPin class="h-6 w-6 text-blue-600" />
-        </div>
-      </div>
-      <button
-        onclick={refreshData}
-        class="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-600"
-      >
-        <RefreshCw class="h-4 w-4" />
-        Refresh
-      </button>
-    </div>
+    <StatCard
+      label="Total Agents"
+      value={stats.total}
+      {lastUpdated}
+      onRefresh={refreshData}
+    />
 
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all sm:rounded-2xl sm:p-6"
-    >
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-sm font-semibold text-gray-500">Active</p>
-          <p
-            class="mt-2 font-mono text-2xl font-bold text-green-600 sm:text-3xl"
-          >
-            {stats.active}
-          </p>
-        </div>
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50"
-        >
-          <Activity class="h-6 w-6 text-green-600" />
-        </div>
-      </div>
-    </div>
+    <StatCard label="Active" value={stats.active} valueColor="text-green-600" />
 
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all sm:rounded-2xl sm:p-6"
-    >
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-sm font-semibold text-gray-500">Busy</p>
-          <p
-            class="mt-2 font-mono text-2xl font-bold text-yellow-600 sm:text-3xl"
-          >
-            {stats.busy}
-          </p>
-        </div>
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-50"
-        >
-          <Activity class="h-6 w-6 text-yellow-600" />
-        </div>
-      </div>
-    </div>
+    <StatCard label="Busy" value={stats.busy} valueColor="text-yellow-600" />
 
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all sm:rounded-2xl sm:p-6"
-    >
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-sm font-semibold text-gray-500">Offline</p>
-          <p
-            class="mt-2 font-mono text-2xl font-bold text-gray-600 sm:text-3xl"
-          >
-            {stats.offline}
-          </p>
-        </div>
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-50"
-        >
-          <Activity class="h-6 w-6 text-gray-600" />
-        </div>
-      </div>
-    </div>
+    <StatCard
+      label="Offline"
+      value={stats.offline}
+      valueColor="text-gray-600"
+    />
 
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all sm:rounded-2xl sm:p-6"
-    >
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-sm font-semibold text-gray-500">Total Revenue</p>
-          <p
-            class="mt-2 font-mono text-2xl font-bold text-purple-600 sm:text-3xl"
-          >
-            ${stats.totalRevenue.toLocaleString()}
-          </p>
-        </div>
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50"
-        >
-          <DollarSign class="h-6 w-6 text-purple-600" />
-        </div>
-      </div>
-    </div>
+    <StatCard
+      label="Total Revenue"
+      value={`$${stats.totalRevenue.toLocaleString()}`}
+      valueColor="text-purple-600"
+    />
   </div>
 
   <!-- Agent Performance Chart -->
@@ -636,7 +553,7 @@
                     {selectedAgent.rating}
                   </p>
                   <p class="text-sm text-gray-500">
-                    ({selectedAgent.reviews} reviews)
+                    ({selectedAgent.reviewCount} reviews)
                   </p>
                 </div>
               </div>
@@ -673,7 +590,7 @@
                     Transactions
                   </p>
                   <p class="mt-2 font-mono text-2xl font-bold text-green-600">
-                    {selectedAgent.transactions}
+                    {selectedAgent.transactionCount}
                   </p>
                 </div>
                 <Activity class="h-8 w-8 text-green-600 opacity-50" />
@@ -731,7 +648,9 @@
                   <div class="flex items-start justify-between">
                     <div class="flex-1">
                       <div class="flex items-center gap-2">
-                        <p class="font-semibold text-gray-900">{review.user}</p>
+                        <p class="font-semibold text-gray-900">
+                          {review.userName}
+                        </p>
                         <div class="flex items-center gap-1">
                           {#each Array(5) as _, starIndex}
                             <Star
@@ -745,7 +664,9 @@
                       <p class="mt-2 text-sm text-gray-600">
                         {review.comment}
                       </p>
-                      <p class="mt-2 text-xs text-gray-400">{review.date}</p>
+                      <p class="text-xs text-gray-500">
+                        {new Date(review.createdAt).toLocaleDateString()}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -770,7 +691,10 @@
       <div class="border-t border-gray-100 bg-gray-50 px-8 py-6">
         <div class="flex gap-4">
           <button
-            onclick={() => banAgent(selectedAgent)}
+            onclick={() => {
+              if (selectedAgent)
+                banAgent(selectedAgent.id, "Banned from admin panel");
+            }}
             class="flex-1 rounded-xl border-2 border-red-600 bg-white px-6 py-4 font-semibold text-red-600 shadow-lg transition-all hover:bg-red-600 hover:text-white"
           >
             <div class="flex items-center justify-center gap-2">

@@ -15,17 +15,144 @@
     Calendar,
     Hash,
     ArrowRight,
+    RefreshCw,
   } from "@lucide/svelte";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
   import { Button, Dropdown, DropdownItem } from "flowbite-svelte";
+  import {
+    listTransactions,
+    getTransactionStats,
+    getTransactionChartData,
+  } from "$lib/services/juno/transactionService";
+  import { toast } from "$lib/stores/toast";
+  import { junoInitialized } from "$lib/stores/auth";
+  import type { Transaction, TransactionStats } from "$lib/types/admin";
+  import StatCard from "$lib/components/admin/StatCard.svelte";
+
+  // Real transaction data from Juno
+  let transactions = $state<Transaction[]>([]);
+  let stats = $state<TransactionStats>({
+    total: 0,
+    pending: 0,
+    completed: 0,
+    failed: 0,
+    volume24h: 0,
+    fees24h: 0,
+  });
+  let lastUpdated = $state(new Date().toLocaleTimeString());
+  let isLoading = $state(true);
+
+  // Load data when Juno is initialized
+  $effect(() => {
+    if ($junoInitialized) {
+      loadData();
+      loadChartData();
+    }
+  });
+
+  // Load/refresh data
+  async function loadData() {
+    try {
+      isLoading = true;
+      const [newTransactions, newStats] = await Promise.all([
+        listTransactions({ limit: 100 }),
+        getTransactionStats(),
+      ]);
+      transactions = newTransactions;
+      stats = newStats;
+      lastUpdated = new Date().toLocaleTimeString();
+    } catch (error) {
+      console.error("Failed to load transaction data:", error);
+      toast.show("error", "Failed to load transaction data");
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  // Load chart data based on selected date range
+  async function loadChartData() {
+    try {
+      const days =
+        chartDateRange === "7" ? 7 : chartDateRange === "30" ? 30 : 90;
+      const data = await getTransactionChartData(days);
+
+      // Group transactions by type
+      const depositVolumes: number[] = [];
+      const withdrawalVolumes: number[] = [];
+      const exchangeVolumes: number[] = [];
+
+      // For each date, calculate volumes by type
+      for (let i = 0; i < data.dates.length; i++) {
+        const date = data.dates[i];
+        const dayTransactions = transactions.filter((t) => {
+          const txDate = new Date(t.createdAt).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          });
+          return txDate === date && t.status === "completed";
+        });
+
+        depositVolumes.push(
+          dayTransactions
+            .filter((t) => t.type === "deposit")
+            .reduce((sum, t) => sum + t.amount, 0),
+        );
+        withdrawalVolumes.push(
+          dayTransactions
+            .filter((t) => t.type === "withdrawal")
+            .reduce((sum, t) => sum + t.amount, 0),
+        );
+        exchangeVolumes.push(
+          dayTransactions
+            .filter((t) => t.type === "exchange")
+            .reduce((sum, t) => sum + t.amount, 0),
+        );
+      }
+
+      chartData = {
+        dates: data.dates,
+        deposits: depositVolumes,
+        withdrawals: withdrawalVolumes,
+        exchanges: exchangeVolumes,
+      };
+    } catch (error) {
+      console.error("Failed to load chart data:", error);
+    }
+  }
+
+  // Reload chart when date range changes
+  $effect(() => {
+    chartDateRange;
+    if (transactions.length > 0) {
+      loadChartData();
+    }
+  });
+
+  // Refresh data
+  async function refreshData() {
+    toast.show("info", "Refreshing transaction data...");
+    await loadData();
+    toast.show("success", "Transaction data refreshed");
+  }
 
   let chartDateRange = $state<"7" | "30" | "90">("30");
+  let chartData = $state<{
+    dates: string[];
+    deposits: number[];
+    withdrawals: number[];
+    exchanges: number[];
+  }>({
+    dates: [],
+    deposits: [],
+    withdrawals: [],
+    exchanges: [],
+  });
   let searchQuery = $state("");
   let activeTab = $state<"all" | "completed" | "pending" | "failed">("all");
-  let selectedTransaction = $state<any>(null);
+  let selectedTransaction = $state<Transaction | null>(null);
   let showDetailModal = $state(false);
 
   // Pagination state
@@ -52,116 +179,7 @@
     selectedTransaction = null;
   }
 
-  // Mock transaction data
-  let transactions = $state([
-    {
-      id: "TXN-12345",
-      type: "Deposit",
-      user: "John Doe",
-      agent: "Agent Lagos",
-      amount: 500,
-      currency: "NGN",
-      fee: 25,
-      status: "completed",
-      timestamp: "Nov 5, 2024 2:30 PM",
-    },
-    {
-      id: "TXN-12344",
-      type: "Withdrawal",
-      user: "Jane Smith",
-      agent: "Agent Nairobi",
-      amount: 300,
-      currency: "KES",
-      fee: 15,
-      status: "pending",
-      timestamp: "Nov 5, 2024 2:28 PM",
-    },
-    {
-      id: "TXN-12343",
-      type: "Exchange",
-      user: "Bob Johnson",
-      agent: null,
-      amount: 1000,
-      currency: "GHS",
-      fee: 10,
-      status: "completed",
-      timestamp: "Nov 5, 2024 2:25 PM",
-    },
-    {
-      id: "TXN-12342",
-      type: "Deposit",
-      user: "Alice Brown",
-      agent: "Agent Accra",
-      amount: 750,
-      currency: "NGN",
-      fee: 37.5,
-      status: "completed",
-      timestamp: "Nov 5, 2024 2:20 PM",
-    },
-    {
-      id: "TXN-12341",
-      type: "Withdrawal",
-      user: "Charlie Wilson",
-      agent: "Agent Kampala",
-      amount: 200,
-      currency: "KES",
-      fee: 10,
-      status: "failed",
-      timestamp: "Nov 5, 2024 2:15 PM",
-    },
-  ]);
-
-  let stats = $state({
-    total: 3542,
-    completed: 3201,
-    pending: 12,
-    failed: 5,
-    totalVolume: 1245678,
-  });
-
-  // Generate transaction volume chart data
-  function getVolumeChartData() {
-    if (chartDateRange === "7") {
-      return {
-        categories: [
-          "Oct 29",
-          "Oct 30",
-          "Oct 31",
-          "Nov 1",
-          "Nov 2",
-          "Nov 3",
-          "Nov 4",
-        ],
-        deposits: [420, 532, 516, 575, 519, 623, 584],
-        withdrawals: [336, 412, 398, 445, 402, 478, 451],
-        exchanges: [245, 298, 276, 312, 289, 345, 318],
-      };
-    } else if (chartDateRange === "30") {
-      return {
-        categories: [
-          "Oct 5",
-          "Oct 10",
-          "Oct 15",
-          "Oct 20",
-          "Oct 25",
-          "Oct 30",
-          "Nov 4",
-        ],
-        deposits: [2100, 2300, 2450, 2600, 2750, 2900, 3050],
-        withdrawals: [1680, 1840, 1960, 2080, 2200, 2320, 2440],
-        exchanges: [1225, 1340, 1430, 1520, 1610, 1700, 1790],
-      };
-    } else {
-      return {
-        categories: ["Aug", "Sep", "Oct", "Nov"],
-        deposits: [6300, 7200, 8100, 9000],
-        withdrawals: [5040, 5760, 6480, 7200],
-        exchanges: [3675, 4200, 4725, 5250],
-      };
-    }
-  }
-
-  // Transaction volume chart
+  // Transaction volume chart with real data
   let volumeChartOptions = $derived<ApexOptions>({
     chart: {
       height: "320px",
@@ -188,22 +206,22 @@
     series: [
       {
         name: "Deposits",
-        data: getVolumeChartData().deposits,
+        data: chartData.deposits,
         color: "#3b82f6",
       },
       {
         name: "Withdrawals",
-        data: getVolumeChartData().withdrawals,
+        data: chartData.withdrawals,
         color: "#8b5cf6",
       },
       {
         name: "Exchanges",
-        data: getVolumeChartData().exchanges,
+        data: chartData.exchanges,
         color: "#10b981",
       },
     ],
     xaxis: {
-      categories: getVolumeChartData().categories,
+      categories: chartData.dates,
       labels: {
         show: true,
         style: {
@@ -219,36 +237,6 @@
   });
 
   // Simulate real-time updates
-  onMount(() => {
-    const interval = setInterval(() => {
-      const newTx = {
-        id: `TXN-${Math.floor(Math.random() * 99999)}`,
-        type: ["Deposit", "Withdrawal", "Exchange"][
-          Math.floor(Math.random() * 3)
-        ],
-        user: ["John Doe", "Jane Smith", "Bob Johnson"][
-          Math.floor(Math.random() * 3)
-        ],
-        agent: Math.random() > 0.5 ? "Agent Lagos" : null,
-        amount: Math.floor(Math.random() * 1000) + 100,
-        currency: ["NGN", "KES", "GHS"][Math.floor(Math.random() * 3)],
-        fee: Math.floor(Math.random() * 50) + 5,
-        status: "completed",
-        timestamp: new Date().toLocaleString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-        }),
-      };
-      transactions = [newTx, ...transactions].slice(0, 20);
-      stats.total++;
-      stats.completed++;
-    }, 10000); // Every 10 seconds
-
-    return () => clearInterval(interval);
-  });
 
   function getStatusColor(status: string) {
     if (status === "completed") return "bg-green-100 text-green-800";
@@ -271,9 +259,9 @@
       const matchesSearch =
         !searchQuery ||
         txn.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        txn.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (txn.agent &&
-          txn.agent.toLowerCase().includes(searchQuery.toLowerCase()));
+        txn.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (txn.agentId &&
+          txn.agentId.toLowerCase().includes(searchQuery.toLowerCase()));
       return matchesTab && matchesSearch;
     }),
   );
@@ -301,50 +289,35 @@
 <div class="space-y-4 sm:space-y-6">
   <!-- Stats Overview -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-5">
-    <button
-      onclick={() => (activeTab = "all")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-gray-400 hover:shadow-md sm:rounded-2xl sm:p-6"
-    >
-      <p class="text-sm font-semibold text-gray-500">Total</p>
-      <p class="mt-2 font-mono text-2xl font-bold text-gray-900 sm:text-3xl">
-        {transactions.length.toLocaleString()}
-      </p>
-    </button>
-    <button
-      onclick={() => (activeTab = "completed")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-green-400 hover:shadow-md sm:rounded-2xl sm:p-6"
-    >
-      <p class="text-sm font-semibold text-gray-500">Completed</p>
-      <p class="mt-2 font-mono text-2xl font-bold text-green-600 sm:text-3xl">
-        {completedCount.toLocaleString()}
-      </p>
-    </button>
-    <button
-      onclick={() => (activeTab = "pending")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-yellow-400 hover:shadow-md sm:rounded-2xl sm:p-6"
-    >
-      <p class="text-sm font-semibold text-gray-500">Pending</p>
-      <p class="mt-2 font-mono text-2xl font-bold text-yellow-600 sm:text-3xl">
-        {pendingCount}
-      </p>
-    </button>
-    <button
-      onclick={() => (activeTab = "failed")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-red-400 hover:shadow-md sm:rounded-2xl sm:p-6"
-    >
-      <p class="text-sm font-semibold text-gray-500">Failed</p>
-      <p class="mt-2 font-mono text-2xl font-bold text-red-600 sm:text-3xl">
-        {failedCount}
-      </p>
-    </button>
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
-    >
-      <p class="text-sm font-semibold text-gray-500">Volume</p>
-      <p class="mt-2 font-mono text-2xl font-bold text-blue-600 sm:text-3xl">
-        ${stats.totalVolume.toLocaleString()}
-      </p>
-    </div>
+    <StatCard
+      label="Total"
+      value={stats.total}
+      {lastUpdated}
+      onRefresh={refreshData}
+    />
+    <StatCard
+      label="Completed"
+      value={completedCount}
+      valueColor="text-green-600"
+      onClick={() => (activeTab = "completed")}
+    />
+    <StatCard
+      label="Pending"
+      value={pendingCount}
+      valueColor="text-yellow-600"
+      onClick={() => (activeTab = "pending")}
+    />
+    <StatCard
+      label="Failed"
+      value={failedCount}
+      valueColor="text-red-600"
+      onClick={() => (activeTab = "failed")}
+    />
+    <StatCard
+      label="24h Volume"
+      value={`$${stats.volume24h.toLocaleString()}`}
+      valueColor="text-blue-600"
+    />
   </div>
 
   <!-- Transaction Volume Chart -->
@@ -388,42 +361,51 @@
   <!-- Tabs -->
   <div class="rounded-xl border border-gray-200 bg-white sm:rounded-2xl">
     <div class="border-b border-gray-200 px-4 sm:px-6">
-      <div class="flex space-x-8">
+      <div class="flex items-center justify-between">
+        <div class="flex space-x-8">
+          <button
+            onclick={() => (activeTab = "all")}
+            class="border-b-2 py-4 text-sm font-medium transition-colors {activeTab ===
+            'all'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}"
+          >
+            All ({transactions.length})
+          </button>
+          <button
+            onclick={() => (activeTab = "completed")}
+            class="border-b-2 py-4 text-sm font-medium transition-colors {activeTab ===
+            'completed'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}"
+          >
+            Completed ({completedCount})
+          </button>
+          <button
+            onclick={() => (activeTab = "pending")}
+            class="border-b-2 py-4 text-sm font-medium transition-colors {activeTab ===
+            'pending'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}"
+          >
+            Pending ({pendingCount})
+          </button>
+          <button
+            onclick={() => (activeTab = "failed")}
+            class="border-b-2 py-4 text-sm font-medium transition-colors {activeTab ===
+            'failed'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}"
+          >
+            Failed ({failedCount})
+          </button>
+        </div>
         <button
-          onclick={() => (activeTab = "all")}
-          class="border-b-2 py-4 text-sm font-medium transition-colors {activeTab ===
-          'all'
-            ? 'border-blue-600 text-blue-600'
-            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}"
+          onclick={refreshData}
+          class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+          title="Refresh transactions"
         >
-          All ({transactions.length})
-        </button>
-        <button
-          onclick={() => (activeTab = "completed")}
-          class="border-b-2 py-4 text-sm font-medium transition-colors {activeTab ===
-          'completed'
-            ? 'border-blue-600 text-blue-600'
-            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}"
-        >
-          Completed ({completedCount})
-        </button>
-        <button
-          onclick={() => (activeTab = "pending")}
-          class="border-b-2 py-4 text-sm font-medium transition-colors {activeTab ===
-          'pending'
-            ? 'border-blue-600 text-blue-600'
-            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}"
-        >
-          Pending ({pendingCount})
-        </button>
-        <button
-          onclick={() => (activeTab = "failed")}
-          class="border-b-2 py-4 text-sm font-medium transition-colors {activeTab ===
-          'failed'
-            ? 'border-blue-600 text-blue-600'
-            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}"
-        >
-          Failed ({failedCount})
+          <RefreshCw class="h-4 w-4" />
         </button>
       </div>
     </div>
@@ -471,10 +453,12 @@
                   </span>
                 </div>
                 <p class="mt-1 text-xs text-gray-500">
-                  {tx.user}
-                  {tx.agent ? `• ${tx.agent}` : ""}
+                  {tx.userName}
+                  {tx.agentId ? `• ${tx.agentId}` : ""}
                 </p>
-                <p class="text-xs text-gray-400">{tx.timestamp}</p>
+                <p class="text-xs text-gray-400">
+                  {new Date(tx.createdAt).toLocaleString()}
+                </p>
               </div>
             </div>
             <div class="flex items-center space-x-3 sm:space-x-4">
@@ -617,7 +601,7 @@
                   Timestamp
                 </p>
                 <p class="mt-2 text-sm font-medium text-gray-900">
-                  {selectedTransaction.timestamp}
+                  {new Date(selectedTransaction.createdAt).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -639,12 +623,12 @@
                 <div class="flex-1">
                   <p class="text-xs text-gray-500">User</p>
                   <p class="font-semibold text-blue-600 hover:text-blue-700">
-                    {selectedTransaction.user}
+                    {selectedTransaction.userName}
                   </p>
                 </div>
                 <ArrowRight class="h-4 w-4 text-gray-400" />
               </button>
-              {#if selectedTransaction.agent}
+              {#if selectedTransaction.agentId}
                 <button
                   onclick={() => goto("/admin/agents")}
                   class="flex w-full items-center gap-3 rounded-lg p-3 text-left transition-all hover:bg-purple-50"
@@ -655,7 +639,7 @@
                     <p
                       class="font-semibold text-purple-600 hover:text-purple-700"
                     >
-                      {selectedTransaction.agent}
+                      {selectedTransaction.agentId}
                     </p>
                   </div>
                   <ArrowRight class="h-4 w-4 text-gray-400" />

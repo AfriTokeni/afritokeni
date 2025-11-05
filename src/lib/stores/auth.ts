@@ -19,6 +19,9 @@ export interface AuthUser {
 // Internal store for Juno user
 const junoUserStore = writable<JunoUser | null>(null);
 
+// Store to track if Juno is initialized
+export const junoInitialized = writable<boolean>(false);
+
 // Derived store for auth state
 export const authUser: Readable<AuthUser | null> = derived(
   junoUserStore,

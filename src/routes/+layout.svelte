@@ -8,7 +8,7 @@
     onAuthStateChange,
     type User as JunoUser,
   } from "@junobuild/core";
-  import { initJunoAuth } from "$lib/stores/auth";
+  import { initJunoAuth, junoInitialized } from "$lib/stores/auth";
   import { browser } from "$app/environment";
   import { goto } from "$app/navigation";
 
@@ -94,6 +94,9 @@
         await initSatellite({
           container: useContainer,
         });
+
+        // Mark Juno as initialized
+        junoInitialized.set(true);
 
         // Initialize auth subscription
         unsubscribe = initJunoAuth();

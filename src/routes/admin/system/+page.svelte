@@ -15,6 +15,7 @@
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
   import { Button, Dropdown, DropdownItem } from "flowbite-svelte";
+  import StatCard from "$lib/components/admin/StatCard.svelte";
 
   let chartDateRange = $state<"7" | "30" | "90">("30");
   let logFilterSeverity = $state<"all" | "error" | "warning" | "info">("all");
@@ -338,87 +339,30 @@
 <div class="space-y-4 sm:space-y-6">
   <!-- System Overview -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-4">
-    <button
-      onclick={() => scrollToSection("logs")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-green-400 hover:shadow-md sm:rounded-2xl sm:p-6"
-    >
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-sm font-semibold text-gray-500">System Health</p>
-          <p class="mt-2 text-2xl font-bold text-green-600 sm:text-3xl">
-            Healthy
-          </p>
-        </div>
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50"
-        >
-          <CheckCircle class="h-6 w-6 text-green-600" />
-        </div>
-      </div>
-    </button>
+    <StatCard
+      label="System Health"
+      value="Healthy"
+      valueColor="text-green-600"
+      onClick={() => scrollToSection("logs")}
+    />
 
-    <button
-      onclick={() => scrollToSection("canisters")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-blue-400 hover:shadow-md sm:rounded-2xl sm:p-6"
-    >
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-sm font-semibold text-gray-500">Uptime</p>
-          <p
-            class="mt-2 font-mono text-2xl font-bold text-gray-900 sm:text-3xl"
-          >
-            {systemHealth.uptime}
-          </p>
-        </div>
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50"
-        >
-          <Activity class="h-6 w-6 text-blue-600" />
-        </div>
-      </div>
-    </button>
+    <StatCard
+      label="Uptime"
+      value={systemHealth.uptime}
+      onClick={() => scrollToSection("canisters")}
+    />
 
-    <button
-      onclick={() => scrollToSection("canisters")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-purple-400 hover:shadow-md sm:rounded-2xl sm:p-6"
-    >
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-sm font-semibold text-gray-500">Total Cycles</p>
-          <p
-            class="mt-2 font-mono text-2xl font-bold text-gray-900 sm:text-3xl"
-          >
-            {systemHealth.totalCycles}T
-          </p>
-        </div>
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50"
-        >
-          <Zap class="h-6 w-6 text-purple-600" />
-        </div>
-      </div>
-    </button>
+    <StatCard
+      label="Total Cycles"
+      value={`${systemHealth.totalCycles}T`}
+      onClick={() => scrollToSection("canisters")}
+    />
 
-    <button
-      onclick={() => scrollToSection("canisters")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-yellow-400 hover:shadow-md sm:rounded-2xl sm:p-6"
-    >
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-sm font-semibold text-gray-500">Canisters</p>
-          <p
-            class="mt-2 font-mono text-2xl font-bold text-gray-900 sm:text-3xl"
-          >
-            {canisters.length}
-          </p>
-        </div>
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-50"
-        >
-          <Server class="h-6 w-6 text-yellow-600" />
-        </div>
-      </div>
-    </button>
+    <StatCard
+      label="Canisters"
+      value={canisters.length}
+      onClick={() => scrollToSection("canisters")}
+    />
   </div>
 
   <!-- Cycles Usage Trend Chart -->

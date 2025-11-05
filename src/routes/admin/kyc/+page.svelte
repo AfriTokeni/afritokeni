@@ -14,8 +14,10 @@
     X,
     RefreshCw,
   } from "@lucide/svelte";
+  import { onMount } from "svelte";
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
+  import StatCard from "$lib/components/admin/StatCard.svelte";
   import { Button, Dropdown, DropdownItem } from "flowbite-svelte";
   import { updateKYCStatus } from "$lib/services/juno/kycService";
   import type { KYCDocument } from "$lib/types/admin";
@@ -329,85 +331,31 @@
   <!-- Stats Grid -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3">
     <!-- Pending Count -->
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all sm:rounded-2xl sm:p-6"
-    >
-      <div class="mb-3 flex items-center justify-between">
-        <div class="flex-1">
-          <p class="text-sm font-semibold text-gray-500">Pending Review</p>
-          <p class="mt-2 font-mono text-3xl font-bold text-yellow-600">
-            {stats.pending}
-          </p>
-          <p class="mt-2 text-xs text-gray-500">Last updated: {lastUpdated}</p>
-        </div>
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-50"
-        >
-          <FileText class="h-6 w-6 text-yellow-600" />
-        </div>
-      </div>
-      <button
-        onclick={refreshData}
-        class="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-yellow-50 hover:text-yellow-600"
-      >
-        <RefreshCw class="h-4 w-4" />
-        Refresh
-      </button>
-    </div>
+    <StatCard
+      label="Pending Review"
+      value={stats.pending}
+      {lastUpdated}
+      onRefresh={refreshData}
+      valueColor="text-yellow-600"
+    />
 
     <!-- Approved Count -->
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all sm:rounded-2xl sm:p-6"
-    >
-      <div class="mb-3 flex items-center justify-between">
-        <div class="flex-1">
-          <p class="text-sm font-semibold text-gray-500">Approved</p>
-          <p class="mt-2 font-mono text-3xl font-bold text-green-600">
-            {stats.approved}
-          </p>
-          <p class="mt-2 text-xs text-gray-500">Last updated: {lastUpdated}</p>
-        </div>
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50"
-        >
-          <CheckCircle class="h-6 w-6 text-green-600" />
-        </div>
-      </div>
-      <button
-        onclick={refreshData}
-        class="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-green-50 hover:text-green-600"
-      >
-        <RefreshCw class="h-4 w-4" />
-        Refresh
-      </button>
-    </div>
+    <StatCard
+      label="Approved"
+      value={stats.approved}
+      {lastUpdated}
+      onRefresh={refreshData}
+      valueColor="text-green-600"
+    />
 
     <!-- Rejected Count -->
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all sm:rounded-2xl sm:p-6"
-    >
-      <div class="mb-3 flex items-center justify-between">
-        <div class="flex-1">
-          <p class="text-sm font-semibold text-gray-500">Rejected</p>
-          <p class="mt-2 font-mono text-3xl font-bold text-red-600">
-            {stats.rejected}
-          </p>
-          <p class="mt-2 text-xs text-gray-500">Last updated: {lastUpdated}</p>
-        </div>
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50"
-        >
-          <XCircle class="h-6 w-6 text-red-600" />
-        </div>
-      </div>
-      <button
-        onclick={refreshData}
-        class="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-red-50 hover:text-red-600"
-      >
-        <RefreshCw class="h-4 w-4" />
-        Refresh
-      </button>
-    </div>
+    <StatCard
+      label="Rejected"
+      value={stats.rejected}
+      {lastUpdated}
+      onRefresh={refreshData}
+      valueColor="text-red-600"
+    />
   </div>
 
   <!-- KYC Submissions Trend Chart -->
@@ -754,7 +702,7 @@
                         ? 'bg-purple-100 text-purple-700'
                         : 'bg-blue-100 text-blue-700'}"
                     >
-                      {selectedKYC.location ? 'Agent' : 'User'}
+                      {selectedKYC.location ? "Agent" : "User"}
                     </span>
                   </div>
                   <div class="mt-4 flex gap-8">
@@ -764,7 +712,7 @@
                     </p>
                     <p class="flex items-center text-sm text-gray-600">
                       <span class="font-semibold">Phone:</span>
-                      <span class="ml-2">{selectedKYC.userPhone || 'N/A'}</span>
+                      <span class="ml-2">{selectedKYC.userPhone || "N/A"}</span>
                     </p>
                   </div>
                 </div>

@@ -14,8 +14,10 @@
     Activity,
     DollarSign,
   } from "@lucide/svelte";
+  import { goto } from "$app/navigation";
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
+  import StatCard from "$lib/components/admin/StatCard.svelte";
 
   let searchQuery = $state("");
   let filterKYC = $state("all");
@@ -200,88 +202,31 @@
 <div class="space-y-4 sm:space-y-6">
   <!-- Stats Overview -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-4">
-    <button
-      onclick={() => (filterKYC = "all")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-gray-400 hover:shadow-md sm:rounded-2xl sm:p-6"
-    >
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-sm font-semibold text-gray-500">Total Users</p>
-          <p
-            class="mt-2 font-mono text-2xl font-bold text-gray-900 sm:text-3xl"
-          >
-            {stats.total.toLocaleString()}
-          </p>
-        </div>
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50"
-        >
-          <Users class="h-6 w-6 text-blue-600" />
-        </div>
-      </div>
-    </button>
+    <StatCard
+      label="Total Users"
+      value={stats.total}
+      onClick={() => (filterKYC = "all")}
+    />
 
-    <button
-      onclick={() => (filterKYC = "approved")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-green-400 hover:shadow-md sm:rounded-2xl sm:p-6"
-    >
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-sm font-semibold text-gray-500">KYC Approved</p>
-          <p
-            class="mt-2 font-mono text-2xl font-bold text-green-600 sm:text-3xl"
-          >
-            {stats.kycApproved.toLocaleString()}
-          </p>
-        </div>
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50"
-        >
-          <CheckCircle class="h-6 w-6 text-green-600" />
-        </div>
-      </div>
-    </button>
+    <StatCard
+      label="KYC Approved"
+      value={stats.kycApproved}
+      valueColor="text-green-600"
+      onClick={() => (filterKYC = "approved")}
+    />
 
-    <button
-      onclick={() => (filterKYC = "pending")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-yellow-400 hover:shadow-md sm:rounded-2xl sm:p-6"
-    >
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-sm font-semibold text-gray-500">KYC Pending</p>
-          <p
-            class="mt-2 font-mono text-2xl font-bold text-yellow-600 sm:text-3xl"
-          >
-            {stats.kycPending}
-          </p>
-        </div>
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-50"
-        >
-          <Clock class="h-6 w-6 text-yellow-600" />
-        </div>
-      </div>
-    </button>
+    <StatCard
+      label="KYC Pending"
+      value={stats.kycPending}
+      valueColor="text-yellow-600"
+      onClick={() => (filterKYC = "pending")}
+    />
 
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
-    >
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-sm font-semibold text-gray-500">Active Users</p>
-          <p
-            class="mt-2 font-mono text-2xl font-bold text-purple-600 sm:text-3xl"
-          >
-            {stats.active.toLocaleString()}
-          </p>
-        </div>
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50"
-        >
-          <Users class="h-6 w-6 text-purple-600" />
-        </div>
-      </div>
-    </div>
+    <StatCard
+      label="Active Users"
+      value={stats.active}
+      valueColor="text-purple-600"
+    />
   </div>
 
   <!-- User Growth Chart -->

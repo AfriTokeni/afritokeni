@@ -13,6 +13,7 @@
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
   import { Button, Dropdown, DropdownItem } from "flowbite-svelte";
+  import StatCard from "$lib/components/admin/StatCard.svelte";
 
   let chartDateRange = $state<"30" | "90" | "180">("90");
 
@@ -215,126 +216,28 @@
   <!-- Revenue Overview Cards -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
     <!-- Total Revenue -->
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
-    >
-      <div class="mb-3 flex items-start justify-between">
-        <div class="flex-1">
-          <div class="mb-2 flex items-center space-x-2">
-            <div
-              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 sm:h-12 sm:w-12 sm:rounded-xl"
-            >
-              <DollarSign class="h-5 w-5 text-blue-600 sm:h-6 sm:w-6" />
-            </div>
-            <div class="min-w-0">
-              <p class="text-sm font-semibold text-gray-900">Total Revenue</p>
-              <p class="text-xs text-gray-500">All sources</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="mb-3">
-        <span class="font-mono text-2xl font-bold text-gray-900 sm:text-3xl">
-          ${revenueStats.totalRevenue.toLocaleString()}
-        </span>
-      </div>
-      <div class="flex items-center space-x-1 border-t border-gray-100 pt-3">
-        <TrendingUp class="h-4 w-4 text-green-600" />
-        <span class="text-sm font-medium text-green-600"
-          >+{revenueStats.growth}%</span
-        >
-        <span class="text-sm text-gray-500">vs last month</span>
-      </div>
-    </div>
+    <StatCard
+      label="Total Revenue"
+      value={`$${revenueStats.totalRevenue.toLocaleString()}`}
+    />
 
     <!-- Deposit Commissions -->
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
-    >
-      <div class="mb-3 flex items-start justify-between">
-        <div class="flex-1">
-          <div class="mb-2 flex items-center space-x-2">
-            <div
-              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-50 sm:h-12 sm:w-12 sm:rounded-xl"
-            >
-              <CreditCard class="h-5 w-5 text-purple-600 sm:h-6 sm:w-6" />
-            </div>
-            <div class="min-w-0">
-              <p class="text-sm font-semibold text-gray-900">Platform Fees</p>
-              <p class="text-xs text-gray-500">0.5% of transactions</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="mb-3">
-        <span class="font-mono text-2xl font-bold text-gray-900 sm:text-3xl">
-          ${revenueStats.depositCommissions.toLocaleString()}
-        </span>
-      </div>
-      <div class="border-t border-gray-100 pt-3">
-        <span class="text-sm text-gray-500">62% of total</span>
-      </div>
-    </div>
+    <StatCard
+      label="Platform Fees"
+      value={`$${revenueStats.depositCommissions.toLocaleString()}`}
+    />
 
     <!-- Withdrawal Fees -->
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
-    >
-      <div class="mb-3 flex items-start justify-between">
-        <div class="flex-1">
-          <div class="mb-2 flex items-center space-x-2">
-            <div
-              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-50 sm:h-12 sm:w-12 sm:rounded-xl"
-            >
-              <Banknote class="h-5 w-5 text-green-600 sm:h-6 sm:w-6" />
-            </div>
-            <div class="min-w-0">
-              <p class="text-sm font-semibold text-gray-900">Agent Fees</p>
-              <p class="text-xs text-gray-500">10% of commissions</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="mb-3">
-        <span class="font-mono text-2xl font-bold text-gray-900 sm:text-3xl">
-          ${revenueStats.withdrawalFees.toLocaleString()}
-        </span>
-      </div>
-      <div class="border-t border-gray-100 pt-3">
-        <span class="text-sm text-gray-500">27% of total</span>
-      </div>
-    </div>
+    <StatCard
+      label="Agent Fees"
+      value={`$${revenueStats.withdrawalFees.toLocaleString()}`}
+    />
 
     <!-- Exchange Spread -->
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
-    >
-      <div class="mb-3 flex items-start justify-between">
-        <div class="flex-1">
-          <div class="mb-2 flex items-center space-x-2">
-            <div
-              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-yellow-50 sm:h-12 sm:w-12 sm:rounded-xl"
-            >
-              <ArrowUpRight class="h-5 w-5 text-yellow-600 sm:h-6 sm:w-6" />
-            </div>
-            <div class="min-w-0">
-              <p class="text-sm font-semibold text-gray-900">
-                Exchange Spreads
-              </p>
-              <p class="text-xs text-gray-500">0.5% on crypto trades</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="mb-3">
-        <span class="font-mono text-2xl font-bold text-gray-900 sm:text-3xl">
-          ${revenueStats.exchangeSpread.toLocaleString()}
-        </span>
-      </div>
-      <div class="border-t border-gray-100 pt-3">
-        <span class="text-sm text-gray-500">11% of total</span>
-      </div>
-    </div>
+    <StatCard
+      label="Exchange Spreads"
+      value={`$${revenueStats.exchangeSpread.toLocaleString()}`}
+    />
   </div>
 
   <!-- Revenue Trend Chart -->

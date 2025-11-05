@@ -21,6 +21,7 @@
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
   import { Button, Dropdown, DropdownItem } from "flowbite-svelte";
+  import StatCard from "$lib/components/admin/StatCard.svelte";
 
   let chartDateRange = $state<"7" | "30" | "90">("30");
   let selectedTransaction = $state<any>(null);
@@ -220,155 +221,40 @@
   <!-- Stats Grid - 4 columns -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
     <!-- Revenue Card -->
-    <button
-      onclick={() => goto("/admin/revenue")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-blue-400 hover:shadow-md sm:rounded-2xl sm:p-6"
-    >
-      <div class="mb-3 flex items-start justify-between sm:mb-4">
-        <div class="flex-1">
-          <div class="mb-2 flex items-center space-x-2 sm:mb-3">
-            <div
-              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 sm:h-12 sm:w-12 sm:rounded-xl"
-            >
-              <DollarSign class="h-5 w-5 text-blue-600 sm:h-6 sm:w-6" />
-            </div>
-            <div class="min-w-0">
-              <p class="text-sm font-semibold text-gray-900 sm:text-base">
-                Revenue
-              </p>
-              <p class="text-xs text-gray-500">Total earnings</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="mb-3 sm:mb-4">
-        <span class="font-mono text-2xl font-bold text-gray-900 sm:text-3xl">
-          ${stats.revenue.toLocaleString()}
-        </span>
-      </div>
-      <div class="flex items-center space-x-1 border-t border-gray-100 pt-3">
-        {#if stats.revenueChange > 0}
-          <TrendingUp class="h-4 w-4 text-green-600" />
-          <span class="text-sm font-medium text-green-600"
-            >+{stats.revenueChange}%</span
-          >
-        {:else}
-          <TrendingDown class="h-4 w-4 text-red-600" />
-          <span class="text-sm font-medium text-red-600"
-            >{stats.revenueChange}%</span
-          >
-        {/if}
-        <span class="text-sm text-gray-500">vs last month</span>
-      </div>
-    </button>
+    <StatCard
+      label="Revenue"
+      subtitle="Total earnings"
+      value={`$${stats.revenue.toLocaleString()}`}
+      trend={stats.revenueChange}
+      onClick={() => goto("/admin/revenue")}
+    />
 
     <!-- Users Card -->
-    <button
-      onclick={() => goto("/admin/users")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-purple-400 hover:shadow-md sm:rounded-2xl sm:p-6"
-    >
-      <div class="mb-3 flex items-start justify-between sm:mb-4">
-        <div class="flex-1">
-          <div class="mb-2 flex items-center space-x-2 sm:mb-3">
-            <div
-              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-50 sm:h-12 sm:w-12 sm:rounded-xl"
-            >
-              <Users class="h-5 w-5 text-purple-600 sm:h-6 sm:w-6" />
-            </div>
-            <div class="min-w-0">
-              <p class="text-sm font-semibold text-gray-900 sm:text-base">
-                Total Users
-              </p>
-              <p class="text-xs text-gray-500">Active accounts</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="mb-3 sm:mb-4">
-        <span class="font-mono text-2xl font-bold text-gray-900 sm:text-3xl">
-          {stats.users.toLocaleString()}
-        </span>
-      </div>
-      <div class="flex items-center space-x-1 border-t border-gray-100 pt-3">
-        <TrendingUp class="h-4 w-4 text-green-600" />
-        <span class="text-sm font-medium text-green-600"
-          >+{stats.usersChange}%</span
-        >
-        <span class="text-sm text-gray-500">vs last month</span>
-      </div>
-    </button>
+    <StatCard
+      label="Total Users"
+      subtitle="Active accounts"
+      value={stats.users}
+      trend={stats.usersChange}
+      onClick={() => goto("/admin/users")}
+    />
 
     <!-- Transactions Card -->
-    <button
-      onclick={() => goto("/admin/transactions")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-green-400 hover:shadow-md sm:rounded-2xl sm:p-6"
-    >
-      <div class="mb-3 flex items-start justify-between sm:mb-4">
-        <div class="flex-1">
-          <div class="mb-2 flex items-center space-x-2 sm:mb-3">
-            <div
-              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-50 sm:h-12 sm:w-12 sm:rounded-xl"
-            >
-              <CreditCard class="h-5 w-5 text-green-600 sm:h-6 sm:w-6" />
-            </div>
-            <div class="min-w-0">
-              <p class="text-sm font-semibold text-gray-900 sm:text-base">
-                Transactions
-              </p>
-              <p class="text-xs text-gray-500">All time</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="mb-3 sm:mb-4">
-        <span class="font-mono text-2xl font-bold text-gray-900 sm:text-3xl">
-          {stats.transactions.toLocaleString()}
-        </span>
-      </div>
-      <div class="flex items-center space-x-1 border-t border-gray-100 pt-3">
-        <TrendingUp class="h-4 w-4 text-green-600" />
-        <span class="text-sm font-medium text-green-600"
-          >+{stats.transactionsChange}%</span
-        >
-        <span class="text-sm text-gray-500">vs last month</span>
-      </div>
-    </button>
+    <StatCard
+      label="Transactions"
+      subtitle="All time"
+      value={stats.transactions}
+      trend={stats.transactionsChange}
+      onClick={() => goto("/admin/transactions")}
+    />
 
     <!-- Agents Card -->
-    <button
-      onclick={() => goto("/admin/agents")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-orange-400 hover:shadow-md sm:rounded-2xl sm:p-6"
-    >
-      <div class="mb-3 flex items-start justify-between sm:mb-4">
-        <div class="flex-1">
-          <div class="mb-2 flex items-center space-x-2 sm:mb-3">
-            <div
-              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-yellow-50 sm:h-12 sm:w-12 sm:rounded-xl"
-            >
-              <Activity class="h-5 w-5 text-yellow-600 sm:h-6 sm:w-6" />
-            </div>
-            <div class="min-w-0">
-              <p class="text-sm font-semibold text-gray-900 sm:text-base">
-                Active Agents
-              </p>
-              <p class="text-xs text-gray-500">Network size</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="mb-3 sm:mb-4">
-        <span class="font-mono text-2xl font-bold text-gray-900 sm:text-3xl">
-          {stats.agents}
-        </span>
-      </div>
-      <div class="flex items-center space-x-1 border-t border-gray-100 pt-3">
-        <TrendingUp class="h-4 w-4 text-green-600" />
-        <span class="text-sm font-medium text-green-600"
-          >+{stats.agentsChange}%</span
-        >
-        <span class="text-sm text-gray-500">vs last month</span>
-      </div>
-    </button>
+    <StatCard
+      label="Active Agents"
+      subtitle="Network size"
+      value={stats.agents}
+      trend={stats.agentsChange}
+      onClick={() => goto("/admin/agents")}
+    />
   </div>
 
   <!-- Revenue Trend Chart -->
