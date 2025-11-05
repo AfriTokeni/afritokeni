@@ -1,5 +1,4 @@
 use super::*;
-use candid::Principal;
 
 // ============================================================================
 // DEPOSIT CREATION TESTS
