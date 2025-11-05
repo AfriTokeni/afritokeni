@@ -94,7 +94,7 @@ fn init(company_wallet: Principal) {
 
 #[update]
 fn create_deposit_request(request: CreateDepositRequest) -> Result<DepositTransaction, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     
     // Verify caller is the user
     if caller != request.user_principal {
@@ -138,7 +138,7 @@ fn create_deposit_request(request: CreateDepositRequest) -> Result<DepositTransa
 
 #[update]
 fn confirm_deposit(request: ConfirmDepositRequest) -> Result<DepositTransaction, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     
     // Verify caller is the agent
     if caller != request.agent_principal {
@@ -154,7 +154,7 @@ fn confirm_deposit(request: ConfirmDepositRequest) -> Result<DepositTransaction,
     }).ok_or("Deposit code not found".to_string())?;
     
     // Update deposit status
-    let mut transaction = DEPOSITS.with(|deposits| {
+    let transaction = DEPOSITS.with(|deposits| {
         let mut deps = deposits.borrow_mut();
         let deposit = deps.get_mut(&deposit_id)
             .ok_or("Deposit not found".to_string())?;
@@ -222,7 +222,7 @@ fn get_all_agent_balances() -> Vec<AgentBalance> {
 #[update]
 fn create_monthly_settlement(month: String) -> Result<Vec<MonthlySettlement>, String> {
     // Only company wallet can create settlements
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let company = COMPANY_WALLET.with(|w| {
         w.borrow().ok_or("Company wallet not set".to_string())
     })?;
@@ -261,7 +261,7 @@ fn create_monthly_settlement(month: String) -> Result<Vec<MonthlySettlement>, St
 #[update]
 fn mark_settlement_paid(month: String, agent: Principal) -> Result<(), String> {
     // Only company wallet can mark as paid
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let company = COMPANY_WALLET.with(|w| {
         w.borrow().ok_or("Company wallet not set".to_string())
     })?;

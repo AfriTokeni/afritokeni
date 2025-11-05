@@ -95,7 +95,7 @@ fn init(company_wallet: Principal) {
 
 #[update]
 fn create_withdrawal_request(request: CreateWithdrawalRequest) -> Result<WithdrawalTransaction, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     
     // Verify caller is the user
     if caller != request.user_principal {
@@ -160,7 +160,7 @@ fn create_withdrawal_request(request: CreateWithdrawalRequest) -> Result<Withdra
 
 #[update]
 fn confirm_withdrawal(request: ConfirmWithdrawalRequest) -> Result<WithdrawalTransaction, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     
     // Verify caller is the agent
     if caller != request.agent_principal {

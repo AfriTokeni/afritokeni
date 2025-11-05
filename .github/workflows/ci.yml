@@ -170,6 +170,34 @@ jobs:
           NODE_ENV: unit-test
         timeout-minutes: 10
 
+  test-canisters:
+    name: Canister Tests (Rust)
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
+      
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Run Canister Tests
+        run: cargo test --release --package deposit_canister --package withdrawal_canister --package exchange_canister
+        timeout-minutes: 10
+
   test-integration:
     name: Integration Tests
     runs-on: ubuntu-latest

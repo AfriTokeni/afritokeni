@@ -7,7 +7,8 @@
   async function handleSignIn() {
     isLoading = true;
     try {
-      const isProd = import.meta.env.PROD && window.location.hostname === "afritokeni.com";
+      const isProd =
+        import.meta.env.PROD && window.location.hostname === "afritokeni.com";
 
       if (isProd) {
         // Production domain only: Use id.ai with derivationOrigin

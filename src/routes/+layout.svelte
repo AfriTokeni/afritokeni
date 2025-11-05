@@ -44,7 +44,8 @@
       if (roleDoc?.data) {
         // User has existing role - redirect to their dashboard
         const role = (roleDoc.data as any).role;
-        const targetDashboard = role === "agent" ? "/agents/dashboard" : "/users/dashboard";
+        const targetDashboard =
+          role === "agent" ? "/agents/dashboard" : "/users/dashboard";
 
         // Don't redirect if already on their dashboard or a route within it
         if (currentPath.startsWith(targetDashboard.split("/")[1])) {

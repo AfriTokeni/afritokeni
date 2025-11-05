@@ -1,5 +1,5 @@
 use candid::{CandidType, Deserialize, Principal};
-use ic_cdk::api::call::CallResult;
+use ic_cdk::call::Call;
 use ic_cdk_macros::*;
 use serde::Deserialize as SerdeDeserialize;
 use std::cell::RefCell;
@@ -45,6 +45,7 @@ struct TokensConfig {
 #[derive(SerdeDeserialize, Clone)]
 struct TokenConfig {
     ledger: String,
+    #[allow(dead_code)]
     decimals: u8,
 }
 
@@ -93,7 +94,7 @@ fn get_config() -> Config {
 
 #[update]
 async fn swap_tokens(request: ExchangeRequest) -> Result<ExchangeResult, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     
     // Validate request
     if request.amount == 0 {
@@ -150,16 +151,20 @@ async fn transfer_from_user(
     let canister_id = get_token_canister(token)?;
     
     // ICRC-2 transferFrom pattern
-    let result: CallResult<(Result<u64, String>,)> = ic_cdk::call(
+    let response = Call::unbounded_wait(
         canister_id,
         "icrc2_transfer_from",
-        (from, ic_cdk::id(), amount),
-    ).await;
+    )
+    .with_arg((from, ic_cdk::api::canister_self(), amount))
+    .await
+    .map_err(|e| format!("Call failed: {:?}", e))?;
     
-    match result {
-        Ok((Ok(_),)) => Ok(()),
-        Ok((Err(e),)) => Err(format!("Transfer from user failed: {}", e)),
-        Err((code, msg)) => Err(format!("Call failed: {:?} - {}", code, msg)),
+    let result: (Result<u64, String>,) = candid::decode_args(&response.into_bytes())
+        .map_err(|e| format!("Decode failed: {:?}", e))?;
+    
+    match result.0 {
+        Ok(_) => Ok(()),
+        Err(e) => Err(format!("Transfer from user failed: {}", e)),
     }
 }
 
@@ -171,16 +176,20 @@ async fn transfer_to_company_wallet(
 ) -> Result<(), String> {
     let canister_id = get_token_canister(token)?;
     
-    let result: CallResult<(Result<u64, String>,)> = ic_cdk::call(
+    let response = Call::unbounded_wait(
         canister_id,
         "icrc1_transfer",
-        (company_wallet, amount),
-    ).await;
+    )
+    .with_arg((company_wallet, amount))
+    .await
+    .map_err(|e| format!("Call failed: {:?}", e))?;
     
-    match result {
-        Ok((Ok(_),)) => Ok(()),
-        Ok((Err(e),)) => Err(format!("Transfer to company wallet failed: {}", e)),
-        Err((code, msg)) => Err(format!("Call failed: {:?} - {}", code, msg)),
+    let result: (Result<u64, String>,) = candid::decode_args(&response.into_bytes())
+        .map_err(|e| format!("Decode failed: {:?}", e))?;
+    
+    match result.0 {
+        Ok(_) => Ok(()),
+        Err(e) => Err(format!("Transfer to company wallet failed: {}", e)),
     }
 }
 
@@ -192,16 +201,20 @@ async fn transfer_to_user(
 ) -> Result<(), String> {
     let canister_id = get_token_canister(token)?;
     
-    let result: CallResult<(Result<u64, String>,)> = ic_cdk::call(
+    let response = Call::unbounded_wait(
         canister_id,
         "icrc1_transfer",
-        (to, amount),
-    ).await;
+    )
+    .with_arg((to, amount))
+    .await
+    .map_err(|e| format!("Call failed: {:?}", e))?;
     
-    match result {
-        Ok((Ok(_),)) => Ok(()),
-        Ok((Err(e),)) => Err(format!("Transfer to user failed: {}", e)),
-        Err((code, msg)) => Err(format!("Call failed: {:?} - {}", code, msg)),
+    let result: (Result<u64, String>,) = candid::decode_args(&response.into_bytes())
+        .map_err(|e| format!("Decode failed: {:?}", e))?;
+    
+    match result.0 {
+        Ok(_) => Ok(()),
+        Err(e) => Err(format!("Transfer to user failed: {}", e)),
     }
 }
 
@@ -235,39 +248,39 @@ async fn perform_swap(
         amount_in: candid::Nat::from(amount),
         amount_out_min: candid::Nat::from(0u64), // Will be validated by slippage check later
         path: vec![from_principal.to_text(), to_principal.to_text()],
-        to: ic_cdk::id(), // Swap to this canister
+        to: ic_cdk::api::canister_self(), // Swap to this canister
         deadline: ic_cdk::api::time() + 300_000_000_000, // 5 minutes from now
     };
     
     // Call Sonic swap
-    let result: CallResult<(Vec<candid::Nat>,)> = ic_cdk::call(
+    let response = Call::unbounded_wait(
         sonic_canister,
         "swapExactTokensForTokens",
-        (
-            swap_args.amount_in,
-            swap_args.amount_out_min,
-            swap_args.path,
-            swap_args.to,
-            swap_args.deadline,
-        ),
-    ).await;
+    )
+    .with_arg((
+        swap_args.amount_in,
+        swap_args.amount_out_min,
+        swap_args.path,
+        swap_args.to,
+        swap_args.deadline,
+    ))
+    .await
+    .map_err(|e| format!("Sonic swap failed: {:?}", e))?;
     
-    match result {
-        Ok((amounts,)) => {
-            // Sonic returns array of amounts [input_amount, output_amount]
-            if amounts.len() < 2 {
-                return Err("Invalid Sonic response".to_string());
-            }
-            
-            // Get output amount (last element in array)
-            let output = amounts.last().unwrap();
-            let output_u64: u64 = output.0.clone().try_into()
-                .map_err(|_| "Output amount too large".to_string())?;
-            
-            Ok(output_u64)
-        }
-        Err((code, msg)) => Err(format!("Sonic swap failed: {:?} - {}", code, msg)),
+    let (amounts,): (Vec<candid::Nat>,) = candid::decode_args(&response.into_bytes())
+        .map_err(|e| format!("Decode failed: {:?}", e))?;
+    
+    // Sonic returns array of amounts [input_amount, output_amount]
+    if amounts.len() < 2 {
+        return Err("Invalid Sonic response".to_string());
     }
+    
+    // Get output amount (last element in array)
+    let output = amounts.last().unwrap();
+    let output_u64: u64 = output.0.clone().try_into()
+        .map_err(|_| "Output amount too large".to_string())?;
+    
+    Ok(output_u64)
 }
 
 // Helper: Get token canister ID from config
