@@ -1092,7 +1092,7 @@
     {/if}
 
     <!-- Document Display -->
-    <div class="max-h-[90vh] max-w-5xl" onclick={(e) => e.stopPropagation()}>
+    <div class="max-h-[90vh] max-w-5xl" role="button" tabindex="0" onclick={(e) => e.stopPropagation()}>
       <div class="rounded-2xl bg-white p-4 shadow-2xl">
         <!-- Document Info -->
         <div

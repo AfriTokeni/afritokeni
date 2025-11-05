@@ -147,12 +147,11 @@ export async function updateKYCStatus(
       doc: {
         ...doc,
         data: {
-          ...doc.data,
+          ...(doc.data as KYCDocData),
           status,
           reviewedAt: new Date().toISOString(),
-          adminNotes: adminNotes ?? (doc.data.adminNotes as string | undefined),
+          adminNotes: adminNotes ?? (doc.data as KYCDocData).adminNotes,
         },
-        updated_at: BigInt(Date.now() * 1000000),
       },
     });
 
