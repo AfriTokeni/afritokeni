@@ -7,7 +7,9 @@
     ArrowUpRight,
     Info,
     ChevronDown,
+    ArrowRight,
   } from "lucide-svelte";
+  import { goto } from "$app/navigation";
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
   import { Button, Dropdown, DropdownItem } from "flowbite-svelte";
@@ -74,12 +76,51 @@
     },
   ]);
 
-  let monthlyRevenue = $state([
-    { month: "Oct 2024", revenue: 42340, growth: 8.2 },
-    { month: "Sep 2024", revenue: 39150, growth: 12.5 },
-    { month: "Aug 2024", revenue: 34820, growth: 15.3 },
-    { month: "Jul 2024", revenue: 30200, growth: 9.8 },
+  let recentTransactions = $state([
+    {
+      id: "TXN-1234",
+      user: "John Doe",
+      type: "Deposit",
+      amount: 5000,
+      fee: 250,
+      time: "2 hours ago",
+      status: "completed",
+    },
+    {
+      id: "TXN-1233",
+      user: "Jane Smith",
+      type: "Withdrawal",
+      amount: 3200,
+      fee: 160,
+      time: "5 hours ago",
+      status: "completed",
+    },
+    {
+      id: "TXN-1232",
+      user: "Bob Johnson",
+      type: "Exchange",
+      amount: 1500,
+      fee: 7.5,
+      time: "8 hours ago",
+      status: "completed",
+    },
+    {
+      id: "TXN-1231",
+      user: "Alice Brown",
+      type: "Deposit",
+      amount: 8000,
+      fee: 400,
+      time: "12 hours ago",
+      status: "completed",
+    },
   ]);
+
+  function getTypeColor(type: string) {
+    if (type === "Deposit") return "bg-blue-100 text-blue-800";
+    if (type === "Withdrawal") return "bg-purple-100 text-purple-800";
+    if (type === "Exchange") return "bg-green-100 text-green-800";
+    return "bg-gray-100 text-gray-800";
+  }
 
   // Generate revenue chart data based on date range
   function getRevenueChartData() {
@@ -334,58 +375,71 @@
     </div>
   </div>
 
-  <!-- Revenue Breakdown -->
+  <!-- Recent Revenue Transactions -->
   <div
-    class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6 lg:p-8"
+    class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
   >
     <div class="mb-4 flex items-center justify-between sm:mb-6">
       <div>
         <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
-          Revenue Sources
+          Recent Revenue Transactions
         </h3>
         <p class="text-xs text-gray-500 sm:text-sm">
-          Breakdown by transaction type
+          Latest fee-generating transactions
         </p>
       </div>
+      <button
+        onclick={() => goto("/admin/transactions")}
+        class="flex items-center gap-1 text-sm font-medium text-blue-600 transition-colors hover:text-blue-700"
+      >
+        View all
+        <ArrowRight class="h-4 w-4" />
+      </button>
     </div>
 
-    <div class="space-y-6">
-      {#each revenueBreakdown as item}
-        <div>
-          <div class="mb-2 flex items-center justify-between">
-            <span class="text-sm font-medium text-gray-900">{item.source}</span>
-            <div class="text-right">
-              <p class="font-mono text-sm font-bold text-gray-900">
-                ${item.amount.toLocaleString()}
-              </p>
-              <p class="text-xs text-gray-500">
-                {item.transactions} transactions
-              </p>
-            </div>
-          </div>
-          <div class="h-3 w-full overflow-hidden rounded-full bg-gray-100">
-            <div
-              class="h-full rounded-full bg-{item.color}-500"
-              style="width: {item.percentage}%"
-            ></div>
-          </div>
-        </div>
-      {/each}
-    </div>
-
-    <!-- Info Box -->
-    <div
-      class="mt-6 flex items-start space-x-2 rounded-lg border border-blue-200 bg-blue-50 p-3"
-    >
-      <Info class="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
-      <div class="text-xs text-blue-900">
-        <p class="font-semibold">Revenue Model:</p>
-        <ul class="mt-1 space-y-0.5 text-blue-800">
-          <li>• Deposits: 5% commission on all deposit transactions</li>
-          <li>• Withdrawals: Fixed fee per transaction</li>
-          <li>• Exchange: Spread between buy/sell rates</li>
-        </ul>
-      </div>
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead>
+          <tr class="border-b border-gray-200 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <th class="pb-3">Transaction</th>
+            <th class="pb-3">User</th>
+            <th class="pb-3">Type</th>
+            <th class="pb-3 text-right">Amount</th>
+            <th class="pb-3 text-right">Fee</th>
+            <th class="pb-3">Time</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {#each recentTransactions as txn}
+            <tr class="transition-colors hover:bg-gray-50">
+              <td class="py-3">
+                <p class="font-mono text-sm font-medium text-gray-900">{txn.id}</p>
+              </td>
+              <td class="py-3">
+                <p class="text-sm text-gray-900">{txn.user}</p>
+              </td>
+              <td class="py-3">
+                <span class="rounded-full px-2 py-1 text-xs font-medium {getTypeColor(txn.type)}">
+                  {txn.type}
+                </span>
+              </td>
+              <td class="py-3 text-right">
+                <p class="font-mono text-sm font-medium text-gray-900">
+                  ${txn.amount.toLocaleString()}
+                </p>
+              </td>
+              <td class="py-3 text-right">
+                <p class="font-mono text-sm font-semibold text-green-600">
+                  +${txn.fee.toLocaleString()}
+                </p>
+              </td>
+              <td class="py-3">
+                <p class="text-xs text-gray-500">{txn.time}</p>
+              </td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -400,18 +454,20 @@
         </h3>
         <p class="text-xs text-gray-500 sm:text-sm">Highest earning agents</p>
       </div>
-      <a
-        href="/admin/agents"
-        class="text-sm font-medium text-blue-600 hover:text-blue-700"
+      <button
+        onclick={() => goto("/admin/agents")}
+        class="flex items-center gap-1 text-sm font-medium text-blue-600 transition-colors hover:text-blue-700"
       >
-        View all →
-      </a>
+        View all
+        <ArrowRight class="h-4 w-4" />
+      </button>
     </div>
 
     <div class="space-y-3 sm:space-y-4">
       {#each topAgents as agent, i}
-        <div
-          class="flex items-center justify-between rounded-lg border border-gray-100 p-3 transition-all hover:border-gray-200 sm:p-4"
+        <button
+          onclick={() => goto("/admin/agents")}
+          class="flex w-full items-center justify-between rounded-lg border border-gray-100 p-3 text-left transition-all hover:border-blue-400 hover:shadow-md sm:p-4"
         >
           <div class="flex items-center space-x-3 sm:space-x-4">
             <div
@@ -436,44 +492,7 @@
             </p>
             <p class="text-xs text-gray-500">Commission: ${agent.commission}</p>
           </div>
-        </div>
-      {/each}
-    </div>
-  </div>
-
-  <!-- Monthly Revenue History -->
-  <div
-    class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
-  >
-    <div class="mb-4 flex items-center justify-between sm:mb-6">
-      <div>
-        <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
-          Monthly Revenue
-        </h3>
-        <p class="text-xs text-gray-500 sm:text-sm">Historical performance</p>
-      </div>
-    </div>
-
-    <div class="space-y-3 sm:space-y-4">
-      {#each monthlyRevenue as month}
-        <div
-          class="flex items-center justify-between rounded-lg border border-gray-100 p-3 sm:p-4"
-        >
-          <div>
-            <p class="font-medium text-gray-900">{month.month}</p>
-          </div>
-          <div class="flex items-center space-x-4">
-            <p class="font-mono text-sm font-bold text-gray-900 sm:text-base">
-              ${month.revenue.toLocaleString()}
-            </p>
-            <div class="flex items-center space-x-1">
-              <TrendingUp class="h-4 w-4 text-green-600" />
-              <span class="text-sm font-medium text-green-600"
-                >+{month.growth}%</span
-              >
-            </div>
-          </div>
-        </div>
+        </button>
       {/each}
     </div>
   </div>
