@@ -286,7 +286,7 @@
               : "Last 90 days"}
           <ChevronDown class="h-4 w-4" />
         </Button>
-        <Dropdown class="z-50 w-44 border border-gray-200 shadow-sm">
+        <Dropdown class="z-50 w-44 !shadow-md">
           <DropdownItem onclick={() => (chartDateRange = "7")}
             >Last 7 days</DropdownItem
           >

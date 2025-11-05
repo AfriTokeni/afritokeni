@@ -7,8 +7,14 @@
     DollarSign,
     Activity,
     Info,
+    ChevronDown,
   } from "lucide-svelte";
   import { onMount } from "svelte";
+  import type { ApexOptions } from 'apexcharts';
+  import { Chart } from '@flowbite-svelte-plugins/chart';
+  import { Button, Dropdown, DropdownItem } from 'flowbite-svelte';
+  
+  let chartDateRange = $state<'7' | '30' | '90'>('30');
 
   // Mock data - will be replaced with real canister/Juno data
   let stats = $state({
@@ -22,18 +28,79 @@
     agentsChange: 5.2,
   });
 
-  // Revenue chart data (last 30 days)
-  let revenueData = $state([
-    { day: "Nov 1", amount: 42000 },
-    { day: "Nov 5", amount: 38000 },
-    { day: "Nov 10", amount: 44000 },
-    { day: "Nov 15", amount: 41000 },
-    { day: "Nov 20", amount: 47000 },
-    { day: "Nov 25", amount: 43000 },
-    { day: "Nov 30", amount: 45385 },
-  ]);
-
-  let maxRevenue = $derived(Math.max(...revenueData.map((d) => d.amount)));
+  // Generate revenue chart data based on date range
+  function getRevenueChartData() {
+    if (chartDateRange === '7') {
+      return {
+        categories: ['Oct 29', 'Oct 30', 'Oct 31', 'Nov 1', 'Nov 2', 'Nov 3', 'Nov 4'],
+        revenue: [42000, 43500, 41800, 44200, 43000, 45000, 45385],
+      };
+    } else if (chartDateRange === '30') {
+      return {
+        categories: ['Oct 5', 'Oct 10', 'Oct 15', 'Oct 20', 'Oct 25', 'Oct 30', 'Nov 4'],
+        revenue: [38000, 40000, 42000, 41000, 43000, 44500, 45385],
+      };
+    } else {
+      return {
+        categories: ['Aug', 'Sep', 'Oct', 'Nov'],
+        revenue: [35000, 39000, 42000, 45385],
+      };
+    }
+  }
+  
+  // Revenue trend chart
+  let revenueChartOptions = $derived<ApexOptions>({
+    chart: {
+      height: '320px',
+      type: 'area',
+      fontFamily: 'Inter, sans-serif',
+      dropShadow: { enabled: false },
+      toolbar: { show: false },
+    },
+    tooltip: { enabled: true, x: { show: false } },
+    fill: {
+      type: 'gradient',
+      gradient: {
+        opacityFrom: 0.55,
+        opacityTo: 0,
+        shade: '#1C64F2',
+        gradientToColors: ['#1C64F2'],
+      },
+    },
+    dataLabels: { enabled: false },
+    stroke: { width: 2, curve: 'smooth' },
+    grid: {
+      show: true,
+      strokeDashArray: 4,
+      padding: { left: 2, right: 2, top: 0 },
+    },
+    series: [
+      {
+        name: 'Revenue',
+        data: getRevenueChartData().revenue,
+        color: '#3b82f6',
+      },
+    ],
+    xaxis: {
+      categories: getRevenueChartData().categories,
+      labels: {
+        show: true,
+        style: {
+          fontFamily: 'Inter, sans-serif',
+          cssClass: 'text-xs font-normal fill-gray-500',
+        },
+      },
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+    },
+    yaxis: {
+      show: true,
+      labels: {
+        formatter: (value) => '$' + value.toLocaleString(),
+      },
+    },
+    legend: { show: false },
+  });
 
   let topTransactions = $state([
     {
@@ -225,7 +292,7 @@
     </div>
   </div>
 
-  <!-- Revenue Chart -->
+  <!-- Revenue Trend Chart -->
   <div
     class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6 lg:p-8"
   >
@@ -234,107 +301,22 @@
         <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
           Revenue Trend
         </h3>
-        <p class="text-xs text-gray-500 sm:text-sm">Last 30 days</p>
+        <p class="text-xs text-gray-500 sm:text-sm">Revenue over time</p>
       </div>
-      <div class="flex items-center space-x-1">
-        <div class="h-2 w-2 rounded-full bg-green-500"></div>
-        <span class="text-xs font-medium text-green-600 sm:text-sm"
-          >Growing</span
-        >
+      <div class="relative">
+        <Button size="sm" color="light" class="gap-2">
+          {chartDateRange === '7' ? 'Last 7 days' : chartDateRange === '30' ? 'Last 30 days' : 'Last 3 months'}
+          <ChevronDown class="h-4 w-4" />
+        </Button>
+        <Dropdown class="z-50 w-44 !shadow-md">
+          <DropdownItem onclick={() => chartDateRange = '7'}>Last 7 days</DropdownItem>
+          <DropdownItem onclick={() => chartDateRange = '30'}>Last 30 days</DropdownItem>
+          <DropdownItem onclick={() => chartDateRange = '90'}>Last 3 months</DropdownItem>
+        </Dropdown>
       </div>
     </div>
-
-    <!-- Simple Line Chart -->
-    <div class="relative h-48 sm:h-64">
-      <svg
-        class="h-full w-full"
-        viewBox="0 0 700 200"
-        preserveAspectRatio="none"
-      >
-        <!-- Grid lines -->
-        <line
-          x1="0"
-          y1="50"
-          x2="700"
-          y2="50"
-          stroke="#f3f4f6"
-          stroke-width="1"
-        />
-        <line
-          x1="0"
-          y1="100"
-          x2="700"
-          y2="100"
-          stroke="#f3f4f6"
-          stroke-width="1"
-        />
-        <line
-          x1="0"
-          y1="150"
-          x2="700"
-          y2="150"
-          stroke="#f3f4f6"
-          stroke-width="1"
-        />
-
-        <!-- Line path -->
-        <polyline
-          points={revenueData
-            .map((d, i) => {
-              const x = (i / (revenueData.length - 1)) * 700;
-              const y = 200 - (d.amount / maxRevenue) * 180;
-              return `${x},${y}`;
-            })
-            .join(" ")}
-          fill="none"
-          stroke="#3b82f6"
-          stroke-width="3"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-
-        <!-- Area fill -->
-        <polygon
-          points={[
-            ...revenueData.map((d, i) => {
-              const x = (i / (revenueData.length - 1)) * 700;
-              const y = 200 - (d.amount / maxRevenue) * 180;
-              return `${x},${y}`;
-            }),
-            "700,200",
-            "0,200",
-          ].join(" ")}
-          fill="url(#gradient)"
-          opacity="0.2"
-        />
-
-        <!-- Gradient definition -->
-        <defs>
-          <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0" />
-          </linearGradient>
-        </defs>
-
-        <!-- Data points -->
-        {#each revenueData as point, i}
-          <circle
-            cx={(i / (revenueData.length - 1)) * 700}
-            cy={200 - (point.amount / maxRevenue) * 180}
-            r="4"
-            fill="#3b82f6"
-            stroke="white"
-            stroke-width="2"
-          />
-        {/each}
-      </svg>
-    </div>
-
-    <!-- X-axis labels -->
-    <div class="mt-4 flex justify-between text-xs text-gray-500">
-      {#each revenueData as point}
-        <span>{point.day}</span>
-      {/each}
+    <div class="h-64 sm:h-80">
+      <Chart options={revenueChartOptions} />
     </div>
 
     <!-- Info box -->
