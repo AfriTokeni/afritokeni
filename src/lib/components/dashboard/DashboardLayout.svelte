@@ -52,8 +52,15 @@
   }
 
   function getPageTitle(): string {
-    const currentRoute = routes.find((r) => page.url.pathname.includes(r.path));
-    return currentRoute?.label || "Dashboard";
+    // Find exact match first
+    const exactMatch = routes.find((r) => page.url.pathname === r.path);
+    if (exactMatch) return exactMatch.label;
+    
+    // Then find route that matches as a sub-path
+    const subPathMatch = routes.find((r) => 
+      page.url.pathname.startsWith(r.path + "/")
+    );
+    return subPathMatch?.label || "Dashboard";
   }
 </script>
 

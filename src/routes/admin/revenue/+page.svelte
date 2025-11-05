@@ -118,7 +118,7 @@
     },
     tooltip: { enabled: true, x: { show: false } },
     fill: {
-      type: 'gradient',
+      type: "gradient",
       gradient: {
         opacityFrom: 0.55,
         opacityTo: 0,
