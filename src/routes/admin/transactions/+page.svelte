@@ -1,11 +1,18 @@
 <script lang="ts">
-  import { Search, Filter, Download, Activity, Info, ChevronDown } from "lucide-svelte";
+  import {
+    Search,
+    Filter,
+    Download,
+    Activity,
+    Info,
+    ChevronDown,
+  } from "lucide-svelte";
   import { onMount } from "svelte";
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
-  import { Button, Dropdown, DropdownItem } from 'flowbite-svelte';
+  import { Button, Dropdown, DropdownItem } from "flowbite-svelte";
 
-  let chartDateRange = $state<'7' | '30' | '90'>('30');
+  let chartDateRange = $state<"7" | "30" | "90">("30");
   let searchQuery = $state("");
   let filterType = $state("all");
   let filterStatus = $state("all");
@@ -79,30 +86,46 @@
 
   // Generate transaction volume chart data
   function getVolumeChartData() {
-    if (chartDateRange === '7') {
+    if (chartDateRange === "7") {
       return {
-        categories: ['Oct 29', 'Oct 30', 'Oct 31', 'Nov 1', 'Nov 2', 'Nov 3', 'Nov 4'],
+        categories: [
+          "Oct 29",
+          "Oct 30",
+          "Oct 31",
+          "Nov 1",
+          "Nov 2",
+          "Nov 3",
+          "Nov 4",
+        ],
         deposits: [420, 532, 516, 575, 519, 623, 584],
         withdrawals: [336, 412, 398, 445, 402, 478, 451],
         exchanges: [245, 298, 276, 312, 289, 345, 318],
       };
-    } else if (chartDateRange === '30') {
+    } else if (chartDateRange === "30") {
       return {
-        categories: ['Oct 5', 'Oct 10', 'Oct 15', 'Oct 20', 'Oct 25', 'Oct 30', 'Nov 4'],
+        categories: [
+          "Oct 5",
+          "Oct 10",
+          "Oct 15",
+          "Oct 20",
+          "Oct 25",
+          "Oct 30",
+          "Nov 4",
+        ],
         deposits: [2100, 2300, 2450, 2600, 2750, 2900, 3050],
         withdrawals: [1680, 1840, 1960, 2080, 2200, 2320, 2440],
         exchanges: [1225, 1340, 1430, 1520, 1610, 1700, 1790],
       };
     } else {
       return {
-        categories: ['Aug', 'Sep', 'Oct', 'Nov'],
+        categories: ["Aug", "Sep", "Oct", "Nov"],
         deposits: [6300, 7200, 8100, 9000],
         withdrawals: [5040, 5760, 6480, 7200],
         exchanges: [3675, 4200, 4725, 5250],
       };
     }
   }
-  
+
   // Transaction volume chart
   let volumeChartOptions = $derived<ApexOptions>({
     chart: {
@@ -222,13 +245,23 @@
       </div>
       <div class="relative">
         <Button size="sm" color="light" class="gap-2">
-          {chartDateRange === '7' ? 'Last 7 days' : chartDateRange === '30' ? 'Last 30 days' : 'Last 3 months'}
+          {chartDateRange === "7"
+            ? "Last 7 days"
+            : chartDateRange === "30"
+              ? "Last 30 days"
+              : "Last 3 months"}
           <ChevronDown class="h-4 w-4" />
         </Button>
-        <Dropdown class="z-50 w-44">
-          <DropdownItem onclick={() => chartDateRange = '7'}>Last 7 days</DropdownItem>
-          <DropdownItem onclick={() => chartDateRange = '30'}>Last 30 days</DropdownItem>
-          <DropdownItem onclick={() => chartDateRange = '90'}>Last 3 months</DropdownItem>
+        <Dropdown class="z-50 w-44 border border-gray-200 shadow-sm">
+          <DropdownItem onclick={() => (chartDateRange = "7")}
+            >Last 7 days</DropdownItem
+          >
+          <DropdownItem onclick={() => (chartDateRange = "30")}
+            >Last 30 days</DropdownItem
+          >
+          <DropdownItem onclick={() => (chartDateRange = "90")}
+            >Last 3 months</DropdownItem
+          >
         </Dropdown>
       </div>
     </div>

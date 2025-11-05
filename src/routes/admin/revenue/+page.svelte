@@ -10,9 +10,9 @@
   } from "lucide-svelte";
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
-  import { Button, Dropdown, DropdownItem } from 'flowbite-svelte';
-  
-  let chartDateRange = $state<'30' | '90' | '180'>('90');
+  import { Button, Dropdown, DropdownItem } from "flowbite-svelte";
+
+  let chartDateRange = $state<"30" | "90" | "180">("90");
 
   // Mock revenue data
   let revenueStats = $state({
@@ -83,30 +83,30 @@
 
   // Generate revenue chart data based on date range
   function getRevenueChartData() {
-    if (chartDateRange === '30') {
+    if (chartDateRange === "30") {
       return {
-        categories: ['Oct 5', 'Oct 12', 'Oct 19', 'Oct 26', 'Nov 2'],
+        categories: ["Oct 5", "Oct 12", "Oct 19", "Oct 26", "Nov 2"],
         totalRevenue: [42000, 43200, 44100, 44800, 45678],
         deposits: [26000, 26800, 27400, 28000, 28450],
         withdrawals: [11800, 12000, 12150, 12250, 12340],
       };
-    } else if (chartDateRange === '90') {
+    } else if (chartDateRange === "90") {
       return {
-        categories: ['Aug', 'Sep', 'Oct', 'Nov'],
+        categories: ["Aug", "Sep", "Oct", "Nov"],
         totalRevenue: [34820, 39150, 42340, 45678],
         deposits: [21200, 24000, 26500, 28450],
         withdrawals: [10500, 11800, 12100, 12340],
       };
     } else {
       return {
-        categories: ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'],
+        categories: ["Jun", "Jul", "Aug", "Sep", "Oct", "Nov"],
         totalRevenue: [28500, 30200, 34820, 39150, 42340, 45678],
         deposits: [17500, 18500, 21200, 24000, 26500, 28450],
         withdrawals: [8800, 9200, 10500, 11800, 12100, 12340],
       };
     }
   }
-  
+
   // Revenue trend chart
   let revenueChartOptions = $derived<ApexOptions>({
     chart: {
@@ -177,13 +177,23 @@
       </div>
       <div class="relative">
         <Button size="sm" color="light" class="gap-2">
-          {chartDateRange === '30' ? 'Last 30 days' : chartDateRange === '90' ? 'Last 3 months' : 'Last 6 months'}
+          {chartDateRange === "30"
+            ? "Last 30 days"
+            : chartDateRange === "90"
+              ? "Last 3 months"
+              : "Last 6 months"}
           <ChevronDown class="h-4 w-4" />
         </Button>
-        <Dropdown class="z-50 w-44">
-          <DropdownItem onclick={() => chartDateRange = '30'}>Last 30 days</DropdownItem>
-          <DropdownItem onclick={() => chartDateRange = '90'}>Last 3 months</DropdownItem>
-          <DropdownItem onclick={() => chartDateRange = '180'}>Last 6 months</DropdownItem>
+        <Dropdown class="z-50 w-44 border border-gray-200 shadow-sm">
+          <DropdownItem onclick={() => (chartDateRange = "30")}
+            >Last 30 days</DropdownItem
+          >
+          <DropdownItem onclick={() => (chartDateRange = "90")}
+            >Last 3 months</DropdownItem
+          >
+          <DropdownItem onclick={() => (chartDateRange = "180")}
+            >Last 6 months</DropdownItem
+          >
         </Dropdown>
       </div>
     </div>

@@ -11,61 +11,92 @@
   } from "lucide-svelte";
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
-  import { Button, Dropdown, DropdownItem } from 'flowbite-svelte';
+  import { Button, Dropdown, DropdownItem } from "flowbite-svelte";
 
   let activeTab = $state<"pending" | "approved" | "rejected">("pending");
   let showReviewModal = $state(false);
   let selectedKYC = $state<any>(null);
   let rejectionReason = $state("");
-  let chartDateRange = $state<'7' | '30' | '90'>('30');
+  let chartDateRange = $state<"7" | "30" | "90">("30");
 
   // Generate chart data based on date range
   function getChartData() {
-    if (chartDateRange === '7') {
+    if (chartDateRange === "7") {
       return {
-        categories: ['Oct 29', 'Oct 30', 'Oct 31', 'Nov 1', 'Nov 2', 'Nov 3', 'Nov 4'],
+        categories: [
+          "Oct 29",
+          "Oct 30",
+          "Oct 31",
+          "Nov 1",
+          "Nov 2",
+          "Nov 3",
+          "Nov 4",
+        ],
         submissions: [12, 15, 8, 18, 14, 22, 19],
         approved: [10, 12, 7, 15, 11, 18, 16],
         rejected: [2, 3, 1, 3, 3, 4, 3],
       };
-    } else if (chartDateRange === '30') {
+    } else if (chartDateRange === "30") {
       return {
-        categories: ['Oct 5', 'Oct 8', 'Oct 11', 'Oct 14', 'Oct 17', 'Oct 20', 'Oct 23', 'Oct 26', 'Oct 29', 'Nov 1', 'Nov 4'],
+        categories: [
+          "Oct 5",
+          "Oct 8",
+          "Oct 11",
+          "Oct 14",
+          "Oct 17",
+          "Oct 20",
+          "Oct 23",
+          "Oct 26",
+          "Oct 29",
+          "Nov 1",
+          "Nov 4",
+        ],
         submissions: [8, 12, 10, 15, 13, 18, 16, 20, 17, 22, 19],
         approved: [7, 10, 8, 12, 11, 15, 13, 17, 14, 18, 16],
         rejected: [1, 2, 2, 3, 2, 3, 3, 3, 3, 4, 3],
       };
     } else {
       return {
-        categories: ['Aug 6', 'Aug 16', 'Aug 26', 'Sep 5', 'Sep 15', 'Sep 25', 'Oct 5', 'Oct 15', 'Oct 25', 'Nov 4'],
+        categories: [
+          "Aug 6",
+          "Aug 16",
+          "Aug 26",
+          "Sep 5",
+          "Sep 15",
+          "Sep 25",
+          "Oct 5",
+          "Oct 15",
+          "Oct 25",
+          "Nov 4",
+        ],
         submissions: [5, 8, 10, 12, 14, 16, 18, 20, 22, 19],
         approved: [4, 7, 8, 10, 12, 13, 15, 17, 18, 16],
         rejected: [1, 1, 2, 2, 2, 3, 3, 3, 4, 3],
       };
     }
   }
-  
+
   // KYC submissions trend chart options
   let chartOptions = $derived<ApexOptions>({
     chart: {
-      height: '320px',
-      type: 'area',
-      fontFamily: 'Inter, sans-serif',
+      height: "320px",
+      type: "area",
+      fontFamily: "Inter, sans-serif",
       dropShadow: { enabled: false },
       toolbar: { show: false },
     },
     tooltip: { enabled: true, x: { show: false } },
     fill: {
-      type: 'gradient',
+      type: "gradient",
       gradient: {
         opacityFrom: 0.55,
         opacityTo: 0,
-        shade: '#1C64F2',
-        gradientToColors: ['#1C64F2'],
+        shade: "#1C64F2",
+        gradientToColors: ["#1C64F2"],
       },
     },
     dataLabels: { enabled: false },
-    stroke: { width: 2, curve: 'smooth' },
+    stroke: { width: 2, curve: "smooth" },
     grid: {
       show: true,
       strokeDashArray: 4,
@@ -73,19 +104,19 @@
     },
     series: [
       {
-        name: 'Submissions',
+        name: "Submissions",
         data: getChartData().submissions,
-        color: '#3b82f6',
+        color: "#3b82f6",
       },
       {
-        name: 'Approved',
+        name: "Approved",
         data: getChartData().approved,
-        color: '#22c55e',
+        color: "#22c55e",
       },
       {
-        name: 'Rejected',
+        name: "Rejected",
         data: getChartData().rejected,
-        color: '#ef4444',
+        color: "#ef4444",
       },
     ],
     xaxis: {
@@ -93,15 +124,15 @@
       labels: {
         show: true,
         style: {
-          fontFamily: 'Inter, sans-serif',
-          cssClass: 'text-xs font-normal fill-gray-500',
+          fontFamily: "Inter, sans-serif",
+          cssClass: "text-xs font-normal fill-gray-500",
         },
       },
       axisBorder: { show: false },
       axisTicks: { show: false },
     },
     yaxis: { show: true },
-    legend: { show: true, position: 'top' },
+    legend: { show: true, position: "top" },
   });
 
   // Mock KYC data
@@ -236,21 +267,35 @@
 
 <div class="space-y-4 sm:space-y-6">
   <!-- KYC Submissions Trend Chart -->
-  <div class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6">
+  <div
+    class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+  >
     <div class="mb-4 flex items-center justify-between sm:mb-6">
       <div>
-        <h3 class="text-base font-semibold text-gray-900 sm:text-lg">KYC Submissions Trend</h3>
+        <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
+          KYC Submissions Trend
+        </h3>
         <p class="text-xs text-gray-500 sm:text-sm">Submissions over time</p>
       </div>
       <div class="relative">
         <Button size="sm" color="light" class="gap-2">
-          {chartDateRange === '7' ? 'Last 7 days' : chartDateRange === '30' ? 'Last 30 days' : 'Last 90 days'}
+          {chartDateRange === "7"
+            ? "Last 7 days"
+            : chartDateRange === "30"
+              ? "Last 30 days"
+              : "Last 90 days"}
           <ChevronDown class="h-4 w-4" />
         </Button>
-        <Dropdown class="z-50 w-44">
-          <DropdownItem onclick={() => chartDateRange = '7'}>Last 7 days</DropdownItem>
-          <DropdownItem onclick={() => chartDateRange = '30'}>Last 30 days</DropdownItem>
-          <DropdownItem onclick={() => chartDateRange = '90'}>Last 90 days</DropdownItem>
+        <Dropdown class="z-50 w-44 border border-gray-200 shadow-sm">
+          <DropdownItem onclick={() => (chartDateRange = "7")}
+            >Last 7 days</DropdownItem
+          >
+          <DropdownItem onclick={() => (chartDateRange = "30")}
+            >Last 30 days</DropdownItem
+          >
+          <DropdownItem onclick={() => (chartDateRange = "90")}
+            >Last 90 days</DropdownItem
+          >
         </Dropdown>
       </div>
     </div>
