@@ -31,15 +31,13 @@ import * as env from "$env/static/public";
  * Get Withdrawal Canister ID from environment
  */
 function getWithdrawalCanisterId(): string {
-  // Check environment variables (set via .env)
   const WITHDRAWAL_CANISTER_ID =
-    (env as Record<string, string>).PUBLIC_WITHDRAWAL_CANISTER_ID ||
-    (env as Record<string, string>).PUBLIC_DEV_WITHDRAWAL_CANISTER_ID ||
-    "";
+    (env as Record<string, string>).PUBLIC_WITHDRAWAL_CANISTER_ID;
 
   if (!WITHDRAWAL_CANISTER_ID) {
-    console.warn("WITHDRAWAL_CANISTER_ID not configured. Using empty string.");
-    return "";
+    throw new Error(
+      "PUBLIC_WITHDRAWAL_CANISTER_ID not configured. Set it in .env or Vercel environment variables."
+    );
   }
 
   return WITHDRAWAL_CANISTER_ID;

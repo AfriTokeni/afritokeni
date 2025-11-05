@@ -27,15 +27,13 @@ import * as env from "$env/static/public";
  * Get Deposit Canister ID from environment
  */
 function getDepositCanisterId(): string {
-  // Check environment variables (set via .env)
   const DEPOSIT_CANISTER_ID =
-    (env as Record<string, string>).PUBLIC_DEPOSIT_CANISTER_ID ||
-    (env as Record<string, string>).PUBLIC_DEV_DEPOSIT_CANISTER_ID ||
-    "";
+    (env as Record<string, string>).PUBLIC_DEPOSIT_CANISTER_ID;
 
   if (!DEPOSIT_CANISTER_ID) {
-    console.warn("DEPOSIT_CANISTER_ID not configured. Using empty string.");
-    return "";
+    throw new Error(
+      "PUBLIC_DEPOSIT_CANISTER_ID not configured. Set it in .env or Vercel environment variables."
+    );
   }
 
   return DEPOSIT_CANISTER_ID;
