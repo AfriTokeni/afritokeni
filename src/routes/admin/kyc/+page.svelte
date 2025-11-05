@@ -24,6 +24,24 @@
   let chartDateRange = $state<"7" | "30" | "90">("30");
   let searchQuery = $state("");
   let selectedDocumentIndex = $state<number | null>(null);
+  
+  // Pagination state
+  let itemsPerPage = 20;
+  let displayedPendingCount = $state(itemsPerPage);
+  let displayedApprovedCount = $state(itemsPerPage);
+  let displayedRejectedCount = $state(itemsPerPage);
+
+  function loadMorePending() {
+    displayedPendingCount += itemsPerPage;
+  }
+
+  function loadMoreApproved() {
+    displayedApprovedCount += itemsPerPage;
+  }
+
+  function loadMoreRejected() {
+    displayedRejectedCount += itemsPerPage;
+  }
 
   function viewDocument(index: number) {
     selectedDocumentIndex = index;
@@ -35,15 +53,17 @@
 
   function nextDocument() {
     if (selectedDocumentIndex !== null && selectedKYC) {
-      selectedDocumentIndex = (selectedDocumentIndex + 1) % selectedKYC.documents.length;
+      selectedDocumentIndex =
+        (selectedDocumentIndex + 1) % selectedKYC.documents.length;
     }
   }
 
   function previousDocument() {
     if (selectedDocumentIndex !== null && selectedKYC) {
-      selectedDocumentIndex = selectedDocumentIndex === 0 
-        ? selectedKYC.documents.length - 1 
-        : selectedDocumentIndex - 1;
+      selectedDocumentIndex =
+        selectedDocumentIndex === 0
+          ? selectedKYC.documents.length - 1
+          : selectedDocumentIndex - 1;
     }
   }
 
@@ -253,7 +273,8 @@
       documents: ["passport.jpg", "business_license.pdf", "location_photo.jpg"],
       rejectedAt: "Nov 1, 2024 11:30 AM",
       rejectedBy: "Admin User",
-      reason: "Documents are blurry and unreadable. Please resubmit clear photos.",
+      reason:
+        "Documents are blurry and unreadable. Please resubmit clear photos.",
     },
   ]);
 
@@ -311,8 +332,8 @@
         ? kyc.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           kyc.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
           (kyc.user.phone && kyc.user.phone.includes(searchQuery))
-        : true
-    )
+        : true,
+    ),
   );
 
   let filteredApprovedKYC = $derived(
@@ -321,8 +342,8 @@
         ? kyc.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           kyc.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
           (kyc.user.phone && kyc.user.phone.includes(searchQuery))
-        : true
-    )
+        : true,
+    ),
   );
 
   let filteredRejectedKYC = $derived(
@@ -331,9 +352,19 @@
         ? kyc.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           kyc.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
           (kyc.user.phone && kyc.user.phone.includes(searchQuery))
-        : true
-    )
+        : true,
+    ),
   );
+
+  // Paginated lists
+  let displayedPendingKYC = $derived(filteredPendingKYC.slice(0, displayedPendingCount));
+  let displayedApprovedKYC = $derived(filteredApprovedKYC.slice(0, displayedApprovedCount));
+  let displayedRejectedKYC = $derived(filteredRejectedKYC.slice(0, displayedRejectedCount));
+
+  // Check if there are more items to load
+  let hasMorePending = $derived(displayedPendingCount < filteredPendingKYC.length);
+  let hasMoreApproved = $derived(displayedApprovedCount < filteredApprovedKYC.length);
+  let hasMoreRejected = $derived(displayedRejectedCount < filteredRejectedKYC.length);
 
   function viewKYC(kyc: any) {
     selectedKYC = kyc;
@@ -480,7 +511,9 @@
     <!-- Search Bar -->
     <div class="border-b border-gray-200 px-4 py-3 sm:px-6">
       <div class="relative">
-        <Search class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Search
+          class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400"
+        />
         <input
           type="text"
           bind:value={searchQuery}
@@ -494,7 +527,7 @@
     <div class="p-4 sm:p-6">
       {#if activeTab === "pending"}
         <div class="space-y-4">
-          {#each filteredPendingKYC as kyc}
+          {#each displayedPendingKYC as kyc}
             <button
               onclick={() => viewKYC(kyc)}
               class="w-full rounded-lg border border-gray-200 p-4 text-left transition-all hover:border-blue-400 hover:shadow-md sm:p-6"
@@ -565,30 +598,44 @@
             </button>
           {/each}
         </div>
+        
+        <!-- Load More Button for Pending -->
+        {#if hasMorePending}
+          <div class="mt-6 flex justify-center">
+            <button
+              onclick={loadMorePending}
+              class="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition-all hover:bg-blue-700"
+            >
+              Load More ({filteredPendingKYC.length - displayedPendingCount} remaining)
+            </button>
+          </div>
+        {/if}
       {:else if activeTab === "approved"}
         <div class="space-y-4">
-          {#each filteredApprovedKYC as kyc}
+          {#each displayedApprovedKYC as kyc}
             <button
               onclick={() => viewKYC(kyc)}
               class="w-full rounded-lg border border-green-200 bg-green-50 p-4 text-left transition-all hover:border-green-400 hover:shadow-md sm:p-6"
             >
               <div class="flex items-start justify-between">
                 <div class="flex items-start space-x-4">
-                <img
-                  src={kyc.user.avatar}
-                  alt={kyc.user.name}
-                  class="h-12 w-12 rounded-lg"
-                />
-                <div class="flex-1">
-                  <div class="flex items-center space-x-2">
-                    <h4 class="font-semibold text-gray-900">{kyc.user.name}</h4>
-                    <span
-                      class="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800"
-                    >
-                      {kyc.type}
-                    </span>
-                  </div>
-                  <p class="mt-1 text-sm text-gray-600">{kyc.user.email}</p>
+                  <img
+                    src={kyc.user.avatar}
+                    alt={kyc.user.name}
+                    class="h-12 w-12 rounded-lg"
+                  />
+                  <div class="flex-1">
+                    <div class="flex items-center space-x-2">
+                      <h4 class="font-semibold text-gray-900">
+                        {kyc.user.name}
+                      </h4>
+                      <span
+                        class="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800"
+                      >
+                        {kyc.type}
+                      </span>
+                    </div>
+                    <p class="mt-1 text-sm text-gray-600">{kyc.user.email}</p>
                     <p class="mt-2 text-xs text-gray-500">
                       Approved by {kyc.approvedBy} on {kyc.approvedAt}
                     </p>
@@ -601,33 +648,47 @@
             </button>
           {/each}
         </div>
+        
+        <!-- Load More Button for Approved -->
+        {#if hasMoreApproved}
+          <div class="mt-6 flex justify-center">
+            <button
+              onclick={loadMoreApproved}
+              class="rounded-lg bg-green-600 px-6 py-3 font-semibold text-white transition-all hover:bg-green-700"
+            >
+              Load More ({filteredApprovedKYC.length - displayedApprovedCount} remaining)
+            </button>
+          </div>
+        {/if}
       {:else}
         <div class="space-y-4">
-          {#each filteredRejectedKYC as kyc}
+          {#each displayedRejectedKYC as kyc}
             <button
               onclick={() => viewKYC(kyc)}
               class="w-full rounded-lg border border-red-200 bg-red-50 p-4 text-left transition-all hover:border-red-400 hover:shadow-md sm:p-6"
             >
               <div class="flex items-start justify-between">
                 <div class="flex items-start space-x-4">
-                <img
-                  src={kyc.user.avatar}
-                  alt={kyc.user.name}
-                  class="h-12 w-12 rounded-lg"
-                />
-                <div class="flex-1">
-                  <div class="flex items-center space-x-2">
-                    <h4 class="font-semibold text-gray-900">{kyc.user.name}</h4>
-                    <span
-                      class="rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800"
-                    >
-                      {kyc.type}
-                    </span>
-                  </div>
-                  <p class="mt-1 text-sm text-gray-600">{kyc.user.email}</p>
-                  <p class="mt-2 text-sm font-medium text-red-900">
-                    Reason: {kyc.reason}
-                  </p>
+                  <img
+                    src={kyc.user.avatar}
+                    alt={kyc.user.name}
+                    class="h-12 w-12 rounded-lg"
+                  />
+                  <div class="flex-1">
+                    <div class="flex items-center space-x-2">
+                      <h4 class="font-semibold text-gray-900">
+                        {kyc.user.name}
+                      </h4>
+                      <span
+                        class="rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800"
+                      >
+                        {kyc.type}
+                      </span>
+                    </div>
+                    <p class="mt-1 text-sm text-gray-600">{kyc.user.email}</p>
+                    <p class="mt-2 text-sm font-medium text-red-900">
+                      Reason: {kyc.reason}
+                    </p>
                     <p class="mt-1 text-xs text-gray-500">
                       Rejected by {kyc.rejectedBy} on {kyc.rejectedAt}
                     </p>
@@ -640,6 +701,18 @@
             </button>
           {/each}
         </div>
+        
+        <!-- Load More Button for Rejected -->
+        {#if hasMoreRejected}
+          <div class="mt-6 flex justify-center">
+            <button
+              onclick={loadMoreRejected}
+              class="rounded-lg bg-red-600 px-6 py-3 font-semibold text-white transition-all hover:bg-red-700"
+            >
+              Load More ({filteredRejectedKYC.length - displayedRejectedCount} remaining)
+            </button>
+          </div>
+        {/if}
       {/if}
     </div>
   </div>
@@ -648,17 +721,21 @@
 <!-- Review Modal -->
 {#if showReviewModal && selectedKYC}
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
+    class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4"
   >
     <div
       class="max-h-[95vh] w-full max-w-6xl overflow-y-auto rounded-2xl bg-white shadow-xl"
     >
       <!-- Header -->
-      <div class="sticky top-0 z-10 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-white px-8 py-6">
+      <div
+        class="sticky top-0 z-10 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-white px-8 py-6"
+      >
         <div class="flex items-center justify-between">
           <div>
             <h3 class="text-2xl font-bold text-gray-900">KYC Review</h3>
-            <p class="mt-1 text-sm text-gray-500">Verify identity documents and information</p>
+            <p class="mt-1 text-sm text-gray-500">
+              Verify identity documents and information
+            </p>
           </div>
           <button
             onclick={closeModal}
@@ -673,8 +750,14 @@
         <div class="mx-auto max-w-5xl space-y-8">
           <!-- User Info -->
           <div>
-            <h4 class="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">Applicant Information</h4>
-            <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h4
+              class="mb-4 text-sm font-semibold tracking-wide text-gray-500 uppercase"
+            >
+              Applicant Information
+            </h4>
+            <div
+              class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+            >
               <div class="flex items-start space-x-6">
                 <img
                   src={selectedKYC.user.avatar}
@@ -712,24 +795,44 @@
 
           <!-- Document Information -->
           <div>
-            <h4 class="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">Document Details</h4>
-            <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h4
+              class="mb-4 text-sm font-semibold tracking-wide text-gray-500 uppercase"
+            >
+              Document Details
+            </h4>
+            <div
+              class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+            >
               <div class="grid grid-cols-4 gap-6">
                 <div>
-                  <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Document Type</p>
+                  <p
+                    class="text-xs font-medium tracking-wide text-gray-500 uppercase"
+                  >
+                    Document Type
+                  </p>
                   <p class="mt-2 text-base font-semibold text-gray-900">
                     {selectedKYC.documentType}
                   </p>
                 </div>
                 <div>
-                  <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Document Number</p>
-                  <p class="mt-2 font-mono text-base font-semibold text-gray-900">
+                  <p
+                    class="text-xs font-medium tracking-wide text-gray-500 uppercase"
+                  >
+                    Document Number
+                  </p>
+                  <p
+                    class="mt-2 font-mono text-base font-semibold text-gray-900"
+                  >
                     {selectedKYC.documentNumber}
                   </p>
                 </div>
                 {#if selectedKYC.location}
                   <div>
-                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Location</p>
+                    <p
+                      class="text-xs font-medium tracking-wide text-gray-500 uppercase"
+                    >
+                      Location
+                    </p>
                     <p class="mt-2 text-base font-semibold text-gray-900">
                       {selectedKYC.location}
                     </p>
@@ -737,8 +840,14 @@
                 {/if}
                 {#if selectedKYC.businessLicense}
                   <div>
-                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Business License</p>
-                    <p class="mt-2 font-mono text-base font-semibold text-gray-900">
+                    <p
+                      class="text-xs font-medium tracking-wide text-gray-500 uppercase"
+                    >
+                      Business License
+                    </p>
+                    <p
+                      class="mt-2 font-mono text-base font-semibold text-gray-900"
+                    >
                       {selectedKYC.businessLicense}
                     </p>
                   </div>
@@ -749,7 +858,11 @@
 
           <!-- Uploaded Documents -->
           <div>
-            <h4 class="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">Uploaded Documents</h4>
+            <h4
+              class="mb-4 text-sm font-semibold tracking-wide text-gray-500 uppercase"
+            >
+              Uploaded Documents
+            </h4>
             <div class="grid grid-cols-3 gap-4">
               {#each selectedKYC.documents as doc, index}
                 <button
@@ -758,31 +871,86 @@
                 >
                   <div class="relative">
                     <!-- Inline SVG placeholder -->
-                    <svg class="h-48 w-full" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
-                      <rect width="400" height="300" fill="#f3f4f6"/>
-                      <text x="50%" y="45%" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#6b7280" font-weight="bold">
-                        {doc.replace('_', ' ').replace('.jpg', '')}
+                    <svg
+                      class="h-48 w-full"
+                      viewBox="0 0 400 300"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <rect width="400" height="300" fill="#f3f4f6" />
+                      <text
+                        x="50%"
+                        y="45%"
+                        text-anchor="middle"
+                        font-family="Arial, sans-serif"
+                        font-size="24"
+                        fill="#6b7280"
+                        font-weight="bold"
+                      >
+                        {doc.replace("_", " ").replace(".jpg", "")}
                       </text>
-                      <text x="50%" y="55%" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#9ca3af">
+                      <text
+                        x="50%"
+                        y="55%"
+                        text-anchor="middle"
+                        font-family="Arial, sans-serif"
+                        font-size="14"
+                        fill="#9ca3af"
+                      >
                         Click to view full size
                       </text>
                       <!-- Document icon -->
                       <g transform="translate(170, 100)">
-                        <rect x="10" y="0" width="40" height="50" fill="white" stroke="#6b7280" stroke-width="2" rx="2"/>
-                        <line x1="15" y1="10" x2="45" y2="10" stroke="#6b7280" stroke-width="1.5"/>
-                        <line x1="15" y1="18" x2="45" y2="18" stroke="#6b7280" stroke-width="1.5"/>
-                        <line x1="15" y1="26" x2="35" y2="26" stroke="#6b7280" stroke-width="1.5"/>
+                        <rect
+                          x="10"
+                          y="0"
+                          width="40"
+                          height="50"
+                          fill="white"
+                          stroke="#6b7280"
+                          stroke-width="2"
+                          rx="2"
+                        />
+                        <line
+                          x1="15"
+                          y1="10"
+                          x2="45"
+                          y2="10"
+                          stroke="#6b7280"
+                          stroke-width="1.5"
+                        />
+                        <line
+                          x1="15"
+                          y1="18"
+                          x2="45"
+                          y2="18"
+                          stroke="#6b7280"
+                          stroke-width="1.5"
+                        />
+                        <line
+                          x1="15"
+                          y1="26"
+                          x2="35"
+                          y2="26"
+                          stroke="#6b7280"
+                          stroke-width="1.5"
+                        />
                       </g>
                     </svg>
-                    <div class="absolute inset-0 bg-black/0 transition-all group-hover:bg-black/10"></div>
-                    <div class="absolute right-2 top-2">
-                      <span class="rounded-md bg-black/60 px-2 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+                    <div
+                      class="absolute inset-0 bg-black/0 transition-all group-hover:bg-black/10"
+                    ></div>
+                    <div class="absolute top-2 right-2">
+                      <span
+                        class="rounded-md bg-black/60 px-2 py-1 text-xs font-semibold text-white backdrop-blur-sm"
+                      >
                         {index + 1}/{selectedKYC.documents.length}
                       </span>
                     </div>
                   </div>
                   <div class="border-t border-gray-200 bg-gray-50 px-3 py-2.5">
-                    <p class="flex items-center justify-center text-xs font-semibold text-gray-700">
+                    <p
+                      class="flex items-center justify-center text-xs font-semibold text-gray-700"
+                    >
                       <FileText class="mr-1.5 h-3.5 w-3.5 text-gray-400" />
                       {doc}
                     </p>
@@ -796,15 +964,29 @@
           {#if activeTab === "approved"}
             <!-- Approval Information -->
             <div>
-              <h4 class="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">Approval Information</h4>
-              <div class="rounded-xl border border-green-200 bg-gradient-to-br from-green-50 to-green-100/50 p-6 shadow-sm">
+              <h4
+                class="mb-4 text-sm font-semibold tracking-wide text-gray-500 uppercase"
+              >
+                Approval Information
+              </h4>
+              <div
+                class="rounded-xl border border-green-200 bg-gradient-to-br from-green-50 to-green-100/50 p-6 shadow-sm"
+              >
                 <div class="flex items-start space-x-3">
                   <CheckCircle class="mt-0.5 h-6 w-6 shrink-0 text-green-600" />
                   <div class="flex-1">
-                    <p class="text-lg font-semibold text-green-900">Application Approved</p>
+                    <p class="text-lg font-semibold text-green-900">
+                      Application Approved
+                    </p>
                     <div class="mt-4 space-y-2 text-sm text-green-800">
-                      <p><span class="font-semibold">Approved by:</span> {selectedKYC.approvedBy}</p>
-                      <p><span class="font-semibold">Approved on:</span> {selectedKYC.approvedAt}</p>
+                      <p>
+                        <span class="font-semibold">Approved by:</span>
+                        {selectedKYC.approvedBy}
+                      </p>
+                      <p>
+                        <span class="font-semibold">Approved on:</span>
+                        {selectedKYC.approvedAt}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -813,20 +995,34 @@
           {:else if activeTab === "rejected"}
             <!-- Rejection Information -->
             <div>
-              <h4 class="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">Rejection Information</h4>
-              <div class="rounded-xl border border-red-200 bg-gradient-to-br from-red-50 to-red-100/50 p-6 shadow-sm">
+              <h4
+                class="mb-4 text-sm font-semibold tracking-wide text-gray-500 uppercase"
+              >
+                Rejection Information
+              </h4>
+              <div
+                class="rounded-xl border border-red-200 bg-gradient-to-br from-red-50 to-red-100/50 p-6 shadow-sm"
+              >
                 <div class="flex items-start space-x-3">
                   <XCircle class="mt-0.5 h-6 w-6 shrink-0 text-red-600" />
                   <div class="flex-1">
-                    <p class="text-lg font-semibold text-red-900">Application Rejected</p>
+                    <p class="text-lg font-semibold text-red-900">
+                      Application Rejected
+                    </p>
                     <div class="mt-4 space-y-3 text-sm">
                       <div>
                         <p class="font-semibold text-red-800">Reason:</p>
                         <p class="mt-1 text-red-700">{selectedKYC.reason}</p>
                       </div>
                       <div class="flex gap-6 text-red-800">
-                        <p><span class="font-semibold">Rejected by:</span> {selectedKYC.rejectedBy}</p>
-                        <p><span class="font-semibold">Rejected on:</span> {selectedKYC.rejectedAt}</p>
+                        <p>
+                          <span class="font-semibold">Rejected by:</span>
+                          {selectedKYC.rejectedBy}
+                        </p>
+                        <p>
+                          <span class="font-semibold">Rejected on:</span>
+                          {selectedKYC.rejectedAt}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -836,13 +1032,23 @@
           {:else}
             <!-- Review Checklist for Pending -->
             <div>
-              <h4 class="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">Review Checklist</h4>
-              <div class="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100/50 p-6 shadow-sm">
+              <h4
+                class="mb-4 text-sm font-semibold tracking-wide text-gray-500 uppercase"
+              >
+                Review Checklist
+              </h4>
+              <div
+                class="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100/50 p-6 shadow-sm"
+              >
                 <div class="flex items-start space-x-3">
                   <Info class="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
                   <div class="flex-1">
-                    <p class="font-semibold text-blue-900">Verification Steps</p>
-                    <ul class="mt-3 grid grid-cols-2 gap-x-8 gap-y-2 text-sm text-blue-800">
+                    <p class="font-semibold text-blue-900">
+                      Verification Steps
+                    </p>
+                    <ul
+                      class="mt-3 grid grid-cols-2 gap-x-8 gap-y-2 text-sm text-blue-800"
+                    >
                       <li class="flex items-start">
                         <span class="mr-2">✓</span>
                         <span>Verify document is clear and readable</span>
@@ -873,8 +1079,12 @@
         <div class="border-t border-gray-100 bg-gray-50 px-8 py-6">
           <!-- Rejection Reason -->
           <div class="mb-6">
-            <label for="rejection-reason" class="text-sm font-semibold text-gray-700"
-              >Rejection Reason <span class="text-gray-400">(required if rejecting)</span></label
+            <label
+              for="rejection-reason"
+              class="text-sm font-semibold text-gray-700"
+              >Rejection Reason <span class="text-gray-400"
+                >(required if rejecting)</span
+              ></label
             >
             <textarea
               id="rejection-reason"
@@ -932,8 +1142,11 @@
     onclick={closeDocumentView}
   >
     <button
-      onclick={(e) => { e.stopPropagation(); closeDocumentView(); }}
-      class="absolute right-4 top-4 rounded-lg bg-white/10 p-2 text-white backdrop-blur-sm transition-all hover:bg-white/20"
+      onclick={(e) => {
+        e.stopPropagation();
+        closeDocumentView();
+      }}
+      class="absolute top-4 right-4 rounded-lg bg-white/10 p-2 text-white backdrop-blur-sm transition-all hover:bg-white/20"
     >
       <X class="h-6 w-6" />
     </button>
@@ -941,72 +1154,166 @@
     <!-- Previous Button -->
     {#if selectedKYC.documents.length > 1}
       <button
-        onclick={(e) => { e.stopPropagation(); previousDocument(); }}
-        class="absolute left-4 top-1/2 -translate-y-1/2 rounded-lg bg-white/10 p-3 text-white backdrop-blur-sm transition-all hover:bg-white/20"
+        onclick={(e) => {
+          e.stopPropagation();
+          previousDocument();
+        }}
+        class="absolute top-1/2 left-4 -translate-y-1/2 rounded-lg bg-white/10 p-3 text-white backdrop-blur-sm transition-all hover:bg-white/20"
       >
         <ChevronLeft class="h-8 w-8" />
       </button>
     {/if}
 
     <!-- Document Display -->
-    <div
-      class="max-h-[90vh] max-w-5xl"
-      onclick={(e) => e.stopPropagation()}
-    >
+    <div class="max-h-[90vh] max-w-5xl" onclick={(e) => e.stopPropagation()}>
       <div class="rounded-2xl bg-white p-4 shadow-2xl">
         <!-- Document Info -->
-        <div class="mb-4 flex items-center justify-between border-b border-gray-200 pb-4">
+        <div
+          class="mb-4 flex items-center justify-between border-b border-gray-200 pb-4"
+        >
           <div>
             <h4 class="text-lg font-bold text-gray-900">
               {selectedKYC.documents[selectedDocumentIndex]}
             </h4>
             <p class="text-sm text-gray-500">
-              Document {selectedDocumentIndex + 1} of {selectedKYC.documents.length}
+              Document {selectedDocumentIndex + 1} of {selectedKYC.documents
+                .length}
             </p>
           </div>
         </div>
 
         <!-- Full Size Document -->
-        <svg class="h-[70vh] w-full" viewBox="0 0 800 1000" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+        <svg
+          class="h-[70vh] w-full"
+          viewBox="0 0 800 1000"
+          xmlns="http://www.w3.org/2000/svg"
+          preserveAspectRatio="xMidYMid meet"
+        >
           <!-- White background -->
-          <rect width="800" height="1000" fill="white"/>
-          
+          <rect width="800" height="1000" fill="white" />
+
           <!-- Header -->
-          <rect width="800" height="80" fill="#3b82f6"/>
-          <text x="400" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" fill="white" font-weight="bold">
-            {selectedKYC.documents[selectedDocumentIndex].replace('_', ' ').replace('.jpg', '').toUpperCase()}
+          <rect width="800" height="80" fill="#3b82f6" />
+          <text
+            x="400"
+            y="50"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="32"
+            fill="white"
+            font-weight="bold"
+          >
+            {selectedKYC.documents[selectedDocumentIndex]
+              .replace("_", " ")
+              .replace(".jpg", "")
+              .toUpperCase()}
           </text>
-          
+
           <!-- Document content area -->
-          <rect x="50" y="120" width="700" height="800" fill="#f9fafb" stroke="#e5e7eb" stroke-width="2" rx="8"/>
-          
+          <rect
+            x="50"
+            y="120"
+            width="700"
+            height="800"
+            fill="#f9fafb"
+            stroke="#e5e7eb"
+            stroke-width="2"
+            rx="8"
+          />
+
           <!-- Document icon -->
           <g transform="translate(300, 300)">
-            <rect width="200" height="250" fill="white" stroke="#6b7280" stroke-width="3" rx="8"/>
-            <line x1="30" y1="40" x2="170" y2="40" stroke="#6b7280" stroke-width="3"/>
-            <line x1="30" y1="80" x2="170" y2="80" stroke="#6b7280" stroke-width="3"/>
-            <line x1="30" y1="120" x2="170" y2="120" stroke="#6b7280" stroke-width="3"/>
-            <line x1="30" y1="160" x2="140" y2="160" stroke="#6b7280" stroke-width="3"/>
+            <rect
+              width="200"
+              height="250"
+              fill="white"
+              stroke="#6b7280"
+              stroke-width="3"
+              rx="8"
+            />
+            <line
+              x1="30"
+              y1="40"
+              x2="170"
+              y2="40"
+              stroke="#6b7280"
+              stroke-width="3"
+            />
+            <line
+              x1="30"
+              y1="80"
+              x2="170"
+              y2="80"
+              stroke="#6b7280"
+              stroke-width="3"
+            />
+            <line
+              x1="30"
+              y1="120"
+              x2="170"
+              y2="120"
+              stroke="#6b7280"
+              stroke-width="3"
+            />
+            <line
+              x1="30"
+              y1="160"
+              x2="140"
+              y2="160"
+              stroke="#6b7280"
+              stroke-width="3"
+            />
           </g>
-          
+
           <!-- Document name -->
-          <text x="400" y="600" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#374151" font-weight="bold">
-            {selectedKYC.documents[selectedDocumentIndex].replace('_', ' ').replace('.jpg', '')}
+          <text
+            x="400"
+            y="600"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="24"
+            fill="#374151"
+            font-weight="bold"
+          >
+            {selectedKYC.documents[selectedDocumentIndex]
+              .replace("_", " ")
+              .replace(".jpg", "")}
           </text>
-          
+
           <!-- Document number -->
-          <text x="400" y="650" text-anchor="middle" font-family="monospace" font-size="20" fill="#6b7280">
+          <text
+            x="400"
+            y="650"
+            text-anchor="middle"
+            font-family="monospace"
+            font-size="20"
+            fill="#6b7280"
+          >
             {selectedKYC.documentNumber}
           </text>
-          
+
           <!-- User name -->
-          <text x="400" y="700" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#9ca3af">
+          <text
+            x="400"
+            y="700"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="18"
+            fill="#9ca3af"
+          >
             {selectedKYC.user.name}
           </text>
-          
+
           <!-- Footer -->
-          <rect y="920" width="800" height="80" fill="#f3f4f6"/>
-          <text x="400" y="965" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6b7280">
+          <rect y="920" width="800" height="80" fill="#f3f4f6" />
+          <text
+            x="400"
+            y="965"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="16"
+            fill="#6b7280"
+          >
             This is a placeholder document preview
           </text>
         </svg>
@@ -1016,8 +1323,11 @@
     <!-- Next Button -->
     {#if selectedKYC.documents.length > 1}
       <button
-        onclick={(e) => { e.stopPropagation(); nextDocument(); }}
-        class="absolute right-4 top-1/2 -translate-y-1/2 rounded-lg bg-white/10 p-3 text-white backdrop-blur-sm transition-all hover:bg-white/20"
+        onclick={(e) => {
+          e.stopPropagation();
+          nextDocument();
+        }}
+        class="absolute top-1/2 right-4 -translate-y-1/2 rounded-lg bg-white/10 p-3 text-white backdrop-blur-sm transition-all hover:bg-white/20"
       >
         <ChevronRight class="h-8 w-8" />
       </button>

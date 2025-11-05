@@ -400,7 +400,9 @@
     <div class="overflow-x-auto">
       <table class="w-full">
         <thead>
-          <tr class="border-b border-gray-200 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <tr
+            class="border-b border-gray-200 text-left text-xs font-semibold tracking-wide text-gray-500 uppercase"
+          >
             <th class="pb-3">Transaction</th>
             <th class="pb-3">User</th>
             <th class="pb-3">Type</th>
@@ -413,13 +415,19 @@
           {#each recentTransactions as txn}
             <tr class="transition-colors hover:bg-gray-50">
               <td class="py-3">
-                <p class="font-mono text-sm font-medium text-gray-900">{txn.id}</p>
+                <p class="font-mono text-sm font-medium text-gray-900">
+                  {txn.id}
+                </p>
               </td>
               <td class="py-3">
                 <p class="text-sm text-gray-900">{txn.user}</p>
               </td>
               <td class="py-3">
-                <span class="rounded-full px-2 py-1 text-xs font-medium {getTypeColor(txn.type)}">
+                <span
+                  class="rounded-full px-2 py-1 text-xs font-medium {getTypeColor(
+                    txn.type,
+                  )}"
+                >
                   {txn.type}
                 </span>
               </td>

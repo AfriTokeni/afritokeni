@@ -13,6 +13,14 @@
 
   let searchQuery = $state("");
   let filterKYC = $state("all");
+  
+  // Pagination state
+  let itemsPerPage = 20;
+  let displayedCount = $state(itemsPerPage);
+
+  function loadMore() {
+    displayedCount += itemsPerPage;
+  }
 
   // Mock user data
   let users = $state([
@@ -146,6 +154,22 @@
     if (status === "rejected") return "bg-red-100 text-red-800";
     return "bg-gray-100 text-gray-800";
   }
+
+  // Filter and paginate users
+  let filteredUsers = $derived(
+    users.filter((user) => {
+      const matchesKYC = filterKYC === "all" || user.kycStatus === filterKYC;
+      const matchesSearch =
+        !searchQuery ||
+        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.phone.includes(searchQuery);
+      return matchesKYC && matchesSearch;
+    })
+  );
+
+  let displayedUsers = $derived(filteredUsers.slice(0, displayedCount));
+  let hasMore = $derived(displayedCount < filteredUsers.length);
 
   function getKYCIcon(status: string) {
     if (status === "approved") return CheckCircle;
@@ -299,7 +323,7 @@
     </div>
 
     <div class="space-y-3 sm:space-y-4">
-      {#each users as user}
+      {#each displayedUsers as user}
         <div
           class="flex items-center justify-between rounded-lg border border-gray-100 p-3 transition-all hover:border-gray-200 sm:p-4"
         >
@@ -342,6 +366,18 @@
         </div>
       {/each}
     </div>
+    
+    <!-- Load More Button -->
+    {#if hasMore}
+      <div class="mt-6 flex justify-center">
+        <button
+          onclick={loadMore}
+          class="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition-all hover:bg-blue-700"
+        >
+          Load More ({filteredUsers.length - displayedCount} remaining)
+        </button>
+      </div>
+    {/if}
   </div>
 
   <!-- Info Box -->

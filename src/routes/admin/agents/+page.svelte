@@ -13,6 +13,14 @@
 
   let searchQuery = $state("");
   let filterStatus = $state("all");
+  
+  // Pagination state
+  let itemsPerPage = 20;
+  let displayedCount = $state(itemsPerPage);
+
+  function loadMore() {
+    displayedCount += itemsPerPage;
+  }
 
   // Mock agent data
   let agents = $state([
@@ -85,6 +93,21 @@
     offline: 7,
     totalRevenue: 125000,
   });
+
+  // Filter and paginate agents
+  let filteredAgents = $derived(
+    agents.filter((agent) => {
+      const matchesStatus = filterStatus === "all" || agent.status === filterStatus;
+      const matchesSearch =
+        !searchQuery ||
+        agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        agent.location.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesStatus && matchesSearch;
+    })
+  );
+
+  let displayedAgents = $derived(filteredAgents.slice(0, displayedCount));
+  let hasMore = $derived(displayedCount < filteredAgents.length);
 
   // Agent performance chart
   let performanceChartOptions: ApexOptions = {
@@ -309,7 +332,7 @@
     </div>
 
     <div class="space-y-3 sm:space-y-4">
-      {#each agents as agent}
+      {#each displayedAgents as agent}
         <div
           class="rounded-lg border border-gray-100 p-4 transition-all hover:border-gray-200"
         >
@@ -372,6 +395,18 @@
         </div>
       {/each}
     </div>
+    
+    <!-- Load More Button -->
+    {#if hasMore}
+      <div class="mt-6 flex justify-center">
+        <button
+          onclick={loadMore}
+          class="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition-all hover:bg-blue-700"
+        >
+          Load More ({filteredAgents.length - displayedCount} remaining)
+        </button>
+      </div>
+    {/if}
   </div>
 
   <!-- Info Box -->
