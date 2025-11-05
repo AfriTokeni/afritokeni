@@ -18,7 +18,7 @@
     RefreshCw,
     Vote,
     XCircle,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import { demoMode } from "$lib/stores/demoMode";
   import { DAO_CONSTANTS, fetchDAOProposals } from "$lib/services/data/daoData";
 

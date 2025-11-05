@@ -15,7 +15,7 @@
     User,
     Building2,
     ArrowRight,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import type { ApexOptions } from "apexcharts";

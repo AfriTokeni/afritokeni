@@ -3,7 +3,7 @@
  * Multi-step wizard for completing user profile
  -->
 <script lang="ts">
-  import { Check, MapPin, User, X } from "lucide-svelte";
+  import { Check, MapPin, User, X } from "@lucide/svelte";
   import { toast } from "$lib/stores/toast";
 
   interface Props {

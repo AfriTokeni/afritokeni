@@ -8,7 +8,7 @@
     Info,
     ChevronDown,
     ArrowRight,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import { goto } from "$app/navigation";
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";

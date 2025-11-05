@@ -12,7 +12,7 @@
     ChevronLeft,
     ChevronRight,
     X,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
   import { Button, Dropdown, DropdownItem } from "flowbite-svelte";

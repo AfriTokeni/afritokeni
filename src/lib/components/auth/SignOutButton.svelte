@@ -1,7 +1,7 @@
 <script lang="ts">
   import { signOut } from "@junobuild/core";
   import { goto } from "$app/navigation";
-  import { LogOut } from "lucide-svelte";
+  import { LogOut } from "@lucide/svelte";
 
   let isLoading = $state(false);
 

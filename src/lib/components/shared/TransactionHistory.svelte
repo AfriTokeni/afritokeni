@@ -18,7 +18,7 @@
     Plus,
     RefreshCw,
     Search,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import { demoMode } from "$lib/stores/demoMode";
   import { principalId } from "$lib/stores/auth";
   import {

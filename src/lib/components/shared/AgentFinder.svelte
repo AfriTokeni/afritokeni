@@ -11,7 +11,7 @@
  * Usage: <AgentFinder />
 -->
 <script lang="ts">
-  import { Navigation } from "lucide-svelte";
+  import { Navigation } from "@lucide/svelte";
   import { demoMode } from "$lib/stores/demoMode";
   import { fetchAgents } from "$lib/services/data/agentsData";
   import {

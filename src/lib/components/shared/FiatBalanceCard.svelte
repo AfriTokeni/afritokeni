@@ -11,7 +11,7 @@
  * Usage: <FiatBalanceCard onDeposit={...} onWithdraw={...} />
 -->
 <script lang="ts">
-  import { Download, RefreshCw, Send, Upload, Wallet } from "lucide-svelte";
+  import { Download, RefreshCw, Send, Upload, Wallet } from "@lucide/svelte";
   import { demoMode } from "$lib/stores/demoMode";
   import { principalId } from "$lib/stores/auth";
   import {

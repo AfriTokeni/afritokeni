@@ -4,7 +4,7 @@
  -->
 <script lang="ts">
   import { toast, type Toast } from "$lib/stores/toast";
-  import { AlertTriangle, CheckCircle, Info, X, XCircle } from "lucide-svelte";
+  import { AlertTriangle, CheckCircle, Info, X, XCircle } from "@lucide/svelte";
   import { fly } from "svelte/transition";
 
   function getIcon(type: Toast["type"]) {

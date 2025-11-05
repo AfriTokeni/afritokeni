@@ -11,7 +11,7 @@
  * Usage: <CkBTCBalanceCard onDeposit={...} onSend={...} />
 -->
 <script lang="ts">
-  import { Bitcoin, Download, RefreshCw, Send } from "lucide-svelte";
+  import { Bitcoin, Download, RefreshCw, Send } from "@lucide/svelte";
   import { demoMode } from "$lib/stores/demoMode";
   import { principalId } from "$lib/stores/auth";
   import {

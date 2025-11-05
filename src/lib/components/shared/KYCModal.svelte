@@ -3,7 +3,7 @@
  * Allows users to start KYC verification process
  -->
 <script lang="ts">
-  import { AlertCircle, Camera, FileText, Upload, X } from "lucide-svelte";
+  import { AlertCircle, Camera, FileText, Upload, X } from "@lucide/svelte";
   import { toast } from "$lib/stores/toast";
 
   interface Props {

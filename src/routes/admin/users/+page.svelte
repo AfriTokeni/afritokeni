@@ -13,7 +13,7 @@
     ChevronRight,
     Activity,
     DollarSign,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
 

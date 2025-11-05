@@ -10,7 +10,7 @@
     ChevronDown,
     RefreshCw,
     ArrowUpDown,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import { onMount } from "svelte";
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
@@ -21,39 +21,39 @@
   let logSortOrder = $state<"newest" | "oldest">("newest");
   let displayedLogsCount = $state(10);
   let activeSection = $state<"canisters" | "api" | "logs">("canisters");
-  
+
   // Last updated timestamps
   let canistersLastUpdated = $state(new Date().toLocaleTimeString());
   let apiLastUpdated = $state(new Date().toLocaleTimeString());
   let logsLastUpdated = $state(new Date().toLocaleTimeString());
-  
+
   function loadMoreLogs() {
     displayedLogsCount += 10;
   }
-  
+
   function refreshCanisters() {
-    console.log('Refreshing canisters...');
+    console.log("Refreshing canisters...");
     canistersLastUpdated = new Date().toLocaleTimeString();
     // TODO: Implement with Juno
   }
-  
+
   function refreshAPI() {
-    console.log('Refreshing API status...');
+    console.log("Refreshing API status...");
     apiLastUpdated = new Date().toLocaleTimeString();
     // TODO: Implement with Juno
   }
-  
+
   function refreshLogs() {
-    console.log('Refreshing logs...');
+    console.log("Refreshing logs...");
     logsLastUpdated = new Date().toLocaleTimeString();
     // TODO: Implement with Juno
   }
-  
+
   function scrollToSection(section: typeof activeSection) {
     activeSection = section;
     const element = document.getElementById(section);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }
 
@@ -83,41 +83,122 @@
   ]);
 
   let errorLogs = $state([
-    { timestamp: "Nov 5, 2024 2:45 PM", level: "error", message: "Failed to process withdrawal TXN-12341", canister: "Withdrawal Canister" },
-    { timestamp: "Nov 5, 2024 2:30 PM", level: "error", message: "Database connection timeout", canister: "Deposit Canister" },
-    { timestamp: "Nov 5, 2024 1:30 PM", level: "warning", message: "Low cycles detected on Exchange Canister", canister: "Exchange Canister" },
-    { timestamp: "Nov 5, 2024 1:15 PM", level: "warning", message: "High memory usage detected", canister: "Withdrawal Canister" },
-    { timestamp: "Nov 5, 2024 12:15 PM", level: "info", message: "Canister upgrade completed successfully", canister: "Deposit Canister" },
-    { timestamp: "Nov 5, 2024 11:45 AM", level: "info", message: "Backup completed successfully", canister: "Exchange Canister" },
-    { timestamp: "Nov 5, 2024 10:30 AM", level: "error", message: "API rate limit exceeded", canister: "Deposit Canister" },
-    { timestamp: "Nov 5, 2024 9:20 AM", level: "warning", message: "Slow query performance detected", canister: "Exchange Canister" },
-    { timestamp: "Nov 5, 2024 8:15 AM", level: "info", message: "System health check passed", canister: "Withdrawal Canister" },
-    { timestamp: "Nov 5, 2024 7:00 AM", level: "info", message: "Daily maintenance completed", canister: "Deposit Canister" },
-    { timestamp: "Nov 4, 2024 11:30 PM", level: "error", message: "Transaction validation failed", canister: "Exchange Canister" },
-    { timestamp: "Nov 4, 2024 10:15 PM", level: "warning", message: "Unusual traffic pattern detected", canister: "Withdrawal Canister" },
-    { timestamp: "Nov 4, 2024 9:00 PM", level: "info", message: "Cache cleared successfully", canister: "Deposit Canister" },
-    { timestamp: "Nov 4, 2024 8:45 PM", level: "info", message: "Scheduled task completed", canister: "Exchange Canister" },
-    { timestamp: "Nov 4, 2024 7:30 PM", level: "error", message: "Network connectivity issue", canister: "Withdrawal Canister" },
+    {
+      timestamp: "Nov 5, 2024 2:45 PM",
+      level: "error",
+      message: "Failed to process withdrawal TXN-12341",
+      canister: "Withdrawal Canister",
+    },
+    {
+      timestamp: "Nov 5, 2024 2:30 PM",
+      level: "error",
+      message: "Database connection timeout",
+      canister: "Deposit Canister",
+    },
+    {
+      timestamp: "Nov 5, 2024 1:30 PM",
+      level: "warning",
+      message: "Low cycles detected on Exchange Canister",
+      canister: "Exchange Canister",
+    },
+    {
+      timestamp: "Nov 5, 2024 1:15 PM",
+      level: "warning",
+      message: "High memory usage detected",
+      canister: "Withdrawal Canister",
+    },
+    {
+      timestamp: "Nov 5, 2024 12:15 PM",
+      level: "info",
+      message: "Canister upgrade completed successfully",
+      canister: "Deposit Canister",
+    },
+    {
+      timestamp: "Nov 5, 2024 11:45 AM",
+      level: "info",
+      message: "Backup completed successfully",
+      canister: "Exchange Canister",
+    },
+    {
+      timestamp: "Nov 5, 2024 10:30 AM",
+      level: "error",
+      message: "API rate limit exceeded",
+      canister: "Deposit Canister",
+    },
+    {
+      timestamp: "Nov 5, 2024 9:20 AM",
+      level: "warning",
+      message: "Slow query performance detected",
+      canister: "Exchange Canister",
+    },
+    {
+      timestamp: "Nov 5, 2024 8:15 AM",
+      level: "info",
+      message: "System health check passed",
+      canister: "Withdrawal Canister",
+    },
+    {
+      timestamp: "Nov 5, 2024 7:00 AM",
+      level: "info",
+      message: "Daily maintenance completed",
+      canister: "Deposit Canister",
+    },
+    {
+      timestamp: "Nov 4, 2024 11:30 PM",
+      level: "error",
+      message: "Transaction validation failed",
+      canister: "Exchange Canister",
+    },
+    {
+      timestamp: "Nov 4, 2024 10:15 PM",
+      level: "warning",
+      message: "Unusual traffic pattern detected",
+      canister: "Withdrawal Canister",
+    },
+    {
+      timestamp: "Nov 4, 2024 9:00 PM",
+      level: "info",
+      message: "Cache cleared successfully",
+      canister: "Deposit Canister",
+    },
+    {
+      timestamp: "Nov 4, 2024 8:45 PM",
+      level: "info",
+      message: "Scheduled task completed",
+      canister: "Exchange Canister",
+    },
+    {
+      timestamp: "Nov 4, 2024 7:30 PM",
+      level: "error",
+      message: "Network connectivity issue",
+      canister: "Withdrawal Canister",
+    },
   ]);
-  
+
   // Filter, sort, and paginate logs
   let filteredLogs = $derived(
     errorLogs
-      .filter((log) => logFilterSeverity === "all" || log.level === logFilterSeverity)
+      .filter(
+        (log) => logFilterSeverity === "all" || log.level === logFilterSeverity,
+      )
       .sort((a, b) => {
         const dateA = new Date(a.timestamp).getTime();
         const dateB = new Date(b.timestamp).getTime();
         return logSortOrder === "newest" ? dateB - dateA : dateA - dateB;
-      })
+      }),
   );
-  
+
   let displayedLogs = $derived(filteredLogs.slice(0, displayedLogsCount));
   let hasMoreLogs = $derived(displayedLogsCount < filteredLogs.length);
-  
+
   // Count logs by severity
-  let errorCount = $derived(errorLogs.filter(l => l.level === "error").length);
-  let warningCount = $derived(errorLogs.filter(l => l.level === "warning").length);
-  let infoCount = $derived(errorLogs.filter(l => l.level === "info").length);
+  let errorCount = $derived(
+    errorLogs.filter((l) => l.level === "error").length,
+  );
+  let warningCount = $derived(
+    errorLogs.filter((l) => l.level === "warning").length,
+  );
+  let infoCount = $derived(errorLogs.filter((l) => l.level === "info").length);
 
   let apiStatus = $state([
     { name: "Juno DB", status: "operational", responseTime: "45ms" },
@@ -258,7 +339,7 @@
   <!-- System Overview -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-4">
     <button
-      onclick={() => scrollToSection('logs')}
+      onclick={() => scrollToSection("logs")}
       class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-green-400 hover:shadow-md sm:rounded-2xl sm:p-6"
     >
       <div class="flex items-center justify-between">
@@ -277,7 +358,7 @@
     </button>
 
     <button
-      onclick={() => scrollToSection('canisters')}
+      onclick={() => scrollToSection("canisters")}
       class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-blue-400 hover:shadow-md sm:rounded-2xl sm:p-6"
     >
       <div class="flex items-center justify-between">
@@ -298,7 +379,7 @@
     </button>
 
     <button
-      onclick={() => scrollToSection('canisters')}
+      onclick={() => scrollToSection("canisters")}
       class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-purple-400 hover:shadow-md sm:rounded-2xl sm:p-6"
     >
       <div class="flex items-center justify-between">
@@ -319,7 +400,7 @@
     </button>
 
     <button
-      onclick={() => scrollToSection('canisters')}
+      onclick={() => scrollToSection("canisters")}
       class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-yellow-400 hover:shadow-md sm:rounded-2xl sm:p-6"
     >
       <div class="flex items-center justify-between">
@@ -516,31 +597,44 @@
       <div class="flex gap-2">
         <button
           onclick={() => (logFilterSeverity = "all")}
-          class="rounded-lg px-3 py-1 text-xs font-medium transition-colors {logFilterSeverity === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
+          class="rounded-lg px-3 py-1 text-xs font-medium transition-colors {logFilterSeverity ===
+          'all'
+            ? 'bg-blue-600 text-white'
+            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
         >
           All ({errorLogs.length})
         </button>
         <button
           onclick={() => (logFilterSeverity = "error")}
-          class="rounded-lg px-3 py-1 text-xs font-medium transition-colors {logFilterSeverity === 'error' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
+          class="rounded-lg px-3 py-1 text-xs font-medium transition-colors {logFilterSeverity ===
+          'error'
+            ? 'bg-red-600 text-white'
+            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
         >
           Errors ({errorCount})
         </button>
         <button
           onclick={() => (logFilterSeverity = "warning")}
-          class="rounded-lg px-3 py-1 text-xs font-medium transition-colors {logFilterSeverity === 'warning' ? 'bg-yellow-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
+          class="rounded-lg px-3 py-1 text-xs font-medium transition-colors {logFilterSeverity ===
+          'warning'
+            ? 'bg-yellow-600 text-white'
+            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
         >
           Warnings ({warningCount})
         </button>
         <button
           onclick={() => (logFilterSeverity = "info")}
-          class="rounded-lg px-3 py-1 text-xs font-medium transition-colors {logFilterSeverity === 'info' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
+          class="rounded-lg px-3 py-1 text-xs font-medium transition-colors {logFilterSeverity ===
+          'info'
+            ? 'bg-blue-600 text-white'
+            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
         >
           Info ({infoCount})
         </button>
       </div>
       <button
-        onclick={() => (logSortOrder = logSortOrder === "newest" ? "oldest" : "newest")}
+        onclick={() =>
+          (logSortOrder = logSortOrder === "newest" ? "oldest" : "newest")}
         class="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
       >
         <ArrowUpDown class="h-3 w-3" />
@@ -569,7 +663,7 @@
           </div>
         </div>
       {/each}
-      
+
       <!-- Load More Logs Button -->
       {#if hasMoreLogs}
         <button
@@ -591,13 +685,16 @@
         <Info class="h-5 w-5 text-white" />
       </div>
       <div class="flex-1">
-        <h4 class="text-base font-bold text-blue-900 sm:text-lg">System Monitoring</h4>
+        <h4 class="text-base font-bold text-blue-900 sm:text-lg">
+          System Monitoring
+        </h4>
         <p class="mt-2 text-sm text-blue-800">
-          <span class="font-semibold">Last deployment:</span> {systemHealth.lastDeployment}
+          <span class="font-semibold">Last deployment:</span>
+          {systemHealth.lastDeployment}
         </p>
         <p class="mt-2 text-sm text-blue-800">
-          Monitor canister cycles and top up when below 2T to ensure continuous operation.
-          Use the refresh buttons above to get real-time updates.
+          Monitor canister cycles and top up when below 2T to ensure continuous
+          operation. Use the refresh buttons above to get real-time updates.
         </p>
       </div>
     </div>

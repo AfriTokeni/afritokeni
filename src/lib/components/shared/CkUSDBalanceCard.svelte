@@ -11,7 +11,7 @@
  * Usage: <CkUSDBalanceCard onDeposit={...} onSend={...} />
 -->
 <script lang="ts">
-  import { DollarSign, Download, RefreshCw, Send } from "lucide-svelte";
+  import { DollarSign, Download, RefreshCw, Send } from "@lucide/svelte";
   import { demoMode } from "$lib/stores/demoMode";
   import { principalId } from "$lib/stores/auth";
   import { fetchCkUSDBalance, formatUSD } from "$lib/services/data/ckusdData";

@@ -12,7 +12,7 @@
     Lightbulb,
     Shield,
     X,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import { demoMode } from "$lib/stores/demoMode";
   import { DAO_CONSTANTS } from "$lib/services/data/daoData";
   import { toast } from "$lib/stores/toast";
