@@ -18,6 +18,10 @@
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
   import StatCard from "$lib/components/admin/StatCard.svelte";
+  import { listUsers, getUserStats } from "$lib/services/juno/userService";
+  import { junoInitialized } from "$lib/stores/auth";
+  import { toast } from "$lib/stores/toast";
+  import type { UserProfile, UserStats } from "$lib/types/admin";
 
   let searchQuery = $state("");
   let filterKYC = $state("all");
@@ -42,70 +46,58 @@
     displayedCount += itemsPerPage;
   }
 
-  // Mock user data
-  let users = $state([
-    {
-      id: "U-001",
-      name: "John Doe",
-      email: "john@example.com",
-      phone: "+234 801 234 5678",
-      kycStatus: "approved",
-      balance: 5000,
-      joinedAt: "Oct 15, 2024",
-      avatar:
-        "https://ui-avatars.com/api/?name=John+Doe&background=3b82f6&color=fff",
-    },
-    {
-      id: "U-002",
-      name: "Jane Smith",
-      email: "jane@example.com",
-      phone: "+254 712 345 678",
-      kycStatus: "pending",
-      balance: 2300,
-      joinedAt: "Oct 20, 2024",
-      avatar:
-        "https://ui-avatars.com/api/?name=Jane+Smith&background=8b5cf6&color=fff",
-    },
-    {
-      id: "U-003",
-      name: "Bob Johnson",
-      email: "bob@example.com",
-      phone: "+233 20 123 4567",
-      kycStatus: "approved",
-      balance: 8900,
-      joinedAt: "Oct 12, 2024",
-      avatar:
-        "https://ui-avatars.com/api/?name=Bob+Johnson&background=10b981&color=fff",
-    },
-    {
-      id: "U-004",
-      name: "Alice Brown",
-      email: "alice@example.com",
-      phone: "+234 802 345 6789",
-      kycStatus: "rejected",
-      balance: 0,
-      joinedAt: "Nov 1, 2024",
-      avatar:
-        "https://ui-avatars.com/api/?name=Alice+Brown&background=ef4444&color=fff",
-    },
-    {
-      id: "U-005",
-      name: "Charlie Wilson",
-      email: "charlie@example.com",
-      phone: "+254 713 456 789",
-      kycStatus: "not_submitted",
-      balance: 1200,
-      joinedAt: "Nov 3, 2024",
-      avatar:
-        "https://ui-avatars.com/api/?name=Charlie+Wilson&background=f59e0b&color=fff",
-    },
-  ]);
+  // User data
+  let users = $state<UserProfile[]>([]);
+  let isLoading = $state(false);
+  let lastUpdated = $state("");
 
-  let stats = $state({
-    total: 2340,
-    kycApproved: 1850,
-    kycPending: 23,
-    active: 2100,
+  let stats = $state<UserStats>({
+    total: 0,
+    kycApproved: 0,
+    kycPending: 0,
+    kycRejected: 0,
+    activeToday: 0,
+  });
+
+  // Load data from Juno
+  async function loadData() {
+    if (isLoading) return;
+    
+    isLoading = true;
+    try {
+      const [usersData, statsData] = await Promise.all([
+        listUsers({ kycStatus: filterKYC, searchQuery }),
+        getUserStats(),
+      ]);
+      
+      users = usersData;
+      stats = statsData;
+      lastUpdated = new Date().toLocaleTimeString();
+    } catch (error) {
+      console.error("Error loading users:", error);
+      toast.show("error", "Failed to load users");
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  // Refresh data
+  function refreshData() {
+    loadData();
+  }
+
+  // Load data when Juno is initialized
+  $effect(() => {
+    if ($junoInitialized) {
+      loadData();
+    }
+  });
+
+  // Reload when filters change
+  $effect(() => {
+    if ($junoInitialized) {
+      loadData();
+    }
   });
 
   // User growth chart
@@ -178,12 +170,13 @@
   // Filter and paginate users
   let filteredUsers = $derived(
     users.filter((user) => {
-      const matchesKYC = filterKYC === "all" || user.kycStatus === filterKYC;
+      const matchesKYC =
+        filterKYC === "all" || user.kycStatus === filterKYC;
       const matchesSearch =
         !searchQuery ||
         user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.phone.includes(searchQuery);
+        (user.phone && user.phone.toLowerCase().includes(searchQuery.toLowerCase()));
       return matchesKYC && matchesSearch;
     }),
   );
@@ -223,8 +216,8 @@
     />
 
     <StatCard
-      label="Active Users"
-      value={stats.active}
+      label="Active Today"
+      value={stats.activeToday}
       valueColor="text-purple-600"
     />
   </div>
@@ -296,7 +289,7 @@
         >
           <div class="flex items-center space-x-3 sm:space-x-4">
             <img
-              src={user.avatar}
+              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=fff`}
               alt={user.name}
               class="h-12 w-12 rounded-lg"
             />
