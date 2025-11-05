@@ -376,9 +376,11 @@
       <!-- Empty State -->
       <div class="py-12 text-center">
         <Users class="mx-auto h-12 w-12 text-gray-400" />
-        <h3 class="mt-4 text-lg font-semibold text-gray-900">No agents found</h3>
+        <h3 class="mt-4 text-lg font-semibold text-gray-900">
+          No agents found
+        </h3>
         <p class="mt-2 text-sm text-gray-500">
-          {#if searchQuery || filterStatus !== 'all'}
+          {#if searchQuery || filterStatus !== "all"}
             Try adjusting your filters or search query
           {:else}
             Agents will appear here once they register on the platform
@@ -392,64 +394,64 @@
             onclick={() => viewAgent(agent)}
             class="w-full rounded-lg border border-gray-100 p-4 text-left transition-all hover:border-blue-400 hover:shadow-md"
           >
-          <div class="flex items-start justify-between">
-            <div class="flex-1">
-              <div class="flex items-center space-x-2">
-                <h4 class="font-semibold text-gray-900">{agent.name}</h4>
-                <span
-                  class="rounded-full px-2 py-1 text-xs font-medium {getStatusColor(
-                    agent.status,
-                  )}"
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <div class="flex items-center space-x-2">
+                  <h4 class="font-semibold text-gray-900">{agent.name}</h4>
+                  <span
+                    class="rounded-full px-2 py-1 text-xs font-medium {getStatusColor(
+                      agent.status,
+                    )}"
+                  >
+                    {agent.status}
+                  </span>
+                </div>
+                <div
+                  class="mt-2 flex items-center space-x-1 text-sm text-gray-500"
                 >
-                  {agent.status}
-                </span>
+                  <MapPin class="h-4 w-4" />
+                  <span>{agent.location}</span>
+                </div>
+                <div class="mt-2 flex items-center space-x-1">
+                  <Star class="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  <span class="text-sm font-medium text-gray-900"
+                    >{agent.rating}</span
+                  >
+                  <span class="text-sm text-gray-500"
+                    >({agent.reviewCount} reviews)</span
+                  >
+                </div>
               </div>
-              <div
-                class="mt-2 flex items-center space-x-1 text-sm text-gray-500"
-              >
-                <MapPin class="h-4 w-4" />
-                <span>{agent.location}</span>
-              </div>
-              <div class="mt-2 flex items-center space-x-1">
-                <Star class="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                <span class="text-sm font-medium text-gray-900"
-                  >{agent.rating}</span
-                >
-                <span class="text-sm text-gray-500"
-                  >({agent.reviewCount} reviews)</span
-                >
+              <div class="text-right">
+                <p class="text-sm font-semibold text-gray-500">Revenue</p>
+                <p class="font-mono text-lg font-bold text-gray-900">
+                  ${agent.revenue.toLocaleString()}
+                </p>
               </div>
             </div>
-            <div class="text-right">
-              <p class="text-sm font-semibold text-gray-500">Revenue</p>
-              <p class="font-mono text-lg font-bold text-gray-900">
-                ${agent.revenue.toLocaleString()}
-              </p>
-            </div>
-          </div>
 
-          <div
-            class="mt-4 grid grid-cols-3 gap-4 border-t border-gray-100 pt-4"
-          >
-            <div>
-              <p class="text-xs text-gray-500">Transactions</p>
-              <p class="mt-1 font-mono text-sm font-semibold text-gray-900">
-                {agent.transactionCount}
-              </p>
+            <div
+              class="mt-4 grid grid-cols-3 gap-4 border-t border-gray-100 pt-4"
+            >
+              <div>
+                <p class="text-xs text-gray-500">Transactions</p>
+                <p class="mt-1 font-mono text-sm font-semibold text-gray-900">
+                  {agent.transactionCount}
+                </p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500">Commission Owed</p>
+                <p class="mt-1 font-mono text-sm font-semibold text-green-600">
+                  ${agent.commission}
+                </p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500">Joined</p>
+                <p class="mt-1 text-sm text-gray-900">{agent.joinedAt}</p>
+              </div>
             </div>
-            <div>
-              <p class="text-xs text-gray-500">Commission Owed</p>
-              <p class="mt-1 font-mono text-sm font-semibold text-green-600">
-                ${agent.commission}
-              </p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-500">Joined</p>
-              <p class="mt-1 text-sm text-gray-900">{agent.joinedAt}</p>
-            </div>
-          </div>
-        </button>
-      {/each}
+          </button>
+        {/each}
       </div>
     {/if}
 

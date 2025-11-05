@@ -1066,7 +1066,14 @@
 {#if selectedDocumentIndex !== null && selectedKYC}
   <div
     class="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4"
+    role="button"
+    tabindex="0"
     onclick={closeDocumentView}
+    onkeydown={(e) => {
+      if (e.key === 'Escape' || e.key === 'Enter') {
+        closeDocumentView();
+      }
+    }}
   >
     <button
       onclick={(e) => {
@@ -1092,7 +1099,17 @@
     {/if}
 
     <!-- Document Display -->
-    <div class="max-h-[90vh] max-w-5xl" role="button" tabindex="0" onclick={(e) => e.stopPropagation()}>
+    <div
+      class="max-h-[90vh] max-w-5xl"
+      role="button"
+      tabindex="0"
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.stopPropagation();
+        }
+      }}
+    >
       <div class="rounded-2xl bg-white p-4 shadow-2xl">
         <!-- Document Info -->
         <div

@@ -20,7 +20,11 @@
   import StatCard from "$lib/components/admin/StatCard.svelte";
   import SearchBar from "$lib/components/admin/SearchBar.svelte";
   import FilterDropdown from "$lib/components/admin/FilterDropdown.svelte";
-  import { listUsers, getUserStats, getUserGrowthData } from "$lib/services/juno/userService";
+  import {
+    listUsers,
+    getUserStats,
+    getUserGrowthData,
+  } from "$lib/services/juno/userService";
   import { junoInitialized } from "$lib/stores/auth";
   import { toast } from "$lib/stores/toast";
   import type { UserProfile, UserStats } from "$lib/types/admin";
@@ -54,12 +58,14 @@
   let isLoading = $state(false);
   let lastUpdated = $state("");
 
-  let stats = $state<UserStats & {
-    totalChange?: number;
-    kycApprovedChange?: number;
-    kycPendingChange?: number;
-    activeTodayChange?: number;
-  }>({
+  let stats = $state<
+    UserStats & {
+      totalChange?: number;
+      kycApprovedChange?: number;
+      kycPendingChange?: number;
+      activeTodayChange?: number;
+    }
+  >({
     total: 0,
     kycApproved: 0,
     kycPending: 0,
@@ -74,7 +80,7 @@
   // Load data from Juno
   async function loadData() {
     if (isLoading) return;
-    
+
     isLoading = true;
     try {
       const [usersData, statsData, chartData] = await Promise.all([
@@ -82,10 +88,10 @@
         getUserStats(),
         getUserGrowthData(parseInt(chartDateRange)),
       ]);
-      
+
       users = usersData;
       stats = statsData as typeof stats;
-      
+
       // Update chart with real data
       userGrowthOptions = {
         ...userGrowthOptions,
@@ -106,7 +112,7 @@
           categories: chartData.categories,
         },
       };
-      
+
       lastUpdated = new Date().toLocaleTimeString();
     } catch (error) {
       console.error("Error loading users:", error);
@@ -194,13 +200,13 @@
   // Filter and paginate users
   let filteredUsers = $derived(
     users.filter((user) => {
-      const matchesKYC =
-        filterKYC === "all" || user.kycStatus === filterKYC;
+      const matchesKYC = filterKYC === "all" || user.kycStatus === filterKYC;
       const matchesSearch =
         !searchQuery ||
         user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (user.phone && user.phone.toLowerCase().includes(searchQuery.toLowerCase()));
+        (user.phone &&
+          user.phone.toLowerCase().includes(searchQuery.toLowerCase()));
       return matchesKYC && matchesSearch;
     }),
   );
@@ -223,7 +229,7 @@
       label="Total Users"
       value={stats.total}
       trend={stats.totalChange}
-      lastUpdated={lastUpdated}
+      {lastUpdated}
       onRefresh={refreshData}
     />
 
@@ -260,7 +266,9 @@
         <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
           User Growth
         </h3>
-        <p class="text-xs text-gray-500 sm:text-sm">Last {chartDateRange} days trend</p>
+        <p class="text-xs text-gray-500 sm:text-sm">
+          Last {chartDateRange} days trend
+        </p>
       </div>
       <FilterDropdown
         bind:value={chartDateRange}
@@ -281,10 +289,7 @@
     class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
   >
     <div class="flex flex-wrap gap-4">
-      <SearchBar
-        bind:value={searchQuery}
-        placeholder="Search users..."
-      />
+      <SearchBar bind:value={searchQuery} placeholder="Search users..." />
       <FilterDropdown
         bind:value={filterKYC}
         options={[
@@ -317,7 +322,7 @@
         <Users class="mx-auto h-12 w-12 text-gray-400" />
         <h3 class="mt-4 text-lg font-semibold text-gray-900">No users found</h3>
         <p class="mt-2 text-sm text-gray-500">
-          {#if searchQuery || filterKYC !== 'all'}
+          {#if searchQuery || filterKYC !== "all"}
             Try adjusting your filters or search query
           {:else}
             Users will appear here once they register on the platform
@@ -345,12 +350,13 @@
                       user.kycStatus ?? 'pending',
                     )}"
                   >
-                    {(user.kycStatus ?? 'pending').replace("_", " ")}
+                    {(user.kycStatus ?? "pending").replace("_", " ")}
                   </span>
                 </div>
                 <p class="mt-1 text-sm text-gray-500">{user.email}</p>
                 <p class="text-xs text-gray-400">
-                  {user.phone ?? 'No phone'} • Joined {user.joinedAt ?? 'Unknown'}
+                  {user.phone ?? "No phone"} • Joined {user.joinedAt ??
+                    "Unknown"}
                 </p>
               </div>
             </div>

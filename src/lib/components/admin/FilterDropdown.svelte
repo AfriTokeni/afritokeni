@@ -14,11 +14,13 @@
   }
 
   let { value = $bindable(""), options, onChange }: Props = $props();
-  
+
   let selectedLabel = $derived(
-    options.find(opt => opt.value === value)?.label || options[0]?.label || "Select"
+    options.find((opt) => opt.value === value)?.label ||
+      options[0]?.label ||
+      "Select",
   );
-  
+
   function selectOption(optionValue: string) {
     value = optionValue;
     onChange?.(value);

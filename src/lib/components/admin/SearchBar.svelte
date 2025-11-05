@@ -7,7 +7,11 @@
     onInput?: (value: string) => void;
   }
 
-  let { value = $bindable(""), placeholder = "Search...", onInput }: Props = $props();
+  let {
+    value = $bindable(""),
+    placeholder = "Search...",
+    onInput,
+  }: Props = $props();
 </script>
 
 <div class="relative min-w-[200px] flex-1">

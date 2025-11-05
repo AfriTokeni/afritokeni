@@ -361,8 +361,8 @@
   </div>
 
   <!-- Tabs -->
-  <TransactionsTable 
-    transactions={transactions.map(tx => ({
+  <TransactionsTable
+    transactions={transactions.map((tx) => ({
       id: tx.id,
       user: tx.userName,
       type: tx.type,

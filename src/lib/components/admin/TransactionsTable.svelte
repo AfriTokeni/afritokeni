@@ -22,55 +22,56 @@
     showSearch?: boolean;
   }
 
-  let { 
-    transactions, 
+  let {
+    transactions,
     onRefresh,
     showTabs = false,
     showSearch = true,
   }: Props = $props();
 
   let searchQuery = $state("");
-  let activeTab = $state<'all' | 'completed' | 'pending' | 'failed'>('all');
-  let sortBy = $state<'type' | 'amount' | 'fee' | 'time'>('time');
-  let sortOrder = $state<'asc' | 'desc'>('desc');
+  let activeTab = $state<"all" | "completed" | "pending" | "failed">("all");
+  let sortBy = $state<"type" | "amount" | "fee" | "time">("time");
+  let sortOrder = $state<"asc" | "desc">("desc");
 
   // Filter and sort transactions
   let filteredTransactions = $derived(() => {
     let filtered = transactions;
 
     // Filter by tab
-    if (showTabs && activeTab !== 'all') {
-      filtered = filtered.filter(tx => tx.status === activeTab);
+    if (showTabs && activeTab !== "all") {
+      filtered = filtered.filter((tx) => tx.status === activeTab);
     }
 
     // Filter by search
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(tx =>
-        tx.id.toLowerCase().includes(query) ||
-        tx.user.toLowerCase().includes(query) ||
-        tx.type.toLowerCase().includes(query)
+      filtered = filtered.filter(
+        (tx) =>
+          tx.id.toLowerCase().includes(query) ||
+          tx.user.toLowerCase().includes(query) ||
+          tx.type.toLowerCase().includes(query),
       );
     }
 
     // Sort
     filtered = [...filtered].sort((a, b) => {
       let aVal, bVal;
-      
+
       switch (sortBy) {
-        case 'type':
+        case "type":
           aVal = a.type;
           bVal = b.type;
           break;
-        case 'amount':
+        case "amount":
           aVal = a.amount ?? 0;
           bVal = b.amount ?? 0;
           break;
-        case 'fee':
+        case "fee":
           aVal = a.fee ?? 0;
           bVal = b.fee ?? 0;
           break;
-        case 'time':
+        case "time":
           aVal = new Date(a.createdAt).getTime();
           bVal = new Date(b.createdAt).getTime();
           break;
@@ -78,8 +79,8 @@
           return 0;
       }
 
-      if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
-      if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+      if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
       return 0;
     });
 
@@ -89,9 +90,15 @@
   let displayedTransactions = $derived(filteredTransactions());
 
   // Tab counts
-  let completedCount = $derived(transactions.filter(tx => tx.status === 'completed').length);
-  let pendingCount = $derived(transactions.filter(tx => tx.status === 'pending').length);
-  let failedCount = $derived(transactions.filter(tx => tx.status === 'failed').length);
+  let completedCount = $derived(
+    transactions.filter((tx) => tx.status === "completed").length,
+  );
+  let pendingCount = $derived(
+    transactions.filter((tx) => tx.status === "pending").length,
+  );
+  let failedCount = $derived(
+    transactions.filter((tx) => tx.status === "failed").length,
+  );
 
   // Modal state
   let showDetailModal = $state(false);
@@ -99,10 +106,10 @@
 
   function toggleSort(column: typeof sortBy) {
     if (sortBy === column) {
-      sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+      sortOrder = sortOrder === "asc" ? "desc" : "asc";
     } else {
       sortBy = column;
-      sortOrder = 'desc';
+      sortOrder = "desc";
     }
   }
 
@@ -134,12 +141,12 @@
 
   function formatDateTime(dateString: string) {
     const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return date.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   }
 </script>
@@ -152,7 +159,8 @@
         <div class="flex space-x-8">
           <button
             onclick={() => (activeTab = "all")}
-            class="border-b-2 py-4 text-sm font-medium transition-colors {activeTab === 'all'
+            class="border-b-2 py-4 text-sm font-medium transition-colors {activeTab ===
+            'all'
               ? 'border-blue-600 text-blue-600'
               : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}"
           >
@@ -160,7 +168,8 @@
           </button>
           <button
             onclick={() => (activeTab = "completed")}
-            class="border-b-2 py-4 text-sm font-medium transition-colors {activeTab === 'completed'
+            class="border-b-2 py-4 text-sm font-medium transition-colors {activeTab ===
+            'completed'
               ? 'border-blue-600 text-blue-600'
               : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}"
           >
@@ -168,7 +177,8 @@
           </button>
           <button
             onclick={() => (activeTab = "pending")}
-            class="border-b-2 py-4 text-sm font-medium transition-colors {activeTab === 'pending'
+            class="border-b-2 py-4 text-sm font-medium transition-colors {activeTab ===
+            'pending'
               ? 'border-blue-600 text-blue-600'
               : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}"
           >
@@ -176,7 +186,8 @@
           </button>
           <button
             onclick={() => (activeTab = "failed")}
-            class="border-b-2 py-4 text-sm font-medium transition-colors {activeTab === 'failed'
+            class="border-b-2 py-4 text-sm font-medium transition-colors {activeTab ===
+            'failed'
               ? 'border-blue-600 text-blue-600'
               : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}"
           >
@@ -200,7 +211,9 @@
     <!-- Search Bar -->
     <div class="border-b border-gray-200 px-4 py-3 sm:px-6">
       <div class="relative">
-        <Search class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Search
+          class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400"
+        />
         <input
           type="text"
           bind:value={searchQuery}
@@ -217,9 +230,11 @@
       <!-- Empty State -->
       <div class="py-12 text-center">
         <Activity class="mx-auto h-12 w-12 text-gray-400" />
-        <h3 class="mt-4 text-lg font-semibold text-gray-900">No transactions found</h3>
+        <h3 class="mt-4 text-lg font-semibold text-gray-900">
+          No transactions found
+        </h3>
         <p class="mt-2 text-sm text-gray-500">
-          {#if searchQuery || (showTabs && activeTab !== 'all')}
+          {#if searchQuery || (showTabs && activeTab !== "all")}
             Try adjusting your filters or search query
           {:else}
             Transactions will appear here once users start trading
@@ -267,7 +282,9 @@
                 >
                   ${(tx.amount ?? 0).toLocaleString()}
                 </p>
-                <p class="text-xs text-gray-500">Fee: ${(tx.fee ?? 0).toLocaleString()}</p>
+                <p class="text-xs text-gray-500">
+                  Fee: ${(tx.fee ?? 0).toLocaleString()}
+                </p>
               </div>
               <span
                 class="rounded-full px-2 py-1 text-xs font-medium {getStatusColor(

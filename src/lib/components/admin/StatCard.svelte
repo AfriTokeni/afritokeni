@@ -32,6 +32,8 @@
 
 <svelte:element
   this={onClick ? "button" : "div"}
+  role={onClick && "button"}
+  tabindex={onClick ? 0 : undefined}
   onclick={onClick}
   class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6 {onClick
     ? 'cursor-pointer text-left hover:shadow-md'

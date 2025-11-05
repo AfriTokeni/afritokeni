@@ -23,7 +23,13 @@
   import TransactionsTable from "$lib/components/admin/TransactionsTable.svelte";
   import { listAgents } from "$lib/services/juno/agentService";
   import type { AgentProfile } from "$lib/types/admin";
-  import { getRevenueStats, getRevenueChartData, getRevenueTransactions, type RevenueStats, type RevenueTransaction } from "$lib/services/juno/revenueService";
+  import {
+    getRevenueStats,
+    getRevenueChartData,
+    getRevenueTransactions,
+    type RevenueStats,
+    type RevenueTransaction,
+  } from "$lib/services/juno/revenueService";
   import { junoInitialized } from "$lib/stores/auth";
   import { toast } from "$lib/stores/toast";
 
@@ -56,7 +62,7 @@
   // Load data from Juno
   async function loadData() {
     if (isLoading) return;
-    
+
     isLoading = true;
     try {
       const [stats, chart, transactions, agents] = await Promise.all([
@@ -65,11 +71,13 @@
         getRevenueTransactions({ limit: 20 }),
         listAgents({ limit: 4 }),
       ]);
-      
+
       revenueStats = stats;
       chartData = chart;
       recentTransactions = transactions;
-      topAgents = agents.sort((a, b) => (b.revenue ?? 0) - (a.revenue ?? 0)).slice(0, 4);
+      topAgents = agents
+        .sort((a, b) => (b.revenue ?? 0) - (a.revenue ?? 0))
+        .slice(0, 4);
       lastUpdated = new Date().toLocaleTimeString();
     } catch (error) {
       console.error("Error loading revenue data:", error);
@@ -91,7 +99,6 @@
       loadData();
     }
   });
-
 
   // Revenue trend chart
   let revenueChartOptions = $derived<ApexOptions>({
@@ -229,7 +236,7 @@
   </div>
 
   <!-- Recent Revenue Transactions -->
-  <TransactionsTable 
+  <TransactionsTable
     transactions={recentTransactions}
     showSearch={true}
     showTabs={true}
@@ -259,7 +266,9 @@
     {#if topAgents.length === 0}
       <div class="py-12 text-center">
         <Users class="mx-auto h-12 w-12 text-gray-400" />
-        <h3 class="mt-4 text-lg font-semibold text-gray-900">No agents found</h3>
+        <h3 class="mt-4 text-lg font-semibold text-gray-900">
+          No agents found
+        </h3>
         <p class="mt-2 text-sm text-gray-500">
           Top revenue agents will appear here once they start earning
         </p>
@@ -292,12 +301,13 @@
               <p class="font-mono text-sm font-bold text-gray-900 sm:text-base">
                 ${(agent.revenue ?? 0).toLocaleString()}
               </p>
-              <p class="text-xs text-gray-500">Commission: ${(agent.commission ?? 0).toLocaleString()}</p>
+              <p class="text-xs text-gray-500">
+                Commission: ${(agent.commission ?? 0).toLocaleString()}
+              </p>
             </div>
           </button>
         {/each}
       </div>
     {/if}
   </div>
-
 </div>
