@@ -196,6 +196,7 @@ dependencies = [
  "ic-cdk-macros",
  "serde",
  "serde_bytes",
+ "toml",
 ]
 
 [[package]]
@@ -823,4 +824,5 @@ dependencies = [
  "ic-cdk-macros",
  "serde",
  "serde_bytes",
+ "toml",
 ]

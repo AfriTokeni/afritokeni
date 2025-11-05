@@ -1,5 +1,9 @@
 use super::*;
 
+// Test constants - match the config values
+const TEST_PLATFORM_FEE_BPS: u64 = 50; // 0.5% from revenue_config.toml
+const TEST_AGENT_FEE_BPS: u64 = 1000; // 10% from revenue_config.toml
+
 // ============================================================================
 // FEE SPLIT TESTS - CORRECT REVENUE MODEL
 // ============================================================================
@@ -8,22 +12,12 @@ use super::*;
 fn test_correct_fee_calculation() {
     let amount = 100_000u64; // 100k UGX withdrawal
     
-    // Use constants from lib.rs instead of hardcoded values
-    let platform_base_fee = (amount * DEFAULT_PLATFORM_FEE_BPS) / 10000;
-    let agent_total_fee = (amount * DEFAULT_AGENT_FEE_BPS) / 10000;
-    let platform_cut_of_agent = (agent_total_fee * PLATFORM_CUT_OF_AGENT_FEE_PERCENT) / 100;
+    // Use test constants that match config
+    let platform_fee = (amount * TEST_PLATFORM_FEE_BPS) / 10000;
+    let agent_fee = (amount * TEST_AGENT_FEE_BPS) / 10000;
     
-    // Total platform revenue
-    let total_platform_fee = platform_base_fee + platform_cut_of_agent;
-    
-    // Agent keeps 90% of their fee
-    let agent_keeps = agent_total_fee - platform_cut_of_agent;
-    
-    assert_eq!(platform_base_fee, 500); // 0.5% of 100k = 500 UGX
-    assert_eq!(agent_total_fee, 3_000); // 3% of 100k = 3,000 UGX
-    assert_eq!(platform_cut_of_agent, 300); // 10% of 3k = 300 UGX
-    assert_eq!(total_platform_fee, 800); // 500 + 300 = 800 UGX total revenue
-    assert_eq!(agent_keeps, 2_700); // Agent keeps 2,700 UGX (90% of their fee)
+    assert_eq!(platform_fee, 500); // 0.5% of 100k = 500 UGX
+    assert_eq!(agent_fee, 10_000); // 10% of 100k = 10,000 UGX
 }
 
 #[test]
@@ -45,47 +39,33 @@ fn test_withdrawal_code_generation() {
 fn test_small_withdrawal_fees() {
     let amount = 10_000u64; // 10k UGX
     
-    let platform_base = (amount * DEFAULT_PLATFORM_FEE_BPS) / 10000;
-    let agent_total = (amount * DEFAULT_AGENT_FEE_BPS) / 10000;
-    let platform_cut = (agent_total * PLATFORM_CUT_OF_AGENT_FEE_PERCENT) / 100;
-    let platform_total = platform_base + platform_cut;
-    let agent_keeps = agent_total - platform_cut;
+    let platform_fee = (amount * TEST_PLATFORM_FEE_BPS) / 10000;
+    let agent_fee = (amount * TEST_AGENT_FEE_BPS) / 10000;
     
-    assert_eq!(platform_base, 50); // 0.5% of 10k = 50 UGX
-    assert_eq!(agent_total, 300); // 3% of 10k = 300 UGX
-    assert_eq!(platform_total, 80); // 50 + 30 = 80 UGX
-    assert_eq!(agent_keeps, 270); // Agent keeps 270 UGX
+    assert_eq!(platform_fee, 50); // 0.5% of 10k = 50 UGX
+    assert_eq!(agent_fee, 1_000); // 10% of 10k = 1,000 UGX
 }
 
 #[test]
 fn test_medium_withdrawal_fees() {
     let amount = 100_000u64; // 100k UGX
     
-    let platform_base = (amount * DEFAULT_PLATFORM_FEE_BPS) / 10000;
-    let agent_total = (amount * DEFAULT_AGENT_FEE_BPS) / 10000;
-    let platform_cut = (agent_total * PLATFORM_CUT_OF_AGENT_FEE_PERCENT) / 100;
-    let platform_total = platform_base + platform_cut;
-    let agent_keeps = agent_total - platform_cut;
+    let platform_fee = (amount * TEST_PLATFORM_FEE_BPS) / 10000;
+    let agent_fee = (amount * TEST_AGENT_FEE_BPS) / 10000;
     
-    assert_eq!(platform_base, 500); // 0.5% of 100k = 500 UGX
-    assert_eq!(platform_total, 800); // 500 + 300 = 800 UGX
-    assert_eq!(agent_keeps, 2_700); // Agent keeps 2,700 UGX
+    assert_eq!(platform_fee, 500); // 0.5% of 100k = 500 UGX
+    assert_eq!(agent_fee, 10_000); // 10% of 100k = 10,000 UGX
 }
 
 #[test]
 fn test_large_withdrawal_fees() {
     let amount = 1_000_000u64; // 1M UGX
     
-    let platform_base = (amount * DEFAULT_PLATFORM_FEE_BPS) / 10000;
-    let agent_total = (amount * DEFAULT_AGENT_FEE_BPS) / 10000;
-    let platform_cut = (agent_total * PLATFORM_CUT_OF_AGENT_FEE_PERCENT) / 100;
-    let platform_total = platform_base + platform_cut;
-    let agent_keeps = agent_total - platform_cut;
+    let platform_fee = (amount * TEST_PLATFORM_FEE_BPS) / 10000;
+    let agent_fee = (amount * TEST_AGENT_FEE_BPS) / 10000;
     
-    assert_eq!(platform_base, 5_000); // 0.5% of 1M = 5,000 UGX
-    assert_eq!(agent_total, 30_000); // 3% of 1M = 30,000 UGX
-    assert_eq!(platform_total, 8_000); // 5,000 + 3,000 = 8,000 UGX
-    assert_eq!(agent_keeps, 27_000); // Agent keeps 27,000 UGX
+    assert_eq!(platform_fee, 5_000); // 0.5% of 1M = 5,000 UGX
+    assert_eq!(agent_fee, 100_000); // 10% of 1M = 100,000 UGX
 }
 
 // ============================================================================

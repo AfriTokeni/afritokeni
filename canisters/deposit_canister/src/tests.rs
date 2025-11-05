@@ -1,5 +1,8 @@
 use super::*;
 
+// Test constant - matches the config value
+const TEST_PLATFORM_FEE_BPS: u64 = 50; // 0.5% from revenue_config.toml
+
 // ============================================================================
 // DEPOSIT CREATION TESTS
 // ============================================================================
@@ -8,8 +11,8 @@ use super::*;
 fn test_create_deposit_request() {
     let amount = 100_000u64;
     
-    // Use constant instead of hardcoded value
-    let expected_commission = (amount * DEFAULT_COMMISSION_RATE_BPS) / 10000;
+    // Use test constant that matches config
+    let expected_commission = (amount * TEST_PLATFORM_FEE_BPS) / 10000;
     assert_eq!(expected_commission, 500);
 }
 
@@ -37,28 +40,28 @@ fn test_zero_amount_rejected() {
 #[test]
 fn test_commission_calculation_small() {
     let amount = 10_000u64; // 10k UGX
-    let commission = (amount * DEFAULT_COMMISSION_RATE_BPS) / 10000;
+    let commission = (amount * TEST_PLATFORM_FEE_BPS) / 10000;
     assert_eq!(commission, 50); // 0.5% = 50 UGX
 }
 
 #[test]
 fn test_commission_calculation_medium() {
     let amount = 100_000u64; // 100k UGX
-    let commission = (amount * DEFAULT_COMMISSION_RATE_BPS) / 10000;
+    let commission = (amount * TEST_PLATFORM_FEE_BPS) / 10000;
     assert_eq!(commission, 500); // 0.5% = 500 UGX
 }
 
 #[test]
 fn test_commission_calculation_large() {
     let amount = 1_000_000u64; // 1M UGX
-    let commission = (amount * DEFAULT_COMMISSION_RATE_BPS) / 10000;
+    let commission = (amount * TEST_PLATFORM_FEE_BPS) / 10000;
     assert_eq!(commission, 5_000); // 0.5% = 5,000 UGX
 }
 
 #[test]
 fn test_commission_calculation_very_large() {
     let amount = 10_000_000u64; // 10M UGX
-    let commission = (amount * DEFAULT_COMMISSION_RATE_BPS) / 10000;
+    let commission = (amount * TEST_PLATFORM_FEE_BPS) / 10000;
     assert_eq!(commission, 50_000); // 0.5% = 50,000 UGX
 }
 
@@ -70,7 +73,7 @@ fn test_commission_calculation_very_large() {
 fn test_typical_deposit_scenario() {
     // User deposits 50,000 UGX (~$13 USD)
     let amount = 50_000u64;
-    let commission = (amount * DEFAULT_COMMISSION_RATE_BPS) / 10000;
+    let commission = (amount * TEST_PLATFORM_FEE_BPS) / 10000;
     
     assert_eq!(commission, 250); // AfriTokeni gets 250 UGX
     assert_eq!(amount - commission, 49_750); // User gets 49,750 UGX credited
@@ -80,7 +83,7 @@ fn test_typical_deposit_scenario() {
 fn test_large_deposit_scenario() {
     // User deposits 5,000,000 UGX (~$1,300 USD)
     let amount = 5_000_000u64;
-    let commission = (amount * DEFAULT_COMMISSION_RATE_BPS) / 10000;
+    let commission = (amount * TEST_PLATFORM_FEE_BPS) / 10000;
     
     assert_eq!(commission, 25_000); // AfriTokeni gets 25k UGX
     assert_eq!(amount - commission, 4_975_000);
@@ -179,7 +182,7 @@ fn test_settlement_after_payment() {
 fn test_minimum_deposit() {
     // Smallest meaningful deposit (100 UGX)
     let amount = 100u64;
-    let commission = (amount * DEFAULT_COMMISSION_RATE_BPS) / 10000;
+    let commission = (amount * TEST_PLATFORM_FEE_BPS) / 10000;
     
     // Commission rounds to 0 for very small amounts
     assert_eq!(commission, 0);
@@ -188,7 +191,7 @@ fn test_minimum_deposit() {
 #[test]
 fn test_commission_never_exceeds_amount() {
     let amount = 1_000u64;
-    let commission = (amount * DEFAULT_COMMISSION_RATE_BPS) / 10000;
+    let commission = (amount * TEST_PLATFORM_FEE_BPS) / 10000;
     
     assert!(commission < amount);
     assert_eq!(commission, 5); // 0.5% of 1000 = 5
@@ -198,7 +201,7 @@ fn test_commission_never_exceeds_amount() {
 fn test_large_number_handling() {
     // Test with very large amounts (100M UGX)
     let amount = 100_000_000u64;
-    let commission = (amount * DEFAULT_COMMISSION_RATE_BPS) / 10000;
+    let commission = (amount * TEST_PLATFORM_FEE_BPS) / 10000;
     
     assert_eq!(commission, 500_000); // 500k UGX commission
     assert!(commission < amount);

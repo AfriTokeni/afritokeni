@@ -114,7 +114,7 @@
       if (!hasControllerAccess) {
         toast.show(
           "warning",
-          "Cycles data unavailable: Requires controller access to canisters"
+          "Cycles data unavailable: Requires controller access to canisters",
         );
       }
 

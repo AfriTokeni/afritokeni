@@ -20,9 +20,12 @@ struct CompanyWalletConfig {
 
 #[derive(SerdeDeserialize, Clone)]
 struct DepositConfig {
+    #[allow(dead_code)]
     agent_commission_basis_points: u64,
     platform_fee_basis_points: u64,
+    #[allow(dead_code)]
     min_deposit_ugx: u64,
+    #[allow(dead_code)]
     max_deposit_ugx: u64,
 }
 

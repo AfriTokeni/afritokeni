@@ -22,7 +22,9 @@ struct CompanyWalletConfig {
 struct WithdrawalConfig {
     agent_commission_basis_points: u64,
     platform_fee_basis_points: u64,
+    #[allow(dead_code)]
     min_withdrawal_ugx: u64,
+    #[allow(dead_code)]
     max_withdrawal_ugx: u64,
 }
 
