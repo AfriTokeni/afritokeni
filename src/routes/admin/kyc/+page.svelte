@@ -266,45 +266,7 @@
 </script>
 
 <div class="space-y-4 sm:space-y-6">
-  <!-- KYC Submissions Trend Chart -->
-  <div
-    class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
-  >
-    <div class="mb-4 flex items-center justify-between sm:mb-6">
-      <div>
-        <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
-          KYC Submissions Trend
-        </h3>
-        <p class="text-xs text-gray-500 sm:text-sm">Submissions over time</p>
-      </div>
-      <div class="relative">
-        <Button size="sm" color="light" class="gap-2">
-          {chartDateRange === "7"
-            ? "Last 7 days"
-            : chartDateRange === "30"
-              ? "Last 30 days"
-              : "Last 90 days"}
-          <ChevronDown class="h-4 w-4" />
-        </Button>
-        <Dropdown class="z-50 w-44 !shadow-md">
-          <DropdownItem onclick={() => (chartDateRange = "7")}
-            >Last 7 days</DropdownItem
-          >
-          <DropdownItem onclick={() => (chartDateRange = "30")}
-            >Last 30 days</DropdownItem
-          >
-          <DropdownItem onclick={() => (chartDateRange = "90")}
-            >Last 90 days</DropdownItem
-          >
-        </Dropdown>
-      </div>
-    </div>
-    <div class="h-64 sm:h-80">
-      <Chart options={chartOptions} />
-    </div>
-  </div>
-
-  <!-- Header with Stats -->
+  <!-- Stats Grid -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3">
     <!-- Pending Count -->
     <div
@@ -361,6 +323,44 @@
           <XCircle class="h-6 w-6 text-red-600" />
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- KYC Submissions Trend Chart -->
+  <div
+    class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+  >
+    <div class="mb-4 flex items-center justify-between sm:mb-6">
+      <div>
+        <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
+          KYC Submissions Trend
+        </h3>
+        <p class="text-xs text-gray-500 sm:text-sm">Submissions over time</p>
+      </div>
+      <div class="relative">
+        <Button size="sm" color="light" class="gap-2">
+          {chartDateRange === "7"
+            ? "Last 7 days"
+            : chartDateRange === "30"
+              ? "Last 30 days"
+              : "Last 90 days"}
+          <ChevronDown class="h-4 w-4" />
+        </Button>
+        <Dropdown class="z-50 w-44 !shadow-md">
+          <DropdownItem onclick={() => (chartDateRange = "7")}
+            >Last 7 days</DropdownItem
+          >
+          <DropdownItem onclick={() => (chartDateRange = "30")}
+            >Last 30 days</DropdownItem
+          >
+          <DropdownItem onclick={() => (chartDateRange = "90")}
+            >Last 90 days</DropdownItem
+          >
+        </Dropdown>
+      </div>
+    </div>
+    <div class="h-64 sm:h-80">
+      <Chart options={chartOptions} />
     </div>
   </div>
 

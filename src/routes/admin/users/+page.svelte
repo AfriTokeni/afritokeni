@@ -156,21 +156,6 @@
 </script>
 
 <div class="space-y-4 sm:space-y-6">
-  <!-- User Growth Chart -->
-  <div
-    class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
-  >
-    <div class="mb-4 sm:mb-6">
-      <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
-        User Growth
-      </h3>
-      <p class="text-xs text-gray-500 sm:text-sm">Last 7 days trend</p>
-    </div>
-    <div class="h-64 sm:h-80">
-      <Chart options={userGrowthOptions} />
-    </div>
-  </div>
-
   <!-- Stats Overview -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-4">
     <div
@@ -251,6 +236,21 @@
           <Users class="h-6 w-6 text-purple-600" />
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- User Growth Chart -->
+  <div
+    class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+  >
+    <div class="mb-4 sm:mb-6">
+      <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
+        User Growth
+      </h3>
+      <p class="text-xs text-gray-500 sm:text-sm">Last 7 days trend</p>
+    </div>
+    <div class="h-64 sm:h-80">
+      <Chart options={userGrowthOptions} />
     </div>
   </div>
 

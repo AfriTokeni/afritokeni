@@ -198,46 +198,6 @@
 </script>
 
 <div class="space-y-4 sm:space-y-6">
-  <!-- Cycles Usage Trend Chart -->
-  <div
-    class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
-  >
-    <div class="mb-4 flex items-center justify-between sm:mb-6">
-      <div>
-        <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
-          Cycles Usage Trend
-        </h3>
-        <p class="text-xs text-gray-500 sm:text-sm">
-          Canister cycles consumption
-        </p>
-      </div>
-      <div class="relative">
-        <Button size="sm" color="light" class="gap-2">
-          {chartDateRange === "7"
-            ? "Last 7 days"
-            : chartDateRange === "30"
-              ? "Last 30 days"
-              : "Last 3 months"}
-          <ChevronDown class="h-4 w-4" />
-        </Button>
-        <Dropdown class="z-50 w-44 !shadow-md">
-          <DropdownItem onclick={() => (chartDateRange = "7")}
-            >Last 7 days</DropdownItem
-          >
-          <DropdownItem onclick={() => (chartDateRange = "30")}
-            >Last 30 days</DropdownItem
-          >
-          <DropdownItem onclick={() => (chartDateRange = "90")}
-            >Last 3 months</DropdownItem
-          >
-        </Dropdown>
-      </div>
-    </div>
-    <div class="h-64 sm:h-80">
-      <Chart options={cyclesChartOptions} />
-    </div>
-  </div>
-
   <!-- System Overview -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-4">
     <div
@@ -316,6 +276,46 @@
           <Server class="h-6 w-6 text-yellow-600" />
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Cycles Usage Trend Chart -->
+  <div
+    class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+  >
+    <div class="mb-4 flex items-center justify-between sm:mb-6">
+      <div>
+        <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
+          Cycles Usage Trend
+        </h3>
+        <p class="text-xs text-gray-500 sm:text-sm">
+          Canister cycles consumption
+        </p>
+      </div>
+      <div class="relative">
+        <Button size="sm" color="light" class="gap-2">
+          {chartDateRange === "7"
+            ? "Last 7 days"
+            : chartDateRange === "30"
+              ? "Last 30 days"
+              : "Last 3 months"}
+          <ChevronDown class="h-4 w-4" />
+        </Button>
+        <Dropdown class="z-50 w-44 !shadow-md">
+          <DropdownItem onclick={() => (chartDateRange = "7")}
+            >Last 7 days</DropdownItem
+          >
+          <DropdownItem onclick={() => (chartDateRange = "30")}
+            >Last 30 days</DropdownItem
+          >
+          <DropdownItem onclick={() => (chartDateRange = "90")}
+            >Last 3 months</DropdownItem
+          >
+        </Dropdown>
+      </div>
+    </div>
+    <div class="h-64 sm:h-80">
+      <Chart options={cyclesChartOptions} />
     </div>
   </div>
 

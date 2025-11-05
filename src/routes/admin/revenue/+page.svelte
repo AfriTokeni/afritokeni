@@ -171,44 +171,6 @@
 </script>
 
 <div class="space-y-4 sm:space-y-6">
-  <!-- Revenue Trend Chart -->
-  <div
-    class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
-  >
-    <div class="mb-4 flex items-center justify-between sm:mb-6">
-      <div>
-        <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
-          Revenue Trend
-        </h3>
-        <p class="text-xs text-gray-500 sm:text-sm">Revenue over time</p>
-      </div>
-      <div class="relative">
-        <Button size="sm" color="light" class="gap-2">
-          {chartDateRange === "30"
-            ? "Last 30 days"
-            : chartDateRange === "90"
-              ? "Last 3 months"
-              : "Last 6 months"}
-          <ChevronDown class="h-4 w-4" />
-        </Button>
-        <Dropdown class="z-50 w-44 !shadow-md">
-          <DropdownItem onclick={() => (chartDateRange = "30")}
-            >Last 30 days</DropdownItem
-          >
-          <DropdownItem onclick={() => (chartDateRange = "90")}
-            >Last 3 months</DropdownItem
-          >
-          <DropdownItem onclick={() => (chartDateRange = "180")}
-            >Last 6 months</DropdownItem
-          >
-        </Dropdown>
-      </div>
-    </div>
-    <div class="h-64 sm:h-80">
-      <Chart options={revenueChartOptions} />
-    </div>
-  </div>
-
   <!-- Revenue Overview Cards -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
     <!-- Total Revenue -->
@@ -257,8 +219,8 @@
               <CreditCard class="h-5 w-5 text-purple-600 sm:h-6 sm:w-6" />
             </div>
             <div class="min-w-0">
-              <p class="text-sm font-semibold text-gray-900">Deposits</p>
-              <p class="text-xs text-gray-500">5% commission</p>
+              <p class="text-sm font-semibold text-gray-900">Platform Fees</p>
+              <p class="text-xs text-gray-500">0.5% of transactions</p>
             </div>
           </div>
         </div>
@@ -286,8 +248,8 @@
               <Banknote class="h-5 w-5 text-green-600 sm:h-6 sm:w-6" />
             </div>
             <div class="min-w-0">
-              <p class="text-sm font-semibold text-gray-900">Withdrawals</p>
-              <p class="text-xs text-gray-500">Transaction fees</p>
+              <p class="text-sm font-semibold text-gray-900">Agent Fees</p>
+              <p class="text-xs text-gray-500">10% of commissions</p>
             </div>
           </div>
         </div>
@@ -315,8 +277,8 @@
               <ArrowUpRight class="h-5 w-5 text-yellow-600 sm:h-6 sm:w-6" />
             </div>
             <div class="min-w-0">
-              <p class="text-sm font-semibold text-gray-900">Exchange</p>
-              <p class="text-xs text-gray-500">Spread revenue</p>
+              <p class="text-sm font-semibold text-gray-900">Exchange Spreads</p>
+              <p class="text-xs text-gray-500">0.5% on crypto trades</p>
             </div>
           </div>
         </div>
@@ -329,6 +291,44 @@
       <div class="border-t border-gray-100 pt-3">
         <span class="text-sm text-gray-500">11% of total</span>
       </div>
+    </div>
+  </div>
+
+  <!-- Revenue Trend Chart -->
+  <div
+    class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+  >
+    <div class="mb-4 flex items-center justify-between sm:mb-6">
+      <div>
+        <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
+          Revenue Trend
+        </h3>
+        <p class="text-xs text-gray-500 sm:text-sm">Revenue over time</p>
+      </div>
+      <div class="relative">
+        <Button size="sm" color="light" class="gap-2">
+          {chartDateRange === "30"
+            ? "Last 30 days"
+            : chartDateRange === "90"
+              ? "Last 3 months"
+              : "Last 6 months"}
+          <ChevronDown class="h-4 w-4" />
+        </Button>
+        <Dropdown class="z-50 w-44 !shadow-md">
+          <DropdownItem onclick={() => (chartDateRange = "30")}
+            >Last 30 days</DropdownItem
+          >
+          <DropdownItem onclick={() => (chartDateRange = "90")}
+            >Last 3 months</DropdownItem
+          >
+          <DropdownItem onclick={() => (chartDateRange = "180")}
+            >Last 6 months</DropdownItem
+          >
+        </Dropdown>
+      </div>
+    </div>
+    <div class="h-64 sm:h-80">
+      <Chart options={revenueChartOptions} />
     </div>
   </div>
 
