@@ -13,13 +13,14 @@
     XCircle,
     RefreshCw,
     ChevronDown,
+    Users,
   } from "@lucide/svelte";
   import { onMount } from "svelte";
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
   import StatCard from "$lib/components/admin/StatCard.svelte";
   import SearchBar from "$lib/components/admin/SearchBar.svelte";
-  import { Button, Dropdown, DropdownItem } from "flowbite-svelte";
+  import FilterDropdown from "$lib/components/admin/FilterDropdown.svelte";
   import {
     banAgent,
     listAgents,
@@ -288,32 +289,15 @@
         bind:value={searchQuery}
         placeholder="Search by name or location..."
       />
-      <div class="relative">
-        <Button size="sm" color="light" class="gap-2">
-          {filterStatus === "all"
-            ? "All Status"
-            : filterStatus === "active"
-              ? "Active"
-              : filterStatus === "busy"
-                ? "Busy"
-                : "Offline"}
-          <ChevronDown class="h-4 w-4" />
-        </Button>
-        <Dropdown placement="bottom" class="z-50 w-44 !shadow-md">
-          <DropdownItem onclick={() => (filterStatus = "all")}>
-            All Status
-          </DropdownItem>
-          <DropdownItem onclick={() => (filterStatus = "active")}>
-            Active
-          </DropdownItem>
-          <DropdownItem onclick={() => (filterStatus = "busy")}>
-            Busy
-          </DropdownItem>
-          <DropdownItem onclick={() => (filterStatus = "offline")}>
-            Offline
-          </DropdownItem>
-        </Dropdown>
-      </div>
+      <FilterDropdown
+        bind:value={filterStatus}
+        options={[
+          { value: "all", label: "All Status" },
+          { value: "active", label: "Active" },
+          { value: "busy", label: "Busy" },
+          { value: "offline", label: "Offline" },
+        ]}
+      />
     </div>
   </div>
 
@@ -388,12 +372,26 @@
       </div>
     </div>
 
-    <div class="space-y-3 sm:space-y-4">
-      {#each displayedAgents as agent}
-        <button
-          onclick={() => viewAgent(agent)}
-          class="w-full rounded-lg border border-gray-100 p-4 text-left transition-all hover:border-blue-400 hover:shadow-md"
-        >
+    {#if displayedAgents.length === 0}
+      <!-- Empty State -->
+      <div class="py-12 text-center">
+        <Users class="mx-auto h-12 w-12 text-gray-400" />
+        <h3 class="mt-4 text-lg font-semibold text-gray-900">No agents found</h3>
+        <p class="mt-2 text-sm text-gray-500">
+          {#if searchQuery || filterStatus !== 'all'}
+            Try adjusting your filters or search query
+          {:else}
+            Agents will appear here once they register on the platform
+          {/if}
+        </p>
+      </div>
+    {:else}
+      <div class="space-y-3 sm:space-y-4">
+        {#each displayedAgents as agent}
+          <button
+            onclick={() => viewAgent(agent)}
+            class="w-full rounded-lg border border-gray-100 p-4 text-left transition-all hover:border-blue-400 hover:shadow-md"
+          >
           <div class="flex items-start justify-between">
             <div class="flex-1">
               <div class="flex items-center space-x-2">
@@ -452,7 +450,8 @@
           </div>
         </button>
       {/each}
-    </div>
+      </div>
+    {/if}
 
     <!-- Load More Button -->
     {#if hasMore}

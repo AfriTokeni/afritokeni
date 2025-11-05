@@ -13,7 +13,7 @@ import type {
   AgentStatus,
 } from "$lib/types/admin";
 
-const COLLECTION = "agent_profiles";
+const COLLECTION = "agents";
 
 /**
  * Juno document data structure for Agent

@@ -8,146 +8,90 @@
     Info,
     ChevronDown,
     ArrowRight,
+    Search,
+    RefreshCw,
+    ArrowUpDown,
+    Users,
+    Activity,
   } from "@lucide/svelte";
   import { goto } from "$app/navigation";
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
   import { Button, Dropdown, DropdownItem } from "flowbite-svelte";
   import StatCard from "$lib/components/admin/StatCard.svelte";
+  import SearchBar from "$lib/components/admin/SearchBar.svelte";
+  import TransactionsTable from "$lib/components/admin/TransactionsTable.svelte";
+  import { listAgents } from "$lib/services/juno/agentService";
+  import type { AgentProfile } from "$lib/types/admin";
+  import { getRevenueStats, getRevenueChartData, getRevenueTransactions, type RevenueStats, type RevenueTransaction } from "$lib/services/juno/revenueService";
+  import { junoInitialized } from "$lib/stores/auth";
+  import { toast } from "$lib/stores/toast";
 
   let chartDateRange = $state<"30" | "90" | "180">("90");
+  let isLoading = $state(false);
+  let lastUpdated = $state("");
 
-  // Mock revenue data
-  let revenueStats = $state({
-    totalRevenue: 45678.5,
-    depositCommissions: 28450.3,
-    withdrawalFees: 12340.2,
-    exchangeSpread: 4888.0,
-    growth: 12.5,
+  // Real revenue data from Juno
+  let revenueStats = $state<RevenueStats>({
+    totalRevenue: 0,
+    depositCommissions: 0,
+    withdrawalFees: 0,
+    exchangeSpread: 0,
+    totalRevenueChange: 0,
+    depositCommissionsChange: 0,
+    withdrawalFeesChange: 0,
+    exchangeSpreadChange: 0,
   });
 
-  let revenueBreakdown = $state([
-    {
-      source: "Deposit Commissions",
-      amount: 28450.3,
-      percentage: 62,
-      transactions: 1234,
-      color: "blue",
-    },
-    {
-      source: "Withdrawal Fees",
-      amount: 12340.2,
-      percentage: 27,
-      transactions: 856,
-      color: "purple",
-    },
-    {
-      source: "Exchange Spread",
-      amount: 4888.0,
-      percentage: 11,
-      transactions: 432,
-      color: "green",
-    },
-  ]);
+  let recentTransactions = $state<RevenueTransaction[]>([]);
+  let topAgents = $state<AgentProfile[]>([]);
 
-  let topAgents = $state([
-    {
-      name: "Agent Lagos Central",
-      revenue: 12500,
-      transactions: 234,
-      commission: 625,
-    },
-    {
-      name: "Agent Nairobi East",
-      revenue: 10200,
-      transactions: 198,
-      commission: 510,
-    },
-    {
-      name: "Agent Accra West",
-      revenue: 9800,
-      transactions: 176,
-      commission: 490,
-    },
-    {
-      name: "Agent Kampala North",
-      revenue: 7600,
-      transactions: 145,
-      commission: 380,
-    },
-  ]);
+  let chartData = $state({
+    categories: [] as string[],
+    totalRevenue: [] as number[],
+    deposits: [] as number[],
+    withdrawals: [] as number[],
+  });
 
-  let recentTransactions = $state([
-    {
-      id: "TXN-1234",
-      user: "John Doe",
-      type: "Deposit",
-      amount: 5000,
-      fee: 250,
-      time: "2 hours ago",
-      status: "completed",
-    },
-    {
-      id: "TXN-1233",
-      user: "Jane Smith",
-      type: "Withdrawal",
-      amount: 3200,
-      fee: 160,
-      time: "5 hours ago",
-      status: "completed",
-    },
-    {
-      id: "TXN-1232",
-      user: "Bob Johnson",
-      type: "Exchange",
-      amount: 1500,
-      fee: 7.5,
-      time: "8 hours ago",
-      status: "completed",
-    },
-    {
-      id: "TXN-1231",
-      user: "Alice Brown",
-      type: "Deposit",
-      amount: 8000,
-      fee: 400,
-      time: "12 hours ago",
-      status: "completed",
-    },
-  ]);
-
-  function getTypeColor(type: string) {
-    if (type === "Deposit") return "bg-blue-100 text-blue-800";
-    if (type === "Withdrawal") return "bg-purple-100 text-purple-800";
-    if (type === "Exchange") return "bg-green-100 text-green-800";
-    return "bg-gray-100 text-gray-800";
-  }
-
-  // Generate revenue chart data based on date range
-  function getRevenueChartData() {
-    if (chartDateRange === "30") {
-      return {
-        categories: ["Oct 5", "Oct 12", "Oct 19", "Oct 26", "Nov 2"],
-        totalRevenue: [42000, 43200, 44100, 44800, 45678],
-        deposits: [26000, 26800, 27400, 28000, 28450],
-        withdrawals: [11800, 12000, 12150, 12250, 12340],
-      };
-    } else if (chartDateRange === "90") {
-      return {
-        categories: ["Aug", "Sep", "Oct", "Nov"],
-        totalRevenue: [34820, 39150, 42340, 45678],
-        deposits: [21200, 24000, 26500, 28450],
-        withdrawals: [10500, 11800, 12100, 12340],
-      };
-    } else {
-      return {
-        categories: ["Jun", "Jul", "Aug", "Sep", "Oct", "Nov"],
-        totalRevenue: [28500, 30200, 34820, 39150, 42340, 45678],
-        deposits: [17500, 18500, 21200, 24000, 26500, 28450],
-        withdrawals: [8800, 9200, 10500, 11800, 12100, 12340],
-      };
+  // Load data from Juno
+  async function loadData() {
+    if (isLoading) return;
+    
+    isLoading = true;
+    try {
+      const [stats, chart, transactions, agents] = await Promise.all([
+        getRevenueStats(),
+        getRevenueChartData(parseInt(chartDateRange)),
+        getRevenueTransactions({ limit: 20 }),
+        listAgents({ limit: 4 }),
+      ]);
+      
+      revenueStats = stats;
+      chartData = chart;
+      recentTransactions = transactions;
+      topAgents = agents.sort((a, b) => (b.revenue ?? 0) - (a.revenue ?? 0)).slice(0, 4);
+      lastUpdated = new Date().toLocaleTimeString();
+    } catch (error) {
+      console.error("Error loading revenue data:", error);
+      toast.show("error", "Failed to load revenue data");
+    } finally {
+      isLoading = false;
     }
   }
+
+  // Refresh data
+  function refreshData() {
+    loadData();
+  }
+
+  // Load data when Juno is initialized or filters change
+  $effect(() => {
+    if ($junoInitialized) {
+      chartDateRange;
+      loadData();
+    }
+  });
+
 
   // Revenue trend chart
   let revenueChartOptions = $derived<ApexOptions>({
@@ -176,22 +120,22 @@
     series: [
       {
         name: "Total Revenue",
-        data: getRevenueChartData().totalRevenue,
+        data: chartData.totalRevenue,
         color: "#3b82f6",
       },
       {
         name: "Deposit Commissions",
-        data: getRevenueChartData().deposits,
+        data: chartData.deposits,
         color: "#8b5cf6",
       },
       {
         name: "Withdrawal Fees",
-        data: getRevenueChartData().withdrawals,
+        data: chartData.withdrawals,
         color: "#22c55e",
       },
     ],
     xaxis: {
-      categories: getRevenueChartData().categories,
+      categories: chartData.categories,
       labels: {
         show: true,
         style: {
@@ -219,24 +163,30 @@
     <StatCard
       label="Total Revenue"
       value={`$${revenueStats.totalRevenue.toLocaleString()}`}
+      trend={revenueStats.totalRevenueChange}
+      onRefresh={refreshData}
+      {lastUpdated}
     />
 
     <!-- Deposit Commissions -->
     <StatCard
       label="Platform Fees"
       value={`$${revenueStats.depositCommissions.toLocaleString()}`}
+      trend={revenueStats.depositCommissionsChange}
     />
 
     <!-- Withdrawal Fees -->
     <StatCard
       label="Agent Fees"
       value={`$${revenueStats.withdrawalFees.toLocaleString()}`}
+      trend={revenueStats.withdrawalFeesChange}
     />
 
     <!-- Exchange Spread -->
     <StatCard
       label="Exchange Spreads"
       value={`$${revenueStats.exchangeSpread.toLocaleString()}`}
+      trend={revenueStats.exchangeSpreadChange}
     />
   </div>
 
@@ -279,80 +229,12 @@
   </div>
 
   <!-- Recent Revenue Transactions -->
-  <div
-    class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
-  >
-    <div class="mb-4 flex items-center justify-between sm:mb-6">
-      <div>
-        <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
-          Recent Revenue Transactions
-        </h3>
-        <p class="text-xs text-gray-500 sm:text-sm">
-          Latest fee-generating transactions
-        </p>
-      </div>
-      <button
-        onclick={() => goto("/admin/transactions")}
-        class="flex items-center gap-1 text-sm font-medium text-blue-600 transition-colors hover:text-blue-700"
-      >
-        View all
-        <ArrowRight class="h-4 w-4" />
-      </button>
-    </div>
-
-    <div class="overflow-x-auto">
-      <table class="w-full">
-        <thead>
-          <tr
-            class="border-b border-gray-200 text-left text-xs font-semibold tracking-wide text-gray-500 uppercase"
-          >
-            <th class="pb-3">Transaction</th>
-            <th class="pb-3">User</th>
-            <th class="pb-3">Type</th>
-            <th class="pb-3 text-right">Amount</th>
-            <th class="pb-3 text-right">Fee</th>
-            <th class="pb-3">Time</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-          {#each recentTransactions as txn}
-            <tr class="transition-colors hover:bg-gray-50">
-              <td class="py-3">
-                <p class="font-mono text-sm font-medium text-gray-900">
-                  {txn.id}
-                </p>
-              </td>
-              <td class="py-3">
-                <p class="text-sm text-gray-900">{txn.user}</p>
-              </td>
-              <td class="py-3">
-                <span
-                  class="rounded-full px-2 py-1 text-xs font-medium {getTypeColor(
-                    txn.type,
-                  )}"
-                >
-                  {txn.type}
-                </span>
-              </td>
-              <td class="py-3 text-right">
-                <p class="font-mono text-sm font-medium text-gray-900">
-                  ${txn.amount.toLocaleString()}
-                </p>
-              </td>
-              <td class="py-3 text-right">
-                <p class="font-mono text-sm font-semibold text-green-600">
-                  +${txn.fee.toLocaleString()}
-                </p>
-              </td>
-              <td class="py-3">
-                <p class="text-xs text-gray-500">{txn.time}</p>
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
-  </div>
+  <TransactionsTable 
+    transactions={recentTransactions}
+    showSearch={true}
+    showTabs={true}
+    onRefresh={refreshData}
+  />
 
   <!-- Top Revenue Agents -->
   <div
@@ -374,37 +256,48 @@
       </button>
     </div>
 
-    <div class="space-y-3 sm:space-y-4">
-      {#each topAgents as agent, i}
-        <button
-          onclick={() => goto("/admin/agents")}
-          class="flex w-full items-center justify-between rounded-lg border border-gray-100 p-3 text-left transition-all hover:border-blue-400 hover:shadow-md sm:p-4"
-        >
-          <div class="flex items-center space-x-3 sm:space-x-4">
-            <div
-              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-lg font-bold text-blue-600 sm:h-12 sm:w-12"
-            >
-              {i + 1}
-            </div>
-            <div class="min-w-0">
-              <p
-                class="truncate text-sm font-semibold text-gray-900 sm:text-base"
+    {#if topAgents.length === 0}
+      <div class="py-12 text-center">
+        <Users class="mx-auto h-12 w-12 text-gray-400" />
+        <h3 class="mt-4 text-lg font-semibold text-gray-900">No agents found</h3>
+        <p class="mt-2 text-sm text-gray-500">
+          Top revenue agents will appear here once they start earning
+        </p>
+      </div>
+    {:else}
+      <div class="space-y-3 sm:space-y-4">
+        {#each topAgents as agent, i}
+          <button
+            onclick={() => goto("/admin/agents")}
+            class="flex w-full items-center justify-between rounded-lg border border-gray-100 p-3 text-left transition-all hover:border-blue-400 hover:shadow-md sm:p-4"
+          >
+            <div class="flex items-center space-x-3 sm:space-x-4">
+              <div
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-lg font-bold text-blue-600 sm:h-12 sm:w-12"
               >
-                {agent.name}
-              </p>
-              <p class="text-xs text-gray-500">
-                {agent.transactions} transactions
-              </p>
+                {i + 1}
+              </div>
+              <div class="min-w-0">
+                <p
+                  class="truncate text-sm font-semibold text-gray-900 sm:text-base"
+                >
+                  {agent.name}
+                </p>
+                <p class="text-xs text-gray-500">
+                  {agent.transactionCount ?? 0} transactions
+                </p>
+              </div>
             </div>
-          </div>
-          <div class="text-right">
-            <p class="font-mono text-sm font-bold text-gray-900 sm:text-base">
-              ${agent.revenue.toLocaleString()}
-            </p>
-            <p class="text-xs text-gray-500">Commission: ${agent.commission}</p>
-          </div>
-        </button>
-      {/each}
-    </div>
+            <div class="text-right">
+              <p class="font-mono text-sm font-bold text-gray-900 sm:text-base">
+                ${(agent.revenue ?? 0).toLocaleString()}
+              </p>
+              <p class="text-xs text-gray-500">Commission: ${(agent.commission ?? 0).toLocaleString()}</p>
+            </div>
+          </button>
+        {/each}
+      </div>
+    {/if}
   </div>
+
 </div>

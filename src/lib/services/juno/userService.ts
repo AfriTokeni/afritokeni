@@ -1,7 +1,7 @@
 import { listDocs, getDoc } from "@junobuild/core";
 import type { UserProfile, UserStats, UserActivity } from "$lib/types/admin";
 
-const COLLECTION = "user_profiles";
+const COLLECTION = "users";
 
 /**
  * List users with optional filters
@@ -31,7 +31,7 @@ export async function listUsers(filters?: {
         (user) =>
           user.name.toLowerCase().includes(query) ||
           user.email.toLowerCase().includes(query) ||
-          user.id.toLowerCase().includes(query)
+          user.id.toLowerCase().includes(query),
       );
     }
 
@@ -41,9 +41,9 @@ export async function listUsers(filters?: {
     }
 
     return users;
-  } catch (error) {
-    console.error("Error listing users:", error);
-    throw new Error("Failed to load users");
+  } catch {
+    // Silently return empty array if collection doesn't exist yet
+    return [];
   }
 }
 
@@ -69,28 +69,97 @@ export async function getUser(userId: string): Promise<UserProfile | null> {
 }
 
 /**
- * Get user statistics
+ * Get user statistics with trends
  */
-export async function getUserStats(): Promise<UserStats> {
+export async function getUserStats(): Promise<
+  UserStats & {
+    totalChange?: number;
+    kycApprovedChange?: number;
+    kycPendingChange?: number;
+    activeTodayChange?: number;
+  }
+> {
   try {
     const users = await listUsers();
 
-    const stats: UserStats = {
-      total: users.length,
-      kycApproved: users.filter((u) => u.kycStatus === "approved").length,
-      kycPending: users.filter((u) => u.kycStatus === "pending").length,
+    // Calculate current stats
+    const now = new Date();
+    const lastMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      now.getDate(),
+    );
+
+    const currentTotal = users.length;
+    const lastMonthTotal = users.filter(
+      (u) => new Date(u.joinedAt) <= lastMonth,
+    ).length;
+
+    const currentKycApproved = users.filter(
+      (u) => u.kycStatus === "approved",
+    ).length;
+    const lastMonthKycApproved = users.filter(
+      (u) => u.kycStatus === "approved" && new Date(u.joinedAt) <= lastMonth,
+    ).length;
+
+    const currentKycPending = users.filter(
+      (u) => u.kycStatus === "pending",
+    ).length;
+    const lastMonthKycPending = users.filter(
+      (u) => u.kycStatus === "pending" && new Date(u.joinedAt) <= lastMonth,
+    ).length;
+
+    const currentActive = users.filter((u) => {
+      const lastActive = new Date(u.lastActive);
+      const today = new Date();
+      return lastActive.toDateString() === today.toDateString();
+    }).length;
+
+    const stats = {
+      total: currentTotal,
+      kycApproved: currentKycApproved,
+      kycPending: currentKycPending,
       kycRejected: users.filter((u) => u.kycStatus === "rejected").length,
-      activeToday: users.filter((u) => {
-        const lastActive = new Date(u.lastActive);
-        const today = new Date();
-        return lastActive.toDateString() === today.toDateString();
-      }).length,
+      activeToday: currentActive,
+      // Calculate percentage changes
+      totalChange:
+        lastMonthTotal > 0
+          ? Math.round(((currentTotal - lastMonthTotal) / lastMonthTotal) * 100)
+          : 0,
+      kycApprovedChange:
+        lastMonthKycApproved > 0
+          ? Math.round(
+              ((currentKycApproved - lastMonthKycApproved) /
+                lastMonthKycApproved) *
+                100,
+            )
+          : 0,
+      kycPendingChange:
+        lastMonthKycPending > 0
+          ? Math.round(
+              ((currentKycPending - lastMonthKycPending) /
+                lastMonthKycPending) *
+                100,
+            )
+          : 0,
+      activeTodayChange: 0, // Can't calculate daily trend from monthly data
     };
 
     return stats;
   } catch (error) {
     console.error("Error getting user stats:", error);
-    throw new Error("Failed to load user statistics");
+    // Return default stats instead of throwing
+    return {
+      total: 0,
+      kycApproved: 0,
+      kycPending: 0,
+      kycRejected: 0,
+      activeToday: 0,
+      totalChange: 0,
+      kycApprovedChange: 0,
+      kycPendingChange: 0,
+      activeTodayChange: 0,
+    };
   }
 }
 
@@ -124,36 +193,36 @@ export async function getUserActivity(userId: string): Promise<UserActivity> {
 /**
  * Get user growth chart data
  */
-export async function getUserGrowthData(): Promise<{
+export async function getUserGrowthData(days: number = 7): Promise<{
   categories: string[];
   totalUsers: number[];
   activeUsers: number[];
 }> {
   try {
     const users = await listUsers();
-    
-    // Group users by join date (last 7 days)
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
+
+    // Group users by join date (last N days)
+    const dateRange = Array.from({ length: days }, (_, i) => {
       const date = new Date();
-      date.setDate(date.getDate() - (6 - i));
+      date.setDate(date.getDate() - (days - 1 - i));
       return date;
     });
 
-    const categories = last7Days.map(date => 
-      date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    const categories = dateRange.map((date) =>
+      date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
     );
 
     // Count users who joined by each day (cumulative)
-    const totalUsers = last7Days.map((date, index) => {
-      return users.filter(user => {
+    const totalUsers = dateRange.map((date) => {
+      return users.filter((user) => {
         const joinDate = new Date(user.joinedAt);
         return joinDate <= date;
       }).length;
     });
 
     // Count active users per day
-    const activeUsers = last7Days.map(date => {
-      return users.filter(user => {
+    const activeUsers = dateRange.map((date) => {
+      return users.filter((user) => {
         const lastActive = new Date(user.lastActive);
         return lastActive.toDateString() === date.toDateString();
       }).length;
@@ -162,6 +231,11 @@ export async function getUserGrowthData(): Promise<{
     return { categories, totalUsers, activeUsers };
   } catch (error) {
     console.error("Error getting user growth data:", error);
-    throw new Error("Failed to load user growth data");
+    // Return empty data instead of throwing
+    return {
+      categories: [],
+      totalUsers: [],
+      activeUsers: [],
+    };
   }
 }

@@ -19,6 +19,7 @@
   import { Chart } from "@flowbite-svelte-plugins/chart";
   import StatCard from "$lib/components/admin/StatCard.svelte";
   import SearchBar from "$lib/components/admin/SearchBar.svelte";
+  import FilterDropdown from "$lib/components/admin/FilterDropdown.svelte";
   import { listUsers, getUserStats, getUserGrowthData } from "$lib/services/juno/userService";
   import { junoInitialized } from "$lib/stores/auth";
   import { toast } from "$lib/stores/toast";
@@ -26,6 +27,7 @@
 
   let searchQuery = $state("");
   let filterKYC = $state("all");
+  let chartDateRange = $state<"7" | "30" | "90">("7");
   let selectedUser = $state<any>(null);
   let showUserModal = $state(false);
 
@@ -52,12 +54,21 @@
   let isLoading = $state(false);
   let lastUpdated = $state("");
 
-  let stats = $state<UserStats>({
+  let stats = $state<UserStats & {
+    totalChange?: number;
+    kycApprovedChange?: number;
+    kycPendingChange?: number;
+    activeTodayChange?: number;
+  }>({
     total: 0,
     kycApproved: 0,
     kycPending: 0,
     kycRejected: 0,
     activeToday: 0,
+    totalChange: 0,
+    kycApprovedChange: 0,
+    kycPendingChange: 0,
+    activeTodayChange: 0,
   });
 
   // Load data from Juno
@@ -69,11 +80,11 @@
       const [usersData, statsData, chartData] = await Promise.all([
         listUsers({ kycStatus: filterKYC, searchQuery }),
         getUserStats(),
-        getUserGrowthData(),
+        getUserGrowthData(parseInt(chartDateRange)),
       ]);
       
       users = usersData;
-      stats = statsData;
+      stats = statsData as typeof stats;
       
       // Update chart with real data
       userGrowthOptions = {
@@ -110,22 +121,19 @@
     loadData();
   }
 
-  // Load data when Juno is initialized
+  // Load data when Juno is initialized or filters change
   $effect(() => {
     if ($junoInitialized) {
-      loadData();
-    }
-  });
-
-  // Reload when filters change
-  $effect(() => {
-    if ($junoInitialized) {
+      // Track dependencies
+      filterKYC;
+      searchQuery;
+      chartDateRange;
       loadData();
     }
   });
 
   // User growth chart
-  let userGrowthOptions: ApexOptions = {
+  let userGrowthOptions: ApexOptions = $state({
     chart: {
       height: "320px",
       type: "area",
@@ -151,25 +159,17 @@
     series: [
       {
         name: "Total Users",
-        data: [1850, 1920, 2050, 2150, 2240, 2310, 2340],
+        data: [],
         color: "#3b82f6",
       },
       {
         name: "Active Users",
-        data: [1650, 1720, 1840, 1920, 2010, 2070, 2100],
+        data: [],
         color: "#8b5cf6",
       },
     ],
     xaxis: {
-      categories: [
-        "Oct 29",
-        "Oct 30",
-        "Oct 31",
-        "Nov 1",
-        "Nov 2",
-        "Nov 3",
-        "Nov 4",
-      ],
+      categories: [],
       labels: {
         show: true,
         style: {
@@ -182,7 +182,7 @@
     },
     yaxis: { show: true },
     legend: { show: true, position: "top" },
-  };
+  });
 
   function getKYCStatusColor(status: string) {
     if (status === "approved") return "bg-green-100 text-green-800";
@@ -222,12 +222,15 @@
     <StatCard
       label="Total Users"
       value={stats.total}
-      onClick={() => (filterKYC = "all")}
+      trend={stats.totalChange}
+      lastUpdated={lastUpdated}
+      onRefresh={refreshData}
     />
 
     <StatCard
       label="KYC Approved"
       value={stats.kycApproved}
+      trend={stats.kycApprovedChange}
       valueColor="text-green-600"
       onClick={() => (filterKYC = "approved")}
     />
@@ -235,6 +238,7 @@
     <StatCard
       label="KYC Pending"
       value={stats.kycPending}
+      trend={stats.kycPendingChange}
       valueColor="text-yellow-600"
       onClick={() => (filterKYC = "pending")}
     />
@@ -242,6 +246,7 @@
     <StatCard
       label="Active Today"
       value={stats.activeToday}
+      trend={stats.activeTodayChange}
       valueColor="text-purple-600"
     />
   </div>
@@ -250,11 +255,21 @@
   <div
     class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
   >
-    <div class="mb-4 sm:mb-6">
-      <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
-        User Growth
-      </h3>
-      <p class="text-xs text-gray-500 sm:text-sm">Last 7 days trend</p>
+    <div class="mb-4 flex items-center justify-between sm:mb-6">
+      <div>
+        <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
+          User Growth
+        </h3>
+        <p class="text-xs text-gray-500 sm:text-sm">Last {chartDateRange} days trend</p>
+      </div>
+      <FilterDropdown
+        bind:value={chartDateRange}
+        options={[
+          { value: "7", label: "Last 7 days" },
+          { value: "30", label: "Last 30 days" },
+          { value: "90", label: "Last 90 days" },
+        ]}
+      />
     </div>
     <div class="h-64 sm:h-80">
       <Chart options={userGrowthOptions} />
@@ -270,16 +285,16 @@
         bind:value={searchQuery}
         placeholder="Search users..."
       />
-      <select
+      <FilterDropdown
         bind:value={filterKYC}
-        class="rounded-lg border border-gray-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-2 focus:ring-blue-600 focus:outline-none"
-      >
-        <option value="all">All KYC Status</option>
-        <option value="approved">Approved</option>
-        <option value="pending">Pending</option>
-        <option value="rejected">Rejected</option>
-        <option value="not_submitted">Not Submitted</option>
-      </select>
+        options={[
+          { value: "all", label: "All KYC Status" },
+          { value: "approved", label: "Approved" },
+          { value: "pending", label: "Pending" },
+          { value: "rejected", label: "Rejected" },
+          { value: "not_submitted", label: "Not Submitted" },
+        ]}
+      />
     </div>
   </div>
 
@@ -296,47 +311,62 @@
       </p>
     </div>
 
-    <div class="space-y-3 sm:space-y-4">
-      {#each displayedUsers as user}
-        <button
-          onclick={() => viewUser(user)}
-          class="flex w-full items-center justify-between rounded-lg border border-gray-100 p-3 text-left transition-all hover:border-blue-400 hover:shadow-md sm:p-4"
-        >
-          <div class="flex items-center space-x-3 sm:space-x-4">
-            <img
-              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=fff`}
-              alt={user.name}
-              class="h-12 w-12 rounded-lg"
-            />
-            <div class="min-w-0">
-              <div class="flex items-center space-x-2">
-                <p class="font-semibold text-gray-900">{user.name}</p>
-                <span
-                  class="rounded-full px-2 py-1 text-xs font-medium {getKYCStatusColor(
-                    user.kycStatus,
-                  )}"
-                >
-                  {user.kycStatus.replace("_", " ")}
-                </span>
+    {#if displayedUsers.length === 0}
+      <!-- Empty State -->
+      <div class="py-12 text-center">
+        <Users class="mx-auto h-12 w-12 text-gray-400" />
+        <h3 class="mt-4 text-lg font-semibold text-gray-900">No users found</h3>
+        <p class="mt-2 text-sm text-gray-500">
+          {#if searchQuery || filterKYC !== 'all'}
+            Try adjusting your filters or search query
+          {:else}
+            Users will appear here once they register on the platform
+          {/if}
+        </p>
+      </div>
+    {:else}
+      <div class="space-y-3 sm:space-y-4">
+        {#each displayedUsers as user}
+          <button
+            onclick={() => viewUser(user)}
+            class="flex w-full items-center justify-between rounded-lg border border-gray-100 p-3 text-left transition-all hover:border-blue-400 hover:shadow-md sm:p-4"
+          >
+            <div class="flex items-center space-x-3 sm:space-x-4">
+              <img
+                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=fff`}
+                alt={user.name}
+                class="h-12 w-12 rounded-lg"
+              />
+              <div class="min-w-0">
+                <div class="flex items-center space-x-2">
+                  <p class="font-semibold text-gray-900">{user.name}</p>
+                  <span
+                    class="rounded-full px-2 py-1 text-xs font-medium {getKYCStatusColor(
+                      user.kycStatus ?? 'pending',
+                    )}"
+                  >
+                    {(user.kycStatus ?? 'pending').replace("_", " ")}
+                  </span>
+                </div>
+                <p class="mt-1 text-sm text-gray-500">{user.email}</p>
+                <p class="text-xs text-gray-400">
+                  {user.phone ?? 'No phone'} • Joined {user.joinedAt ?? 'Unknown'}
+                </p>
               </div>
-              <p class="mt-1 text-sm text-gray-500">{user.email}</p>
-              <p class="text-xs text-gray-400">
-                {user.phone} • Joined {user.joinedAt}
-              </p>
             </div>
-          </div>
-          <div class="flex items-center space-x-3 sm:space-x-4">
-            <div class="text-right">
-              <p class="text-sm font-semibold text-gray-900">Balance</p>
-              <p class="font-mono text-sm font-bold text-gray-900">
-                ${user.balance.toLocaleString()}
-              </p>
+            <div class="flex items-center space-x-3 sm:space-x-4">
+              <div class="text-right">
+                <p class="text-sm font-semibold text-gray-900">Balance</p>
+                <p class="font-mono text-sm font-bold text-gray-900">
+                  ${(user.balance ?? 0).toLocaleString()}
+                </p>
+              </div>
+              <Eye class="h-5 w-5 text-blue-600" />
             </div>
-            <Eye class="h-5 w-5 text-blue-600" />
-          </div>
-        </button>
-      {/each}
-    </div>
+          </button>
+        {/each}
+      </div>
+    {/if}
 
     <!-- Load More Button -->
     {#if hasMore}
@@ -432,7 +462,7 @@
                     <p
                       class="mt-1 font-mono text-base font-bold text-green-600"
                     >
-                      ${selectedUser.balance.toLocaleString()}
+                      ${(selectedUser.balance ?? 0).toLocaleString()}
                     </p>
                   </div>
                   <div>
