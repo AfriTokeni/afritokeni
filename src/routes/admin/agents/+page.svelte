@@ -7,13 +7,69 @@
     DollarSign,
     Activity,
     Info,
+    X,
+    Ban,
+    CheckCircle,
+    XCircle,
   } from "lucide-svelte";
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
 
   let searchQuery = $state("");
   let filterStatus = $state("all");
+  let selectedAgent = $state<any>(null);
+  let showAgentModal = $state(false);
+  let sortBy = $state<"joinDate" | "commission" | "revenue" | "rating">("joinDate");
+  let sortOrder = $state<"asc" | "desc">("desc");
   
+  // Review filtering and pagination
+  let reviewFilterRating = $state<number | "all">("all");
+  let displayedReviewsCount = $state(5);
+  
+  // Mock reviews data
+  let mockReviews = $state([
+    { user: "John Doe", rating: 5, comment: "Excellent service! Very professional and quick.", date: "2 days ago" },
+    { user: "Jane Smith", rating: 4, comment: "Good experience overall. Would use again.", date: "5 days ago" },
+    { user: "Bob Johnson", rating: 5, comment: "Great agent! Highly recommended for transactions.", date: "1 week ago" },
+    { user: "Alice Williams", rating: 3, comment: "Decent service but could be faster.", date: "1 week ago" },
+    { user: "Charlie Brown", rating: 5, comment: "Fast and reliable. No issues at all!", date: "2 weeks ago" },
+    { user: "Diana Prince", rating: 4, comment: "Professional and courteous. Good rates.", date: "2 weeks ago" },
+    { user: "Ethan Hunt", rating: 5, comment: "Best agent I've worked with. Highly efficient.", date: "3 weeks ago" },
+    { user: "Fiona Green", rating: 2, comment: "Service was slow and communication could be better.", date: "3 weeks ago" },
+    { user: "George Miller", rating: 4, comment: "Reliable and trustworthy. Would recommend.", date: "1 month ago" },
+    { user: "Hannah Lee", rating: 5, comment: "Outstanding service! Very happy with the experience.", date: "1 month ago" },
+  ]);
+  
+  function loadMoreReviews() {
+    displayedReviewsCount += 5;
+  }
+  
+  function toggleSort(field: typeof sortBy) {
+    if (sortBy === field) {
+      sortOrder = sortOrder === "asc" ? "desc" : "asc";
+    } else {
+      sortBy = field;
+      sortOrder = "desc";
+    }
+  }
+
+  function viewAgent(agent: any) {
+    selectedAgent = agent;
+    showAgentModal = true;
+  }
+
+  function closeModal() {
+    showAgentModal = false;
+    selectedAgent = null;
+  }
+
+  function banAgent(agent: any) {
+    // TODO: Implement ban logic with Juno
+    console.log('Banning agent:', agent.name);
+    agent.status = 'offline';
+    closeModal();
+  }
+
   // Pagination state
   let itemsPerPage = 20;
   let displayedCount = $state(itemsPerPage);
@@ -94,17 +150,41 @@
     totalRevenue: 125000,
   });
 
-  // Filter and paginate agents
+  // Filter, sort and paginate agents
   let filteredAgents = $derived(
-    agents.filter((agent) => {
-      const matchesStatus = filterStatus === "all" || agent.status === filterStatus;
-      const matchesSearch =
-        !searchQuery ||
-        agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        agent.location.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesStatus && matchesSearch;
-    })
+    agents
+      .filter((agent) => {
+        const matchesStatus = filterStatus === "all" || agent.status === filterStatus;
+        const matchesSearch =
+          !searchQuery ||
+          agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          agent.location.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesStatus && matchesSearch;
+      })
+      .sort((a, b) => {
+        let comparison = 0;
+        if (sortBy === "joinDate") {
+          comparison = new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime();
+        } else if (sortBy === "commission") {
+          comparison = a.commission - b.commission;
+        } else if (sortBy === "revenue") {
+          comparison = a.revenue - b.revenue;
+        } else if (sortBy === "rating") {
+          comparison = a.rating - b.rating;
+        }
+        return sortOrder === "asc" ? comparison : -comparison;
+      }),
   );
+  
+  // Filter and paginate reviews
+  let filteredReviews = $derived(
+    mockReviews.filter((review) => {
+      return reviewFilterRating === "all" || review.rating === reviewFilterRating;
+    }),
+  );
+  
+  let displayedReviews = $derived(filteredReviews.slice(0, displayedReviewsCount));
+  let hasMoreReviews = $derived(displayedReviewsCount < filteredReviews.length);
 
   let displayedAgents = $derived(filteredAgents.slice(0, displayedCount));
   let hasMore = $derived(displayedCount < filteredAgents.length);
@@ -172,8 +252,9 @@
 <div class="space-y-4 sm:space-y-6">
   <!-- Stats Overview -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-5">
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+    <button
+      onclick={() => (filterStatus = "all")}
+      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-gray-400 hover:shadow-md sm:rounded-2xl sm:p-6"
     >
       <div class="flex items-center justify-between">
         <div>
@@ -190,10 +271,11 @@
           <MapPin class="h-6 w-6 text-blue-600" />
         </div>
       </div>
-    </div>
+    </button>
 
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+    <button
+      onclick={() => (filterStatus = "active")}
+      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-green-400 hover:shadow-md sm:rounded-2xl sm:p-6"
     >
       <div class="flex items-center justify-between">
         <div>
@@ -210,10 +292,11 @@
           <Activity class="h-6 w-6 text-green-600" />
         </div>
       </div>
-    </div>
+    </button>
 
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+    <button
+      onclick={() => (filterStatus = "busy")}
+      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-yellow-400 hover:shadow-md sm:rounded-2xl sm:p-6"
     >
       <div class="flex items-center justify-between">
         <div>
@@ -230,10 +313,11 @@
           <Activity class="h-6 w-6 text-yellow-600" />
         </div>
       </div>
-    </div>
+    </button>
 
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+    <button
+      onclick={() => (filterStatus = "offline")}
+      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-gray-400 hover:shadow-md sm:rounded-2xl sm:p-6"
     >
       <div class="flex items-center justify-between">
         <div>
@@ -250,7 +334,7 @@
           <Activity class="h-6 w-6 text-gray-600" />
         </div>
       </div>
-    </div>
+    </button>
 
     <div
       class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
@@ -323,18 +407,49 @@
     class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
   >
     <div class="mb-4 sm:mb-6">
-      <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
-        All Agents
-      </h3>
-      <p class="text-xs text-gray-500 sm:text-sm">
-        Manage agent network and performance
-      </p>
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
+            All Agents
+          </h3>
+          <p class="text-xs text-gray-500 sm:text-sm">
+            Manage agent network and performance
+          </p>
+        </div>
+        <div class="flex gap-2">
+          <button
+            onclick={() => toggleSort("joinDate")}
+            class="rounded-lg border px-3 py-2 text-xs font-medium transition-colors {sortBy === 'joinDate' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}"
+          >
+            Join Date {sortBy === "joinDate" ? (sortOrder === "asc" ? "↑" : "↓") : ""}
+          </button>
+          <button
+            onclick={() => toggleSort("commission")}
+            class="rounded-lg border px-3 py-2 text-xs font-medium transition-colors {sortBy === 'commission' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}"
+          >
+            Commission {sortBy === "commission" ? (sortOrder === "asc" ? "↑" : "↓") : ""}
+          </button>
+          <button
+            onclick={() => toggleSort("revenue")}
+            class="rounded-lg border px-3 py-2 text-xs font-medium transition-colors {sortBy === 'revenue' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}"
+          >
+            Revenue {sortBy === "revenue" ? (sortOrder === "asc" ? "↑" : "↓") : ""}
+          </button>
+          <button
+            onclick={() => toggleSort("rating")}
+            class="rounded-lg border px-3 py-2 text-xs font-medium transition-colors {sortBy === 'rating' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}"
+          >
+            Rating {sortBy === "rating" ? (sortOrder === "asc" ? "↑" : "↓") : ""}
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="space-y-3 sm:space-y-4">
       {#each displayedAgents as agent}
-        <div
-          class="rounded-lg border border-gray-100 p-4 transition-all hover:border-gray-200"
+        <button
+          onclick={() => viewAgent(agent)}
+          class="w-full rounded-lg border border-gray-100 p-4 text-left transition-all hover:border-blue-400 hover:shadow-md"
         >
           <div class="flex items-start justify-between">
             <div class="flex-1">
@@ -392,10 +507,10 @@
               <p class="mt-1 text-sm text-gray-900">{agent.joinedAt}</p>
             </div>
           </div>
-        </div>
+        </button>
       {/each}
     </div>
-    
+
     <!-- Load More Button -->
     {#if hasMore}
       <div class="mt-6 flex justify-center">
@@ -423,3 +538,201 @@
     </div>
   </div>
 </div>
+
+<!-- Agent Detail Modal -->
+{#if showAgentModal && selectedAgent}
+  <div
+    class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4"
+  >
+    <div
+      class="max-h-[95vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white shadow-xl"
+    >
+      <!-- Header -->
+      <div
+        class="sticky top-0 z-10 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-white px-8 py-6"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-2xl font-bold text-gray-900">Agent Profile</h3>
+            <p class="mt-1 text-sm text-gray-500">{selectedAgent.name}</p>
+          </div>
+          <button
+            onclick={closeModal}
+            class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+          >
+            <X class="h-6 w-6" />
+          </button>
+        </div>
+      </div>
+
+      <div class="p-8">
+        <div class="space-y-6">
+          <!-- Agent Info -->
+          <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h4
+              class="mb-4 text-sm font-semibold tracking-wide text-gray-500 uppercase"
+            >
+              Agent Information
+            </h4>
+            <div class="grid grid-cols-2 gap-6">
+              <div>
+                <p class="text-xs text-gray-500">Location</p>
+                <div class="mt-2 flex items-center gap-2">
+                  <MapPin class="h-4 w-4 text-gray-600" />
+                  <p class="text-sm font-medium text-gray-900">
+                    {selectedAgent.location}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500">Status</p>
+                <span
+                  class="mt-2 inline-block rounded-full px-3 py-1 text-xs font-semibold {getStatusColor(
+                    selectedAgent.status,
+                  )}"
+                >
+                  {selectedAgent.status.toUpperCase()}
+                </span>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500">Rating</p>
+                <div class="mt-2 flex items-center gap-1">
+                  <Star class="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                  <p class="text-base font-bold text-gray-900">
+                    {selectedAgent.rating}
+                  </p>
+                  <p class="text-sm text-gray-500">
+                    ({selectedAgent.reviews} reviews)
+                  </p>
+                </div>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500">Joined</p>
+                <p class="mt-2 text-sm font-medium text-gray-900">
+                  {selectedAgent.joinedAt}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Performance Stats -->
+          <div class="grid grid-cols-3 gap-4">
+            <div class="rounded-xl border border-gray-200 bg-gradient-to-br from-blue-50 to-white p-4 shadow-sm">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-xs font-semibold text-gray-500">Revenue</p>
+                  <p class="mt-2 font-mono text-2xl font-bold text-blue-600">
+                    ${selectedAgent.revenue.toLocaleString()}
+                  </p>
+                </div>
+                <DollarSign class="h-8 w-8 text-blue-600 opacity-50" />
+              </div>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-gradient-to-br from-green-50 to-white p-4 shadow-sm">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-xs font-semibold text-gray-500">Transactions</p>
+                  <p class="mt-2 font-mono text-2xl font-bold text-green-600">
+                    {selectedAgent.transactions}
+                  </p>
+                </div>
+                <Activity class="h-8 w-8 text-green-600 opacity-50" />
+              </div>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-gradient-to-br from-purple-50 to-white p-4 shadow-sm">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-xs font-semibold text-gray-500">Commission</p>
+                  <p class="mt-2 font-mono text-2xl font-bold text-purple-600">
+                    ${selectedAgent.commission}
+                  </p>
+                </div>
+                <TrendingUp class="h-8 w-8 text-purple-600 opacity-50" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Reviews Section -->
+          <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div class="mb-4 flex items-center justify-between">
+              <h4 class="text-sm font-semibold tracking-wide text-gray-500 uppercase">
+                Reviews ({filteredReviews.length})
+              </h4>
+              <div class="flex gap-2">
+                <button
+                  onclick={() => (reviewFilterRating = "all")}
+                  class="rounded-lg px-3 py-1 text-xs font-medium transition-colors {reviewFilterRating === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
+                >
+                  All
+                </button>
+                {#each [5, 4, 3, 2, 1] as rating}
+                  <button
+                    onclick={() => (reviewFilterRating = rating)}
+                    class="rounded-lg px-3 py-1 text-xs font-medium transition-colors {reviewFilterRating === rating ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
+                  >
+                    {rating}★
+                  </button>
+                {/each}
+              </div>
+            </div>
+            <div class="max-h-96 space-y-4 overflow-y-auto">
+              {#each displayedReviews as review}
+                <div class="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-2">
+                        <p class="font-semibold text-gray-900">{review.user}</p>
+                        <div class="flex items-center gap-1">
+                          {#each Array(5) as _, starIndex}
+                            <Star
+                              class="h-3 w-3 {starIndex < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}"
+                            />
+                          {/each}
+                        </div>
+                      </div>
+                      <p class="mt-2 text-sm text-gray-600">
+                        {review.comment}
+                      </p>
+                      <p class="mt-2 text-xs text-gray-400">{review.date}</p>
+                    </div>
+                  </div>
+                </div>
+              {/each}
+              
+              <!-- Load More Reviews Button -->
+              {#if hasMoreReviews}
+                <button
+                  onclick={loadMoreReviews}
+                  class="w-full rounded-lg border-2 border-dashed border-gray-300 py-3 text-sm font-medium text-gray-600 transition-colors hover:border-blue-600 hover:text-blue-600"
+                >
+                  Load More Reviews ({filteredReviews.length - displayedReviewsCount} remaining)
+                </button>
+              {/if}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer with Actions -->
+      <div class="border-t border-gray-100 bg-gray-50 px-8 py-6">
+        <div class="flex gap-4">
+          <button
+            onclick={() => banAgent(selectedAgent)}
+            class="flex-1 rounded-xl border-2 border-red-600 bg-white px-6 py-4 font-semibold text-red-600 shadow-lg transition-all hover:bg-red-600 hover:text-white"
+          >
+            <div class="flex items-center justify-center gap-2">
+              <Ban class="h-5 w-5" />
+              Ban Agent
+            </div>
+          </button>
+          <button
+            onclick={closeModal}
+            class="flex-1 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 font-semibold text-white shadow-lg transition-all hover:from-blue-700 hover:to-blue-800 hover:shadow-xl"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}

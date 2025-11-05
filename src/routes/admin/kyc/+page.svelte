@@ -24,7 +24,7 @@
   let chartDateRange = $state<"7" | "30" | "90">("30");
   let searchQuery = $state("");
   let selectedDocumentIndex = $state<number | null>(null);
-  
+
   // Pagination state
   let itemsPerPage = 20;
   let displayedPendingCount = $state(itemsPerPage);
@@ -357,14 +357,26 @@
   );
 
   // Paginated lists
-  let displayedPendingKYC = $derived(filteredPendingKYC.slice(0, displayedPendingCount));
-  let displayedApprovedKYC = $derived(filteredApprovedKYC.slice(0, displayedApprovedCount));
-  let displayedRejectedKYC = $derived(filteredRejectedKYC.slice(0, displayedRejectedCount));
+  let displayedPendingKYC = $derived(
+    filteredPendingKYC.slice(0, displayedPendingCount),
+  );
+  let displayedApprovedKYC = $derived(
+    filteredApprovedKYC.slice(0, displayedApprovedCount),
+  );
+  let displayedRejectedKYC = $derived(
+    filteredRejectedKYC.slice(0, displayedRejectedCount),
+  );
 
   // Check if there are more items to load
-  let hasMorePending = $derived(displayedPendingCount < filteredPendingKYC.length);
-  let hasMoreApproved = $derived(displayedApprovedCount < filteredApprovedKYC.length);
-  let hasMoreRejected = $derived(displayedRejectedCount < filteredRejectedKYC.length);
+  let hasMorePending = $derived(
+    displayedPendingCount < filteredPendingKYC.length,
+  );
+  let hasMoreApproved = $derived(
+    displayedApprovedCount < filteredApprovedKYC.length,
+  );
+  let hasMoreRejected = $derived(
+    displayedRejectedCount < filteredRejectedKYC.length,
+  );
 
   function viewKYC(kyc: any) {
     selectedKYC = kyc;
@@ -598,7 +610,7 @@
             </button>
           {/each}
         </div>
-        
+
         <!-- Load More Button for Pending -->
         {#if hasMorePending}
           <div class="mt-6 flex justify-center">
@@ -648,7 +660,7 @@
             </button>
           {/each}
         </div>
-        
+
         <!-- Load More Button for Approved -->
         {#if hasMoreApproved}
           <div class="mt-6 flex justify-center">
@@ -701,7 +713,7 @@
             </button>
           {/each}
         </div>
-        
+
         <!-- Load More Button for Rejected -->
         {#if hasMoreRejected}
           <div class="mt-6 flex justify-center">

@@ -8,6 +8,13 @@
     Activity,
     Info,
     ChevronDown,
+    X,
+    CheckCircle,
+    Clock,
+    XCircle,
+    User,
+    Building2,
+    ArrowRight,
   } from "lucide-svelte";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
@@ -16,6 +23,18 @@
   import { Button, Dropdown, DropdownItem } from "flowbite-svelte";
 
   let chartDateRange = $state<"7" | "30" | "90">("30");
+  let selectedTransaction = $state<any>(null);
+  let showDetailModal = $state(false);
+
+  function viewTransaction(txn: any) {
+    selectedTransaction = txn;
+    showDetailModal = true;
+  }
+
+  function closeModal() {
+    showDetailModal = false;
+    selectedTransaction = null;
+  }
 
   // Mock data - will be replaced with real canister/Juno data
   let stats = $state({
@@ -426,8 +445,9 @@
 
     <div class="space-y-3 sm:space-y-4">
       {#each topTransactions as tx}
-        <div
-          class="flex items-center justify-between rounded-lg border border-gray-100 p-3 transition-all hover:border-gray-200 sm:p-4"
+        <button
+          onclick={() => viewTransaction(tx)}
+          class="flex w-full items-center justify-between rounded-lg border border-gray-100 p-3 text-left transition-all hover:border-blue-400 hover:shadow-md sm:p-4"
         >
           <div class="flex items-center space-x-3 sm:space-x-4">
             <div
@@ -462,8 +482,129 @@
               {tx.status}
             </span>
           </div>
-        </div>
+        </button>
       {/each}
     </div>
   </div>
 </div>
+
+<!-- Transaction Detail Modal -->
+{#if showDetailModal && selectedTransaction}
+  <div
+    class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4"
+  >
+    <div
+      class="max-h-[95vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-xl"
+    >
+      <!-- Header -->
+      <div
+        class="sticky top-0 z-10 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-white px-8 py-6"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-2xl font-bold text-gray-900">
+              Transaction Details
+            </h3>
+            <p class="mt-1 font-mono text-sm text-gray-500">
+              {selectedTransaction.id}
+            </p>
+          </div>
+          <button
+            onclick={closeModal}
+            class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+          >
+            <X class="h-6 w-6" />
+          </button>
+        </div>
+      </div>
+
+      <div class="p-8">
+        <div class="space-y-6">
+          <!-- Status Badge -->
+          <div class="flex items-center justify-between">
+            <span class="text-lg font-semibold text-gray-900">Status</span>
+            <span
+              class="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold {getStatusColor(
+                selectedTransaction.status,
+              )}"
+            >
+              {#if selectedTransaction.status === "completed"}
+                <CheckCircle class="h-4 w-4" />
+              {:else if selectedTransaction.status === "pending"}
+                <Clock class="h-4 w-4" />
+              {:else}
+                <XCircle class="h-4 w-4" />
+              {/if}
+              {selectedTransaction.status.toUpperCase()}
+            </span>
+          </div>
+
+          <!-- Transaction Info Grid -->
+          <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h4
+              class="mb-4 text-sm font-semibold tracking-wide text-gray-500 uppercase"
+            >
+              Transaction Information
+            </h4>
+            <div class="grid grid-cols-2 gap-6">
+              <div>
+                <p
+                  class="text-xs font-medium tracking-wide text-gray-500 uppercase"
+                >
+                  Amount
+                </p>
+                <p class="mt-2 font-mono text-lg font-bold text-gray-900">
+                  ${selectedTransaction.amount.toLocaleString()}
+                </p>
+              </div>
+              <div>
+                <p
+                  class="text-xs font-medium tracking-wide text-gray-500 uppercase"
+                >
+                  Date
+                </p>
+                <p class="mt-2 text-sm font-medium text-gray-900">
+                  {selectedTransaction.date}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- User Info -->
+          <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h4
+              class="mb-4 text-sm font-semibold tracking-wide text-gray-500 uppercase"
+            >
+              Participant Information
+            </h4>
+            <div class="space-y-4">
+              <button
+                onclick={() => goto("/admin/users")}
+                class="flex w-full items-center gap-3 rounded-lg p-3 text-left transition-all hover:bg-blue-50"
+              >
+                <User class="h-5 w-5 text-blue-600" />
+                <div class="flex-1">
+                  <p class="text-xs text-gray-500">User</p>
+                  <p class="font-semibold text-blue-600 hover:text-blue-700">
+                    {selectedTransaction.user}
+                  </p>
+                </div>
+                <ArrowRight class="h-4 w-4 text-gray-400" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="border-t border-gray-100 bg-gray-50 px-8 py-6">
+        <button
+          onclick={closeModal}
+          class="w-full rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 font-semibold text-white shadow-lg transition-all hover:from-blue-700 hover:to-blue-800 hover:shadow-xl"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}

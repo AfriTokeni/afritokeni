@@ -27,7 +27,7 @@
   let activeTab = $state<"all" | "completed" | "pending" | "failed">("all");
   let selectedTransaction = $state<any>(null);
   let showDetailModal = $state(false);
-  
+
   // Pagination state
   let itemsPerPage = 20;
   let displayedCount = $state(itemsPerPage);
@@ -267,28 +267,35 @@
   // Filter transactions based on active tab and search
   let filteredTransactions = $derived(
     transactions.filter((txn) => {
-      const matchesTab =
-        activeTab === "all" ||
-        txn.status === activeTab;
+      const matchesTab = activeTab === "all" || txn.status === activeTab;
       const matchesSearch =
         !searchQuery ||
         txn.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         txn.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (txn.agent && txn.agent.toLowerCase().includes(searchQuery.toLowerCase()));
+        (txn.agent &&
+          txn.agent.toLowerCase().includes(searchQuery.toLowerCase()));
       return matchesTab && matchesSearch;
-    })
+    }),
   );
 
   // Paginated list
-  let displayedTransactions = $derived(filteredTransactions.slice(0, displayedCount));
-  
+  let displayedTransactions = $derived(
+    filteredTransactions.slice(0, displayedCount),
+  );
+
   // Check if there are more items to load
   let hasMore = $derived(displayedCount < filteredTransactions.length);
 
   // Count by status
-  let completedCount = $derived(transactions.filter(t => t.status === "completed").length);
-  let pendingCount = $derived(transactions.filter(t => t.status === "pending").length);
-  let failedCount = $derived(transactions.filter(t => t.status === "failed").length);
+  let completedCount = $derived(
+    transactions.filter((t) => t.status === "completed").length,
+  );
+  let pendingCount = $derived(
+    transactions.filter((t) => t.status === "pending").length,
+  );
+  let failedCount = $derived(
+    transactions.filter((t) => t.status === "failed").length,
+  );
 </script>
 
 <div class="space-y-4 sm:space-y-6">
@@ -491,7 +498,7 @@
           </button>
         {/each}
       </div>
-      
+
       <!-- Load More Button -->
       {#if hasMore}
         <div class="mt-6 flex justify-center">
@@ -510,17 +517,23 @@
 <!-- Transaction Detail Modal -->
 {#if showDetailModal && selectedTransaction}
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
+    class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4"
   >
     <div
       class="max-h-[95vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-xl"
     >
       <!-- Header -->
-      <div class="sticky top-0 z-10 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-white px-8 py-6">
+      <div
+        class="sticky top-0 z-10 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-white px-8 py-6"
+      >
         <div class="flex items-center justify-between">
           <div>
-            <h3 class="text-2xl font-bold text-gray-900">Transaction Details</h3>
-            <p class="mt-1 font-mono text-sm text-gray-500">{selectedTransaction.id}</p>
+            <h3 class="text-2xl font-bold text-gray-900">
+              Transaction Details
+            </h3>
+            <p class="mt-1 font-mono text-sm text-gray-500">
+              {selectedTransaction.id}
+            </p>
           </div>
           <button
             onclick={closeModal}
@@ -536,7 +549,11 @@
           <!-- Status Badge -->
           <div class="flex items-center justify-between">
             <span class="text-lg font-semibold text-gray-900">Status</span>
-            <span class="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold {getStatusColor(selectedTransaction.status)}">
+            <span
+              class="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold {getStatusColor(
+                selectedTransaction.status,
+              )}"
+            >
               {#if selectedTransaction.status === "completed"}
                 <CheckCircle class="h-4 w-4" />
               {:else if selectedTransaction.status === "pending"}
@@ -550,28 +567,55 @@
 
           <!-- Transaction Info Grid -->
           <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h4 class="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">Transaction Information</h4>
+            <h4
+              class="mb-4 text-sm font-semibold tracking-wide text-gray-500 uppercase"
+            >
+              Transaction Information
+            </h4>
             <div class="grid grid-cols-2 gap-6">
               <div>
-                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Type</p>
-                <span class="mt-2 inline-block rounded-full px-3 py-1 text-sm font-semibold {getTypeColor(selectedTransaction.type)}">
+                <p
+                  class="text-xs font-medium tracking-wide text-gray-500 uppercase"
+                >
+                  Type
+                </p>
+                <span
+                  class="mt-2 inline-block rounded-full px-3 py-1 text-sm font-semibold {getTypeColor(
+                    selectedTransaction.type,
+                  )}"
+                >
                   {selectedTransaction.type}
                 </span>
               </div>
               <div>
-                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Amount</p>
+                <p
+                  class="text-xs font-medium tracking-wide text-gray-500 uppercase"
+                >
+                  Amount
+                </p>
                 <p class="mt-2 font-mono text-lg font-bold text-gray-900">
-                  {selectedTransaction.amount} {selectedTransaction.currency}
+                  {selectedTransaction.amount}
+                  {selectedTransaction.currency}
                 </p>
               </div>
               <div>
-                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Fee</p>
-                <p class="mt-2 font-mono text-base font-semibold text-green-600">
+                <p
+                  class="text-xs font-medium tracking-wide text-gray-500 uppercase"
+                >
+                  Fee
+                </p>
+                <p
+                  class="mt-2 font-mono text-base font-semibold text-green-600"
+                >
                   ${selectedTransaction.fee}
                 </p>
               </div>
               <div>
-                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Timestamp</p>
+                <p
+                  class="text-xs font-medium tracking-wide text-gray-500 uppercase"
+                >
+                  Timestamp
+                </p>
                 <p class="mt-2 text-sm font-medium text-gray-900">
                   {selectedTransaction.timestamp}
                 </p>
@@ -581,7 +625,11 @@
 
           <!-- User Info -->
           <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h4 class="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">Participant Information</h4>
+            <h4
+              class="mb-4 text-sm font-semibold tracking-wide text-gray-500 uppercase"
+            >
+              Participant Information
+            </h4>
             <div class="space-y-4">
               <button
                 onclick={() => goto("/admin/users")}
@@ -590,7 +638,9 @@
                 <User class="h-5 w-5 text-blue-600" />
                 <div class="flex-1">
                   <p class="text-xs text-gray-500">User</p>
-                  <p class="font-semibold text-blue-600 hover:text-blue-700">{selectedTransaction.user}</p>
+                  <p class="font-semibold text-blue-600 hover:text-blue-700">
+                    {selectedTransaction.user}
+                  </p>
                 </div>
                 <ArrowRight class="h-4 w-4 text-gray-400" />
               </button>
@@ -602,7 +652,11 @@
                   <Building2 class="h-5 w-5 text-purple-600" />
                   <div class="flex-1">
                     <p class="text-xs text-gray-500">Agent</p>
-                    <p class="font-semibold text-purple-600 hover:text-purple-700">{selectedTransaction.agent}</p>
+                    <p
+                      class="font-semibold text-purple-600 hover:text-purple-700"
+                    >
+                      {selectedTransaction.agent}
+                    </p>
                   </div>
                   <ArrowRight class="h-4 w-4 text-gray-400" />
                 </button>

@@ -7,13 +7,31 @@
     Clock,
     Eye,
     Info,
+    X,
+    FileText,
+    ChevronLeft,
+    ChevronRight,
+    Activity,
+    DollarSign,
   } from "lucide-svelte";
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
 
   let searchQuery = $state("");
   let filterKYC = $state("all");
-  
+  let selectedUser = $state<any>(null);
+  let showUserModal = $state(false);
+
+  function viewUser(user: any) {
+    selectedUser = user;
+    showUserModal = true;
+  }
+
+  function closeModal() {
+    showUserModal = false;
+    selectedUser = null;
+  }
+
   // Pagination state
   let itemsPerPage = 20;
   let displayedCount = $state(itemsPerPage);
@@ -165,7 +183,7 @@
         user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.phone.includes(searchQuery);
       return matchesKYC && matchesSearch;
-    })
+    }),
   );
 
   let displayedUsers = $derived(filteredUsers.slice(0, displayedCount));
@@ -182,8 +200,9 @@
 <div class="space-y-4 sm:space-y-6">
   <!-- Stats Overview -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-4">
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+    <button
+      onclick={() => (filterKYC = "all")}
+      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-gray-400 hover:shadow-md sm:rounded-2xl sm:p-6"
     >
       <div class="flex items-center justify-between">
         <div>
@@ -200,10 +219,11 @@
           <Users class="h-6 w-6 text-blue-600" />
         </div>
       </div>
-    </div>
+    </button>
 
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+    <button
+      onclick={() => (filterKYC = "approved")}
+      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-green-400 hover:shadow-md sm:rounded-2xl sm:p-6"
     >
       <div class="flex items-center justify-between">
         <div>
@@ -220,10 +240,11 @@
           <CheckCircle class="h-6 w-6 text-green-600" />
         </div>
       </div>
-    </div>
+    </button>
 
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+    <button
+      onclick={() => (filterKYC = "pending")}
+      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-yellow-400 hover:shadow-md sm:rounded-2xl sm:p-6"
     >
       <div class="flex items-center justify-between">
         <div>
@@ -240,7 +261,7 @@
           <Clock class="h-6 w-6 text-yellow-600" />
         </div>
       </div>
-    </div>
+    </button>
 
     <div
       class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
@@ -324,8 +345,9 @@
 
     <div class="space-y-3 sm:space-y-4">
       {#each displayedUsers as user}
-        <div
-          class="flex items-center justify-between rounded-lg border border-gray-100 p-3 transition-all hover:border-gray-200 sm:p-4"
+        <button
+          onclick={() => viewUser(user)}
+          class="flex w-full items-center justify-between rounded-lg border border-gray-100 p-3 text-left transition-all hover:border-blue-400 hover:shadow-md sm:p-4"
         >
           <div class="flex items-center space-x-3 sm:space-x-4">
             <img
@@ -357,16 +379,12 @@
                 ${user.balance.toLocaleString()}
               </p>
             </div>
-            <button
-              class="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-            >
-              <Eye class="h-4 w-4" />
-            </button>
+            <Eye class="h-5 w-5 text-blue-600" />
           </div>
-        </div>
+        </button>
       {/each}
     </div>
-    
+
     <!-- Load More Button -->
     {#if hasMore}
       <div class="mt-6 flex justify-center">
@@ -394,3 +412,161 @@
     </div>
   </div>
 </div>
+
+<!-- User KYC Modal -->
+{#if showUserModal && selectedUser}
+  <div
+    class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4"
+  >
+    <div
+      class="max-h-[95vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white shadow-xl"
+    >
+      <!-- Header -->
+      <div
+        class="sticky top-0 z-10 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-white px-8 py-6"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-2xl font-bold text-gray-900">User Profile & KYC</h3>
+            <p class="mt-1 text-sm text-gray-500">{selectedUser.name}</p>
+          </div>
+          <button
+            onclick={closeModal}
+            class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+          >
+            <X class="h-6 w-6" />
+          </button>
+        </div>
+      </div>
+
+      <div class="p-8">
+        <div class="space-y-6">
+          <!-- User Info -->
+          <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h4
+              class="mb-4 text-sm font-semibold tracking-wide text-gray-500 uppercase"
+            >
+              User Information
+            </h4>
+            <div class="flex items-start space-x-6">
+              <img
+                src={selectedUser.avatar}
+                alt={selectedUser.name}
+                class="h-20 w-20 rounded-xl"
+              />
+              <div class="flex-1 space-y-3">
+                <div>
+                  <p class="text-xs text-gray-500">Full Name</p>
+                  <p class="mt-1 text-base font-semibold text-gray-900">
+                    {selectedUser.name}
+                  </p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <p class="text-xs text-gray-500">Email</p>
+                    <p class="mt-1 text-sm font-medium text-gray-900">
+                      {selectedUser.email}
+                    </p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-500">Phone</p>
+                    <p class="mt-1 text-sm font-medium text-gray-900">
+                      {selectedUser.phone}
+                    </p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-500">Balance</p>
+                    <p class="mt-1 font-mono text-base font-bold text-green-600">
+                      ${selectedUser.balance.toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-500">Joined</p>
+                    <p class="mt-1 text-sm font-medium text-gray-900">
+                      {selectedUser.joinedAt}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Activity Stats -->
+          <div class="grid grid-cols-3 gap-4">
+            <div class="rounded-xl border border-gray-200 bg-gradient-to-br from-blue-50 to-white p-4 shadow-sm">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-xs font-semibold text-gray-500">Transactions</p>
+                  <p class="mt-2 font-mono text-2xl font-bold text-blue-600">
+                    {Math.floor(Math.random() * 50) + 10}
+                  </p>
+                </div>
+                <Activity class="h-8 w-8 text-blue-600 opacity-50" />
+              </div>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-gradient-to-br from-green-50 to-white p-4 shadow-sm">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-xs font-semibold text-gray-500">Fees Paid</p>
+                  <p class="mt-2 font-mono text-2xl font-bold text-green-600">
+                    ${Math.floor(Math.random() * 500) + 50}
+                  </p>
+                </div>
+                <DollarSign class="h-8 w-8 text-green-600 opacity-50" />
+              </div>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-gradient-to-br from-purple-50 to-white p-4 shadow-sm">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-xs font-semibold text-gray-500">Reviews</p>
+                  <p class="mt-2 font-mono text-2xl font-bold text-purple-600">
+                    {Math.floor(Math.random() * 20) + 1}
+                  </p>
+                </div>
+                <svg class="h-8 w-8 text-purple-600 opacity-50" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- KYC Status -->
+          <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h4
+              class="mb-4 text-sm font-semibold tracking-wide text-gray-500 uppercase"
+            >
+              KYC Status
+            </h4>
+            <div class="flex items-center justify-between">
+              <span class="text-lg font-semibold text-gray-900">Verification Status</span>
+              <span
+                class="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold {getKYCStatusColor(
+                  selectedUser.kycStatus,
+                )}"
+              >
+                {#if selectedUser.kycStatus === "approved"}
+                  <CheckCircle class="h-4 w-4" />
+                {:else if selectedUser.kycStatus === "pending"}
+                  <Clock class="h-4 w-4" />
+                {:else if selectedUser.kycStatus === "rejected"}
+                  <XCircle class="h-4 w-4" />
+                {/if}
+                {selectedUser.kycStatus.replace("_", " ").toUpperCase()}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="border-t border-gray-100 bg-gray-50 px-8 py-6">
+        <button
+          onclick={closeModal}
+          class="w-full rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 font-semibold text-white shadow-lg transition-all hover:from-blue-700 hover:to-blue-800 hover:shadow-xl"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
