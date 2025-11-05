@@ -34,6 +34,11 @@
 api/.env
 canister_ids.json
 sns_canister_ids.json
+
+# DFX Identity files (NEVER COMMIT THESE!)
+identity.pem
+*.pem
+identity.json
 canisters/*/*.did
 dist
 dist-ssr
