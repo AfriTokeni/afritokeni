@@ -1,13 +1,7 @@
 <script lang="ts">
-  import {
-    Search,
-    Users,
-    CheckCircle,
-    XCircle,
-    Clock,
-    Eye,
-    Info,
-  } from "lucide-svelte";
+  import { Search, Users, CheckCircle, XCircle, Clock, Eye, Info } from "lucide-svelte";
+  import type { ApexOptions } from 'apexcharts';
+  import { Chart } from '@flowbite-svelte-plugins/chart';
 
   let searchQuery = $state("");
   let filterKYC = $state("all");
@@ -77,6 +71,58 @@
     kycPending: 23,
     active: 2100,
   });
+  
+  // User growth chart
+  let userGrowthOptions: ApexOptions = {
+    chart: {
+      height: '320px',
+      type: 'area',
+      fontFamily: 'Inter, sans-serif',
+      dropShadow: { enabled: false },
+      toolbar: { show: false },
+    },
+    tooltip: { enabled: true },
+    fill: {
+      type: 'gradient',
+      gradient: {
+        opacityFrom: 0.55,
+        opacityTo: 0,
+      },
+    },
+    dataLabels: { enabled: false },
+    stroke: { width: 2, curve: 'smooth' },
+    grid: {
+      show: true,
+      strokeDashArray: 4,
+      padding: { left: 2, right: 2, top: 0 },
+    },
+    series: [
+      {
+        name: 'Total Users',
+        data: [1850, 1920, 2050, 2150, 2240, 2310, 2340],
+        color: '#3b82f6',
+      },
+      {
+        name: 'Active Users',
+        data: [1650, 1720, 1840, 1920, 2010, 2070, 2100],
+        color: '#8b5cf6',
+      },
+    ],
+    xaxis: {
+      categories: ['Oct 29', 'Oct 30', 'Oct 31', 'Nov 1', 'Nov 2', 'Nov 3', 'Nov 4'],
+      labels: {
+        show: true,
+        style: {
+          fontFamily: 'Inter, sans-serif',
+          cssClass: 'text-xs font-normal fill-gray-500',
+        },
+      },
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+    },
+    yaxis: { show: true },
+    legend: { show: true, position: 'top' },
+  };
 
   function getKYCStatusColor(status: string) {
     if (status === "approved") return "bg-green-100 text-green-800";
@@ -94,6 +140,17 @@
 </script>
 
 <div class="space-y-4 sm:space-y-6">
+  <!-- User Growth Chart -->
+  <div class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6">
+    <div class="mb-4 sm:mb-6">
+      <h3 class="text-base font-semibold text-gray-900 sm:text-lg">User Growth</h3>
+      <p class="text-xs text-gray-500 sm:text-sm">Last 7 days trend</p>
+    </div>
+    <div class="h-64 sm:h-80">
+      <Chart options={userGrowthOptions} />
+    </div>
+  </div>
+  
   <!-- Stats Overview -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-4">
     <div

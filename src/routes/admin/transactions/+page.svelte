@@ -1,6 +1,8 @@
 <script lang="ts">
   import { Search, Filter, Download, Activity, Info } from "lucide-svelte";
   import { onMount } from "svelte";
+  import type { ApexOptions } from 'apexcharts';
+  import { Chart } from '@flowbite-svelte-plugins/chart';
 
   let searchQuery = $state("");
   let filterType = $state("all");
@@ -70,8 +72,66 @@
     completed: 3201,
     pending: 12,
     failed: 5,
-    totalVolume: 1245678,
+    totalVolume: 1245678
   });
+  
+  // Transaction volume chart (last 7 days)
+  let volumeChartOptions: ApexOptions = {
+    chart: {
+      height: '320px',
+      type: 'bar',
+      fontFamily: 'Inter, sans-serif',
+      toolbar: { show: false },
+    },
+    plotOptions: {
+      bar: {
+        horizontal: false,
+        columnWidth: '70%',
+        borderRadius: 8,
+      },
+    },
+    tooltip: { enabled: true },
+    dataLabels: { enabled: false },
+    stroke: { show: true, width: 1, colors: ['transparent'] },
+    grid: {
+      show: true,
+      strokeDashArray: 4,
+      padding: { left: 2, right: 2, top: 0 },
+    },
+    series: [
+      {
+        name: 'Deposits',
+        data: [420, 532, 516, 575, 519, 623, 584],
+        color: '#3b82f6',
+      },
+      {
+        name: 'Withdrawals',
+        data: [336, 412, 398, 445, 402, 478, 451],
+        color: '#8b5cf6',
+      },
+      {
+        name: 'Exchanges',
+        data: [245, 298, 276, 312, 289, 345, 318],
+        color: '#22c55e',
+      },
+    ],
+    xaxis: {
+      categories: ['Oct 29', 'Oct 30', 'Oct 31', 'Nov 1', 'Nov 2', 'Nov 3', 'Nov 4'],
+      labels: {
+        show: true,
+        style: {
+          fontFamily: 'Inter, sans-serif',
+          cssClass: 'text-xs font-normal fill-gray-500',
+        },
+      },
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+    },
+    yaxis: {
+      show: true,
+    },
+    legend: { show: true, position: 'top' },
+  };
 
   // Simulate real-time updates
   onMount(() => {
@@ -121,6 +181,17 @@
 </script>
 
 <div class="space-y-4 sm:space-y-6">
+  <!-- Transaction Volume Chart -->
+  <div class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6">
+    <div class="mb-4 sm:mb-6">
+      <h3 class="text-base font-semibold text-gray-900 sm:text-lg">Transaction Volume</h3>
+      <p class="text-xs text-gray-500 sm:text-sm">Last 7 days by type</p>
+    </div>
+    <div class="h-64 sm:h-80">
+      <Chart options={volumeChartOptions} />
+    </div>
+  </div>
+  
   <!-- Stats Overview -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-5">
     <div

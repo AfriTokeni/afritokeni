@@ -7,6 +7,8 @@
     ArrowUpRight,
     Info,
   } from "lucide-svelte";
+  import type { ApexOptions } from 'apexcharts';
+  import { Chart } from '@flowbite-svelte-plugins/chart';
 
   // Mock revenue data
   let revenueStats = $state({
@@ -74,9 +76,75 @@
     { month: "Aug 2024", revenue: 34820, growth: 15.3 },
     { month: "Jul 2024", revenue: 30200, growth: 9.8 },
   ]);
+  
+  // Revenue trend chart
+  let revenueChartOptions: ApexOptions = {
+    chart: {
+      height: '350px',
+      type: 'line',
+      fontFamily: 'Inter, sans-serif',
+      dropShadow: { enabled: false },
+      toolbar: { show: false },
+    },
+    tooltip: { enabled: true },
+    dataLabels: { enabled: false },
+    stroke: { width: 3, curve: 'smooth' },
+    grid: {
+      show: true,
+      strokeDashArray: 4,
+      padding: { left: 2, right: 2, top: 0 },
+    },
+    series: [
+      {
+        name: 'Total Revenue',
+        data: [30200, 34820, 39150, 42340, 45678],
+        color: '#3b82f6',
+      },
+      {
+        name: 'Deposit Commissions',
+        data: [18500, 21200, 24000, 26500, 28450],
+        color: '#8b5cf6',
+      },
+      {
+        name: 'Withdrawal Fees',
+        data: [9200, 10500, 11800, 12100, 12340],
+        color: '#22c55e',
+      },
+    ],
+    xaxis: {
+      categories: ['Jul', 'Aug', 'Sep', 'Oct', 'Nov'],
+      labels: {
+        show: true,
+        style: {
+          fontFamily: 'Inter, sans-serif',
+          cssClass: 'text-xs font-normal fill-gray-500',
+        },
+      },
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+    },
+    yaxis: {
+      show: true,
+      labels: {
+        formatter: (value) => '$' + value.toLocaleString(),
+      },
+    },
+    legend: { show: true, position: 'top' },
+  };
 </script>
 
 <div class="space-y-4 sm:space-y-6">
+  <!-- Revenue Trend Chart -->
+  <div class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6">
+    <div class="mb-4 sm:mb-6">
+      <h3 class="text-base font-semibold text-gray-900 sm:text-lg">Revenue Trend</h3>
+      <p class="text-xs text-gray-500 sm:text-sm">Last 5 months performance</p>
+    </div>
+    <div class="h-64 sm:h-80">
+      <Chart options={revenueChartOptions} />
+    </div>
+  </div>
+  
   <!-- Revenue Overview Cards -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
     <!-- Total Revenue -->

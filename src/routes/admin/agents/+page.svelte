@@ -1,13 +1,7 @@
 <script lang="ts">
-  import {
-    Search,
-    MapPin,
-    Star,
-    TrendingUp,
-    DollarSign,
-    Activity,
-    Info,
-  } from "lucide-svelte";
+  import { Search, MapPin, Star, TrendingUp, DollarSign, Activity, Info } from "lucide-svelte";
+  import type { ApexOptions } from 'apexcharts';
+  import { Chart } from '@flowbite-svelte-plugins/chart';
 
   let searchQuery = $state("");
   let filterStatus = $state("all");
@@ -83,6 +77,52 @@
     offline: 7,
     totalRevenue: 125000,
   });
+  
+  // Agent performance chart
+  let performanceChartOptions: ApexOptions = {
+    chart: {
+      height: '320px',
+      type: 'bar',
+      fontFamily: 'Inter, sans-serif',
+      toolbar: { show: false },
+    },
+    plotOptions: {
+      bar: {
+        horizontal: true,
+        borderRadius: 8,
+      },
+    },
+    tooltip: { enabled: true },
+    dataLabels: { enabled: false },
+    stroke: { show: true, width: 1, colors: ['transparent'] },
+    grid: {
+      show: true,
+      strokeDashArray: 4,
+      padding: { left: 2, right: 2, top: 0 },
+    },
+    series: [
+      {
+        name: 'Revenue',
+        data: [12500, 10200, 9800, 7600, 5200],
+        color: '#3b82f6',
+      },
+    ],
+    xaxis: {
+      categories: ['Lagos Central', 'Nairobi East', 'Accra West', 'Kampala North', 'Kigali Center'],
+      labels: {
+        show: true,
+        style: {
+          fontFamily: 'Inter, sans-serif',
+          cssClass: 'text-xs font-normal fill-gray-500',
+        },
+        formatter: (value) => '$' + value.toLocaleString(),
+      },
+    },
+    yaxis: {
+      show: true,
+    },
+    legend: { show: false },
+  };
 
   function getStatusColor(status: string) {
     if (status === "active") return "bg-green-100 text-green-800";
@@ -93,6 +133,17 @@
 </script>
 
 <div class="space-y-4 sm:space-y-6">
+  <!-- Agent Performance Chart -->
+  <div class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6">
+    <div class="mb-4 sm:mb-6">
+      <h3 class="text-base font-semibold text-gray-900 sm:text-lg">Top Agent Performance</h3>
+      <p class="text-xs text-gray-500 sm:text-sm">Revenue by agent</p>
+    </div>
+    <div class="h-64 sm:h-80">
+      <Chart options={performanceChartOptions} />
+    </div>
+  </div>
+  
   <!-- Stats Overview -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-5">
     <div

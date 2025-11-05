@@ -8,11 +8,72 @@
     MapPin,
     Info,
   } from "lucide-svelte";
+  import type { ApexOptions } from 'apexcharts';
+  import { Chart } from '@flowbite-svelte-plugins/chart';
 
   let activeTab = $state<"pending" | "approved" | "rejected">("pending");
   let showReviewModal = $state(false);
   let selectedKYC = $state<any>(null);
   let rejectionReason = $state("");
+  
+  // KYC submissions trend chart options
+  let chartOptions: ApexOptions = {
+    chart: {
+      height: '320px',
+      type: 'area',
+      fontFamily: 'Inter, sans-serif',
+      dropShadow: { enabled: false },
+      toolbar: { show: false },
+    },
+    tooltip: { enabled: true, x: { show: false } },
+    fill: {
+      type: 'gradient',
+      gradient: {
+        opacityFrom: 0.55,
+        opacityTo: 0,
+        shade: '#1C64F2',
+        gradientToColors: ['#1C64F2'],
+      },
+    },
+    dataLabels: { enabled: false },
+    stroke: { width: 2, curve: 'smooth' },
+    grid: {
+      show: true,
+      strokeDashArray: 4,
+      padding: { left: 2, right: 2, top: 0 },
+    },
+    series: [
+      {
+        name: 'Submissions',
+        data: [12, 15, 8, 18, 14, 22, 19],
+        color: '#3b82f6',
+      },
+      {
+        name: 'Approved',
+        data: [10, 12, 7, 15, 11, 18, 16],
+        color: '#22c55e',
+      },
+      {
+        name: 'Rejected',
+        data: [2, 3, 1, 3, 3, 4, 3],
+        color: '#ef4444',
+      },
+    ],
+    xaxis: {
+      categories: ['Oct 29', 'Oct 30', 'Oct 31', 'Nov 1', 'Nov 2', 'Nov 3', 'Nov 4'],
+      labels: {
+        show: true,
+        style: {
+          fontFamily: 'Inter, sans-serif',
+          cssClass: 'text-xs font-normal fill-gray-500',
+        },
+      },
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+    },
+    yaxis: { show: true },
+    legend: { show: true, position: 'top' },
+  };
 
   // Mock KYC data
   let pendingKYC = $state([
@@ -145,6 +206,17 @@
 </script>
 
 <div class="space-y-4 sm:space-y-6">
+  <!-- KYC Submissions Trend Chart -->
+  <div class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6">
+    <div class="mb-4 sm:mb-6">
+      <h3 class="text-base font-semibold text-gray-900 sm:text-lg">KYC Submissions Trend</h3>
+      <p class="text-xs text-gray-500 sm:text-sm">Last 7 days performance</p>
+    </div>
+    <div class="h-64 sm:h-80">
+      <Chart options={chartOptions} />
+    </div>
+  </div>
+  
   <!-- Header with Stats -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3">
     <!-- Pending Count -->
