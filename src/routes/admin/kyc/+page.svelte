@@ -1,107 +1,153 @@
 <script lang="ts">
-  import { Card, Button, Badge, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell, Modal, Tabs, TabItem, Avatar, Textarea } from 'flowbite-svelte';
-  import { CheckCircle, XCircle, Eye } from '@lucide/svelte';
-  
+  import {
+    Card,
+    Button,
+    Badge,
+    Table,
+    TableBody,
+    TableBodyCell,
+    TableBodyRow,
+    TableHead,
+    TableHeadCell,
+    Modal,
+    Tabs,
+    TabItem,
+    Avatar,
+    Textarea,
+  } from "flowbite-svelte";
+  import { CheckCircle, XCircle, Eye } from 'lucide-svelte';
+
   let showReviewModal = $state(false);
   let selectedKYC = $state<any>(null);
-  let rejectionReason = $state('');
-  
+  let rejectionReason = $state("");
+
   // Mock KYC data
   let pendingKYC = $state([
     {
-      id: 'KYC-001',
-      user: { name: 'John Doe', email: 'john@example.com', phone: '+234 801 234 5678', avatar: 'https://ui-avatars.com/api/?name=John+Doe' },
-      type: 'user',
-      documentType: 'National ID',
-      documentNumber: 'NIN-12345678',
-      submittedAt: '2024-11-05 10:30',
-      documents: ['id_front.jpg', 'id_back.jpg', 'selfie.jpg'],
-      status: 'pending'
+      id: "KYC-001",
+      user: {
+        name: "John Doe",
+        email: "john@example.com",
+        phone: "+234 801 234 5678",
+        avatar: "https://ui-avatars.com/api/?name=John+Doe",
+      },
+      type: "user",
+      documentType: "National ID",
+      documentNumber: "NIN-12345678",
+      submittedAt: "2024-11-05 10:30",
+      documents: ["id_front.jpg", "id_back.jpg", "selfie.jpg"],
+      status: "pending",
     },
     {
-      id: 'KYC-002',
-      user: { name: 'Jane Smith', email: 'jane@example.com', phone: '+254 712 345 678', avatar: 'https://ui-avatars.com/api/?name=Jane+Smith' },
-      type: 'agent',
-      documentType: 'Passport',
-      documentNumber: 'A12345678',
-      location: 'Nairobi, Kenya',
-      businessLicense: 'BL-987654',
-      submittedAt: '2024-11-05 09:15',
-      documents: ['passport.jpg', 'business_license.pdf', 'location_photo.jpg'],
-      status: 'pending'
+      id: "KYC-002",
+      user: {
+        name: "Jane Smith",
+        email: "jane@example.com",
+        phone: "+254 712 345 678",
+        avatar: "https://ui-avatars.com/api/?name=Jane+Smith",
+      },
+      type: "agent",
+      documentType: "Passport",
+      documentNumber: "A12345678",
+      location: "Nairobi, Kenya",
+      businessLicense: "BL-987654",
+      submittedAt: "2024-11-05 09:15",
+      documents: ["passport.jpg", "business_license.pdf", "location_photo.jpg"],
+      status: "pending",
     },
     {
-      id: 'KYC-003',
-      user: { name: 'Bob Johnson', email: 'bob@example.com', phone: '+233 20 123 4567', avatar: 'https://ui-avatars.com/api/?name=Bob+Johnson' },
-      type: 'user',
-      documentType: 'Drivers License',
-      documentNumber: 'DL-ABC123',
-      submittedAt: '2024-11-05 08:45',
-      documents: ['license_front.jpg', 'license_back.jpg'],
-      status: 'pending'
+      id: "KYC-003",
+      user: {
+        name: "Bob Johnson",
+        email: "bob@example.com",
+        phone: "+233 20 123 4567",
+        avatar: "https://ui-avatars.com/api/?name=Bob+Johnson",
+      },
+      type: "user",
+      documentType: "Drivers License",
+      documentNumber: "DL-ABC123",
+      submittedAt: "2024-11-05 08:45",
+      documents: ["license_front.jpg", "license_back.jpg"],
+      status: "pending",
     },
   ]);
-  
+
   let approvedKYC = $state([
     {
-      id: 'KYC-100',
-      user: { name: 'Alice Brown', email: 'alice@example.com', phone: '+234 802 345 6789', avatar: 'https://ui-avatars.com/api/?name=Alice+Brown' },
-      type: 'user',
-      approvedAt: '2024-11-04 16:20',
-      approvedBy: 'Admin User',
-      status: 'approved'
+      id: "KYC-100",
+      user: {
+        name: "Alice Brown",
+        email: "alice@example.com",
+        phone: "+234 802 345 6789",
+        avatar: "https://ui-avatars.com/api/?name=Alice+Brown",
+      },
+      type: "user",
+      approvedAt: "2024-11-04 16:20",
+      approvedBy: "Admin User",
+      status: "approved",
     },
   ]);
-  
+
   let rejectedKYC = $state([
     {
-      id: 'KYC-200',
-      user: { name: 'Charlie Wilson', email: 'charlie@example.com', phone: '+254 713 456 789', avatar: 'https://ui-avatars.com/api/?name=Charlie+Wilson' },
-      type: 'agent',
-      rejectedAt: '2024-11-04 14:10',
-      rejectedBy: 'Admin User',
-      reason: 'Document image quality too low',
-      status: 'rejected'
+      id: "KYC-200",
+      user: {
+        name: "Charlie Wilson",
+        email: "charlie@example.com",
+        phone: "+254 713 456 789",
+        avatar: "https://ui-avatars.com/api/?name=Charlie+Wilson",
+      },
+      type: "agent",
+      rejectedAt: "2024-11-04 14:10",
+      rejectedBy: "Admin User",
+      reason: "Document image quality too low",
+      status: "rejected",
     },
   ]);
-  
+
   function reviewKYC(kyc: any) {
     selectedKYC = kyc;
     showReviewModal = true;
   }
-  
+
   function approveKYC() {
     if (!selectedKYC) return;
-    
+
     // Move from pending to approved
-    pendingKYC = pendingKYC.filter(k => k.id !== selectedKYC.id);
-    approvedKYC = [...approvedKYC, {
-      ...selectedKYC,
-      status: 'approved',
-      approvedAt: new Date().toISOString(),
-      approvedBy: 'Admin User'
-    }];
-    
+    pendingKYC = pendingKYC.filter((k) => k.id !== selectedKYC.id);
+    approvedKYC = [
+      ...approvedKYC,
+      {
+        ...selectedKYC,
+        status: "approved",
+        approvedAt: new Date().toISOString(),
+        approvedBy: "Admin User",
+      },
+    ];
+
     showReviewModal = false;
     selectedKYC = null;
   }
-  
+
   function rejectKYC() {
     if (!selectedKYC || !rejectionReason) return;
-    
+
     // Move from pending to rejected
-    pendingKYC = pendingKYC.filter(k => k.id !== selectedKYC.id);
-    rejectedKYC = [...rejectedKYC, {
-      ...selectedKYC,
-      status: 'rejected',
-      rejectedAt: new Date().toISOString(),
-      rejectedBy: 'Admin User',
-      reason: rejectionReason
-    }];
-    
+    pendingKYC = pendingKYC.filter((k) => k.id !== selectedKYC.id);
+    rejectedKYC = [
+      ...rejectedKYC,
+      {
+        ...selectedKYC,
+        status: "rejected",
+        rejectedAt: new Date().toISOString(),
+        rejectedBy: "Admin User",
+        reason: rejectionReason,
+      },
+    ];
+
     showReviewModal = false;
     selectedKYC = null;
-    rejectionReason = '';
+    rejectionReason = "";
   }
 </script>
 
@@ -110,7 +156,9 @@
   <div class="flex items-center justify-between">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">KYC Management</h1>
-      <p class="mt-1 text-sm text-gray-500">Review and approve user verification requests</p>
+      <p class="mt-1 text-sm text-gray-500">
+        Review and approve user verification requests
+      </p>
     </div>
     <div class="flex gap-2">
       <Badge color="yellow" large>
@@ -119,7 +167,7 @@
       </Badge>
     </div>
   </div>
-  
+
   <!-- KYC Tabs -->
   <Card>
     <Tabs>
@@ -145,7 +193,7 @@
                   </div>
                 </TableBodyCell>
                 <TableBodyCell>
-                  <Badge color={kyc.type === 'agent' ? 'purple' : 'blue'}>
+                  <Badge color={kyc.type === "agent" ? "purple" : "blue"}>
                     {kyc.type}
                   </Badge>
                 </TableBodyCell>
@@ -165,7 +213,7 @@
           </TableBody>
         </Table>
       </TabItem>
-      
+
       <TabItem title="Approved ({approvedKYC.length})">
         <Table>
           <TableHead>
@@ -187,7 +235,7 @@
                   </div>
                 </TableBodyCell>
                 <TableBodyCell>
-                  <Badge color={kyc.type === 'agent' ? 'purple' : 'blue'}>
+                  <Badge color={kyc.type === "agent" ? "purple" : "blue"}>
                     {kyc.type}
                   </Badge>
                 </TableBodyCell>
@@ -198,7 +246,7 @@
           </TableBody>
         </Table>
       </TabItem>
-      
+
       <TabItem title="Rejected ({rejectedKYC.length})">
         <Table>
           <TableHead>
@@ -220,7 +268,7 @@
                   </div>
                 </TableBodyCell>
                 <TableBodyCell>
-                  <Badge color={kyc.type === 'agent' ? 'purple' : 'blue'}>
+                  <Badge color={kyc.type === "agent" ? "purple" : "blue"}>
                     {kyc.type}
                   </Badge>
                 </TableBodyCell>
@@ -242,18 +290,25 @@
   {#if selectedKYC}
     <div class="space-y-6">
       <!-- User Info -->
-      <div class="flex items-center gap-4 rounded-lg border border-gray-200 p-4">
+      <div
+        class="flex items-center gap-4 rounded-lg border border-gray-200 p-4"
+      >
         <Avatar src={selectedKYC.user.avatar} size="lg" />
         <div>
-          <h3 class="text-lg font-semibold text-gray-900">{selectedKYC.user.name}</h3>
+          <h3 class="text-lg font-semibold text-gray-900">
+            {selectedKYC.user.name}
+          </h3>
           <p class="text-sm text-gray-500">{selectedKYC.user.email}</p>
           <p class="text-sm text-gray-500">{selectedKYC.user.phone}</p>
-          <Badge color={selectedKYC.type === 'agent' ? 'purple' : 'blue'} class="mt-2">
+          <Badge
+            color={selectedKYC.type === "agent" ? "purple" : "blue"}
+            class="mt-2"
+          >
             {selectedKYC.type}
           </Badge>
         </div>
       </div>
-      
+
       <!-- Document Details -->
       <div class="space-y-3">
         <h4 class="font-semibold text-gray-900">Document Information</h4>
@@ -280,14 +335,16 @@
           {/if}
         </div>
       </div>
-      
+
       <!-- Documents Preview -->
       <div class="space-y-3">
         <h4 class="font-semibold text-gray-900">Uploaded Documents</h4>
         <div class="grid grid-cols-3 gap-4">
           {#each selectedKYC.documents as doc}
             <div class="rounded-lg border border-gray-200 p-4 text-center">
-              <div class="mb-2 flex h-32 items-center justify-center bg-gray-100">
+              <div
+                class="mb-2 flex h-32 items-center justify-center bg-gray-100"
+              >
                 <p class="text-sm text-gray-500">📄 {doc}</p>
               </div>
               <Button size="xs" color="light">View Full</Button>
@@ -295,7 +352,7 @@
           {/each}
         </div>
       </div>
-      
+
       <!-- Rejection Reason (if rejecting) -->
       <div class="space-y-2">
         <label for="rejection-reason" class="text-sm font-medium text-gray-900">
@@ -309,7 +366,7 @@
         />
       </div>
     </div>
-    
+
     {#snippet footer()}
       <div class="flex gap-2">
         <Button color="green" onclick={approveKYC}>
@@ -320,7 +377,13 @@
           <XCircle class="mr-2 h-4 w-4" />
           Reject KYC
         </Button>
-        <Button color="light" onclick={() => { showReviewModal = false; rejectionReason = ''; }}>
+        <Button
+          color="light"
+          onclick={() => {
+            showReviewModal = false;
+            rejectionReason = "";
+          }}
+        >
           Cancel
         </Button>
       </div>

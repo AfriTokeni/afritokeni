@@ -28,11 +28,11 @@
   let userName = $state("");
 
   const routes = $derived(
-    userType === "admin" 
-      ? admin_desktop_routes 
-      : userType === "agent" 
-        ? agent_desktop_routes 
-        : user_desktop_routes
+    userType === "admin"
+      ? admin_desktop_routes
+      : userType === "agent"
+        ? agent_desktop_routes
+        : user_desktop_routes,
   );
 
   // Navigate to history page when user types in search
