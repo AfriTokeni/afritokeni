@@ -6,9 +6,16 @@
   import { Chart } from "@flowbite-svelte-plugins/chart";
   import { Button, Dropdown, DropdownItem } from "flowbite-svelte";
   import StatCard from "$lib/components/admin/StatCard.svelte";
-  import { getRevenueStats, getRevenueChartData, type RevenueTransaction } from "$lib/services/juno/revenueService";
+  import {
+    getRevenueStats,
+    getRevenueChartData,
+    type RevenueTransaction,
+  } from "$lib/services/juno/revenueService";
   import { getUserStats } from "$lib/services/juno/userService";
-  import { getTransactionStats, listTransactions } from "$lib/services/juno/transactionService";
+  import {
+    getTransactionStats,
+    listTransactions,
+  } from "$lib/services/juno/transactionService";
   import { getAgentStats } from "$lib/services/juno/agentService";
   import { toast } from "$lib/stores/toast";
   import TransactionsTable from "$lib/components/admin/TransactionsTable.svelte";
@@ -44,7 +51,14 @@
     isLoading = true;
     try {
       // Fetch all stats in parallel
-      const [revenueData, userData, transactionData, agentData, chartDataResult, transactionsResult] = await Promise.all([
+      const [
+        revenueData,
+        userData,
+        transactionData,
+        agentData,
+        chartDataResult,
+        transactionsResult,
+      ] = await Promise.all([
         getRevenueStats(),
         getUserStats(),
         getTransactionStats(),
@@ -54,16 +68,18 @@
       ]);
 
       // Convert transactions to RevenueTransaction format
-      const revenueTransactions: RevenueTransaction[] = transactionsResult.map(tx => ({
-        id: tx.id,
-        user: tx.userName,
-        type: tx.type,
-        amount: tx.amount,
-        fee: tx.fee,
-        time: tx.createdAt,
-        status: tx.status,
-        createdAt: tx.createdAt,
-      }));
+      const revenueTransactions: RevenueTransaction[] = transactionsResult.map(
+        (tx) => ({
+          id: tx.id,
+          user: tx.userName,
+          type: tx.type,
+          amount: tx.amount,
+          fee: tx.fee,
+          time: tx.createdAt,
+          status: tx.status,
+          createdAt: tx.createdAt,
+        }),
+      );
 
       // Update stats
       stats = {
@@ -82,7 +98,6 @@
 
       // Update latest transactions
       latestTransactions = revenueTransactions;
-
     } catch (error) {
       console.error("Error loading dashboard data:", error);
       toast.show("error", "Failed to load dashboard data");
@@ -170,7 +185,6 @@
     },
     legend: { show: false },
   });
-
 </script>
 
 <div class="space-y-4 sm:space-y-6">
@@ -282,14 +296,16 @@
         View all →
       </a>
     </div>
-    
+
     {#if isLoading}
-      <div class="flex items-center justify-center rounded-xl border border-gray-200 bg-white py-12">
+      <div
+        class="flex items-center justify-center rounded-xl border border-gray-200 bg-white py-12"
+      >
         <div class="text-sm text-gray-500">Loading transactions...</div>
       </div>
     {:else}
-      <TransactionsTable 
-        transactions={latestTransactions} 
+      <TransactionsTable
+        transactions={latestTransactions}
         showTabs={false}
         showSearch={false}
       />

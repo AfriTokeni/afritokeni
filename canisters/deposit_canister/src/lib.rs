@@ -1,8 +1,30 @@
 use candid::{CandidType, Deserialize, Principal};
 use ic_cdk_macros::*;
-use serde::Serialize;
+use serde::{Serialize, Deserialize as SerdeDeserialize};
 use std::cell::RefCell;
 use std::collections::HashMap;
+
+// Configuration loaded from shared TOML
+const CONFIG_TOML: &str = include_str!("../../revenue_config.toml");
+
+#[derive(SerdeDeserialize, Clone)]
+struct RevenueConfig {
+    company_wallet: CompanyWalletConfig,
+    deposit: DepositConfig,
+}
+
+#[derive(SerdeDeserialize, Clone)]
+struct CompanyWalletConfig {
+    principal: String,
+}
+
+#[derive(SerdeDeserialize, Clone)]
+struct DepositConfig {
+    agent_commission_basis_points: u64,
+    platform_fee_basis_points: u64,
+    min_deposit_ugx: u64,
+    max_deposit_ugx: u64,
+}
 
 // ============================================================================
 // DATA STRUCTURES
@@ -59,24 +81,15 @@ pub struct ConfirmDepositRequest {
 }
 
 // ============================================================================
-// CONFIGURABLE CONSTANTS - CHANGE THESE TO UPDATE FEE STRUCTURE
-// ============================================================================
-
-/// Agent commission rate in basis points (0.5% = 50 bps)
-/// This is what agents owe AfriTokeni on deposits they process
-const DEFAULT_COMMISSION_RATE_BPS: u64 = 50;
-
-// ============================================================================
 // STATE
 // ============================================================================
 
 thread_local! {
+    static CONFIG: RefCell<Option<RevenueConfig>> = RefCell::new(None);
     static DEPOSITS: RefCell<HashMap<u64, DepositTransaction>> = RefCell::new(HashMap::new());
     static AGENT_BALANCES: RefCell<HashMap<Principal, AgentBalance>> = RefCell::new(HashMap::new());
     static SETTLEMENTS: RefCell<Vec<MonthlySettlement>> = RefCell::new(Vec::new());
     static NEXT_DEPOSIT_ID: RefCell<u64> = RefCell::new(1);
-    static COMMISSION_RATE_BPS: RefCell<u64> = RefCell::new(DEFAULT_COMMISSION_RATE_BPS);
-    static COMPANY_WALLET: RefCell<Option<Principal>> = RefCell::new(None);
 }
 
 // ============================================================================
@@ -84,8 +97,26 @@ thread_local! {
 // ============================================================================
 
 #[init]
-fn init(company_wallet: Principal) {
-    COMPANY_WALLET.with(|w| *w.borrow_mut() = Some(company_wallet));
+fn init() {
+    // Load configuration from shared TOML
+    let config: RevenueConfig = toml::from_str(CONFIG_TOML)
+        .expect("Failed to parse revenue_config.toml");
+    
+    CONFIG.with(|c| *c.borrow_mut() = Some(config));
+}
+
+fn get_config() -> RevenueConfig {
+    CONFIG.with(|c| {
+        c.borrow()
+            .clone()
+            .expect("Config not initialized. Call init() first.")
+    })
+}
+
+fn get_company_wallet() -> Result<Principal, String> {
+    let config = get_config();
+    Principal::from_text(&config.company_wallet.principal)
+        .map_err(|e| format!("Invalid company wallet principal: {}", e))
 }
 
 // ============================================================================
@@ -114,9 +145,9 @@ fn create_deposit_request(request: CreateDepositRequest) -> Result<DepositTransa
     
     let deposit_code = generate_deposit_code(deposit_id);
     
-    // Calculate commission (0.5%)
-    let commission_rate = COMMISSION_RATE_BPS.with(|r| *r.borrow());
-    let commission = (request.amount_ugx * commission_rate) / 10000;
+    // Calculate commission from config
+    let config = get_config();
+    let commission = (request.amount_ugx * config.deposit.platform_fee_basis_points) / 10000;
     
     let transaction = DepositTransaction {
         id: deposit_id,
@@ -223,9 +254,7 @@ fn get_all_agent_balances() -> Vec<AgentBalance> {
 fn create_monthly_settlement(month: String) -> Result<Vec<MonthlySettlement>, String> {
     // Only company wallet can create settlements
     let caller = ic_cdk::api::msg_caller();
-    let company = COMPANY_WALLET.with(|w| {
-        w.borrow().ok_or("Company wallet not set".to_string())
-    })?;
+    let company = get_company_wallet()?;
     
     if caller != company {
         return Err("Only company wallet can create settlements".to_string());
@@ -262,9 +291,7 @@ fn create_monthly_settlement(month: String) -> Result<Vec<MonthlySettlement>, St
 fn mark_settlement_paid(month: String, agent: Principal) -> Result<(), String> {
     // Only company wallet can mark as paid
     let caller = ic_cdk::api::msg_caller();
-    let company = COMPANY_WALLET.with(|w| {
-        w.borrow().ok_or("Company wallet not set".to_string())
-    })?;
+    let company = get_company_wallet()?;
     
     if caller != company {
         return Err("Only company wallet can mark settlements paid".to_string());
@@ -374,7 +401,13 @@ fn get_total_revenue() -> u64 {
 
 #[query]
 fn get_commission_rate() -> u64 {
-    COMMISSION_RATE_BPS.with(|r| *r.borrow())
+    let config = get_config();
+    config.deposit.platform_fee_basis_points
+}
+
+#[query]
+fn get_company_wallet_principal() -> Result<Principal, String> {
+    get_company_wallet()
 }
 
 // ============================================================================

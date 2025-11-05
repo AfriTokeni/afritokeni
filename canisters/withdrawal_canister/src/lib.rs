@@ -1,8 +1,30 @@
 use candid::{CandidType, Deserialize, Principal};
 use ic_cdk_macros::*;
-use serde::Serialize;
+use serde::{Serialize, Deserialize as SerdeDeserialize};
 use std::cell::RefCell;
 use std::collections::HashMap;
+
+// Configuration loaded from shared TOML
+const CONFIG_TOML: &str = include_str!("../../revenue_config.toml");
+
+#[derive(SerdeDeserialize, Clone)]
+struct RevenueConfig {
+    company_wallet: CompanyWalletConfig,
+    withdrawal: WithdrawalConfig,
+}
+
+#[derive(SerdeDeserialize, Clone)]
+struct CompanyWalletConfig {
+    principal: String,
+}
+
+#[derive(SerdeDeserialize, Clone)]
+struct WithdrawalConfig {
+    agent_commission_basis_points: u64,
+    platform_fee_basis_points: u64,
+    min_withdrawal_ugx: u64,
+    max_withdrawal_ugx: u64,
+}
 
 // ============================================================================
 // DATA STRUCTURES
@@ -54,30 +76,11 @@ pub struct ConfirmWithdrawalRequest {
 // STATE
 // ============================================================================
 
-// ============================================================================
-// CONFIGURABLE CONSTANTS - CHANGE THESE TO UPDATE FEE STRUCTURE
-// ============================================================================
-
-/// Platform fee in basis points (0.5% = 50 bps)
-/// This is charged on the withdrawal amount
-const DEFAULT_PLATFORM_FEE_BPS: u64 = 50;
-
-/// Agent fee in basis points (3% = 300 bps)
-/// This is the default agent fee. Can be dynamic 2-12% based on location
-const DEFAULT_AGENT_FEE_BPS: u64 = 300;
-
-/// Platform's cut of agent fee as percentage (10%)
-/// Platform takes 10% of the agent's earnings, agent keeps 90%
-const PLATFORM_CUT_OF_AGENT_FEE_PERCENT: u64 = 10;
-
 thread_local! {
+    static CONFIG: RefCell<Option<RevenueConfig>> = RefCell::new(None);
     static WITHDRAWALS: RefCell<HashMap<u64, WithdrawalTransaction>> = RefCell::new(HashMap::new());
     static AGENT_EARNINGS: RefCell<HashMap<Principal, AgentEarnings>> = RefCell::new(HashMap::new());
     static NEXT_WITHDRAWAL_ID: RefCell<u64> = RefCell::new(1);
-    static PLATFORM_FEE_BPS: RefCell<u64> = RefCell::new(DEFAULT_PLATFORM_FEE_BPS);
-    static AGENT_FEE_BPS: RefCell<u64> = RefCell::new(DEFAULT_AGENT_FEE_BPS);
-    static PLATFORM_CUT_OF_AGENT_FEE: RefCell<u64> = RefCell::new(PLATFORM_CUT_OF_AGENT_FEE_PERCENT);
-    static COMPANY_WALLET: RefCell<Option<Principal>> = RefCell::new(None);
 }
 
 // ============================================================================
@@ -85,8 +88,26 @@ thread_local! {
 // ============================================================================
 
 #[init]
-fn init(company_wallet: Principal) {
-    COMPANY_WALLET.with(|w| *w.borrow_mut() = Some(company_wallet));
+fn init() {
+    // Load configuration from shared TOML
+    let config: RevenueConfig = toml::from_str(CONFIG_TOML)
+        .expect("Failed to parse revenue_config.toml");
+    
+    CONFIG.with(|c| *c.borrow_mut() = Some(config));
+}
+
+fn get_config() -> RevenueConfig {
+    CONFIG.with(|c| {
+        c.borrow()
+            .clone()
+            .expect("Config not initialized. Call init() first.")
+    })
+}
+
+fn get_company_wallet() -> Result<Principal, String> {
+    let config = get_config();
+    Principal::from_text(&config.company_wallet.principal)
+        .map_err(|e| format!("Invalid company wallet principal: {}", e))
 }
 
 // ============================================================================
@@ -115,29 +136,14 @@ fn create_withdrawal_request(request: CreateWithdrawalRequest) -> Result<Withdra
     
     let withdrawal_code = generate_withdrawal_code(withdrawal_id);
     
-    // Calculate fees according to revenue model:
-    // 1. Platform fee: 0.5% of withdrawal amount
-    // 2. Agent fee: Dynamic 2-12% based on location (default 3%)
-    // 3. Platform takes 10% of agent's fee
+    // Calculate fees from config
+    let config = get_config();
     
-    let platform_fee_bps = PLATFORM_FEE_BPS.with(|p| *p.borrow());
-    let agent_fee_bps = AGENT_FEE_BPS.with(|a| *a.borrow());
-    let platform_cut = PLATFORM_CUT_OF_AGENT_FEE.with(|c| *c.borrow());
+    // Platform fee from config
+    let platform_fee = (request.amount_ugx * config.withdrawal.platform_fee_basis_points) / 10000;
     
-    // Platform fee: 0.5% of amount (50 bps)
-    let platform_base_fee = (request.amount_ugx * platform_fee_bps) / 10000;
-    
-    // Agent fee: 3% of amount (300 bps) - TODO: Make dynamic based on location
-    let agent_total_fee = (request.amount_ugx * agent_fee_bps) / 10000;
-    
-    // Platform gets 10% of agent's fee
-    let platform_cut_of_agent = (agent_total_fee * platform_cut) / 100;
-    
-    // Total platform revenue
-    let platform_fee = platform_base_fee + platform_cut_of_agent;
-    
-    // Agent keeps 90% of their fee
-    let agent_fee = agent_total_fee - platform_cut_of_agent;
+    // Agent fee from config
+    let agent_fee = (request.amount_ugx * config.withdrawal.agent_commission_basis_points) / 10000;
     
     let transaction = WithdrawalTransaction {
         id: withdrawal_id,
@@ -305,9 +311,13 @@ fn get_total_agent_earnings() -> u64 {
 
 #[query]
 fn get_fee_split() -> (u64, u64) {
-    let platform_bps = PLATFORM_FEE_BPS.with(|p| *p.borrow());
-    let agent_bps = AGENT_FEE_BPS.with(|a| *a.borrow());
-    (platform_bps, agent_bps)
+    let config = get_config();
+    (config.withdrawal.platform_fee_basis_points, config.withdrawal.agent_commission_basis_points)
+}
+
+#[query]
+fn get_company_wallet_principal() -> Result<Principal, String> {
+    get_company_wallet()
 }
 
 // ============================================================================
