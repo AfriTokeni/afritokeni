@@ -1,9 +1,11 @@
 <script lang="ts">
-  import { Search, Filter, Download, Activity, Info } from "lucide-svelte";
+  import { Search, Filter, Download, Activity, Info, ChevronDown } from "lucide-svelte";
   import { onMount } from "svelte";
-  import type { ApexOptions } from 'apexcharts';
-  import { Chart } from '@flowbite-svelte-plugins/chart';
+  import type { ApexOptions } from "apexcharts";
+  import { Chart } from "@flowbite-svelte-plugins/chart";
+  import { Button, Dropdown, DropdownItem } from 'flowbite-svelte';
 
+  let chartDateRange = $state<'7' | '30' | '90'>('30');
   let searchQuery = $state("");
   let filterType = $state("all");
   let filterStatus = $state("all");
@@ -72,27 +74,53 @@
     completed: 3201,
     pending: 12,
     failed: 5,
-    totalVolume: 1245678
+    totalVolume: 1245678,
   });
+
+  // Generate transaction volume chart data
+  function getVolumeChartData() {
+    if (chartDateRange === '7') {
+      return {
+        categories: ['Oct 29', 'Oct 30', 'Oct 31', 'Nov 1', 'Nov 2', 'Nov 3', 'Nov 4'],
+        deposits: [420, 532, 516, 575, 519, 623, 584],
+        withdrawals: [336, 412, 398, 445, 402, 478, 451],
+        exchanges: [245, 298, 276, 312, 289, 345, 318],
+      };
+    } else if (chartDateRange === '30') {
+      return {
+        categories: ['Oct 5', 'Oct 10', 'Oct 15', 'Oct 20', 'Oct 25', 'Oct 30', 'Nov 4'],
+        deposits: [2100, 2300, 2450, 2600, 2750, 2900, 3050],
+        withdrawals: [1680, 1840, 1960, 2080, 2200, 2320, 2440],
+        exchanges: [1225, 1340, 1430, 1520, 1610, 1700, 1790],
+      };
+    } else {
+      return {
+        categories: ['Aug', 'Sep', 'Oct', 'Nov'],
+        deposits: [6300, 7200, 8100, 9000],
+        withdrawals: [5040, 5760, 6480, 7200],
+        exchanges: [3675, 4200, 4725, 5250],
+      };
+    }
+  }
   
-  // Transaction volume chart (last 7 days)
-  let volumeChartOptions: ApexOptions = {
+  // Transaction volume chart
+  let volumeChartOptions = $derived<ApexOptions>({
     chart: {
-      height: '320px',
-      type: 'bar',
-      fontFamily: 'Inter, sans-serif',
+      height: "320px",
+      type: "bar",
+      fontFamily: "Inter, sans-serif",
       toolbar: { show: false },
     },
     plotOptions: {
       bar: {
         horizontal: false,
-        columnWidth: '70%',
+        columnWidth: "70%",
         borderRadius: 8,
       },
     },
     tooltip: { enabled: true },
     dataLabels: { enabled: false },
-    stroke: { show: true, width: 1, colors: ['transparent'] },
+    stroke: { show: true, width: 1, colors: ["transparent"] },
     grid: {
       show: true,
       strokeDashArray: 4,
@@ -100,28 +128,28 @@
     },
     series: [
       {
-        name: 'Deposits',
-        data: [420, 532, 516, 575, 519, 623, 584],
-        color: '#3b82f6',
+        name: "Deposits",
+        data: getVolumeChartData().deposits,
+        color: "#3b82f6",
       },
       {
-        name: 'Withdrawals',
-        data: [336, 412, 398, 445, 402, 478, 451],
-        color: '#8b5cf6',
+        name: "Withdrawals",
+        data: getVolumeChartData().withdrawals,
+        color: "#8b5cf6",
       },
       {
-        name: 'Exchanges',
-        data: [245, 298, 276, 312, 289, 345, 318],
-        color: '#22c55e',
+        name: "Exchanges",
+        data: getVolumeChartData().exchanges,
+        color: "#22c55e",
       },
     ],
     xaxis: {
-      categories: ['Oct 29', 'Oct 30', 'Oct 31', 'Nov 1', 'Nov 2', 'Nov 3', 'Nov 4'],
+      categories: getVolumeChartData().categories,
       labels: {
         show: true,
         style: {
-          fontFamily: 'Inter, sans-serif',
-          cssClass: 'text-xs font-normal fill-gray-500',
+          fontFamily: "Inter, sans-serif",
+          cssClass: "text-xs font-normal fill-gray-500",
         },
       },
       axisBorder: { show: false },
@@ -130,8 +158,8 @@
     yaxis: {
       show: true,
     },
-    legend: { show: true, position: 'top' },
-  };
+    legend: { show: true, position: "top" },
+  });
 
   // Simulate real-time updates
   onMount(() => {
@@ -182,16 +210,33 @@
 
 <div class="space-y-4 sm:space-y-6">
   <!-- Transaction Volume Chart -->
-  <div class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6">
-    <div class="mb-4 sm:mb-6">
-      <h3 class="text-base font-semibold text-gray-900 sm:text-lg">Transaction Volume</h3>
-      <p class="text-xs text-gray-500 sm:text-sm">Last 7 days by type</p>
+  <div
+    class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+  >
+    <div class="mb-4 flex items-center justify-between sm:mb-6">
+      <div>
+        <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
+          Transaction Volume
+        </h3>
+        <p class="text-xs text-gray-500 sm:text-sm">Volume by type</p>
+      </div>
+      <div class="relative">
+        <Button size="sm" color="light" class="gap-2">
+          {chartDateRange === '7' ? 'Last 7 days' : chartDateRange === '30' ? 'Last 30 days' : 'Last 3 months'}
+          <ChevronDown class="h-4 w-4" />
+        </Button>
+        <Dropdown class="z-50 w-44">
+          <DropdownItem onclick={() => chartDateRange = '7'}>Last 7 days</DropdownItem>
+          <DropdownItem onclick={() => chartDateRange = '30'}>Last 30 days</DropdownItem>
+          <DropdownItem onclick={() => chartDateRange = '90'}>Last 3 months</DropdownItem>
+        </Dropdown>
+      </div>
     </div>
     <div class="h-64 sm:h-80">
       <Chart options={volumeChartOptions} />
     </div>
   </div>
-  
+
   <!-- Stats Overview -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-5">
     <div

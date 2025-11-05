@@ -6,9 +6,13 @@
     Banknote,
     ArrowUpRight,
     Info,
+    ChevronDown,
   } from "lucide-svelte";
-  import type { ApexOptions } from 'apexcharts';
-  import { Chart } from '@flowbite-svelte-plugins/chart';
+  import type { ApexOptions } from "apexcharts";
+  import { Chart } from "@flowbite-svelte-plugins/chart";
+  import { Button, Dropdown, DropdownItem } from 'flowbite-svelte';
+  
+  let chartDateRange = $state<'30' | '90' | '180'>('90');
 
   // Mock revenue data
   let revenueStats = $state({
@@ -76,19 +80,45 @@
     { month: "Aug 2024", revenue: 34820, growth: 15.3 },
     { month: "Jul 2024", revenue: 30200, growth: 9.8 },
   ]);
+
+  // Generate revenue chart data based on date range
+  function getRevenueChartData() {
+    if (chartDateRange === '30') {
+      return {
+        categories: ['Oct 5', 'Oct 12', 'Oct 19', 'Oct 26', 'Nov 2'],
+        totalRevenue: [42000, 43200, 44100, 44800, 45678],
+        deposits: [26000, 26800, 27400, 28000, 28450],
+        withdrawals: [11800, 12000, 12150, 12250, 12340],
+      };
+    } else if (chartDateRange === '90') {
+      return {
+        categories: ['Aug', 'Sep', 'Oct', 'Nov'],
+        totalRevenue: [34820, 39150, 42340, 45678],
+        deposits: [21200, 24000, 26500, 28450],
+        withdrawals: [10500, 11800, 12100, 12340],
+      };
+    } else {
+      return {
+        categories: ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'],
+        totalRevenue: [28500, 30200, 34820, 39150, 42340, 45678],
+        deposits: [17500, 18500, 21200, 24000, 26500, 28450],
+        withdrawals: [8800, 9200, 10500, 11800, 12100, 12340],
+      };
+    }
+  }
   
   // Revenue trend chart
-  let revenueChartOptions: ApexOptions = {
+  let revenueChartOptions = $derived<ApexOptions>({
     chart: {
-      height: '350px',
-      type: 'line',
-      fontFamily: 'Inter, sans-serif',
+      height: "350px",
+      type: "line",
+      fontFamily: "Inter, sans-serif",
       dropShadow: { enabled: false },
       toolbar: { show: false },
     },
     tooltip: { enabled: true },
     dataLabels: { enabled: false },
-    stroke: { width: 3, curve: 'smooth' },
+    stroke: { width: 3, curve: "smooth" },
     grid: {
       show: true,
       strokeDashArray: 4,
@@ -96,28 +126,28 @@
     },
     series: [
       {
-        name: 'Total Revenue',
-        data: [30200, 34820, 39150, 42340, 45678],
-        color: '#3b82f6',
+        name: "Total Revenue",
+        data: getRevenueChartData().totalRevenue,
+        color: "#3b82f6",
       },
       {
-        name: 'Deposit Commissions',
-        data: [18500, 21200, 24000, 26500, 28450],
-        color: '#8b5cf6',
+        name: "Deposit Commissions",
+        data: getRevenueChartData().deposits,
+        color: "#8b5cf6",
       },
       {
-        name: 'Withdrawal Fees',
-        data: [9200, 10500, 11800, 12100, 12340],
-        color: '#22c55e',
+        name: "Withdrawal Fees",
+        data: getRevenueChartData().withdrawals,
+        color: "#22c55e",
       },
     ],
     xaxis: {
-      categories: ['Jul', 'Aug', 'Sep', 'Oct', 'Nov'],
+      categories: getRevenueChartData().categories,
       labels: {
         show: true,
         style: {
-          fontFamily: 'Inter, sans-serif',
-          cssClass: 'text-xs font-normal fill-gray-500',
+          fontFamily: "Inter, sans-serif",
+          cssClass: "text-xs font-normal fill-gray-500",
         },
       },
       axisBorder: { show: false },
@@ -126,25 +156,42 @@
     yaxis: {
       show: true,
       labels: {
-        formatter: (value) => '$' + value.toLocaleString(),
+        formatter: (value) => "$" + value.toLocaleString(),
       },
     },
-    legend: { show: true, position: 'top' },
-  };
+    legend: { show: true, position: "top" },
+  });
 </script>
 
 <div class="space-y-4 sm:space-y-6">
   <!-- Revenue Trend Chart -->
-  <div class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6">
-    <div class="mb-4 sm:mb-6">
-      <h3 class="text-base font-semibold text-gray-900 sm:text-lg">Revenue Trend</h3>
-      <p class="text-xs text-gray-500 sm:text-sm">Last 5 months performance</p>
+  <div
+    class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+  >
+    <div class="mb-4 flex items-center justify-between sm:mb-6">
+      <div>
+        <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
+          Revenue Trend
+        </h3>
+        <p class="text-xs text-gray-500 sm:text-sm">Revenue over time</p>
+      </div>
+      <div class="relative">
+        <Button size="sm" color="light" class="gap-2">
+          {chartDateRange === '30' ? 'Last 30 days' : chartDateRange === '90' ? 'Last 3 months' : 'Last 6 months'}
+          <ChevronDown class="h-4 w-4" />
+        </Button>
+        <Dropdown class="z-50 w-44">
+          <DropdownItem onclick={() => chartDateRange = '30'}>Last 30 days</DropdownItem>
+          <DropdownItem onclick={() => chartDateRange = '90'}>Last 3 months</DropdownItem>
+          <DropdownItem onclick={() => chartDateRange = '180'}>Last 6 months</DropdownItem>
+        </Dropdown>
+      </div>
     </div>
     <div class="h-64 sm:h-80">
       <Chart options={revenueChartOptions} />
     </div>
   </div>
-  
+
   <!-- Revenue Overview Cards -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
     <!-- Total Revenue -->

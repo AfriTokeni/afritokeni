@@ -7,17 +7,46 @@
     User,
     MapPin,
     Info,
+    ChevronDown,
   } from "lucide-svelte";
-  import type { ApexOptions } from 'apexcharts';
-  import { Chart } from '@flowbite-svelte-plugins/chart';
+  import type { ApexOptions } from "apexcharts";
+  import { Chart } from "@flowbite-svelte-plugins/chart";
+  import { Button, Dropdown, DropdownItem } from 'flowbite-svelte';
 
   let activeTab = $state<"pending" | "approved" | "rejected">("pending");
   let showReviewModal = $state(false);
   let selectedKYC = $state<any>(null);
   let rejectionReason = $state("");
+  let chartDateRange = $state<'7' | '30' | '90'>('30');
+
+  // Generate chart data based on date range
+  function getChartData() {
+    if (chartDateRange === '7') {
+      return {
+        categories: ['Oct 29', 'Oct 30', 'Oct 31', 'Nov 1', 'Nov 2', 'Nov 3', 'Nov 4'],
+        submissions: [12, 15, 8, 18, 14, 22, 19],
+        approved: [10, 12, 7, 15, 11, 18, 16],
+        rejected: [2, 3, 1, 3, 3, 4, 3],
+      };
+    } else if (chartDateRange === '30') {
+      return {
+        categories: ['Oct 5', 'Oct 8', 'Oct 11', 'Oct 14', 'Oct 17', 'Oct 20', 'Oct 23', 'Oct 26', 'Oct 29', 'Nov 1', 'Nov 4'],
+        submissions: [8, 12, 10, 15, 13, 18, 16, 20, 17, 22, 19],
+        approved: [7, 10, 8, 12, 11, 15, 13, 17, 14, 18, 16],
+        rejected: [1, 2, 2, 3, 2, 3, 3, 3, 3, 4, 3],
+      };
+    } else {
+      return {
+        categories: ['Aug 6', 'Aug 16', 'Aug 26', 'Sep 5', 'Sep 15', 'Sep 25', 'Oct 5', 'Oct 15', 'Oct 25', 'Nov 4'],
+        submissions: [5, 8, 10, 12, 14, 16, 18, 20, 22, 19],
+        approved: [4, 7, 8, 10, 12, 13, 15, 17, 18, 16],
+        rejected: [1, 1, 2, 2, 2, 3, 3, 3, 4, 3],
+      };
+    }
+  }
   
   // KYC submissions trend chart options
-  let chartOptions: ApexOptions = {
+  let chartOptions = $derived<ApexOptions>({
     chart: {
       height: '320px',
       type: 'area',
@@ -45,22 +74,22 @@
     series: [
       {
         name: 'Submissions',
-        data: [12, 15, 8, 18, 14, 22, 19],
+        data: getChartData().submissions,
         color: '#3b82f6',
       },
       {
         name: 'Approved',
-        data: [10, 12, 7, 15, 11, 18, 16],
+        data: getChartData().approved,
         color: '#22c55e',
       },
       {
         name: 'Rejected',
-        data: [2, 3, 1, 3, 3, 4, 3],
+        data: getChartData().rejected,
         color: '#ef4444',
       },
     ],
     xaxis: {
-      categories: ['Oct 29', 'Oct 30', 'Oct 31', 'Nov 1', 'Nov 2', 'Nov 3', 'Nov 4'],
+      categories: getChartData().categories,
       labels: {
         show: true,
         style: {
@@ -73,7 +102,7 @@
     },
     yaxis: { show: true },
     legend: { show: true, position: 'top' },
-  };
+  });
 
   // Mock KYC data
   let pendingKYC = $state([
@@ -208,15 +237,28 @@
 <div class="space-y-4 sm:space-y-6">
   <!-- KYC Submissions Trend Chart -->
   <div class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6">
-    <div class="mb-4 sm:mb-6">
-      <h3 class="text-base font-semibold text-gray-900 sm:text-lg">KYC Submissions Trend</h3>
-      <p class="text-xs text-gray-500 sm:text-sm">Last 7 days performance</p>
+    <div class="mb-4 flex items-center justify-between sm:mb-6">
+      <div>
+        <h3 class="text-base font-semibold text-gray-900 sm:text-lg">KYC Submissions Trend</h3>
+        <p class="text-xs text-gray-500 sm:text-sm">Submissions over time</p>
+      </div>
+      <div class="relative">
+        <Button size="sm" color="light" class="gap-2">
+          {chartDateRange === '7' ? 'Last 7 days' : chartDateRange === '30' ? 'Last 30 days' : 'Last 90 days'}
+          <ChevronDown class="h-4 w-4" />
+        </Button>
+        <Dropdown class="z-50 w-44">
+          <DropdownItem onclick={() => chartDateRange = '7'}>Last 7 days</DropdownItem>
+          <DropdownItem onclick={() => chartDateRange = '30'}>Last 30 days</DropdownItem>
+          <DropdownItem onclick={() => chartDateRange = '90'}>Last 90 days</DropdownItem>
+        </Dropdown>
+      </div>
     </div>
     <div class="h-64 sm:h-80">
       <Chart options={chartOptions} />
     </div>
   </div>
-  
+
   <!-- Header with Stats -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3">
     <!-- Pending Count -->

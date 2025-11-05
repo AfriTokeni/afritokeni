@@ -1,8 +1,16 @@
 <script lang="ts">
-  import { Activity, AlertCircle, CheckCircle, Server, Database, Zap, Info } from "lucide-svelte";
+  import {
+    Activity,
+    AlertCircle,
+    CheckCircle,
+    Server,
+    Database,
+    Zap,
+    Info,
+  } from "lucide-svelte";
   import { onMount } from "svelte";
-  import type { ApexOptions } from 'apexcharts';
-  import { Chart } from '@flowbite-svelte-plugins/chart';
+  import type { ApexOptions } from "apexcharts";
+  import { Chart } from "@flowbite-svelte-plugins/chart";
 
   // Mock system data
   let canisters = $state([
@@ -63,19 +71,19 @@
     totalCycles: 13.9,
     lastDeployment: "Nov 4, 2024 3:20 PM",
   });
-  
+
   // Cycles usage trend chart
   let cyclesChartOptions: ApexOptions = {
     chart: {
-      height: '320px',
-      type: 'line',
-      fontFamily: 'Inter, sans-serif',
+      height: "320px",
+      type: "line",
+      fontFamily: "Inter, sans-serif",
       dropShadow: { enabled: false },
       toolbar: { show: false },
     },
     tooltip: { enabled: true },
     dataLabels: { enabled: false },
-    stroke: { width: 3, curve: 'smooth' },
+    stroke: { width: 3, curve: "smooth" },
     grid: {
       show: true,
       strokeDashArray: 4,
@@ -83,28 +91,36 @@
     },
     series: [
       {
-        name: 'Deposit Canister',
+        name: "Deposit Canister",
         data: [5.8, 5.6, 5.5, 5.4, 5.3, 5.2, 5.2],
-        color: '#3b82f6',
+        color: "#3b82f6",
       },
       {
-        name: 'Withdrawal Canister',
+        name: "Withdrawal Canister",
         data: [5.2, 5.1, 5.0, 4.9, 4.9, 4.8, 4.8],
-        color: '#8b5cf6',
+        color: "#8b5cf6",
       },
       {
-        name: 'Exchange Canister',
+        name: "Exchange Canister",
         data: [4.5, 4.3, 4.2, 4.1, 4.0, 3.9, 3.9],
-        color: '#f59e0b',
+        color: "#f59e0b",
       },
     ],
     xaxis: {
-      categories: ['Oct 29', 'Oct 30', 'Oct 31', 'Nov 1', 'Nov 2', 'Nov 3', 'Nov 4'],
+      categories: [
+        "Oct 29",
+        "Oct 30",
+        "Oct 31",
+        "Nov 1",
+        "Nov 2",
+        "Nov 3",
+        "Nov 4",
+      ],
       labels: {
         show: true,
         style: {
-          fontFamily: 'Inter, sans-serif',
-          cssClass: 'text-xs font-normal fill-gray-500',
+          fontFamily: "Inter, sans-serif",
+          cssClass: "text-xs font-normal fill-gray-500",
         },
       },
       axisBorder: { show: false },
@@ -113,10 +129,10 @@
     yaxis: {
       show: true,
       labels: {
-        formatter: (value) => value.toFixed(1) + 'T',
+        formatter: (value) => value.toFixed(1) + "T",
       },
     },
-    legend: { show: true, position: 'top' },
+    legend: { show: true, position: "top" },
   };
 
   function getStatusColor(status: string) {
@@ -138,16 +154,22 @@
 
 <div class="space-y-4 sm:space-y-6">
   <!-- Cycles Usage Trend Chart -->
-  <div class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6">
+  <div
+    class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+  >
     <div class="mb-4 sm:mb-6">
-      <h3 class="text-base font-semibold text-gray-900 sm:text-lg">Cycles Usage Trend</h3>
-      <p class="text-xs text-gray-500 sm:text-sm">Last 7 days canister cycles consumption</p>
+      <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
+        Cycles Usage Trend
+      </h3>
+      <p class="text-xs text-gray-500 sm:text-sm">
+        Last 7 days canister cycles consumption
+      </p>
     </div>
     <div class="h-64 sm:h-80">
       <Chart options={cyclesChartOptions} />
     </div>
   </div>
-  
+
   <!-- System Overview -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-4">
     <div
