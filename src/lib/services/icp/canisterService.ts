@@ -4,7 +4,10 @@
  */
 
 import { Actor, HttpAgent } from "@dfinity/agent";
-import { PUBLIC_DEPOSIT_CANISTER_ID, PUBLIC_DFX_NETWORK } from "$env/static/public";
+import {
+  PUBLIC_DEPOSIT_CANISTER_ID,
+  PUBLIC_DFX_NETWORK,
+} from "$env/static/public";
 
 // Determine IC host based on network
 if (!PUBLIC_DFX_NETWORK) {
@@ -64,6 +67,7 @@ async function createActor(canisterId: string) {
 
 /**
  * Get canister status from ICP Management Canister
+ * Note: Without controller access, we cannot query cycles or memory
  */
 export async function getCanisterStatus(canisterId: string): Promise<{
   cycles: number | null;
@@ -77,10 +81,10 @@ export async function getCanisterStatus(canisterId: string): Promise<{
     const isAlive = await pingCanister(canisterId);
 
     return {
-      cycles: null, // Can't get real cycles without controller access
+      cycles: null, // Requires controller access to Management Canister
       status: isAlive ? "healthy" : "error",
       uptime: isAlive ? "99.9%" : "0%",
-      memorySize: null, // Can't get real memory without controller access
+      memorySize: null, // Requires controller access to Management Canister
     };
   } catch (error) {
     console.error(`Error getting status for canister ${canisterId}:`, error);

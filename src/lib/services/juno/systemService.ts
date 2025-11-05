@@ -110,7 +110,7 @@ export async function getCanisterStatus(): Promise<CanisterStatus[]> {
 export async function getSystemHealth(): Promise<SystemHealth> {
   try {
     const canisters = await getCanisterStatus();
-    // Can't calculate total cycles if any are null (no controller access)
+    // Can't calculate total cycles without controller access
     const totalCycles = canisters.every((c) => c.cycles !== null)
       ? canisters.reduce((sum, c) => sum + (c.cycles as number), 0)
       : 0;

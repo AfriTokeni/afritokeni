@@ -109,6 +109,15 @@
       errorLogs = logsData;
       apiStatus = apiData;
 
+      // Check if we have controller access to canisters
+      const hasControllerAccess = canisters.some((c) => c.cycles !== null);
+      if (!hasControllerAccess) {
+        toast.show(
+          "warning",
+          "Cycles data unavailable: Requires controller access to canisters"
+        );
+      }
+
       await loadChartData();
     } catch (error) {
       console.error("Error loading system data:", error);
@@ -269,7 +278,7 @@
 
       <StatCard
         label="Total Cycles"
-        value={systemHealth ? `${systemHealth.totalCycles}T` : "N/A"}
+        value={systemHealth && systemHealth.totalCycles > 0 ? `${(systemHealth.totalCycles / 1_000_000_000_000).toFixed(2)}T` : "N/A"}
         trend={systemHealth?.cycleTrend}
         trendLabel="vs last period"
         onClick={() => scrollToSection("canisters")}
@@ -369,7 +378,7 @@
               <div class="text-right">
                 <p class="text-sm font-semibold text-gray-500">Cycles</p>
                 <p class="font-mono text-lg font-bold text-gray-900">
-                  {canister.cycles}T
+                  {canister.cycles !== null ? `${(canister.cycles / 1_000_000_000_000).toFixed(2)}T` : "N/A"}
                 </p>
               </div>
             </div>
