@@ -10,11 +10,11 @@
     ChevronDown,
   } from "lucide-svelte";
   import { onMount } from "svelte";
-  import type { ApexOptions } from 'apexcharts';
-  import { Chart } from '@flowbite-svelte-plugins/chart';
-  import { Button, Dropdown, DropdownItem } from 'flowbite-svelte';
-  
-  let chartDateRange = $state<'7' | '30' | '90'>('30');
+  import type { ApexOptions } from "apexcharts";
+  import { Chart } from "@flowbite-svelte-plugins/chart";
+  import { Button, Dropdown, DropdownItem } from "flowbite-svelte";
+
+  let chartDateRange = $state<"7" | "30" | "90">("30");
 
   // Mock data - will be replaced with real canister/Juno data
   let stats = $state({
@@ -30,45 +30,61 @@
 
   // Generate revenue chart data based on date range
   function getRevenueChartData() {
-    if (chartDateRange === '7') {
+    if (chartDateRange === "7") {
       return {
-        categories: ['Oct 29', 'Oct 30', 'Oct 31', 'Nov 1', 'Nov 2', 'Nov 3', 'Nov 4'],
+        categories: [
+          "Oct 29",
+          "Oct 30",
+          "Oct 31",
+          "Nov 1",
+          "Nov 2",
+          "Nov 3",
+          "Nov 4",
+        ],
         revenue: [42000, 43500, 41800, 44200, 43000, 45000, 45385],
       };
-    } else if (chartDateRange === '30') {
+    } else if (chartDateRange === "30") {
       return {
-        categories: ['Oct 5', 'Oct 10', 'Oct 15', 'Oct 20', 'Oct 25', 'Oct 30', 'Nov 4'],
+        categories: [
+          "Oct 5",
+          "Oct 10",
+          "Oct 15",
+          "Oct 20",
+          "Oct 25",
+          "Oct 30",
+          "Nov 4",
+        ],
         revenue: [38000, 40000, 42000, 41000, 43000, 44500, 45385],
       };
     } else {
       return {
-        categories: ['Aug', 'Sep', 'Oct', 'Nov'],
+        categories: ["Aug", "Sep", "Oct", "Nov"],
         revenue: [35000, 39000, 42000, 45385],
       };
     }
   }
-  
+
   // Revenue trend chart
   let revenueChartOptions = $derived<ApexOptions>({
     chart: {
-      height: '320px',
-      type: 'area',
-      fontFamily: 'Inter, sans-serif',
+      height: "320px",
+      type: "area",
+      fontFamily: "Inter, sans-serif",
       dropShadow: { enabled: false },
       toolbar: { show: false },
     },
     tooltip: { enabled: true, x: { show: false } },
     fill: {
-      type: 'gradient',
+      type: "gradient",
       gradient: {
         opacityFrom: 0.55,
         opacityTo: 0,
-        shade: '#1C64F2',
-        gradientToColors: ['#1C64F2'],
+        shade: "#1C64F2",
+        gradientToColors: ["#1C64F2"],
       },
     },
     dataLabels: { enabled: false },
-    stroke: { width: 2, curve: 'smooth' },
+    stroke: { width: 2, curve: "smooth" },
     grid: {
       show: true,
       strokeDashArray: 4,
@@ -76,9 +92,9 @@
     },
     series: [
       {
-        name: 'Revenue',
+        name: "Revenue",
         data: getRevenueChartData().revenue,
-        color: '#3b82f6',
+        color: "#3b82f6",
       },
     ],
     xaxis: {
@@ -86,8 +102,8 @@
       labels: {
         show: true,
         style: {
-          fontFamily: 'Inter, sans-serif',
-          cssClass: 'text-xs font-normal fill-gray-500',
+          fontFamily: "Inter, sans-serif",
+          cssClass: "text-xs font-normal fill-gray-500",
         },
       },
       axisBorder: { show: false },
@@ -96,7 +112,7 @@
     yaxis: {
       show: true,
       labels: {
-        formatter: (value) => '$' + value.toLocaleString(),
+        formatter: (value) => "$" + value.toLocaleString(),
       },
     },
     legend: { show: false },
@@ -305,13 +321,23 @@
       </div>
       <div class="relative">
         <Button size="sm" color="light" class="gap-2">
-          {chartDateRange === '7' ? 'Last 7 days' : chartDateRange === '30' ? 'Last 30 days' : 'Last 3 months'}
+          {chartDateRange === "7"
+            ? "Last 7 days"
+            : chartDateRange === "30"
+              ? "Last 30 days"
+              : "Last 3 months"}
           <ChevronDown class="h-4 w-4" />
         </Button>
         <Dropdown class="z-50 w-44 !shadow-md">
-          <DropdownItem onclick={() => chartDateRange = '7'}>Last 7 days</DropdownItem>
-          <DropdownItem onclick={() => chartDateRange = '30'}>Last 30 days</DropdownItem>
-          <DropdownItem onclick={() => chartDateRange = '90'}>Last 3 months</DropdownItem>
+          <DropdownItem onclick={() => (chartDateRange = "7")}
+            >Last 7 days</DropdownItem
+          >
+          <DropdownItem onclick={() => (chartDateRange = "30")}
+            >Last 30 days</DropdownItem
+          >
+          <DropdownItem onclick={() => (chartDateRange = "90")}
+            >Last 3 months</DropdownItem
+          >
         </Dropdown>
       </div>
     </div>

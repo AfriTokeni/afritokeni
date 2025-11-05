@@ -7,10 +7,14 @@
     Database,
     Zap,
     Info,
+    ChevronDown,
   } from "lucide-svelte";
   import { onMount } from "svelte";
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
+  import { Button, Dropdown, DropdownItem } from 'flowbite-svelte';
+  
+  let chartDateRange = $state<'7' | '30' | '90'>('30');
 
   // Mock system data
   let canisters = $state([
@@ -72,18 +76,51 @@
     lastDeployment: "Nov 4, 2024 3:20 PM",
   });
 
+  // Generate cycles chart data based on date range
+  function getCyclesChartData() {
+    if (chartDateRange === '7') {
+      return {
+        categories: ['Oct 29', 'Oct 30', 'Oct 31', 'Nov 1', 'Nov 2', 'Nov 3', 'Nov 4'],
+        deposit: [5.8, 5.6, 5.5, 5.4, 5.3, 5.2, 5.2],
+        withdrawal: [5.2, 5.1, 5.0, 4.9, 4.9, 4.8, 4.8],
+        exchange: [4.5, 4.3, 4.2, 4.1, 4.0, 3.9, 3.9],
+      };
+    } else if (chartDateRange === '30') {
+      return {
+        categories: ['Oct 5', 'Oct 10', 'Oct 15', 'Oct 20', 'Oct 25', 'Oct 30', 'Nov 4'],
+        deposit: [6.5, 6.2, 5.9, 5.7, 5.5, 5.3, 5.2],
+        withdrawal: [5.8, 5.6, 5.4, 5.2, 5.0, 4.9, 4.8],
+        exchange: [5.2, 4.9, 4.7, 4.5, 4.3, 4.1, 3.9],
+      };
+    } else {
+      return {
+        categories: ['Aug', 'Sep', 'Oct', 'Nov'],
+        deposit: [7.5, 6.8, 6.0, 5.2],
+        withdrawal: [6.5, 5.9, 5.3, 4.8],
+        exchange: [6.0, 5.2, 4.6, 3.9],
+      };
+    }
+  }
+  
   // Cycles usage trend chart
-  let cyclesChartOptions: ApexOptions = {
+  let cyclesChartOptions = $derived<ApexOptions>({
     chart: {
       height: "320px",
-      type: "line",
+      type: "area",
       fontFamily: "Inter, sans-serif",
       dropShadow: { enabled: false },
       toolbar: { show: false },
     },
-    tooltip: { enabled: true },
+    tooltip: { enabled: true, x: { show: false } },
+    fill: {
+      type: 'gradient',
+      gradient: {
+        opacityFrom: 0.55,
+        opacityTo: 0,
+      },
+    },
     dataLabels: { enabled: false },
-    stroke: { width: 3, curve: "smooth" },
+    stroke: { width: 2, curve: "smooth" },
     grid: {
       show: true,
       strokeDashArray: 4,
@@ -92,30 +129,22 @@
     series: [
       {
         name: "Deposit Canister",
-        data: [5.8, 5.6, 5.5, 5.4, 5.3, 5.2, 5.2],
+        data: getCyclesChartData().deposit,
         color: "#3b82f6",
       },
       {
         name: "Withdrawal Canister",
-        data: [5.2, 5.1, 5.0, 4.9, 4.9, 4.8, 4.8],
+        data: getCyclesChartData().withdrawal,
         color: "#8b5cf6",
       },
       {
         name: "Exchange Canister",
-        data: [4.5, 4.3, 4.2, 4.1, 4.0, 3.9, 3.9],
+        data: getCyclesChartData().exchange,
         color: "#f59e0b",
       },
     ],
     xaxis: {
-      categories: [
-        "Oct 29",
-        "Oct 30",
-        "Oct 31",
-        "Nov 1",
-        "Nov 2",
-        "Nov 3",
-        "Nov 4",
-      ],
+      categories: getCyclesChartData().categories,
       labels: {
         show: true,
         style: {
@@ -133,7 +162,7 @@
       },
     },
     legend: { show: true, position: "top" },
-  };
+  });
 
   function getStatusColor(status: string) {
     if (status === "healthy" || status === "operational")
@@ -157,13 +186,26 @@
   <div
     class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
   >
-    <div class="mb-4 sm:mb-6">
-      <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
-        Cycles Usage Trend
-      </h3>
-      <p class="text-xs text-gray-500 sm:text-sm">
-        Last 7 days canister cycles consumption
-      </p>
+    <div class="mb-4 flex items-center justify-between sm:mb-6">
+      <div>
+        <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
+          Cycles Usage Trend
+        </h3>
+        <p class="text-xs text-gray-500 sm:text-sm">
+          Canister cycles consumption
+        </p>
+      </div>
+      <div class="relative">
+        <Button size="sm" color="light" class="gap-2">
+          {chartDateRange === '7' ? 'Last 7 days' : chartDateRange === '30' ? 'Last 30 days' : 'Last 3 months'}
+          <ChevronDown class="h-4 w-4" />
+        </Button>
+        <Dropdown class="z-50 w-44 !shadow-md">
+          <DropdownItem onclick={() => chartDateRange = '7'}>Last 7 days</DropdownItem>
+          <DropdownItem onclick={() => chartDateRange = '30'}>Last 30 days</DropdownItem>
+          <DropdownItem onclick={() => chartDateRange = '90'}>Last 3 months</DropdownItem>
+        </Dropdown>
+      </div>
     </div>
     <div class="h-64 sm:h-80">
       <Chart options={cyclesChartOptions} />
