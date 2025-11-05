@@ -120,3 +120,48 @@ export async function getUserActivity(userId: string): Promise<UserActivity> {
     throw new Error("Failed to load user activity");
   }
 }
+
+/**
+ * Get user growth chart data
+ */
+export async function getUserGrowthData(): Promise<{
+  categories: string[];
+  totalUsers: number[];
+  activeUsers: number[];
+}> {
+  try {
+    const users = await listUsers();
+    
+    // Group users by join date (last 7 days)
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (6 - i));
+      return date;
+    });
+
+    const categories = last7Days.map(date => 
+      date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    );
+
+    // Count users who joined by each day (cumulative)
+    const totalUsers = last7Days.map((date, index) => {
+      return users.filter(user => {
+        const joinDate = new Date(user.joinedAt);
+        return joinDate <= date;
+      }).length;
+    });
+
+    // Count active users per day
+    const activeUsers = last7Days.map(date => {
+      return users.filter(user => {
+        const lastActive = new Date(user.lastActive);
+        return lastActive.toDateString() === date.toDateString();
+      }).length;
+    });
+
+    return { categories, totalUsers, activeUsers };
+  } catch (error) {
+    console.error("Error getting user growth data:", error);
+    throw new Error("Failed to load user growth data");
+  }
+}

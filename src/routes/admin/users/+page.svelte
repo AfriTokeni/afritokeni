@@ -18,7 +18,8 @@
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
   import StatCard from "$lib/components/admin/StatCard.svelte";
-  import { listUsers, getUserStats } from "$lib/services/juno/userService";
+  import SearchBar from "$lib/components/admin/SearchBar.svelte";
+  import { listUsers, getUserStats, getUserGrowthData } from "$lib/services/juno/userService";
   import { junoInitialized } from "$lib/stores/auth";
   import { toast } from "$lib/stores/toast";
   import type { UserProfile, UserStats } from "$lib/types/admin";
@@ -65,13 +66,36 @@
     
     isLoading = true;
     try {
-      const [usersData, statsData] = await Promise.all([
+      const [usersData, statsData, chartData] = await Promise.all([
         listUsers({ kycStatus: filterKYC, searchQuery }),
         getUserStats(),
+        getUserGrowthData(),
       ]);
       
       users = usersData;
       stats = statsData;
+      
+      // Update chart with real data
+      userGrowthOptions = {
+        ...userGrowthOptions,
+        series: [
+          {
+            name: "Total Users",
+            data: chartData.totalUsers,
+            color: "#3b82f6",
+          },
+          {
+            name: "Active Users",
+            data: chartData.activeUsers,
+            color: "#8b5cf6",
+          },
+        ],
+        xaxis: {
+          ...userGrowthOptions.xaxis,
+          categories: chartData.categories,
+        },
+      };
+      
       lastUpdated = new Date().toLocaleTimeString();
     } catch (error) {
       console.error("Error loading users:", error);
@@ -242,19 +266,10 @@
     class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
   >
     <div class="flex flex-wrap gap-4">
-      <div class="min-w-[200px] flex-1">
-        <div class="relative">
-          <Search
-            class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400"
-          />
-          <input
-            type="text"
-            bind:value={searchQuery}
-            placeholder="Search by name, email, or phone..."
-            class="w-full rounded-lg border border-gray-200 py-2 pr-4 pl-10 text-sm focus:border-blue-600 focus:ring-2 focus:ring-blue-600 focus:outline-none"
-          />
-        </div>
-      </div>
+      <SearchBar
+        bind:value={searchQuery}
+        placeholder="Search users..."
+      />
       <select
         bind:value={filterKYC}
         class="rounded-lg border border-gray-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-2 focus:ring-blue-600 focus:outline-none"

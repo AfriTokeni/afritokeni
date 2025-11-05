@@ -18,6 +18,7 @@
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
   import StatCard from "$lib/components/admin/StatCard.svelte";
+  import SearchBar from "$lib/components/admin/SearchBar.svelte";
   import { Button, Dropdown, DropdownItem } from "flowbite-svelte";
   import {
     banAgent,
@@ -283,19 +284,10 @@
     class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
   >
     <div class="flex flex-wrap gap-4">
-      <div class="min-w-[200px] flex-1">
-        <div class="relative">
-          <Search
-            class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400"
-          />
-          <input
-            type="text"
-            bind:value={searchQuery}
-            placeholder="Search by name or location..."
-            class="w-full rounded-lg border border-gray-200 py-2 pr-4 pl-10 text-sm focus:border-blue-600 focus:ring-2 focus:ring-blue-600 focus:outline-none"
-          />
-        </div>
-      </div>
+      <SearchBar
+        bind:value={searchQuery}
+        placeholder="Search by name or location..."
+      />
       <div class="relative">
         <Button size="sm" color="light" class="gap-2">
           {filterStatus === "all"
