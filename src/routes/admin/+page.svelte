@@ -10,6 +10,7 @@
     ChevronDown,
   } from "lucide-svelte";
   import { onMount } from "svelte";
+  import { goto } from '$app/navigation';
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
   import { Button, Dropdown, DropdownItem } from "flowbite-svelte";
@@ -30,36 +31,38 @@
 
   // Generate revenue chart data based on date range
   function getRevenueChartData() {
-    if (chartDateRange === "7") {
+    if (chartDateRange === '7') {
+      const platformFees = [210, 217.5, 209, 221, 215, 225, 226.9];
+      const agentFees = [4200, 4350, 4180, 4420, 4300, 4500, 4538.5];
+      const exchangeSpreads = [210, 217.5, 209, 221, 215, 225, 226.9];
       return {
-        categories: [
-          "Oct 29",
-          "Oct 30",
-          "Oct 31",
-          "Nov 1",
-          "Nov 2",
-          "Nov 3",
-          "Nov 4",
-        ],
-        revenue: [42000, 43500, 41800, 44200, 43000, 45000, 45385],
+        categories: ['Oct 29', 'Oct 30', 'Oct 31', 'Nov 1', 'Nov 2', 'Nov 3', 'Nov 4'],
+        totalRevenue: platformFees.map((p, i) => p + agentFees[i] + exchangeSpreads[i]),
+        platformFees,
+        agentFees,
+        exchangeSpreads,
       };
     } else if (chartDateRange === "30") {
+      const platformFees = [190, 200, 210, 205, 215, 222.5, 226.9];
+      const agentFees = [3800, 4000, 4200, 4100, 4300, 4450, 4538.5];
+      const exchangeSpreads = [190, 200, 210, 205, 215, 222.5, 226.9];
       return {
-        categories: [
-          "Oct 5",
-          "Oct 10",
-          "Oct 15",
-          "Oct 20",
-          "Oct 25",
-          "Oct 30",
-          "Nov 4",
-        ],
-        revenue: [38000, 40000, 42000, 41000, 43000, 44500, 45385],
+        categories: ['Oct 5', 'Oct 10', 'Oct 15', 'Oct 20', 'Oct 25', 'Oct 30', 'Nov 4'],
+        totalRevenue: platformFees.map((p, i) => p + agentFees[i] + exchangeSpreads[i]),
+        platformFees,
+        agentFees,
+        exchangeSpreads,
       };
     } else {
+      const platformFees = [175, 195, 210, 226.9];
+      const agentFees = [3500, 3900, 4200, 4538.5];
+      const exchangeSpreads = [175, 195, 210, 226.9];
       return {
         categories: ["Aug", "Sep", "Oct", "Nov"],
-        revenue: [35000, 39000, 42000, 45385],
+        totalRevenue: platformFees.map((p, i) => p + agentFees[i] + exchangeSpreads[i]),
+        platformFees,
+        agentFees,
+        exchangeSpreads,
       };
     }
   }
@@ -92,9 +95,24 @@
     },
     series: [
       {
-        name: "Revenue",
-        data: getRevenueChartData().revenue,
+        name: "Total Revenue",
+        data: getRevenueChartData().totalRevenue,
         color: "#3b82f6",
+      },
+      {
+        name: "Platform Fees (0.5%)",
+        data: getRevenueChartData().platformFees,
+        color: "#8b5cf6",
+      },
+      {
+        name: "Agent Fees (10%)",
+        data: getRevenueChartData().agentFees,
+        color: "#22c55e",
+      },
+      {
+        name: "Exchange Spreads (0.5%)",
+        data: getRevenueChartData().exchangeSpreads,
+        color: "#f59e0b",
       },
     ],
     xaxis: {
@@ -161,8 +179,9 @@
   <!-- Stats Grid - 4 columns -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
     <!-- Revenue Card -->
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+    <button
+      onclick={() => goto('/admin/revenue')}
+      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-blue-400 hover:shadow-md sm:rounded-2xl sm:p-6"
     >
       <div class="mb-3 flex items-start justify-between sm:mb-4">
         <div class="flex-1">
@@ -200,11 +219,12 @@
         {/if}
         <span class="text-sm text-gray-500">vs last month</span>
       </div>
-    </div>
+    </button>
 
     <!-- Users Card -->
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+    <button
+      onclick={() => goto('/admin/users')}
+      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-purple-400 hover:shadow-md sm:rounded-2xl sm:p-6"
     >
       <div class="mb-3 flex items-start justify-between sm:mb-4">
         <div class="flex-1">
@@ -235,11 +255,12 @@
         >
         <span class="text-sm text-gray-500">vs last month</span>
       </div>
-    </div>
+    </button>
 
     <!-- Transactions Card -->
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+    <button
+      onclick={() => goto('/admin/transactions')}
+      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-green-400 hover:shadow-md sm:rounded-2xl sm:p-6"
     >
       <div class="mb-3 flex items-start justify-between sm:mb-4">
         <div class="flex-1">
@@ -270,11 +291,12 @@
         >
         <span class="text-sm text-gray-500">vs last month</span>
       </div>
-    </div>
+    </button>
 
     <!-- Agents Card -->
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+    <button
+      onclick={() => goto('/admin/agents')}
+      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-orange-400 hover:shadow-md sm:rounded-2xl sm:p-6"
     >
       <div class="mb-3 flex items-start justify-between sm:mb-4">
         <div class="flex-1">
@@ -305,7 +327,7 @@
         >
         <span class="text-sm text-gray-500">vs last month</span>
       </div>
-    </div>
+    </button>
   </div>
 
   <!-- Revenue Trend Chart -->
@@ -351,11 +373,11 @@
     >
       <Info class="mt-0.5 h-3 w-3 shrink-0 text-blue-600 sm:h-4 sm:w-4" />
       <div class="text-xs text-blue-900">
-        <p class="mb-1 font-semibold">Revenue Sources:</p>
+        <p class="mb-1 font-semibold">Platform Revenue Sources:</p>
         <ul class="space-y-0.5 text-blue-800">
-          <li>• Deposit commissions (5%)</li>
-          <li>• Withdrawal fees</li>
-          <li>• Exchange spread</li>
+          <li>• Platform fees (0.5% of all transactions)</li>
+          <li>• Agent network fees (10% of agent commissions)</li>
+          <li>• Exchange spreads (0.5% on crypto trades)</li>
         </ul>
       </div>
     </div>
