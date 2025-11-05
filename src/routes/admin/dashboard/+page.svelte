@@ -1,113 +1,111 @@
 <script lang="ts">
-  import {
-    TrendingUp,
-    TrendingDown,
-    Users,
-    CreditCard,
-    DollarSign,
-    Activity,
-    Info,
-    ChevronDown,
-    X,
-    CheckCircle,
-    Clock,
-    XCircle,
-    User,
-    Building2,
-    ArrowRight,
-  } from "@lucide/svelte";
+  import { Info, ChevronDown } from "@lucide/svelte";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
   import { Button, Dropdown, DropdownItem } from "flowbite-svelte";
   import StatCard from "$lib/components/admin/StatCard.svelte";
+  import { getRevenueStats, getRevenueChartData, type RevenueTransaction } from "$lib/services/juno/revenueService";
+  import { getUserStats } from "$lib/services/juno/userService";
+  import { getTransactionStats, listTransactions } from "$lib/services/juno/transactionService";
+  import { getAgentStats } from "$lib/services/juno/agentService";
+  import { toast } from "$lib/stores/toast";
+  import TransactionsTable from "$lib/components/admin/TransactionsTable.svelte";
 
   let chartDateRange = $state<"7" | "30" | "90">("30");
-  let selectedTransaction = $state<any>(null);
-  let showDetailModal = $state(false);
+  let isLoading = $state(true);
 
-  function viewTransaction(txn: any) {
-    selectedTransaction = txn;
-    showDetailModal = true;
-  }
-
-  function closeModal() {
-    showDetailModal = false;
-    selectedTransaction = null;
-  }
-
-  // Mock data - will be replaced with real canister/Juno data
+  // Real data from Juno
   let stats = $state({
-    revenue: 45385,
-    revenueChange: 4.3,
-    users: 2340,
-    usersChange: 8.5,
-    transactions: 4420,
-    transactionsChange: 12.5,
-    agents: 89,
-    agentsChange: 5.2,
+    revenue: 0,
+    revenueChange: 0,
+    users: 0,
+    usersChange: 0,
+    transactions: 0,
+    transactionsChange: 0,
+    agents: 0,
+    agentsChange: 0,
   });
 
-  // Generate revenue chart data based on date range
-  function getRevenueChartData() {
-    if (chartDateRange === "7") {
-      const platformFees = [210, 217.5, 209, 221, 215, 225, 226.9];
-      const agentFees = [4200, 4350, 4180, 4420, 4300, 4500, 4538.5];
-      const exchangeSpreads = [210, 217.5, 209, 221, 215, 225, 226.9];
-      return {
-        categories: [
-          "Oct 29",
-          "Oct 30",
-          "Oct 31",
-          "Nov 1",
-          "Nov 2",
-          "Nov 3",
-          "Nov 4",
-        ],
-        totalRevenue: platformFees.map(
-          (p, i) => p + agentFees[i] + exchangeSpreads[i],
-        ),
-        platformFees,
-        agentFees,
-        exchangeSpreads,
+  // Chart data from Juno
+  let chartData = $state({
+    categories: [] as string[],
+    totalRevenue: [] as number[],
+    deposits: [] as number[],
+    withdrawals: [] as number[],
+  });
+
+  // Latest transactions from Juno
+  let latestTransactions = $state<RevenueTransaction[]>([]);
+
+  // Load all dashboard data
+  async function loadDashboardData() {
+    isLoading = true;
+    try {
+      // Fetch all stats in parallel
+      const [revenueData, userData, transactionData, agentData, chartDataResult, transactionsResult] = await Promise.all([
+        getRevenueStats(),
+        getUserStats(),
+        getTransactionStats(),
+        getAgentStats(),
+        getRevenueChartData(Number(chartDateRange)),
+        listTransactions({ limit: 10 }),
+      ]);
+
+      // Convert transactions to RevenueTransaction format
+      const revenueTransactions: RevenueTransaction[] = transactionsResult.map(tx => ({
+        id: tx.id,
+        user: tx.userName,
+        type: tx.type,
+        amount: tx.amount,
+        fee: tx.fee,
+        time: tx.createdAt,
+        status: tx.status,
+        createdAt: tx.createdAt,
+      }));
+
+      // Update stats
+      stats = {
+        revenue: revenueData.totalRevenue,
+        revenueChange: revenueData.totalRevenueChange ?? 0,
+        users: userData.total,
+        usersChange: userData.totalChange ?? 0,
+        transactions: transactionData.total,
+        transactionsChange: 0, // Transaction service doesn't provide change yet
+        agents: agentData.total,
+        agentsChange: 0, // Agent service doesn't provide change yet
       };
-    } else if (chartDateRange === "30") {
-      const platformFees = [190, 200, 210, 205, 215, 222.5, 226.9];
-      const agentFees = [3800, 4000, 4200, 4100, 4300, 4450, 4538.5];
-      const exchangeSpreads = [190, 200, 210, 205, 215, 222.5, 226.9];
-      return {
-        categories: [
-          "Oct 5",
-          "Oct 10",
-          "Oct 15",
-          "Oct 20",
-          "Oct 25",
-          "Oct 30",
-          "Nov 4",
-        ],
-        totalRevenue: platformFees.map(
-          (p, i) => p + agentFees[i] + exchangeSpreads[i],
-        ),
-        platformFees,
-        agentFees,
-        exchangeSpreads,
-      };
-    } else {
-      const platformFees = [175, 195, 210, 226.9];
-      const agentFees = [3500, 3900, 4200, 4538.5];
-      const exchangeSpreads = [175, 195, 210, 226.9];
-      return {
-        categories: ["Aug", "Sep", "Oct", "Nov"],
-        totalRevenue: platformFees.map(
-          (p, i) => p + agentFees[i] + exchangeSpreads[i],
-        ),
-        platformFees,
-        agentFees,
-        exchangeSpreads,
-      };
+
+      // Update chart data
+      chartData = chartDataResult;
+
+      // Update latest transactions
+      latestTransactions = revenueTransactions;
+
+    } catch (error) {
+      console.error("Error loading dashboard data:", error);
+      toast.show("error", "Failed to load dashboard data");
+    } finally {
+      isLoading = false;
     }
   }
+
+  // Reload chart data when date range changes
+  async function updateChartData() {
+    try {
+      const result = await getRevenueChartData(Number(chartDateRange));
+      chartData = result;
+    } catch (error) {
+      console.error("Error updating chart data:", error);
+      toast.show("error", "Failed to update chart");
+    }
+  }
+
+  // Load data on mount
+  onMount(() => {
+    loadDashboardData();
+  });
 
   // Revenue trend chart
   let revenueChartOptions = $derived<ApexOptions>({
@@ -138,27 +136,22 @@
     series: [
       {
         name: "Total Revenue",
-        data: getRevenueChartData().totalRevenue,
+        data: chartData.totalRevenue,
         color: "#3b82f6",
       },
       {
-        name: "Platform Fees (0.5%)",
-        data: getRevenueChartData().platformFees,
-        color: "#8b5cf6",
-      },
-      {
-        name: "Agent Fees (10%)",
-        data: getRevenueChartData().agentFees,
+        name: "Deposits",
+        data: chartData.deposits,
         color: "#22c55e",
       },
       {
-        name: "Exchange Spreads (0.5%)",
-        data: getRevenueChartData().exchangeSpreads,
+        name: "Withdrawals",
+        data: chartData.withdrawals,
         color: "#f59e0b",
       },
     ],
     xaxis: {
-      categories: getRevenueChartData().categories,
+      categories: chartData.categories,
       labels: {
         show: true,
         style: {
@@ -178,43 +171,6 @@
     legend: { show: false },
   });
 
-  let topTransactions = $state([
-    {
-      id: "#FWB127364372",
-      user: "Bonnie Green",
-      date: "Apr 23, 2021",
-      amount: 2300,
-      status: "Completed",
-    },
-    {
-      id: "#FWB125467980",
-      user: "Jese Leos",
-      date: "Apr 23, 2021",
-      amount: 5467,
-      status: "Completed",
-    },
-    {
-      id: "#FWB139587023",
-      user: "Thomas Lean",
-      date: "Apr 18, 2021",
-      amount: 3902,
-      status: "Cancelled",
-    },
-    {
-      id: "#FWB142592348",
-      user: "Lana Byrd",
-      date: "Apr 15, 2021",
-      amount: 203,
-      status: "In progress",
-    },
-  ]);
-
-  function getStatusColor(status: string): string {
-    if (status === "Completed") return "bg-green-100 text-green-800";
-    if (status === "Cancelled") return "bg-red-100 text-red-800";
-    if (status === "In progress") return "bg-yellow-100 text-yellow-800";
-    return "bg-gray-100 text-gray-800";
-  }
 </script>
 
 <div class="space-y-4 sm:space-y-6">
@@ -311,10 +267,8 @@
   </div>
 
   <!-- Latest Transactions -->
-  <div
-    class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
-  >
-    <div class="mb-4 flex items-center justify-between sm:mb-6">
+  <div class="space-y-4">
+    <div class="flex items-center justify-between">
       <div>
         <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
           Latest Transactions
@@ -328,169 +282,17 @@
         View all →
       </a>
     </div>
-
-    <div class="space-y-3 sm:space-y-4">
-      {#each topTransactions as tx}
-        <button
-          onclick={() => viewTransaction(tx)}
-          class="flex w-full items-center justify-between rounded-lg border border-gray-100 p-3 text-left transition-all hover:border-blue-400 hover:shadow-md sm:p-4"
-        >
-          <div class="flex items-center space-x-3 sm:space-x-4">
-            <div
-              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-50 sm:h-12 sm:w-12"
-            >
-              <span class="text-sm font-bold text-gray-900"
-                >{tx.user.charAt(0)}</span
-              >
-            </div>
-            <div class="min-w-0">
-              <p
-                class="truncate text-sm font-semibold text-gray-900 sm:text-base"
-              >
-                {tx.user}
-              </p>
-              <p class="text-xs text-gray-500 sm:text-sm">
-                {tx.id} • {tx.date}
-              </p>
-            </div>
-          </div>
-          <div class="flex items-center space-x-3 sm:space-x-4">
-            <span
-              class="font-mono text-sm font-bold text-gray-900 sm:text-base"
-            >
-              ${tx.amount.toLocaleString()}
-            </span>
-            <span
-              class="rounded-full px-2 py-1 text-xs font-medium {getStatusColor(
-                tx.status,
-              )}"
-            >
-              {tx.status}
-            </span>
-          </div>
-        </button>
-      {/each}
-    </div>
+    
+    {#if isLoading}
+      <div class="flex items-center justify-center rounded-xl border border-gray-200 bg-white py-12">
+        <div class="text-sm text-gray-500">Loading transactions...</div>
+      </div>
+    {:else}
+      <TransactionsTable 
+        transactions={latestTransactions} 
+        showTabs={false}
+        showSearch={false}
+      />
+    {/if}
   </div>
 </div>
-
-<!-- Transaction Detail Modal -->
-{#if showDetailModal && selectedTransaction}
-  <div
-    class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4"
-  >
-    <div
-      class="max-h-[95vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-xl"
-    >
-      <!-- Header -->
-      <div
-        class="sticky top-0 z-10 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-white px-8 py-6"
-      >
-        <div class="flex items-center justify-between">
-          <div>
-            <h3 class="text-2xl font-bold text-gray-900">
-              Transaction Details
-            </h3>
-            <p class="mt-1 font-mono text-sm text-gray-500">
-              {selectedTransaction.id}
-            </p>
-          </div>
-          <button
-            onclick={closeModal}
-            class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-          >
-            <X class="h-6 w-6" />
-          </button>
-        </div>
-      </div>
-
-      <div class="p-8">
-        <div class="space-y-6">
-          <!-- Status Badge -->
-          <div class="flex items-center justify-between">
-            <span class="text-lg font-semibold text-gray-900">Status</span>
-            <span
-              class="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold {getStatusColor(
-                selectedTransaction.status,
-              )}"
-            >
-              {#if selectedTransaction.status === "completed"}
-                <CheckCircle class="h-4 w-4" />
-              {:else if selectedTransaction.status === "pending"}
-                <Clock class="h-4 w-4" />
-              {:else}
-                <XCircle class="h-4 w-4" />
-              {/if}
-              {selectedTransaction.status.toUpperCase()}
-            </span>
-          </div>
-
-          <!-- Transaction Info Grid -->
-          <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h4
-              class="mb-4 text-sm font-semibold tracking-wide text-gray-500 uppercase"
-            >
-              Transaction Information
-            </h4>
-            <div class="grid grid-cols-2 gap-6">
-              <div>
-                <p
-                  class="text-xs font-medium tracking-wide text-gray-500 uppercase"
-                >
-                  Amount
-                </p>
-                <p class="mt-2 font-mono text-lg font-bold text-gray-900">
-                  ${selectedTransaction.amount.toLocaleString()}
-                </p>
-              </div>
-              <div>
-                <p
-                  class="text-xs font-medium tracking-wide text-gray-500 uppercase"
-                >
-                  Date
-                </p>
-                <p class="mt-2 text-sm font-medium text-gray-900">
-                  {selectedTransaction.date}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- User Info -->
-          <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h4
-              class="mb-4 text-sm font-semibold tracking-wide text-gray-500 uppercase"
-            >
-              Participant Information
-            </h4>
-            <div class="space-y-4">
-              <button
-                onclick={() => goto("/admin/users")}
-                class="flex w-full items-center gap-3 rounded-lg p-3 text-left transition-all hover:bg-blue-50"
-              >
-                <User class="h-5 w-5 text-blue-600" />
-                <div class="flex-1">
-                  <p class="text-xs text-gray-500">User</p>
-                  <p class="font-semibold text-blue-600 hover:text-blue-700">
-                    {selectedTransaction.user}
-                  </p>
-                </div>
-                <ArrowRight class="h-4 w-4 text-gray-400" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Footer -->
-      <div class="border-t border-gray-100 bg-gray-50 px-8 py-6">
-        <button
-          onclick={closeModal}
-          class="w-full rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 font-semibold text-white shadow-lg transition-all hover:from-blue-700 hover:to-blue-800 hover:shadow-xl"
-        >
-          Close
-        </button>
-      </div>
-    </div>
-  </div>
-{/if}
