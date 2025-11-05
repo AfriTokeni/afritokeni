@@ -37,9 +37,16 @@
   }
 
   function isActive(path: string): boolean {
-    return (
-      page.url.pathname === path || page.url.pathname.startsWith(path + "/")
-    );
+    // For exact match (like /admin for overview)
+    if (page.url.pathname === path) {
+      return true;
+    }
+    // For sub-routes, only match if there's a / after the path
+    // This prevents /admin from matching /admin/kyc
+    if (page.url.pathname.startsWith(path + "/")) {
+      return true;
+    }
+    return false;
   }
 </script>
 

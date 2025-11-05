@@ -78,8 +78,10 @@
       </div>
 
       <div class="flex shrink-0 items-center gap-2 md:gap-4">
-        <!-- Demo Mode Toggle - Now visible on all screen sizes -->
-        <DemoModeToggle />
+        <!-- Demo Mode Toggle - Only for user/agent dashboards -->
+        {#if userType !== 'admin'}
+          <DemoModeToggle />
+        {/if}
 
         <!-- Search Bar - Hidden on mobile -->
         <form onsubmit={handleSearch} class="relative hidden lg:block">
