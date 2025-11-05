@@ -6,6 +6,7 @@
   import CollapsibleSidebar from "./CollapsibleSidebar.svelte";
   import { user_desktop_routes } from "$lib/routes/userRoutes";
   import { agent_desktop_routes } from "$lib/routes/agentRoutes";
+  import { admin_desktop_routes } from "$lib/routes/adminRoutes";
   import DemoModeToggle from "$lib/components/shared/DemoModeToggle.svelte";
 
   interface Route {
@@ -27,8 +28,12 @@
   let userName = $state("");
 
   const routes = $derived(
-    userType === "agent" ? agent_desktop_routes : user_desktop_routes,
-  ); // Can extend for agent/admin later
+    userType === "admin" 
+      ? admin_desktop_routes 
+      : userType === "agent" 
+        ? agent_desktop_routes 
+        : user_desktop_routes
+  );
 
   // Navigate to history page when user types in search
   $effect(() => {
