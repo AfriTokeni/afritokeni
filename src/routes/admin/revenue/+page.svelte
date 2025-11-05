@@ -111,14 +111,21 @@
   let revenueChartOptions = $derived<ApexOptions>({
     chart: {
       height: "350px",
-      type: "line",
+      type: "area",
       fontFamily: "Inter, sans-serif",
       dropShadow: { enabled: false },
       toolbar: { show: false },
     },
-    tooltip: { enabled: true },
+    tooltip: { enabled: true, x: { show: false } },
+    fill: {
+      type: 'gradient',
+      gradient: {
+        opacityFrom: 0.55,
+        opacityTo: 0,
+      },
+    },
     dataLabels: { enabled: false },
-    stroke: { width: 3, curve: "smooth" },
+    stroke: { width: 2, curve: "smooth" },
     grid: {
       show: true,
       strokeDashArray: 4,

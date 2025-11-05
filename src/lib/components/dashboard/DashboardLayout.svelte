@@ -79,7 +79,7 @@
 
       <div class="flex shrink-0 items-center gap-2 md:gap-4">
         <!-- Demo Mode Toggle - Only for user/agent dashboards -->
-        {#if userType !== 'admin'}
+        {#if userType !== "admin"}
           <DemoModeToggle />
         {/if}
 
