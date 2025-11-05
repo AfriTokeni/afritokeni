@@ -12,10 +12,33 @@
     ChevronLeft,
     ChevronRight,
     X,
+    RefreshCw,
   } from "@lucide/svelte";
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
   import { Button, Dropdown, DropdownItem } from "flowbite-svelte";
+  import { updateKYCStatus } from "$lib/services/juno/kycService";
+  import type { KYCDocument } from "$lib/types/admin";
+  import type { PageData } from "./$types";
+
+  let { data }: { data: PageData } = $props();
+
+  // Helper to generate avatar URL
+  function getAvatarUrl(name: string): string {
+    const colors = ["3b82f6", "8b5cf6", "10b981", "f59e0b", "ef4444"];
+    const colorIndex = name.length % colors.length;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${colors[colorIndex]}&color=fff`;
+  }
+
+  // Last updated timestamp
+  let lastUpdated = $state(new Date().toLocaleTimeString());
+
+  // Refresh data
+  async function refreshData() {
+    lastUpdated = new Date().toLocaleTimeString();
+    // TODO: Reload data from Juno
+    console.log("Refreshing KYC data...");
+  }
 
   let activeTab = $state<"pending" | "approved" | "rejected">("pending");
   let showReviewModal = $state(false);
@@ -67,64 +90,50 @@
     }
   }
 
-  // Generate chart data based on date range
+  // Generate real chart data from actual KYC documents
   function getChartData() {
-    if (chartDateRange === "7") {
-      return {
-        categories: [
-          "Oct 29",
-          "Oct 30",
-          "Oct 31",
-          "Nov 1",
-          "Nov 2",
-          "Nov 3",
-          "Nov 4",
-        ],
-        submissions: [12, 15, 8, 18, 14, 22, 19],
-        approved: [10, 12, 7, 15, 11, 18, 16],
-        rejected: [2, 3, 1, 3, 3, 4, 3],
-      };
-    } else if (chartDateRange === "30") {
-      return {
-        categories: [
-          "Oct 5",
-          "Oct 8",
-          "Oct 11",
-          "Oct 14",
-          "Oct 17",
-          "Oct 20",
-          "Oct 23",
-          "Oct 26",
-          "Oct 29",
-          "Nov 1",
-          "Nov 4",
-        ],
-        submissions: [8, 12, 10, 15, 13, 18, 16, 20, 17, 22, 19],
-        approved: [7, 10, 8, 12, 11, 15, 13, 17, 14, 18, 16],
-        rejected: [1, 2, 2, 3, 2, 3, 3, 3, 3, 4, 3],
-      };
-    } else {
-      return {
-        categories: [
-          "Aug 6",
-          "Aug 16",
-          "Aug 26",
-          "Sep 5",
-          "Sep 15",
-          "Sep 25",
-          "Oct 5",
-          "Oct 15",
-          "Oct 25",
-          "Nov 4",
-        ],
-        submissions: [5, 8, 10, 12, 14, 16, 18, 20, 22, 19],
-        approved: [4, 7, 8, 10, 12, 13, 15, 17, 18, 16],
-        rejected: [1, 1, 2, 2, 2, 3, 3, 3, 4, 3],
-      };
+    // Group documents by date based on submittedAt
+    const days = chartDateRange === "7" ? 7 : chartDateRange === "30" ? 30 : 90;
+    const dateMap = new Map<
+      string,
+      { submissions: number; approved: number; rejected: number }
+    >();
+
+    // Initialize all dates with 0
+    const today = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+      dateMap.set(dateStr, { submissions: 0, approved: 0, rejected: 0 });
     }
+
+    // Count documents by date
+    allDocuments.forEach((doc) => {
+      const date = new Date(doc.submittedAt);
+      const dateStr = date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+      const stats = dateMap.get(dateStr);
+      if (stats) {
+        stats.submissions++;
+        if (doc.status === "approved") stats.approved++;
+        if (doc.status === "rejected") stats.rejected++;
+      }
+    });
+
+    const categories = Array.from(dateMap.keys());
+    const submissions = Array.from(dateMap.values()).map((v) => v.submissions);
+    const approved = Array.from(dateMap.values()).map((v) => v.approved);
+    const rejected = Array.from(dateMap.values()).map((v) => v.rejected);
+
+    return { categories, submissions, approved, rejected };
   }
 
-  // KYC submissions trend chart options
   let chartOptions = $derived<ApexOptions>({
     chart: {
       height: "320px",
@@ -183,140 +192,72 @@
     legend: { show: true, position: "top" },
   });
 
-  // Mock KYC data
-  let pendingKYC = $state([
-    {
-      id: "KYC-001",
-      user: {
-        name: "John Doe",
-        email: "john@example.com",
-        phone: "+234 801 234 5678",
-        avatar:
-          "https://ui-avatars.com/api/?name=John+Doe&background=3b82f6&color=fff",
-      },
-      type: "user",
-      documentType: "National ID",
-      documentNumber: "NIN-12345678",
-      submittedAt: "Nov 3, 2024 10:30 AM",
-      documents: ["id_front.jpg", "id_back.jpg", "selfie.jpg"],
-    },
-    {
-      id: "KYC-002",
-      user: {
-        name: "Jane Smith",
-        email: "jane@example.com",
-        phone: "+254 712 345 678",
-        avatar:
-          "https://ui-avatars.com/api/?name=Jane+Smith&background=8b5cf6&color=fff",
-      },
-      type: "agent",
-      documentType: "Passport",
-      documentNumber: "A12345678",
-      location: "Nairobi, Kenya",
-      businessLicense: "BL-987654",
-      submittedAt: "Nov 3, 2024 09:15 AM",
-      documents: ["passport.jpg", "business_license.pdf", "location_photo.jpg"],
-    },
-    {
-      id: "KYC-003",
-      user: {
-        name: "Bob Johnson",
-        email: "bob@example.com",
-        phone: "+233 20 123 4567",
-        avatar:
-          "https://ui-avatars.com/api/?name=Bob+Johnson&background=10b981&color=fff",
-      },
-      type: "user",
-      documentType: "Drivers License",
-      documentNumber: "DL-ABC123",
-      submittedAt: "Nov 2, 2024 08:45 PM",
-      documents: ["license_front.jpg", "license_back.jpg"],
-    },
-  ]);
+  // Real KYC data from Juno
+  let allDocuments = $state<KYCDocument[]>(data.documents);
+  let stats = $state(data.stats);
 
-  let approvedKYC = $state([
-    {
-      id: "KYC-100",
-      user: {
-        name: "Alice Brown",
-        email: "alice@example.com",
-        phone: "+234 802 345 6789",
-        avatar:
-          "https://ui-avatars.com/api/?name=Alice+Brown&background=3b82f6&color=fff",
-      },
-      type: "user",
-      documentType: "National ID",
-      documentNumber: "NIN-87654321",
-      submittedAt: "Nov 1, 2024 02:30 PM",
-      documents: ["id_front.jpg", "id_back.jpg", "selfie.jpg"],
-      approvedAt: "Nov 2, 2024 04:20 PM",
-      approvedBy: "Admin User",
-    },
-  ]);
+  // Filter documents by status
+  let pendingKYC = $derived(
+    allDocuments.filter((doc) => doc.status === "pending"),
+  );
+  let approvedKYC = $derived(
+    allDocuments.filter((doc) => doc.status === "approved"),
+  );
+  let rejectedKYC = $derived(
+    allDocuments.filter((doc) => doc.status === "rejected"),
+  );
 
-  let rejectedKYC = $state([
-    {
-      id: "KYC-200",
-      user: {
-        name: "Charlie Wilson",
-        email: "charlie@example.com",
-        phone: "+254 701 234 567",
-        avatar:
-          "https://ui-avatars.com/api/?name=Charlie+Wilson&background=ef4444&color=fff",
-      },
-      type: "agent",
-      documentType: "Passport",
-      documentNumber: "P-9876543",
-      location: "Lagos, Nigeria",
-      businessLicense: "BL-456789",
-      submittedAt: "Oct 31, 2024 03:15 PM",
-      documents: ["passport.jpg", "business_license.pdf", "location_photo.jpg"],
-      rejectedAt: "Nov 1, 2024 11:30 AM",
-      rejectedBy: "Admin User",
-      reason:
-        "Documents are blurry and unreadable. Please resubmit clear photos.",
-    },
-  ]);
-
-  function reviewKYC(kyc: any) {
+  function reviewKYC(kyc: KYCDocument) {
     selectedKYC = kyc;
     showReviewModal = true;
   }
 
-  function approveKYC() {
+  async function approveKYC() {
     if (!selectedKYC) return;
 
-    pendingKYC = pendingKYC.filter((k) => k.id !== selectedKYC.id);
-    approvedKYC = [
-      ...approvedKYC,
-      {
-        ...selectedKYC,
-        approvedAt: new Date().toLocaleString(),
-        approvedBy: "Admin User",
-      },
-    ];
+    try {
+      await updateKYCStatus(selectedKYC.id, "approved");
 
-    showReviewModal = false;
-    selectedKYC = null;
+      // Update local state
+      const index = allDocuments.findIndex((d) => d.id === selectedKYC.id);
+      if (index !== -1) {
+        allDocuments[index] = {
+          ...allDocuments[index],
+          status: "approved",
+          reviewedAt: new Date().toISOString(),
+        };
+      }
+
+      showReviewModal = false;
+      selectedKYC = null;
+    } catch (error) {
+      console.error("Failed to approve KYC:", error);
+    }
   }
 
-  function rejectKYC() {
+  async function rejectKYC() {
     if (!selectedKYC || !rejectionReason) return;
 
-    pendingKYC = pendingKYC.filter((k) => k.id !== selectedKYC.id);
-    rejectedKYC = [
-      ...rejectedKYC,
-      {
-        ...selectedKYC,
-        rejectedAt: new Date().toLocaleString(),
-        rejectedBy: "Admin User",
-        reason: rejectionReason,
-      },
-    ];
+    try {
+      await updateKYCStatus(selectedKYC.id, "rejected", rejectionReason);
 
-    showReviewModal = false;
-    selectedKYC = null;
-    rejectionReason = "";
+      // Update local state
+      const index = allDocuments.findIndex((d) => d.id === selectedKYC.id);
+      if (index !== -1) {
+        allDocuments[index] = {
+          ...allDocuments[index],
+          status: "rejected",
+          reviewedAt: new Date().toISOString(),
+          adminNotes: rejectionReason,
+        };
+      }
+
+      showReviewModal = false;
+      selectedKYC = null;
+      rejectionReason = "";
+    } catch (error) {
+      console.error("Failed to reject KYC:", error);
+    }
   }
 
   function closeModal() {
@@ -329,9 +270,9 @@
   let filteredPendingKYC = $derived(
     pendingKYC.filter((kyc) =>
       searchQuery
-        ? kyc.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          kyc.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (kyc.user.phone && kyc.user.phone.includes(searchQuery))
+        ? kyc.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          kyc.userEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          kyc.documentNumber.toLowerCase().includes(searchQuery.toLowerCase())
         : true,
     ),
   );
@@ -339,9 +280,9 @@
   let filteredApprovedKYC = $derived(
     approvedKYC.filter((kyc) =>
       searchQuery
-        ? kyc.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          kyc.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (kyc.user.phone && kyc.user.phone.includes(searchQuery))
+        ? kyc.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          kyc.userEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          kyc.documentNumber.toLowerCase().includes(searchQuery.toLowerCase())
         : true,
     ),
   );
@@ -349,9 +290,9 @@
   let filteredRejectedKYC = $derived(
     rejectedKYC.filter((kyc) =>
       searchQuery
-        ? kyc.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          kyc.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (kyc.user.phone && kyc.user.phone.includes(searchQuery))
+        ? kyc.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          kyc.userEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          kyc.documentNumber.toLowerCase().includes(searchQuery.toLowerCase())
         : true,
     ),
   );
@@ -388,16 +329,16 @@
   <!-- Stats Grid -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3">
     <!-- Pending Count -->
-    <button
-      onclick={() => (activeTab = "pending")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-yellow-400 hover:shadow-md sm:rounded-2xl sm:p-6"
+    <div
+      class="rounded-xl border border-gray-200 bg-white p-4 transition-all sm:rounded-2xl sm:p-6"
     >
-      <div class="flex items-center justify-between">
-        <div>
+      <div class="mb-3 flex items-center justify-between">
+        <div class="flex-1">
           <p class="text-sm font-semibold text-gray-500">Pending Review</p>
           <p class="mt-2 font-mono text-3xl font-bold text-yellow-600">
-            {pendingKYC.length}
+            {stats.pending}
           </p>
+          <p class="mt-2 text-xs text-gray-500">Last updated: {lastUpdated}</p>
         </div>
         <div
           class="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-50"
@@ -405,19 +346,26 @@
           <FileText class="h-6 w-6 text-yellow-600" />
         </div>
       </div>
-    </button>
+      <button
+        onclick={refreshData}
+        class="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-yellow-50 hover:text-yellow-600"
+      >
+        <RefreshCw class="h-4 w-4" />
+        Refresh
+      </button>
+    </div>
 
     <!-- Approved Count -->
-    <button
-      onclick={() => (activeTab = "approved")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-green-400 hover:shadow-md sm:rounded-2xl sm:p-6"
+    <div
+      class="rounded-xl border border-gray-200 bg-white p-4 transition-all sm:rounded-2xl sm:p-6"
     >
-      <div class="flex items-center justify-between">
-        <div>
+      <div class="mb-3 flex items-center justify-between">
+        <div class="flex-1">
           <p class="text-sm font-semibold text-gray-500">Approved</p>
           <p class="mt-2 font-mono text-3xl font-bold text-green-600">
-            {approvedKYC.length}
+            {stats.approved}
           </p>
+          <p class="mt-2 text-xs text-gray-500">Last updated: {lastUpdated}</p>
         </div>
         <div
           class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50"
@@ -425,19 +373,26 @@
           <CheckCircle class="h-6 w-6 text-green-600" />
         </div>
       </div>
-    </button>
+      <button
+        onclick={refreshData}
+        class="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-green-50 hover:text-green-600"
+      >
+        <RefreshCw class="h-4 w-4" />
+        Refresh
+      </button>
+    </div>
 
     <!-- Rejected Count -->
-    <button
-      onclick={() => (activeTab = "rejected")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-red-400 hover:shadow-md sm:rounded-2xl sm:p-6"
+    <div
+      class="rounded-xl border border-gray-200 bg-white p-4 transition-all sm:rounded-2xl sm:p-6"
     >
-      <div class="flex items-center justify-between">
-        <div>
+      <div class="mb-3 flex items-center justify-between">
+        <div class="flex-1">
           <p class="text-sm font-semibold text-gray-500">Rejected</p>
           <p class="mt-2 font-mono text-3xl font-bold text-red-600">
-            {rejectedKYC.length}
+            {stats.rejected}
           </p>
+          <p class="mt-2 text-xs text-gray-500">Last updated: {lastUpdated}</p>
         </div>
         <div
           class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50"
@@ -445,7 +400,14 @@
           <XCircle class="h-6 w-6 text-red-600" />
         </div>
       </div>
-    </button>
+      <button
+        onclick={refreshData}
+        class="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-red-50 hover:text-red-600"
+      >
+        <RefreshCw class="h-4 w-4" />
+        Refresh
+      </button>
+    </div>
   </div>
 
   <!-- KYC Submissions Trend Chart -->
@@ -547,26 +509,32 @@
               <div class="flex items-start justify-between">
                 <div class="flex items-start space-x-4">
                   <img
-                    src={kyc.user.avatar}
-                    alt={kyc.user.name}
+                    src={getAvatarUrl(kyc.userName)}
+                    alt={kyc.userName}
                     class="h-12 w-12 rounded-lg"
                   />
                   <div class="flex-1">
                     <div class="flex items-center space-x-2">
                       <h4 class="font-semibold text-gray-900">
-                        {kyc.user.name}
+                        {kyc.userName}
                       </h4>
-                      <span
-                        class="rounded-full px-2 py-1 text-xs font-medium {kyc.type ===
-                        'agent'
-                          ? 'bg-purple-100 text-purple-800'
-                          : 'bg-blue-100 text-blue-800'}"
-                      >
-                        {kyc.type}
-                      </span>
+                      {#if kyc.location}
+                        <span
+                          class="rounded-full bg-purple-100 px-2 py-1 text-xs font-medium text-purple-800"
+                        >
+                          Agent
+                        </span>
+                      {:else}
+                        <span
+                          class="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800"
+                        >
+                          User
+                        </span>
+                      {/if}
                     </div>
                     <p class="mt-1 text-sm text-gray-500">
-                      {kyc.user.email} • {kyc.user.phone}
+                      {kyc.userEmail}{#if kyc.userPhone}
+                        • {kyc.userPhone}{/if}
                     </p>
                     <div class="mt-3 grid grid-cols-2 gap-4">
                       <div>
@@ -632,22 +600,22 @@
               <div class="flex items-start justify-between">
                 <div class="flex items-start space-x-4">
                   <img
-                    src={kyc.user.avatar}
-                    alt={kyc.user.name}
+                    src={getAvatarUrl(kyc.userName)}
+                    alt={kyc.userName}
                     class="h-12 w-12 rounded-lg"
                   />
                   <div class="flex-1">
                     <div class="flex items-center space-x-2">
                       <h4 class="font-semibold text-gray-900">
-                        {kyc.user.name}
+                        {kyc.userName}
                       </h4>
                       <span
                         class="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800"
                       >
-                        {kyc.type}
+                        {kyc.location ? "Agent" : "User"}
                       </span>
                     </div>
-                    <p class="mt-1 text-sm text-gray-600">{kyc.user.email}</p>
+                    <p class="mt-1 text-sm text-gray-600">{kyc.userEmail}</p>
                     <p class="mt-2 text-xs text-gray-500">
                       Approved by {kyc.approvedBy} on {kyc.approvedAt}
                     </p>
@@ -682,22 +650,22 @@
               <div class="flex items-start justify-between">
                 <div class="flex items-start space-x-4">
                   <img
-                    src={kyc.user.avatar}
-                    alt={kyc.user.name}
+                    src={getAvatarUrl(kyc.userName)}
+                    alt={kyc.userName}
                     class="h-12 w-12 rounded-lg"
                   />
                   <div class="flex-1">
                     <div class="flex items-center space-x-2">
                       <h4 class="font-semibold text-gray-900">
-                        {kyc.user.name}
+                        {kyc.userName}
                       </h4>
                       <span
                         class="rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800"
                       >
-                        {kyc.type}
+                        {kyc.location ? "Agent" : "User"}
                       </span>
                     </div>
-                    <p class="mt-1 text-sm text-gray-600">{kyc.user.email}</p>
+                    <p class="mt-1 text-sm text-gray-600">{kyc.userEmail}</p>
                     <p class="mt-2 text-sm font-medium text-red-900">
                       Reason: {kyc.reason}
                     </p>
@@ -772,32 +740,31 @@
             >
               <div class="flex items-start space-x-6">
                 <img
-                  src={selectedKYC.user.avatar}
-                  alt={selectedKYC.user.name}
+                  src={getAvatarUrl(selectedKYC.userName)}
+                  alt={selectedKYC.userName}
                   class="h-24 w-24 rounded-xl shadow-md"
                 />
                 <div class="flex-1">
                   <div class="flex items-center gap-3">
                     <h4 class="text-2xl font-bold text-gray-900">
-                      {selectedKYC.user.name}
+                      {selectedKYC.userName}
                     </h4>
                     <span
-                      class="rounded-full px-3 py-1 text-xs font-semibold uppercase {selectedKYC.type ===
-                      'agent'
+                      class="rounded-full px-3 py-1 text-xs font-semibold uppercase {selectedKYC.location
                         ? 'bg-purple-100 text-purple-700'
                         : 'bg-blue-100 text-blue-700'}"
                     >
-                      {selectedKYC.type}
+                      {selectedKYC.location ? 'Agent' : 'User'}
                     </span>
                   </div>
                   <div class="mt-4 flex gap-8">
                     <p class="flex items-center text-sm text-gray-600">
                       <span class="font-semibold">Email:</span>
-                      <span class="ml-2">{selectedKYC.user.email}</span>
+                      <span class="ml-2">{selectedKYC.userEmail}</span>
                     </p>
                     <p class="flex items-center text-sm text-gray-600">
                       <span class="font-semibold">Phone:</span>
-                      <span class="ml-2">{selectedKYC.user.phone}</span>
+                      <span class="ml-2">{selectedKYC.userPhone || 'N/A'}</span>
                     </p>
                   </div>
                 </div>
@@ -1313,7 +1280,7 @@
             font-size="18"
             fill="#9ca3af"
           >
-            {selectedKYC.user.name}
+            {selectedKYC.userName}
           </text>
 
           <!-- Footer -->

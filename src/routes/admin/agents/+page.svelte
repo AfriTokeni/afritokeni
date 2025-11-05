@@ -11,13 +11,54 @@
     Ban,
     CheckCircle,
     XCircle,
+    RefreshCw,
+    ChevronDown,
   } from "@lucide/svelte";
   import type { ApexOptions } from "apexcharts";
   import { Chart } from "@flowbite-svelte-plugins/chart";
+  import { Button, Dropdown, DropdownItem } from "flowbite-svelte";
+  import {
+    banAgent,
+    listAgents,
+    getAgentStats,
+  } from "$lib/services/juno/agentService";
+  import { listAgentReviews } from "$lib/services/juno/reviewService";
+  import { toast } from "$lib/stores/toast";
+  import type { AgentProfile, AgentReview } from "$lib/types/admin";
+  import type { PageData } from "./$types";
+
+  let { data }: { data: PageData } = $props();
+
+  // Helper to generate avatar URL
+  function getAvatarUrl(name: string): string {
+    const colors = ["3b82f6", "8b5cf6", "10b981", "f59e0b", "ef4444"];
+    const colorIndex = name.length % colors.length;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${colors[colorIndex]}&color=fff`;
+  }
+
+  // Last updated timestamp
+  let lastUpdated = $state(new Date().toLocaleTimeString());
+
+  // Refresh data
+  async function refreshData() {
+    try {
+      const [newAgents, newStats] = await Promise.all([
+        listAgents({ limit: 100 }),
+        getAgentStats(),
+      ]);
+      agents = newAgents;
+      stats = newStats;
+      lastUpdated = new Date().toLocaleTimeString();
+      toast.show("success", "Agent data refreshed");
+    } catch (error) {
+      console.error("Failed to refresh agent data:", error);
+      toast.show("error", "Failed to refresh data");
+    }
+  }
 
   let searchQuery = $state("");
   let filterStatus = $state("all");
-  let selectedAgent = $state<any>(null);
+  let selectedAgent = $state<AgentProfile | null>(null);
   let showAgentModal = $state(false);
   let sortBy = $state<"joinDate" | "commission" | "revenue" | "rating">(
     "joinDate",
@@ -27,70 +68,21 @@
   // Review filtering and pagination
   let reviewFilterRating = $state<number | "all">("all");
   let displayedReviewsCount = $state(5);
+  let agentReviews = $state<AgentReview[]>([]);
+  let loadingReviews = $state(false);
 
-  // Mock reviews data
-  let mockReviews = $state([
-    {
-      user: "John Doe",
-      rating: 5,
-      comment: "Excellent service! Very professional and quick.",
-      date: "2 days ago",
-    },
-    {
-      user: "Jane Smith",
-      rating: 4,
-      comment: "Good experience overall. Would use again.",
-      date: "5 days ago",
-    },
-    {
-      user: "Bob Johnson",
-      rating: 5,
-      comment: "Great agent! Highly recommended for transactions.",
-      date: "1 week ago",
-    },
-    {
-      user: "Alice Williams",
-      rating: 3,
-      comment: "Decent service but could be faster.",
-      date: "1 week ago",
-    },
-    {
-      user: "Charlie Brown",
-      rating: 5,
-      comment: "Fast and reliable. No issues at all!",
-      date: "2 weeks ago",
-    },
-    {
-      user: "Diana Prince",
-      rating: 4,
-      comment: "Professional and courteous. Good rates.",
-      date: "2 weeks ago",
-    },
-    {
-      user: "Ethan Hunt",
-      rating: 5,
-      comment: "Best agent I've worked with. Highly efficient.",
-      date: "3 weeks ago",
-    },
-    {
-      user: "Fiona Green",
-      rating: 2,
-      comment: "Service was slow and communication could be better.",
-      date: "3 weeks ago",
-    },
-    {
-      user: "George Miller",
-      rating: 4,
-      comment: "Reliable and trustworthy. Would recommend.",
-      date: "1 month ago",
-    },
-    {
-      user: "Hannah Lee",
-      rating: 5,
-      comment: "Outstanding service! Very happy with the experience.",
-      date: "1 month ago",
-    },
-  ]);
+  // Load reviews when agent modal opens
+  async function loadAgentReviews(agentId: string) {
+    loadingReviews = true;
+    try {
+      agentReviews = await listAgentReviews(agentId);
+    } catch (error) {
+      console.error("Failed to load reviews:", error);
+      agentReviews = [];
+    } finally {
+      loadingReviews = false;
+    }
+  }
 
   function loadMoreReviews() {
     displayedReviewsCount += 5;
@@ -105,9 +97,11 @@
     }
   }
 
-  function viewAgent(agent: any) {
+  async function viewAgent(agent: AgentProfile) {
     selectedAgent = agent;
     showAgentModal = true;
+    // Load reviews for this agent
+    await loadAgentReviews(agent.id);
   }
 
   function closeModal() {
@@ -115,11 +109,15 @@
     selectedAgent = null;
   }
 
-  function banAgent(agent: any) {
-    // TODO: Implement ban logic with Juno
-    console.log("Banning agent:", agent.name);
-    agent.status = "offline";
-    closeModal();
+  async function handleBanAgent(agent: AgentProfile, reason: string) {
+    try {
+      await banAgent(agent.id, reason);
+      // Update local state
+      agent.status = "offline";
+      closeModal();
+    } catch (error) {
+      console.error("Failed to ban agent:", error);
+    }
   }
 
   // Pagination state
@@ -130,77 +128,9 @@
     displayedCount += itemsPerPage;
   }
 
-  // Mock agent data
-  let agents = $state([
-    {
-      id: "A-001",
-      name: "Agent Lagos Central",
-      location: "Lagos, Nigeria",
-      rating: 4.8,
-      reviews: 234,
-      revenue: 12500,
-      transactions: 456,
-      commission: 625,
-      status: "active",
-      joinedAt: "Sep 10, 2024",
-    },
-    {
-      id: "A-002",
-      name: "Agent Nairobi East",
-      location: "Nairobi, Kenya",
-      rating: 4.9,
-      reviews: 198,
-      revenue: 10200,
-      transactions: 389,
-      commission: 510,
-      status: "active",
-      joinedAt: "Sep 15, 2024",
-    },
-    {
-      id: "A-003",
-      name: "Agent Accra West",
-      location: "Accra, Ghana",
-      rating: 4.7,
-      reviews: 176,
-      revenue: 9800,
-      transactions: 312,
-      commission: 490,
-      status: "active",
-      joinedAt: "Sep 20, 2024",
-    },
-    {
-      id: "A-004",
-      name: "Agent Kampala North",
-      location: "Kampala, Uganda",
-      rating: 4.6,
-      reviews: 145,
-      revenue: 7600,
-      transactions: 267,
-      commission: 380,
-      status: "busy",
-      joinedAt: "Oct 1, 2024",
-    },
-    {
-      id: "A-005",
-      name: "Agent Kigali Center",
-      location: "Kigali, Rwanda",
-      rating: 4.5,
-      reviews: 89,
-      revenue: 5200,
-      transactions: 178,
-      commission: 260,
-      status: "offline",
-      joinedAt: "Oct 15, 2024",
-    },
-  ]);
-
-  let stats = $state({
-    total: 89,
-    active: 67,
-    busy: 15,
-    offline: 7,
-    totalRevenue: 125000,
-  });
+  // Real agent data from Juno
+  let agents = $state<AgentProfile[]>(data.agents);
+  let stats = $state(data.stats);
 
   // Filter, sort and paginate agents
   let filteredAgents = $derived(
@@ -247,8 +177,12 @@
   let displayedAgents = $derived(filteredAgents.slice(0, displayedCount));
   let hasMore = $derived(displayedCount < filteredAgents.length);
 
-  // Agent performance chart
-  let performanceChartOptions: ApexOptions = {
+  // Agent performance chart - use real data from top 5 agents by revenue
+  let topAgents = $derived(
+    agents.sort((a, b) => b.revenue - a.revenue).slice(0, 5),
+  );
+
+  let performanceChartOptions = $derived<ApexOptions>({
     chart: {
       height: "320px",
       type: "bar",
@@ -272,32 +206,25 @@
     series: [
       {
         name: "Revenue",
-        data: [12500, 10200, 9800, 7600, 5200],
+        data: topAgents.map((agent) => agent.revenue),
         color: "#3b82f6",
       },
     ],
     xaxis: {
-      categories: [
-        "Lagos Central",
-        "Nairobi East",
-        "Accra West",
-        "Kampala North",
-        "Kigali Center",
-      ],
+      categories: topAgents.map((agent) => agent.name),
       labels: {
         show: true,
         style: {
           fontFamily: "Inter, sans-serif",
           cssClass: "text-xs font-normal fill-gray-500",
         },
-        formatter: (value) => "$" + value.toLocaleString(),
       },
     },
     yaxis: {
       show: true,
     },
     legend: { show: false },
-  };
+  });
 
   function getStatusColor(status: string) {
     if (status === "active") return "bg-green-100 text-green-800";
@@ -310,18 +237,18 @@
 <div class="space-y-4 sm:space-y-6">
   <!-- Stats Overview -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-5">
-    <button
-      onclick={() => (filterStatus = "all")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-gray-400 hover:shadow-md sm:rounded-2xl sm:p-6"
+    <div
+      class="rounded-xl border border-gray-200 bg-white p-4 transition-all sm:rounded-2xl sm:p-6"
     >
-      <div class="flex items-center justify-between">
-        <div>
+      <div class="mb-3 flex items-center justify-between">
+        <div class="flex-1">
           <p class="text-sm font-semibold text-gray-500">Total Agents</p>
           <p
             class="mt-2 font-mono text-2xl font-bold text-gray-900 sm:text-3xl"
           >
             {stats.total}
           </p>
+          <p class="mt-2 text-xs text-gray-500">Last updated: {lastUpdated}</p>
         </div>
         <div
           class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50"
@@ -329,11 +256,17 @@
           <MapPin class="h-6 w-6 text-blue-600" />
         </div>
       </div>
-    </button>
+      <button
+        onclick={refreshData}
+        class="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-600"
+      >
+        <RefreshCw class="h-4 w-4" />
+        Refresh
+      </button>
+    </div>
 
-    <button
-      onclick={() => (filterStatus = "active")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-green-400 hover:shadow-md sm:rounded-2xl sm:p-6"
+    <div
+      class="rounded-xl border border-gray-200 bg-white p-4 transition-all sm:rounded-2xl sm:p-6"
     >
       <div class="flex items-center justify-between">
         <div>
@@ -350,11 +283,10 @@
           <Activity class="h-6 w-6 text-green-600" />
         </div>
       </div>
-    </button>
+    </div>
 
-    <button
-      onclick={() => (filterStatus = "busy")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-yellow-400 hover:shadow-md sm:rounded-2xl sm:p-6"
+    <div
+      class="rounded-xl border border-gray-200 bg-white p-4 transition-all sm:rounded-2xl sm:p-6"
     >
       <div class="flex items-center justify-between">
         <div>
@@ -371,11 +303,10 @@
           <Activity class="h-6 w-6 text-yellow-600" />
         </div>
       </div>
-    </button>
+    </div>
 
-    <button
-      onclick={() => (filterStatus = "offline")}
-      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-gray-400 hover:shadow-md sm:rounded-2xl sm:p-6"
+    <div
+      class="rounded-xl border border-gray-200 bg-white p-4 transition-all sm:rounded-2xl sm:p-6"
     >
       <div class="flex items-center justify-between">
         <div>
@@ -392,10 +323,10 @@
           <Activity class="h-6 w-6 text-gray-600" />
         </div>
       </div>
-    </button>
+    </div>
 
     <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+      class="rounded-xl border border-gray-200 bg-white p-4 transition-all sm:rounded-2xl sm:p-6"
     >
       <div class="flex items-center justify-between">
         <div>
@@ -407,7 +338,7 @@
           </p>
         </div>
         <div
-          class="flex h-12 w-12 items-center justify-between rounded-xl bg-purple-50"
+          class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50"
         >
           <DollarSign class="h-6 w-6 text-purple-600" />
         </div>
@@ -448,15 +379,32 @@
           />
         </div>
       </div>
-      <select
-        bind:value={filterStatus}
-        class="rounded-lg border border-gray-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-2 focus:ring-blue-600 focus:outline-none"
-      >
-        <option value="all">All Status</option>
-        <option value="active">Active</option>
-        <option value="busy">Busy</option>
-        <option value="offline">Offline</option>
-      </select>
+      <div class="relative">
+        <Button size="sm" color="light" class="gap-2">
+          {filterStatus === "all"
+            ? "All Status"
+            : filterStatus === "active"
+              ? "Active"
+              : filterStatus === "busy"
+                ? "Busy"
+                : "Offline"}
+          <ChevronDown class="h-4 w-4" />
+        </Button>
+        <Dropdown placement="bottom" class="z-50 w-44 !shadow-md">
+          <DropdownItem onclick={() => (filterStatus = "all")}>
+            All Status
+          </DropdownItem>
+          <DropdownItem onclick={() => (filterStatus = "active")}>
+            Active
+          </DropdownItem>
+          <DropdownItem onclick={() => (filterStatus = "busy")}>
+            Busy
+          </DropdownItem>
+          <DropdownItem onclick={() => (filterStatus = "offline")}>
+            Offline
+          </DropdownItem>
+        </Dropdown>
+      </div>
     </div>
   </div>
 
@@ -561,7 +509,7 @@
                   >{agent.rating}</span
                 >
                 <span class="text-sm text-gray-500"
-                  >({agent.reviews} reviews)</span
+                  >({agent.reviewCount} reviews)</span
                 >
               </div>
             </div>
@@ -579,7 +527,7 @@
             <div>
               <p class="text-xs text-gray-500">Transactions</p>
               <p class="mt-1 font-mono text-sm font-semibold text-gray-900">
-                {agent.transactions}
+                {agent.transactionCount}
               </p>
             </div>
             <div>
