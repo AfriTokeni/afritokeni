@@ -1,392 +1,385 @@
 <script lang="ts">
-  import {
-    Card,
-    Button,
-    Badge,
-    Table,
-    TableBody,
-    TableBodyCell,
-    TableBodyRow,
-    TableHead,
-    TableHeadCell,
-    Modal,
-    Tabs,
-    TabItem,
-    Avatar,
-    Textarea,
-  } from "flowbite-svelte";
-  import { CheckCircle, XCircle, Eye } from 'lucide-svelte';
-
+  import { CheckCircle, XCircle, Eye, FileText, User, MapPin, Info } from 'lucide-svelte';
+  
+  let activeTab = $state<'pending' | 'approved' | 'rejected'>('pending');
   let showReviewModal = $state(false);
   let selectedKYC = $state<any>(null);
-  let rejectionReason = $state("");
-
+  let rejectionReason = $state('');
+  
   // Mock KYC data
   let pendingKYC = $state([
     {
-      id: "KYC-001",
-      user: {
-        name: "John Doe",
-        email: "john@example.com",
-        phone: "+234 801 234 5678",
-        avatar: "https://ui-avatars.com/api/?name=John+Doe",
-      },
-      type: "user",
-      documentType: "National ID",
-      documentNumber: "NIN-12345678",
-      submittedAt: "2024-11-05 10:30",
-      documents: ["id_front.jpg", "id_back.jpg", "selfie.jpg"],
-      status: "pending",
+      id: 'KYC-001',
+      user: { name: 'John Doe', email: 'john@example.com', phone: '+234 801 234 5678', avatar: 'https://ui-avatars.com/api/?name=John+Doe&background=3b82f6&color=fff' },
+      type: 'user',
+      documentType: 'National ID',
+      documentNumber: 'NIN-12345678',
+      submittedAt: 'Nov 3, 2024 10:30 AM',
+      documents: ['id_front.jpg', 'id_back.jpg', 'selfie.jpg'],
     },
     {
-      id: "KYC-002",
-      user: {
-        name: "Jane Smith",
-        email: "jane@example.com",
-        phone: "+254 712 345 678",
-        avatar: "https://ui-avatars.com/api/?name=Jane+Smith",
-      },
-      type: "agent",
-      documentType: "Passport",
-      documentNumber: "A12345678",
-      location: "Nairobi, Kenya",
-      businessLicense: "BL-987654",
-      submittedAt: "2024-11-05 09:15",
-      documents: ["passport.jpg", "business_license.pdf", "location_photo.jpg"],
-      status: "pending",
+      id: 'KYC-002',
+      user: { name: 'Jane Smith', email: 'jane@example.com', phone: '+254 712 345 678', avatar: 'https://ui-avatars.com/api/?name=Jane+Smith&background=8b5cf6&color=fff' },
+      type: 'agent',
+      documentType: 'Passport',
+      documentNumber: 'A12345678',
+      location: 'Nairobi, Kenya',
+      businessLicense: 'BL-987654',
+      submittedAt: 'Nov 3, 2024 09:15 AM',
+      documents: ['passport.jpg', 'business_license.pdf', 'location_photo.jpg'],
     },
     {
-      id: "KYC-003",
-      user: {
-        name: "Bob Johnson",
-        email: "bob@example.com",
-        phone: "+233 20 123 4567",
-        avatar: "https://ui-avatars.com/api/?name=Bob+Johnson",
-      },
-      type: "user",
-      documentType: "Drivers License",
-      documentNumber: "DL-ABC123",
-      submittedAt: "2024-11-05 08:45",
-      documents: ["license_front.jpg", "license_back.jpg"],
-      status: "pending",
+      id: 'KYC-003',
+      user: { name: 'Bob Johnson', email: 'bob@example.com', phone: '+233 20 123 4567', avatar: 'https://ui-avatars.com/api/?name=Bob+Johnson&background=10b981&color=fff' },
+      type: 'user',
+      documentType: 'Drivers License',
+      documentNumber: 'DL-ABC123',
+      submittedAt: 'Nov 2, 2024 08:45 PM',
+      documents: ['license_front.jpg', 'license_back.jpg'],
     },
   ]);
-
+  
   let approvedKYC = $state([
     {
-      id: "KYC-100",
-      user: {
-        name: "Alice Brown",
-        email: "alice@example.com",
-        phone: "+234 802 345 6789",
-        avatar: "https://ui-avatars.com/api/?name=Alice+Brown",
-      },
-      type: "user",
-      approvedAt: "2024-11-04 16:20",
-      approvedBy: "Admin User",
-      status: "approved",
+      id: 'KYC-100',
+      user: { name: 'Alice Brown', email: 'alice@example.com', avatar: 'https://ui-avatars.com/api/?name=Alice+Brown&background=3b82f6&color=fff' },
+      type: 'user',
+      approvedAt: 'Nov 2, 2024 04:20 PM',
+      approvedBy: 'Admin User',
     },
   ]);
-
+  
   let rejectedKYC = $state([
     {
-      id: "KYC-200",
-      user: {
-        name: "Charlie Wilson",
-        email: "charlie@example.com",
-        phone: "+254 713 456 789",
-        avatar: "https://ui-avatars.com/api/?name=Charlie+Wilson",
-      },
-      type: "agent",
-      rejectedAt: "2024-11-04 14:10",
-      rejectedBy: "Admin User",
-      reason: "Document image quality too low",
-      status: "rejected",
+      id: 'KYC-200',
+      user: { name: 'Charlie Wilson', email: 'charlie@example.com', avatar: 'https://ui-avatars.com/api/?name=Charlie+Wilson&background=ef4444&color=fff' },
+      type: 'agent',
+      rejectedAt: 'Nov 2, 2024 02:10 PM',
+      rejectedBy: 'Admin User',
+      reason: 'Document image quality too low',
     },
   ]);
-
+  
   function reviewKYC(kyc: any) {
     selectedKYC = kyc;
     showReviewModal = true;
   }
-
+  
   function approveKYC() {
     if (!selectedKYC) return;
-
-    // Move from pending to approved
-    pendingKYC = pendingKYC.filter((k) => k.id !== selectedKYC.id);
-    approvedKYC = [
-      ...approvedKYC,
-      {
-        ...selectedKYC,
-        status: "approved",
-        approvedAt: new Date().toISOString(),
-        approvedBy: "Admin User",
-      },
-    ];
-
+    
+    pendingKYC = pendingKYC.filter(k => k.id !== selectedKYC.id);
+    approvedKYC = [...approvedKYC, {
+      ...selectedKYC,
+      approvedAt: new Date().toLocaleString(),
+      approvedBy: 'Admin User'
+    }];
+    
     showReviewModal = false;
     selectedKYC = null;
   }
-
+  
   function rejectKYC() {
     if (!selectedKYC || !rejectionReason) return;
-
-    // Move from pending to rejected
-    pendingKYC = pendingKYC.filter((k) => k.id !== selectedKYC.id);
-    rejectedKYC = [
-      ...rejectedKYC,
-      {
-        ...selectedKYC,
-        status: "rejected",
-        rejectedAt: new Date().toISOString(),
-        rejectedBy: "Admin User",
-        reason: rejectionReason,
-      },
-    ];
-
+    
+    pendingKYC = pendingKYC.filter(k => k.id !== selectedKYC.id);
+    rejectedKYC = [...rejectedKYC, {
+      ...selectedKYC,
+      rejectedAt: new Date().toLocaleString(),
+      rejectedBy: 'Admin User',
+      reason: rejectionReason
+    }];
+    
     showReviewModal = false;
     selectedKYC = null;
-    rejectionReason = "";
+    rejectionReason = '';
+  }
+  
+  function closeModal() {
+    showReviewModal = false;
+    selectedKYC = null;
+    rejectionReason = '';
   }
 </script>
 
-<div class="space-y-6">
-  <!-- Page Header -->
-  <div class="flex items-center justify-between">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900">KYC Management</h1>
-      <p class="mt-1 text-sm text-gray-500">
-        Review and approve user verification requests
-      </p>
-    </div>
-    <div class="flex gap-2">
-      <Badge color="yellow" large>
-        <span class="text-lg font-semibold">{pendingKYC.length}</span>
-        <span class="ml-1">Pending</span>
-      </Badge>
-    </div>
-  </div>
-
-  <!-- KYC Tabs -->
-  <Card>
-    <Tabs>
-      <TabItem open title="Pending ({pendingKYC.length})">
-        <Table>
-          <TableHead>
-            <TableHeadCell>User</TableHeadCell>
-            <TableHeadCell>Type</TableHeadCell>
-            <TableHeadCell>Document</TableHeadCell>
-            <TableHeadCell>Submitted</TableHeadCell>
-            <TableHeadCell>Actions</TableHeadCell>
-          </TableHead>
-          <TableBody>
-            {#each pendingKYC as kyc}
-              <TableBodyRow>
-                <TableBodyCell>
-                  <div class="flex items-center gap-3">
-                    <Avatar src={kyc.user.avatar} size="sm" />
-                    <div>
-                      <p class="font-medium text-gray-900">{kyc.user.name}</p>
-                      <p class="text-sm text-gray-500">{kyc.user.email}</p>
-                    </div>
-                  </div>
-                </TableBodyCell>
-                <TableBodyCell>
-                  <Badge color={kyc.type === "agent" ? "purple" : "blue"}>
-                    {kyc.type}
-                  </Badge>
-                </TableBodyCell>
-                <TableBodyCell>
-                  <p class="font-medium">{kyc.documentType}</p>
-                  <p class="text-sm text-gray-500">{kyc.documentNumber}</p>
-                </TableBodyCell>
-                <TableBodyCell>{kyc.submittedAt}</TableBodyCell>
-                <TableBodyCell>
-                  <Button size="xs" onclick={() => reviewKYC(kyc)}>
-                    <Eye class="mr-1 h-3 w-3" />
-                    Review
-                  </Button>
-                </TableBodyCell>
-              </TableBodyRow>
-            {/each}
-          </TableBody>
-        </Table>
-      </TabItem>
-
-      <TabItem title="Approved ({approvedKYC.length})">
-        <Table>
-          <TableHead>
-            <TableHeadCell>User</TableHeadCell>
-            <TableHeadCell>Type</TableHeadCell>
-            <TableHeadCell>Approved At</TableHeadCell>
-            <TableHeadCell>Approved By</TableHeadCell>
-          </TableHead>
-          <TableBody>
-            {#each approvedKYC as kyc}
-              <TableBodyRow>
-                <TableBodyCell>
-                  <div class="flex items-center gap-3">
-                    <Avatar src={kyc.user.avatar} size="sm" />
-                    <div>
-                      <p class="font-medium text-gray-900">{kyc.user.name}</p>
-                      <p class="text-sm text-gray-500">{kyc.user.email}</p>
-                    </div>
-                  </div>
-                </TableBodyCell>
-                <TableBodyCell>
-                  <Badge color={kyc.type === "agent" ? "purple" : "blue"}>
-                    {kyc.type}
-                  </Badge>
-                </TableBodyCell>
-                <TableBodyCell>{kyc.approvedAt}</TableBodyCell>
-                <TableBodyCell>{kyc.approvedBy}</TableBodyCell>
-              </TableBodyRow>
-            {/each}
-          </TableBody>
-        </Table>
-      </TabItem>
-
-      <TabItem title="Rejected ({rejectedKYC.length})">
-        <Table>
-          <TableHead>
-            <TableHeadCell>User</TableHeadCell>
-            <TableHeadCell>Type</TableHeadCell>
-            <TableHeadCell>Rejected At</TableHeadCell>
-            <TableHeadCell>Reason</TableHeadCell>
-          </TableHead>
-          <TableBody>
-            {#each rejectedKYC as kyc}
-              <TableBodyRow>
-                <TableBodyCell>
-                  <div class="flex items-center gap-3">
-                    <Avatar src={kyc.user.avatar} size="sm" />
-                    <div>
-                      <p class="font-medium text-gray-900">{kyc.user.name}</p>
-                      <p class="text-sm text-gray-500">{kyc.user.email}</p>
-                    </div>
-                  </div>
-                </TableBodyCell>
-                <TableBodyCell>
-                  <Badge color={kyc.type === "agent" ? "purple" : "blue"}>
-                    {kyc.type}
-                  </Badge>
-                </TableBodyCell>
-                <TableBodyCell>{kyc.rejectedAt}</TableBodyCell>
-                <TableBodyCell>
-                  <p class="text-sm text-gray-600">{kyc.reason}</p>
-                </TableBodyCell>
-              </TableBodyRow>
-            {/each}
-          </TableBody>
-        </Table>
-      </TabItem>
-    </Tabs>
-  </Card>
-</div>
-
-<!-- KYC Review Modal -->
-<Modal bind:open={showReviewModal} size="xl" title="Review KYC Submission">
-  {#if selectedKYC}
-    <div class="space-y-6">
-      <!-- User Info -->
-      <div
-        class="flex items-center gap-4 rounded-lg border border-gray-200 p-4"
-      >
-        <Avatar src={selectedKYC.user.avatar} size="lg" />
+<div class="space-y-4 sm:space-y-6">
+  <!-- Header with Stats -->
+  <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3">
+    <!-- Pending Count -->
+    <div class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6">
+      <div class="flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-semibold text-gray-900">
-            {selectedKYC.user.name}
-          </h3>
-          <p class="text-sm text-gray-500">{selectedKYC.user.email}</p>
-          <p class="text-sm text-gray-500">{selectedKYC.user.phone}</p>
-          <Badge
-            color={selectedKYC.type === "agent" ? "purple" : "blue"}
-            class="mt-2"
-          >
-            {selectedKYC.type}
-          </Badge>
+          <p class="text-sm font-semibold text-gray-500">Pending Review</p>
+          <p class="mt-2 font-mono text-3xl font-bold text-yellow-600">{pendingKYC.length}</p>
+        </div>
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-50">
+          <FileText class="h-6 w-6 text-yellow-600" />
         </div>
       </div>
+    </div>
+    
+    <!-- Approved Count -->
+    <div class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm font-semibold text-gray-500">Approved</p>
+          <p class="mt-2 font-mono text-3xl font-bold text-green-600">{approvedKYC.length}</p>
+        </div>
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50">
+          <CheckCircle class="h-6 w-6 text-green-600" />
+        </div>
+      </div>
+    </div>
+    
+    <!-- Rejected Count -->
+    <div class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm font-semibold text-gray-500">Rejected</p>
+          <p class="mt-2 font-mono text-3xl font-bold text-red-600">{rejectedKYC.length}</p>
+        </div>
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50">
+          <XCircle class="h-6 w-6 text-red-600" />
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Tabs -->
+  <div class="rounded-xl border border-gray-200 bg-white sm:rounded-2xl">
+    <div class="border-b border-gray-200 px-4 sm:px-6">
+      <div class="flex space-x-8">
+        <button
+          onclick={() => activeTab = 'pending'}
+          class="border-b-2 py-4 text-sm font-medium transition-colors {activeTab === 'pending' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}"
+        >
+          Pending ({pendingKYC.length})
+        </button>
+        <button
+          onclick={() => activeTab = 'approved'}
+          class="border-b-2 py-4 text-sm font-medium transition-colors {activeTab === 'approved' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}"
+        >
+          Approved ({approvedKYC.length})
+        </button>
+        <button
+          onclick={() => activeTab = 'rejected'}
+          class="border-b-2 py-4 text-sm font-medium transition-colors {activeTab === 'rejected' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}"
+        >
+          Rejected ({rejectedKYC.length})
+        </button>
+      </div>
+    </div>
+    
+    <!-- Tab Content -->
+    <div class="p-4 sm:p-6">
+      {#if activeTab === 'pending'}
+        <div class="space-y-4">
+          {#each pendingKYC as kyc}
+            <div class="rounded-lg border border-gray-200 p-4 transition-all hover:border-gray-300 sm:p-6">
+              <div class="flex items-start justify-between">
+                <div class="flex items-start space-x-4">
+                  <img src={kyc.user.avatar} alt={kyc.user.name} class="h-12 w-12 rounded-lg" />
+                  <div class="flex-1">
+                    <div class="flex items-center space-x-2">
+                      <h4 class="font-semibold text-gray-900">{kyc.user.name}</h4>
+                      <span class="rounded-full px-2 py-1 text-xs font-medium {kyc.type === 'agent' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}">
+                        {kyc.type}
+                      </span>
+                    </div>
+                    <p class="mt-1 text-sm text-gray-500">{kyc.user.email} • {kyc.user.phone}</p>
+                    <div class="mt-3 grid grid-cols-2 gap-4">
+                      <div>
+                        <p class="text-xs text-gray-500">Document Type</p>
+                        <p class="mt-1 text-sm font-medium text-gray-900">{kyc.documentType}</p>
+                      </div>
+                      <div>
+                        <p class="text-xs text-gray-500">Document Number</p>
+                        <p class="mt-1 text-sm font-medium text-gray-900">{kyc.documentNumber}</p>
+                      </div>
+                      {#if kyc.location}
+                        <div>
+                          <p class="text-xs text-gray-500">Location</p>
+                          <p class="mt-1 text-sm font-medium text-gray-900">{kyc.location}</p>
+                        </div>
+                      {/if}
+                      {#if kyc.businessLicense}
+                        <div>
+                          <p class="text-xs text-gray-500">Business License</p>
+                          <p class="mt-1 text-sm font-medium text-gray-900">{kyc.businessLicense}</p>
+                        </div>
+                      {/if}
+                    </div>
+                    <p class="mt-3 text-xs text-gray-400">Submitted: {kyc.submittedAt}</p>
+                  </div>
+                </div>
+                <button
+                  onclick={() => reviewKYC(kyc)}
+                  class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                >
+                  <Eye class="mr-2 inline h-4 w-4" />
+                  Review
+                </button>
+              </div>
+            </div>
+          {/each}
+        </div>
+      {:else if activeTab === 'approved'}
+        <div class="space-y-4">
+          {#each approvedKYC as kyc}
+            <div class="rounded-lg border border-green-200 bg-green-50 p-4 sm:p-6">
+              <div class="flex items-start space-x-4">
+                <img src={kyc.user.avatar} alt={kyc.user.name} class="h-12 w-12 rounded-lg" />
+                <div class="flex-1">
+                  <div class="flex items-center space-x-2">
+                    <h4 class="font-semibold text-gray-900">{kyc.user.name}</h4>
+                    <span class="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
+                      {kyc.type}
+                    </span>
+                  </div>
+                  <p class="mt-1 text-sm text-gray-600">{kyc.user.email}</p>
+                  <p class="mt-2 text-xs text-gray-500">Approved by {kyc.approvedBy} on {kyc.approvedAt}</p>
+                </div>
+                <CheckCircle class="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+          {/each}
+        </div>
+      {:else}
+        <div class="space-y-4">
+          {#each rejectedKYC as kyc}
+            <div class="rounded-lg border border-red-200 bg-red-50 p-4 sm:p-6">
+              <div class="flex items-start space-x-4">
+                <img src={kyc.user.avatar} alt={kyc.user.name} class="h-12 w-12 rounded-lg" />
+                <div class="flex-1">
+                  <div class="flex items-center space-x-2">
+                    <h4 class="font-semibold text-gray-900">{kyc.user.name}</h4>
+                    <span class="rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800">
+                      {kyc.type}
+                    </span>
+                  </div>
+                  <p class="mt-1 text-sm text-gray-600">{kyc.user.email}</p>
+                  <p class="mt-2 text-sm font-medium text-red-900">Reason: {kyc.reason}</p>
+                  <p class="mt-1 text-xs text-gray-500">Rejected by {kyc.rejectedBy} on {kyc.rejectedAt}</p>
+                </div>
+                <XCircle class="h-6 w-6 text-red-600" />
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  </div>
+</div>
 
+<!-- Review Modal -->
+{#if showReviewModal && selectedKYC}
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+    <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+      <h3 class="text-xl font-bold text-gray-900">Review KYC Submission</h3>
+      
+      <!-- User Info -->
+      <div class="mt-6 flex items-center space-x-4 rounded-lg border border-gray-200 p-4">
+        <img src={selectedKYC.user.avatar} alt={selectedKYC.user.name} class="h-16 w-16 rounded-lg" />
+        <div>
+          <h4 class="font-semibold text-gray-900">{selectedKYC.user.name}</h4>
+          <p class="text-sm text-gray-500">{selectedKYC.user.email}</p>
+          <p class="text-sm text-gray-500">{selectedKYC.user.phone}</p>
+          <span class="mt-2 inline-block rounded-full px-2 py-1 text-xs font-medium {selectedKYC.type === 'agent' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}">
+            {selectedKYC.type}
+          </span>
+        </div>
+      </div>
+      
       <!-- Document Details -->
-      <div class="space-y-3">
+      <div class="mt-6 space-y-4">
         <h4 class="font-semibold text-gray-900">Document Information</h4>
         <div class="grid grid-cols-2 gap-4">
-          <div>
-            <p class="text-sm text-gray-500">Document Type</p>
-            <p class="font-medium">{selectedKYC.documentType}</p>
+          <div class="rounded-lg border border-gray-200 p-3">
+            <p class="text-xs text-gray-500">Document Type</p>
+            <p class="mt-1 font-medium text-gray-900">{selectedKYC.documentType}</p>
           </div>
-          <div>
-            <p class="text-sm text-gray-500">Document Number</p>
-            <p class="font-medium">{selectedKYC.documentNumber}</p>
+          <div class="rounded-lg border border-gray-200 p-3">
+            <p class="text-xs text-gray-500">Document Number</p>
+            <p class="mt-1 font-medium text-gray-900">{selectedKYC.documentNumber}</p>
           </div>
           {#if selectedKYC.location}
-            <div>
-              <p class="text-sm text-gray-500">Location</p>
-              <p class="font-medium">{selectedKYC.location}</p>
+            <div class="rounded-lg border border-gray-200 p-3">
+              <p class="text-xs text-gray-500">Location</p>
+              <p class="mt-1 font-medium text-gray-900">{selectedKYC.location}</p>
             </div>
           {/if}
           {#if selectedKYC.businessLicense}
-            <div>
-              <p class="text-sm text-gray-500">Business License</p>
-              <p class="font-medium">{selectedKYC.businessLicense}</p>
+            <div class="rounded-lg border border-gray-200 p-3">
+              <p class="text-xs text-gray-500">Business License</p>
+              <p class="mt-1 font-medium text-gray-900">{selectedKYC.businessLicense}</p>
             </div>
           {/if}
         </div>
       </div>
-
-      <!-- Documents Preview -->
-      <div class="space-y-3">
+      
+      <!-- Documents -->
+      <div class="mt-6 space-y-3">
         <h4 class="font-semibold text-gray-900">Uploaded Documents</h4>
         <div class="grid grid-cols-3 gap-4">
           {#each selectedKYC.documents as doc}
             <div class="rounded-lg border border-gray-200 p-4 text-center">
-              <div
-                class="mb-2 flex h-32 items-center justify-center bg-gray-100"
-              >
-                <p class="text-sm text-gray-500">📄 {doc}</p>
-              </div>
-              <Button size="xs" color="light">View Full</Button>
+              <FileText class="mx-auto h-12 w-12 text-gray-400" />
+              <p class="mt-2 text-xs text-gray-600">{doc}</p>
             </div>
           {/each}
         </div>
       </div>
-
-      <!-- Rejection Reason (if rejecting) -->
-      <div class="space-y-2">
-        <label for="rejection-reason" class="text-sm font-medium text-gray-900">
-          Rejection Reason (optional)
-        </label>
-        <Textarea
+      
+      <!-- Info Box -->
+      <div class="mt-6 flex items-start space-x-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
+        <Info class="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+        <div class="text-xs text-blue-900">
+          <p class="font-semibold">Review Checklist:</p>
+          <ul class="mt-1 space-y-0.5 text-blue-800">
+            <li>• Verify document is clear and readable</li>
+            <li>• Check name matches across documents</li>
+            <li>• Confirm document is not expired</li>
+            <li>• For agents: verify business license</li>
+          </ul>
+        </div>
+      </div>
+      
+      <!-- Rejection Reason -->
+      <div class="mt-6">
+        <label for="rejection-reason" class="text-sm font-medium text-gray-900">Rejection Reason (if rejecting)</label>
+        <textarea
           id="rejection-reason"
           bind:value={rejectionReason}
-          placeholder="Provide a reason if rejecting this KYC..."
+          placeholder="Provide a clear reason for rejection..."
           rows={3}
-        />
+          class="mt-2 w-full rounded-lg border border-gray-200 p-3 text-sm focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600"
+        ></textarea>
       </div>
-    </div>
-
-    {#snippet footer()}
-      <div class="flex gap-2">
-        <Button color="green" onclick={approveKYC}>
-          <CheckCircle class="mr-2 h-4 w-4" />
+      
+      <!-- Actions -->
+      <div class="mt-6 flex gap-3">
+        <button
+          onclick={approveKYC}
+          class="flex-1 rounded-lg bg-green-600 px-4 py-3 font-medium text-white transition-colors hover:bg-green-700"
+        >
+          <CheckCircle class="mr-2 inline h-5 w-5" />
           Approve KYC
-        </Button>
-        <Button color="red" onclick={rejectKYC} disabled={!rejectionReason}>
-          <XCircle class="mr-2 h-4 w-4" />
+        </button>
+        <button
+          onclick={rejectKYC}
+          disabled={!rejectionReason}
+          class="flex-1 rounded-lg bg-red-600 px-4 py-3 font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <XCircle class="mr-2 inline h-5 w-5" />
           Reject KYC
-        </Button>
-        <Button
-          color="light"
-          onclick={() => {
-            showReviewModal = false;
-            rejectionReason = "";
-          }}
+        </button>
+        <button
+          onclick={closeModal}
+          class="rounded-lg border border-gray-200 px-4 py-3 font-medium text-gray-700 transition-colors hover:bg-gray-50"
         >
           Cancel
-        </Button>
+        </button>
       </div>
-    {/snippet}
-  {/if}
-</Modal>
+    </div>
+  </div>
+{/if}
