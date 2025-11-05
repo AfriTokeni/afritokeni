@@ -8,6 +8,8 @@
     Zap,
     Info,
     ChevronDown,
+    RefreshCw,
+    ArrowUpDown,
   } from "lucide-svelte";
   import { onMount } from "svelte";
   import type { ApexOptions } from "apexcharts";
@@ -15,6 +17,45 @@
   import { Button, Dropdown, DropdownItem } from "flowbite-svelte";
 
   let chartDateRange = $state<"7" | "30" | "90">("30");
+  let logFilterSeverity = $state<"all" | "error" | "warning" | "info">("all");
+  let logSortOrder = $state<"newest" | "oldest">("newest");
+  let displayedLogsCount = $state(10);
+  let activeSection = $state<"canisters" | "api" | "logs">("canisters");
+  
+  // Last updated timestamps
+  let canistersLastUpdated = $state(new Date().toLocaleTimeString());
+  let apiLastUpdated = $state(new Date().toLocaleTimeString());
+  let logsLastUpdated = $state(new Date().toLocaleTimeString());
+  
+  function loadMoreLogs() {
+    displayedLogsCount += 10;
+  }
+  
+  function refreshCanisters() {
+    console.log('Refreshing canisters...');
+    canistersLastUpdated = new Date().toLocaleTimeString();
+    // TODO: Implement with Juno
+  }
+  
+  function refreshAPI() {
+    console.log('Refreshing API status...');
+    apiLastUpdated = new Date().toLocaleTimeString();
+    // TODO: Implement with Juno
+  }
+  
+  function refreshLogs() {
+    console.log('Refreshing logs...');
+    logsLastUpdated = new Date().toLocaleTimeString();
+    // TODO: Implement with Juno
+  }
+  
+  function scrollToSection(section: typeof activeSection) {
+    activeSection = section;
+    const element = document.getElementById(section);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
 
   // Mock system data
   let canisters = $state([
@@ -42,25 +83,41 @@
   ]);
 
   let errorLogs = $state([
-    {
-      timestamp: "Nov 5, 2024 2:45 PM",
-      level: "error",
-      message: "Failed to process withdrawal TXN-12341",
-      canister: "Withdrawal Canister",
-    },
-    {
-      timestamp: "Nov 5, 2024 1:30 PM",
-      level: "warning",
-      message: "Low cycles detected on Exchange Canister",
-      canister: "Exchange Canister",
-    },
-    {
-      timestamp: "Nov 5, 2024 12:15 PM",
-      level: "info",
-      message: "Canister upgrade completed successfully",
-      canister: "Deposit Canister",
-    },
+    { timestamp: "Nov 5, 2024 2:45 PM", level: "error", message: "Failed to process withdrawal TXN-12341", canister: "Withdrawal Canister" },
+    { timestamp: "Nov 5, 2024 2:30 PM", level: "error", message: "Database connection timeout", canister: "Deposit Canister" },
+    { timestamp: "Nov 5, 2024 1:30 PM", level: "warning", message: "Low cycles detected on Exchange Canister", canister: "Exchange Canister" },
+    { timestamp: "Nov 5, 2024 1:15 PM", level: "warning", message: "High memory usage detected", canister: "Withdrawal Canister" },
+    { timestamp: "Nov 5, 2024 12:15 PM", level: "info", message: "Canister upgrade completed successfully", canister: "Deposit Canister" },
+    { timestamp: "Nov 5, 2024 11:45 AM", level: "info", message: "Backup completed successfully", canister: "Exchange Canister" },
+    { timestamp: "Nov 5, 2024 10:30 AM", level: "error", message: "API rate limit exceeded", canister: "Deposit Canister" },
+    { timestamp: "Nov 5, 2024 9:20 AM", level: "warning", message: "Slow query performance detected", canister: "Exchange Canister" },
+    { timestamp: "Nov 5, 2024 8:15 AM", level: "info", message: "System health check passed", canister: "Withdrawal Canister" },
+    { timestamp: "Nov 5, 2024 7:00 AM", level: "info", message: "Daily maintenance completed", canister: "Deposit Canister" },
+    { timestamp: "Nov 4, 2024 11:30 PM", level: "error", message: "Transaction validation failed", canister: "Exchange Canister" },
+    { timestamp: "Nov 4, 2024 10:15 PM", level: "warning", message: "Unusual traffic pattern detected", canister: "Withdrawal Canister" },
+    { timestamp: "Nov 4, 2024 9:00 PM", level: "info", message: "Cache cleared successfully", canister: "Deposit Canister" },
+    { timestamp: "Nov 4, 2024 8:45 PM", level: "info", message: "Scheduled task completed", canister: "Exchange Canister" },
+    { timestamp: "Nov 4, 2024 7:30 PM", level: "error", message: "Network connectivity issue", canister: "Withdrawal Canister" },
   ]);
+  
+  // Filter, sort, and paginate logs
+  let filteredLogs = $derived(
+    errorLogs
+      .filter((log) => logFilterSeverity === "all" || log.level === logFilterSeverity)
+      .sort((a, b) => {
+        const dateA = new Date(a.timestamp).getTime();
+        const dateB = new Date(b.timestamp).getTime();
+        return logSortOrder === "newest" ? dateB - dateA : dateA - dateB;
+      })
+  );
+  
+  let displayedLogs = $derived(filteredLogs.slice(0, displayedLogsCount));
+  let hasMoreLogs = $derived(displayedLogsCount < filteredLogs.length);
+  
+  // Count logs by severity
+  let errorCount = $derived(errorLogs.filter(l => l.level === "error").length);
+  let warningCount = $derived(errorLogs.filter(l => l.level === "warning").length);
+  let infoCount = $derived(errorLogs.filter(l => l.level === "info").length);
 
   let apiStatus = $state([
     { name: "Juno DB", status: "operational", responseTime: "45ms" },
@@ -200,8 +257,9 @@
 <div class="space-y-4 sm:space-y-6">
   <!-- System Overview -->
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-4">
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+    <button
+      onclick={() => scrollToSection('logs')}
+      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-green-400 hover:shadow-md sm:rounded-2xl sm:p-6"
     >
       <div class="flex items-center justify-between">
         <div>
@@ -216,10 +274,11 @@
           <CheckCircle class="h-6 w-6 text-green-600" />
         </div>
       </div>
-    </div>
+    </button>
 
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+    <button
+      onclick={() => scrollToSection('canisters')}
+      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-blue-400 hover:shadow-md sm:rounded-2xl sm:p-6"
     >
       <div class="flex items-center justify-between">
         <div>
@@ -236,10 +295,11 @@
           <Activity class="h-6 w-6 text-blue-600" />
         </div>
       </div>
-    </div>
+    </button>
 
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+    <button
+      onclick={() => scrollToSection('canisters')}
+      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-purple-400 hover:shadow-md sm:rounded-2xl sm:p-6"
     >
       <div class="flex items-center justify-between">
         <div>
@@ -256,10 +316,11 @@
           <Zap class="h-6 w-6 text-purple-600" />
         </div>
       </div>
-    </div>
+    </button>
 
-    <div
-      class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
+    <button
+      onclick={() => scrollToSection('canisters')}
+      class="rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-yellow-400 hover:shadow-md sm:rounded-2xl sm:p-6"
     >
       <div class="flex items-center justify-between">
         <div>
@@ -276,7 +337,7 @@
           <Server class="h-6 w-6 text-yellow-600" />
         </div>
       </div>
-    </div>
+    </button>
   </div>
 
   <!-- Cycles Usage Trend Chart -->
@@ -321,15 +382,25 @@
 
   <!-- Canister Status -->
   <div
+    id="canisters"
     class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
   >
-    <div class="mb-4 sm:mb-6">
-      <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
-        Canister Status
-      </h3>
-      <p class="text-xs text-gray-500 sm:text-sm">
-        Monitor canister health and cycles
-      </p>
+    <div class="mb-4 flex items-center justify-between sm:mb-6">
+      <div>
+        <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
+          Canister Status
+        </h3>
+        <p class="text-xs text-gray-500 sm:text-sm">
+          Last updated: {canistersLastUpdated}
+        </p>
+      </div>
+      <button
+        onclick={refreshCanisters}
+        class="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-600"
+      >
+        <RefreshCw class="h-4 w-4" />
+        Refresh
+      </button>
     </div>
 
     <div class="space-y-3 sm:space-y-4">
@@ -373,13 +444,25 @@
 
   <!-- API Status -->
   <div
+    id="api"
     class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
   >
-    <div class="mb-4 sm:mb-6">
-      <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
-        API Status
-      </h3>
-      <p class="text-xs text-gray-500 sm:text-sm">External service health</p>
+    <div class="mb-4 flex items-center justify-between sm:mb-6">
+      <div>
+        <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
+          API Status
+        </h3>
+        <p class="text-xs text-gray-500 sm:text-sm">
+          Last updated: {apiLastUpdated}
+        </p>
+      </div>
+      <button
+        onclick={refreshAPI}
+        class="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-600"
+      >
+        <RefreshCw class="h-4 w-4" />
+        Refresh
+      </button>
     </div>
 
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
@@ -407,17 +490,66 @@
 
   <!-- Error Logs -->
   <div
+    id="logs"
     class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 sm:rounded-2xl sm:p-6"
   >
-    <div class="mb-4 sm:mb-6">
-      <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
-        Recent Logs
-      </h3>
-      <p class="text-xs text-gray-500 sm:text-sm">System events and errors</p>
+    <div class="mb-4 flex items-center justify-between sm:mb-6">
+      <div>
+        <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
+          System Logs ({filteredLogs.length})
+        </h3>
+        <p class="text-xs text-gray-500 sm:text-sm">
+          Last updated: {logsLastUpdated}
+        </p>
+      </div>
+      <button
+        onclick={refreshLogs}
+        class="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-600"
+      >
+        <RefreshCw class="h-4 w-4" />
+        Refresh
+      </button>
     </div>
 
-    <div class="space-y-3">
-      {#each errorLogs as log}
+    <!-- Filter and Sort Controls -->
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex gap-2">
+        <button
+          onclick={() => (logFilterSeverity = "all")}
+          class="rounded-lg px-3 py-1 text-xs font-medium transition-colors {logFilterSeverity === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
+        >
+          All ({errorLogs.length})
+        </button>
+        <button
+          onclick={() => (logFilterSeverity = "error")}
+          class="rounded-lg px-3 py-1 text-xs font-medium transition-colors {logFilterSeverity === 'error' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
+        >
+          Errors ({errorCount})
+        </button>
+        <button
+          onclick={() => (logFilterSeverity = "warning")}
+          class="rounded-lg px-3 py-1 text-xs font-medium transition-colors {logFilterSeverity === 'warning' ? 'bg-yellow-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
+        >
+          Warnings ({warningCount})
+        </button>
+        <button
+          onclick={() => (logFilterSeverity = "info")}
+          class="rounded-lg px-3 py-1 text-xs font-medium transition-colors {logFilterSeverity === 'info' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
+        >
+          Info ({infoCount})
+        </button>
+      </div>
+      <button
+        onclick={() => (logSortOrder = logSortOrder === "newest" ? "oldest" : "newest")}
+        class="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
+      >
+        <ArrowUpDown class="h-3 w-3" />
+        {logSortOrder === "newest" ? "Newest First" : "Oldest First"}
+      </button>
+    </div>
+
+    <div class="max-h-96 space-y-3 overflow-y-auto">
+      {#each displayedLogs as log}
         <div class="rounded-lg border border-gray-100 p-3">
           <div class="flex items-start justify-between">
             <div class="flex-1">
@@ -427,7 +559,7 @@
                     log.level,
                   )}"
                 >
-                  {log.level}
+                  {log.level.toUpperCase()}
                 </span>
                 <span class="text-xs text-gray-500">{log.timestamp}</span>
               </div>
@@ -437,20 +569,37 @@
           </div>
         </div>
       {/each}
+      
+      <!-- Load More Logs Button -->
+      {#if hasMoreLogs}
+        <button
+          onclick={loadMoreLogs}
+          class="w-full rounded-lg border-2 border-dashed border-gray-300 py-3 text-sm font-medium text-gray-600 transition-colors hover:border-blue-600 hover:text-blue-600"
+        >
+          Load More Logs ({filteredLogs.length - displayedLogsCount} remaining)
+        </button>
+      {/if}
     </div>
   </div>
 
   <!-- Info Box -->
   <div
-    class="flex items-start space-x-2 rounded-lg border border-blue-200 bg-blue-50 p-3 sm:p-4"
+    class="rounded-xl border-2 border-blue-300 bg-gradient-to-r from-blue-50 to-blue-100 p-4 shadow-md sm:p-6"
   >
-    <Info class="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
-    <div class="text-xs text-blue-900 sm:text-sm">
-      <p class="font-semibold">System Monitoring:</p>
-      <p class="mt-1 text-blue-800">
-        Last deployment: {systemHealth.lastDeployment}. Monitor canister cycles
-        and top up when below 2T to ensure continuous operation.
-      </p>
+    <div class="flex items-start space-x-3">
+      <div class="rounded-lg bg-blue-600 p-2">
+        <Info class="h-5 w-5 text-white" />
+      </div>
+      <div class="flex-1">
+        <h4 class="text-base font-bold text-blue-900 sm:text-lg">System Monitoring</h4>
+        <p class="mt-2 text-sm text-blue-800">
+          <span class="font-semibold">Last deployment:</span> {systemHealth.lastDeployment}
+        </p>
+        <p class="mt-2 text-sm text-blue-800">
+          Monitor canister cycles and top up when below 2T to ensure continuous operation.
+          Use the refresh buttons above to get real-time updates.
+        </p>
+      </div>
     </div>
   </div>
 </div>
