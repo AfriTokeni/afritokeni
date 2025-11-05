@@ -1070,7 +1070,7 @@
     tabindex="0"
     onclick={closeDocumentView}
     onkeydown={(e) => {
-      if (e.key === 'Escape' || e.key === 'Enter') {
+      if (e.key === "Escape" || e.key === "Enter") {
         closeDocumentView();
       }
     }}
@@ -1105,7 +1105,7 @@
       tabindex="0"
       onclick={(e) => e.stopPropagation()}
       onkeydown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (e.key === "Enter" || e.key === " ") {
           e.stopPropagation();
         }
       }}
