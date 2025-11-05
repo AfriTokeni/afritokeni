@@ -277,7 +277,9 @@
               <ArrowUpRight class="h-5 w-5 text-yellow-600 sm:h-6 sm:w-6" />
             </div>
             <div class="min-w-0">
-              <p class="text-sm font-semibold text-gray-900">Exchange Spreads</p>
+              <p class="text-sm font-semibold text-gray-900">
+                Exchange Spreads
+              </p>
               <p class="text-xs text-gray-500">0.5% on crypto trades</p>
             </div>
           </div>
