@@ -194,6 +194,13 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+      
+      - name: Audit Rust Dependencies
+        run: cargo audit
+        continue-on-error: false
+      
       - name: Run Canister Tests
         run: cargo test --release --package deposit_canister --package withdrawal_canister --package exchange_canister
         timeout-minutes: 10
