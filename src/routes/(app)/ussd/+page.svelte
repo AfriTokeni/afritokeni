@@ -51,7 +51,7 @@
         throw new Error("Satellite ID not configured");
       }
 
-      const response = await fetch(`https://${satId}.icp0.io/ussd`, {
+      const response = await fetch(`https://${satId}.icp0.io/api/ussd`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
