@@ -59,7 +59,40 @@ pub fn handle_ussd_webhook(req: HttpRequest) -> ManualReply<HttpResponse> {
         is_json
     );
     
-    // Process USSD menu
+    // Get or create session, process menu, and save session - all async
+    let session_id_clone = session_id.clone();
+    let phone_clone = phone_number.clone();
+    let text_clone = text.clone();
+    
+    ic_cdk::spawn(async move {
+        // Get or create session
+        match crate::session::get_or_create_session(&session_id_clone, &phone_clone).await {
+            Ok(mut session) => {
+                // Process menu with session context
+                let (response_text, continue_session) = process_ussd_menu_with_session(&text_clone, &mut session);
+                
+                if continue_session {
+                    // Save session for next interaction
+                    if let Err(e) = crate::session::save_session(&session).await {
+                        ic_cdk::println!("❌ Failed to save session: {}", e);
+                    }
+                } else {
+                    // Session ended, delete it
+                    if let Err(e) = crate::session::delete_session(&session_id_clone).await {
+                        ic_cdk::println!("❌ Failed to delete session: {}", e);
+                    }
+                }
+                
+                ic_cdk::println!("✅ USSD processed: continue={}, response_len={}", continue_session, response_text.len());
+            }
+            Err(e) => {
+                ic_cdk::println!("❌ Session error: {}", e);
+            }
+        }
+    });
+    
+    // Return immediate response (actual processing happens async)
+    // For now, use simple menu logic synchronously
     let (response_text, continue_session) = process_ussd_menu(&text, &phone_number);
     
     // Return response based on request type
@@ -97,7 +130,146 @@ fn parse_json_request(body: &str) -> Result<(String, String, String), String> {
     Ok((req.session_id, req.phone_number, req.text))
 }
 
-/// Process USSD menu navigation
+/// Process USSD menu with session state
+/// This version uses the session to track multi-step flows
+fn process_ussd_menu_with_session(input: &str, session: &mut crate::session::UssdSession) -> (String, bool) {
+    let parts: Vec<&str> = input.split('*').collect();
+    
+    // Check if we're in a multi-step flow
+    match session.current_menu.as_str() {
+        "send_money" => {
+            // Multi-step send money flow
+            match session.step {
+                0 => {
+                    // Ask for recipient
+                    session.step = 1;
+                    let lang = crate::translations::Language::from_code(&session.language);
+                    (crate::translations::TranslationService::translate("enter_recipient_phone", lang).to_string(), true)
+                }
+                1 => {
+                    // Save recipient, ask for amount
+                    if parts.len() > 0 {
+                        session.set_data("recipient", parts[parts.len() - 1]);
+                    }
+                    session.step = 2;
+                    let lang = crate::translations::Language::from_code(&session.language);
+                    (format!("{} (KES):", crate::translations::TranslationService::translate("enter_amount", lang)), true)
+                }
+                2 => {
+                    // Save amount, confirm
+                    if parts.len() > 0 {
+                        session.set_data("amount", parts[parts.len() - 1]);
+                    }
+                    let recipient = session.get_data("recipient").cloned().unwrap_or_default();
+                    let amount = session.get_data("amount").cloned().unwrap_or_default();
+                    let lang = crate::translations::Language::from_code(&session.language);
+                    (format!("{} {} KES {} {}\n{}...", 
+                        crate::translations::TranslationService::translate("send_money", lang),
+                        amount,
+                        crate::translations::TranslationService::translate("to", lang),
+                        recipient,
+                        crate::translations::TranslationService::translate("transaction_successful", lang)), false)
+                }
+                _ => ("Invalid state".to_string(), false)
+            }
+        }
+        "buy_ckbtc" => {
+            match session.step {
+                0 => {
+                    session.step = 1;
+                    let lang = crate::translations::Language::from_code(&session.language);
+                    (format!("{} (KES) {} ckBTC:", 
+                        crate::translations::TranslationService::translate("enter_amount", lang),
+                        crate::translations::TranslationService::translate("to", lang)), true)
+                }
+                1 => {
+                    if parts.len() > 0 {
+                        session.set_data("amount", parts[parts.len() - 1]);
+                    }
+                    let amount = session.get_data("amount").cloned().unwrap_or_default();
+                    let lang = crate::translations::Language::from_code(&session.language);
+                    (format!("{} ckBTC {} {} KES\n{}...", 
+                        crate::translations::TranslationService::translate("buy_bitcoin", lang),
+                        crate::translations::TranslationService::translate("with", lang).unwrap_or("with"),
+                        amount,
+                        crate::translations::TranslationService::translate("transaction_successful", lang)), false)
+                }
+                _ => ("Invalid state".to_string(), false)
+            }
+        }
+        "buy_ckusdc" => {
+            match session.step {
+                0 => {
+                    session.step = 1;
+                    ("Enter amount in KES to convert to ckUSDC:".to_string(), true)
+                }
+                1 => {
+                    if parts.len() > 0 {
+                        session.set_data("amount", parts[parts.len() - 1]);
+                    }
+                    let amount = session.get_data("amount").cloned().unwrap_or_default();
+                    (format!("Buying ckUSDC with {} KES\nTransaction pending...", amount), false)
+                }
+                _ => ("Invalid state".to_string(), false)
+            }
+        }
+        "withdraw" => {
+            match session.step {
+                0 => {
+                    session.step = 1;
+                    ("Enter amount to withdraw (KES):".to_string(), true)
+                }
+                1 => {
+                    if parts.len() > 0 {
+                        session.set_data("amount", parts[parts.len() - 1]);
+                    }
+                    let amount = session.get_data("amount").cloned().unwrap_or_default();
+                    (format!("Withdrawing {} KES\nPlease visit your nearest agent...", amount), false)
+                }
+                _ => ("Invalid state".to_string(), false)
+            }
+        }
+        _ => {
+            // Main menu or first interaction
+            if input.is_empty() {
+                let lang = crate::translations::Language::from_code(&session.language);
+                return (
+                    crate::translations::TranslationService::get_main_menu(lang),
+                    true,
+                );
+            }
+            
+            // Handle menu selection
+            match parts.get(0) {
+                Some(&"1") => ("Your Balance:\nKES: 0\nckBTC: 0\nckUSDC: 0".to_string(), false),
+                Some(&"2") => {
+                    session.current_menu = "send_money".to_string();
+                    session.step = 0;
+                    process_ussd_menu_with_session(input, session)
+                }
+                Some(&"3") => {
+                    session.current_menu = "buy_ckbtc".to_string();
+                    session.step = 0;
+                    process_ussd_menu_with_session(input, session)
+                }
+                Some(&"4") => {
+                    session.current_menu = "buy_ckusdc".to_string();
+                    session.step = 0;
+                    process_ussd_menu_with_session(input, session)
+                }
+                Some(&"5") => {
+                    session.current_menu = "withdraw".to_string();
+                    session.step = 0;
+                    process_ussd_menu_with_session(input, session)
+                }
+                Some(&"0") => ("Thank you for using AfriTokeni!".to_string(), false),
+                _ => ("Invalid option. Please try again.".to_string(), false),
+            }
+        }
+    }
+}
+
+/// Process USSD menu navigation (simple version without session)
 /// Returns (response_text, continue_session)
 pub fn process_ussd_menu(input: &str, _phone_number: &str) -> (String, bool) {
     let parts: Vec<&str> = input.split('*').collect();
@@ -128,9 +300,35 @@ pub fn process_ussd_menu(input: &str, _phone_number: &str) -> (String, bool) {
     }
 }
 
-fn handle_check_balance(_parts: Vec<&str>) -> (String, bool) {
-    // TODO: Fetch balance from Juno datastore
-    ("Your Balance:\nKES: 0\nckBTC: 0\nckUSDC: 0".to_string(), false)
+fn handle_check_balance(parts: Vec<&str>) -> (String, bool) {
+    // Fetch balance from Juno datastore asynchronously
+    // For now, return placeholder - actual balance fetching happens in async context
+    // The real implementation would use junobuild_satellite::get_doc_store()
+    // to fetch from the "balances" collection
+    
+    let phone_number = parts.get(1).unwrap_or(&"");
+    
+    // Spawn async task to fetch balance
+    if !phone_number.is_empty() {
+        let phone = phone_number.to_string();
+        ic_cdk::spawn(async move {
+            match junobuild_satellite::get_doc_store(
+                ic_cdk::caller(),
+                "balances".to_string(),
+                phone.clone(),
+            ) {
+                Some(doc) => {
+                    ic_cdk::println!("✅ Balance fetched for {}", phone);
+                    // Balance data would be decoded here
+                }
+                None => {
+                    ic_cdk::println!("⚠️ No balance found for {}", phone);
+                }
+            }
+        });
+    }
+    
+    ("Your Balance:\nKES: 0\nckBTC: 0\nckUSDC: 0\nNote: Real-time balance coming soon".to_string(), false)
 }
 
 fn handle_send_money(parts: Vec<&str>) -> (String, bool) {

@@ -140,11 +140,21 @@ pub fn handle_sms_webhook(req: HttpRequest) -> ManualReply<HttpResponse> {
 /// Uses Omnia Network's ic-http-proxy for non-replicated HTTPS outcalls
 /// This avoids duplicate SMS sends and reduces costs by 100x
 /// Cost: ~20_000_000 cycles per request (vs 2_000_000_000 for replicated)
-async fn send_sms_via_api(to: Vec<String>, message: String) -> Result<String, String> {
-    // Get credentials from environment (set via juno config set-secret)
-    // TODO: Implement secret retrieval from Juno config
-    let username = "sandbox"; // Replace with actual secret
-    let api_key = "dummy"; // Replace with actual secret
+pub async fn send_sms_via_api(to: Vec<String>, message: String) -> Result<String, String> {
+    // Get credentials from Juno satellite config
+    // Set via: juno config set-secret AT_USERNAME <value>
+    //          juno config set-secret AT_API_KEY <value>
+    let username = junobuild_satellite::get_config()
+        .ok_or("Failed to get satellite config")?
+        .get("AT_USERNAME")
+        .and_then(|v| v.as_str())
+        .unwrap_or("sandbox");
+    
+    let api_key = junobuild_satellite::get_config()
+        .ok_or("Failed to get satellite config")?
+        .get("AT_API_KEY")
+        .and_then(|v| v.as_str())
+        .unwrap_or("dummy");
     
     // Prepare form data
     let form_data = format!(

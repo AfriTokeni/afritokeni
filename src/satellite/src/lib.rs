@@ -18,6 +18,8 @@ mod http_handlers;
 mod ussd;
 mod sms;
 mod verification;
+mod session;
+mod translations;
 
 #[cfg(test)]
 mod tests;

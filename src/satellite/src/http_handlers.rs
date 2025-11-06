@@ -77,14 +77,231 @@ fn handle_incoming_sms(req: HttpRequest) -> ManualReply<HttpResponse> {
     }
     
     // Process SMS command
-    // TODO: Parse SMS commands like:
-    // - "BAL" - Check balance
-    // - "SEND +256... 10000" - Send money
-    // - "BTC BUY 50000" - Buy Bitcoin
+    let command = text.trim().to_uppercase();
+    let parts: Vec<&str> = text.trim().split_whitespace().collect();
+    
+    let response_message = match parts.get(0).map(|s| s.to_uppercase()).as_deref() {
+        Some("BAL") | Some("BALANCE") => {
+            // Check balance command - spawn async task to fetch and send SMS
+            let from_clone = from.to_string();
+            ic_cdk::spawn(async move {
+                match junobuild_satellite::get_doc_store(
+                    ic_cdk::caller(),
+                    "balances".to_string(),
+                    from_clone.clone(),
+                ) {
+                    Some(doc) => {
+                        // Decode balance data
+                        #[derive(serde::Deserialize)]
+                        struct Balance {
+                            kes: f64,
+                            ckbtc: f64,
+                            ckusdc: f64,
+                        }
+                        
+                        match junobuild_utils::decode_doc_data::<Balance>(&doc.data) {
+                            Ok(balance) => {
+                                let sms_message = format!(
+                                    "AfriTokeni Balance:\nKES: {:.2}\nckBTC: {:.8}\nckUSDC: {:.2}",
+                                    balance.kes, balance.ckbtc, balance.ckusdc
+                                );
+                                // Send SMS with balance
+                                let _ = crate::sms::send_sms_via_api(vec![from_clone], sms_message).await;
+                            }
+                            Err(e) => {
+                                ic_cdk::println!("❌ Failed to decode balance: {}", e);
+                            }
+                        }
+                    }
+                    None => {
+                        // No balance found - send SMS to register
+                        let sms_message = "No account found. Dial *229# to register with AfriTokeni.".to_string();
+                        let _ = crate::sms::send_sms_via_api(vec![from_clone], sms_message).await;
+                    }
+                }
+            });
+            "Balance request received. You will receive an SMS shortly.".to_string()
+        }
+        Some("SEND") => {
+            // Send money command: SEND +256... 10000
+            if parts.len() < 3 {
+                "Invalid format. Use: SEND +phone amount".to_string()
+            } else {
+                let recipient = parts[1];
+                let amount = parts[2];
+                
+                let from_clone = from.to_string();
+                let recipient_clone = recipient.to_string();
+                let amount_clone = amount.to_string();
+                
+                ic_cdk::spawn(async move {
+                    // Create transaction in Juno datastore
+                    #[derive(serde::Serialize)]
+                    struct Transaction {
+                        from: String,
+                        to: String,
+                        amount: String,
+                        currency: String,
+                        timestamp: u64,
+                        status: String,
+                    }
+                    
+                    let tx = Transaction {
+                        from: from_clone.clone(),
+                        to: recipient_clone.clone(),
+                        amount: amount_clone.clone(),
+                        currency: "KES".to_string(),
+                        timestamp: ic_cdk::api::time(),
+                        status: "pending".to_string(),
+                    };
+                    
+                    let encoded = junobuild_utils::encode_doc_data(&tx).unwrap();
+                    let doc = junobuild_satellite::SetDoc {
+                        data: encoded,
+                        description: Some("SMS send money transaction".to_string()),
+                        version: None,
+                    };
+                    
+                    let tx_id = format!("tx_{}", ic_cdk::api::time());
+                    match junobuild_satellite::set_doc_store(
+                        ic_cdk::caller(),
+                        "transactions".to_string(),
+                        tx_id,
+                        doc,
+                    ) {
+                        Ok(_) => {
+                            let sms = format!("Sending {} KES to {}. Transaction pending.", amount_clone, recipient_clone);
+                            let _ = crate::sms::send_sms_via_api(vec![from_clone], sms).await;
+                        }
+                        Err(e) => {
+                            ic_cdk::println!("❌ Failed to create transaction: {}", e);
+                        }
+                    }
+                });
+                
+                format!("Sending {} KES to {}. You will receive confirmation SMS.", amount, recipient)
+            }
+        }
+        Some(cmd) if cmd.contains("BTC") || (parts.len() > 1 && parts[1].to_uppercase() == "BTC") => {
+            // Buy Bitcoin command: BUY BTC 50000 or BTC BUY 50000
+            let amount_idx = if cmd == "BUY" { 2 } else { 2 };
+            if parts.len() <= amount_idx {
+                "Invalid format. Use: BUY BTC amount or BTC BUY amount".to_string()
+            } else {
+                let amount = parts[amount_idx];
+                let from_clone = from.to_string();
+                let amount_clone = amount.to_string();
+                
+                ic_cdk::spawn(async move {
+                    // Create BTC purchase transaction
+                    #[derive(serde::Serialize)]
+                    struct BtcPurchase {
+                        user: String,
+                        amount_kes: String,
+                        asset: String,
+                        timestamp: u64,
+                        status: String,
+                    }
+                    
+                    let purchase = BtcPurchase {
+                        user: from_clone.clone(),
+                        amount_kes: amount_clone.clone(),
+                        asset: "ckBTC".to_string(),
+                        timestamp: ic_cdk::api::time(),
+                        status: "pending".to_string(),
+                    };
+                    
+                    let encoded = junobuild_utils::encode_doc_data(&purchase).unwrap();
+                    let doc = junobuild_satellite::SetDoc {
+                        data: encoded,
+                        description: Some("SMS BTC purchase".to_string()),
+                        version: None,
+                    };
+                    
+                    let tx_id = format!("btc_{}", ic_cdk::api::time());
+                    match junobuild_satellite::set_doc_store(
+                        ic_cdk::caller(),
+                        "transactions".to_string(),
+                        tx_id,
+                        doc,
+                    ) {
+                        Ok(_) => {
+                            let sms = format!("Buying ckBTC with {} KES. Transaction pending.", amount_clone);
+                            let _ = crate::sms::send_sms_via_api(vec![from_clone], sms).await;
+                        }
+                        Err(e) => {
+                            ic_cdk::println!("❌ Failed to create BTC purchase: {}", e);
+                        }
+                    }
+                });
+                
+                format!("Buying ckBTC with {} KES. You will receive confirmation SMS.", amount)
+            }
+        }
+        Some(cmd) if cmd.contains("USDC") || (parts.len() > 1 && parts[1].to_uppercase() == "USDC") => {
+            // Buy USDC command: BUY USDC 50000 or USDC BUY 50000
+            let amount_idx = if cmd == "BUY" { 2 } else { 2 };
+            if parts.len() <= amount_idx {
+                "Invalid format. Use: BUY USDC amount or USDC BUY amount".to_string()
+            } else {
+                let amount = parts[amount_idx];
+                let from_clone = from.to_string();
+                let amount_clone = amount.to_string();
+                
+                ic_cdk::spawn(async move {
+                    // Create USDC purchase transaction
+                    #[derive(serde::Serialize)]
+                    struct UsdcPurchase {
+                        user: String,
+                        amount_kes: String,
+                        asset: String,
+                        timestamp: u64,
+                        status: String,
+                    }
+                    
+                    let purchase = UsdcPurchase {
+                        user: from_clone.clone(),
+                        amount_kes: amount_clone.clone(),
+                        asset: "ckUSDC".to_string(),
+                        timestamp: ic_cdk::api::time(),
+                        status: "pending".to_string(),
+                    };
+                    
+                    let encoded = junobuild_utils::encode_doc_data(&purchase).unwrap();
+                    let doc = junobuild_satellite::SetDoc {
+                        data: encoded,
+                        description: Some("SMS USDC purchase".to_string()),
+                        version: None,
+                    };
+                    
+                    let tx_id = format!("usdc_{}", ic_cdk::api::time());
+                    match junobuild_satellite::set_doc_store(
+                        ic_cdk::caller(),
+                        "transactions".to_string(),
+                        tx_id,
+                        doc,
+                    ) {
+                        Ok(_) => {
+                            let sms = format!("Buying ckUSDC with {} KES. Transaction pending.", amount_clone);
+                            let _ = crate::sms::send_sms_via_api(vec![from_clone], sms).await;
+                        }
+                        Err(e) => {
+                            ic_cdk::println!("❌ Failed to create USDC purchase: {}", e);
+                        }
+                    }
+                });
+                
+                format!("Buying ckUSDC with {} KES. You will receive confirmation SMS.", amount)
+            }
+        }
+        _ => {
+            "Unknown command. Send:\nBAL - Check balance\nSEND +phone amount - Send money\nBUY BTC amount - Buy Bitcoin\nBUY USDC amount - Buy USDC".to_string()
+        }
+    };
     
     let response = serde_json::json!({
         "status": "received",
-        "message": "SMS processed successfully"
+        "message": response_message
     });
     
     ok_response(response.to_string().into_bytes(), "application/json")
