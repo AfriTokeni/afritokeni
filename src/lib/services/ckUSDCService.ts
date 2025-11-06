@@ -180,8 +180,8 @@ export class CkUSDCService {
         throw new Error("MetaMask not installed");
       }
 
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
 
       const contract = new ethers.Contract(
         this.config.sepoliaUSDCAddress,
@@ -189,7 +189,7 @@ export class CkUSDCService {
         signer,
       );
 
-      const amountInSmallestUnit = ethers.utils.parseUnits(
+      const amountInSmallestUnit = ethers.parseUnits(
         amount.toString(),
         CKUSDC_CONSTANTS.DECIMALS,
       );
@@ -265,8 +265,8 @@ export class CkUSDCService {
         throw new Error("MetaMask not installed");
       }
 
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
 
       const contract = new ethers.Contract(
         this.config.helperContractAddress,
@@ -274,7 +274,7 @@ export class CkUSDCService {
         signer,
       );
 
-      const amountInSmallestUnit = ethers.utils.parseUnits(
+      const amountInSmallestUnit = ethers.parseUnits(
         request.amount.toString(),
         CKUSDC_CONSTANTS.DECIMALS,
       );
@@ -694,7 +694,7 @@ export class CkUSDCService {
    * Validate Ethereum address
    */
   static isValidEthereumAddress(address: string): boolean {
-    return ethers.utils.isAddress(address);
+    return ethers.isAddress(address);
   }
 
   /**
