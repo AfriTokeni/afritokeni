@@ -38,6 +38,9 @@ jobs:
       - name: Build SvelteKit App
         run: pnpm run build
       
+      - name: Install Juno CLI
+        run: npm install -g @junobuild/cli
+      
       - name: Build Satellite Functions
         run: juno functions build --lang rust
       
