@@ -27,7 +27,7 @@
           Pricing
         </a>
         <a
-          href="/info/dao"
+          href="/dao"
           class="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 lg:text-base"
         >
           DAO
@@ -86,7 +86,7 @@
             Pricing
           </a>
           <a
-            href="/info/dao"
+            href="/dao"
             class="block py-2 font-medium text-gray-600 transition-colors hover:text-gray-900"
             onclick={() => (isMobileMenuOpen = false)}
           >

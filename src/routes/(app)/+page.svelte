@@ -155,7 +155,7 @@
 
       <!-- DAO Governance -->
       <a
-        href="/info/dao"
+        href="/dao"
         class="flex flex-col rounded-2xl border-2 border-purple-200 bg-linear-to-br from-purple-50 to-pink-50 p-6 transition-all hover:border-purple-400 hover:shadow-lg sm:col-span-2 sm:p-8 lg:col-span-1"
       >
         <div
