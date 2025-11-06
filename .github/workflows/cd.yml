@@ -1,8 +1,9 @@
 name: CD - Deploy to Production
 
 on:
-  push:
-    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch: # Allow manual deploys
 
 env:
   NODE_VERSION: 22
