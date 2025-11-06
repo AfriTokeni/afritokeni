@@ -17,6 +17,7 @@ use serde::Serialize;
 mod http_handlers;
 mod ussd;
 mod sms;
+mod verification;
 
 #[cfg(test)]
 mod tests;

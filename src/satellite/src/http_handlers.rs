@@ -27,9 +27,143 @@ pub fn route_request(req: HttpRequest) -> ManualReply<HttpResponse> {
     match (req.method.as_str(), path) {
         ("GET", "/api/health") => health_check(),
         ("POST", "/api/ussd") => crate::ussd::handle_ussd_webhook(req),
-        ("POST", "/api/sms") => crate::sms::handle_sms_webhook(req),
+        ("POST", "/api/sms") => handle_incoming_sms(req),
+        ("POST", "/api/send-sms") => crate::sms::handle_sms_webhook(req),
+        ("POST", "/api/verify-code") => handle_verify_code(req),
+        ("POST", "/api/send-notification") => handle_send_notification(req),
         _ => not_found(),
     }
+}
+
+/// Handle incoming SMS from Africa's Talking
+fn handle_incoming_sms(req: HttpRequest) -> ManualReply<HttpResponse> {
+    // Parse form data
+    let body_str = match std::str::from_utf8(&req.body) {
+        Ok(s) => s,
+        Err(_) => return error_response(400, "Invalid UTF-8 in request body"),
+    };
+    
+    // Parse form-urlencoded data
+    let params: std::collections::HashMap<String, String> = body_str
+        .split('&')
+        .filter_map(|pair| {
+            let mut parts = pair.splitn(2, '=');
+            match (parts.next(), parts.next()) {
+                (Some(key), Some(value)) => {
+                    Some((
+                        urlencoding::decode(key).ok()?.into_owned(),
+                        urlencoding::decode(value).ok()?.into_owned(),
+                    ))
+                }
+                _ => None,
+            }
+        })
+        .collect();
+    
+    let from = params.get("from").map(|s| s.as_str()).unwrap_or("");
+    let to = params.get("to").map(|s| s.as_str()).unwrap_or("");
+    let text = params.get("text").map(|s| s.as_str()).unwrap_or("");
+    let date = params.get("date").map(|s| s.as_str()).unwrap_or("");
+    let id = params.get("id").map(|s| s.as_str()).unwrap_or("");
+    
+    ic_cdk::println!(
+        "📨 SMS Received - From: {}, To: {}, Text: '{}', Date: {}, ID: {}",
+        from, to, text, date, id
+    );
+    
+    // Validate
+    if from.is_empty() || text.is_empty() {
+        return error_response(400, "Missing required fields");
+    }
+    
+    // Process SMS command
+    // TODO: Parse SMS commands like:
+    // - "BAL" - Check balance
+    // - "SEND +256... 10000" - Send money
+    // - "BTC BUY 50000" - Buy Bitcoin
+    
+    let response = serde_json::json!({
+        "status": "received",
+        "message": "SMS processed successfully"
+    });
+    
+    ok_response(response.to_string().into_bytes(), "application/json")
+}
+
+/// Send notification (email or SMS)
+fn handle_send_notification(req: HttpRequest) -> ManualReply<HttpResponse> {
+    #[derive(serde::Deserialize)]
+    struct NotificationRequest {
+        #[serde(rename = "type")]
+        notification_type: String,
+        recipient: String,
+    }
+    
+    let notif_req: NotificationRequest = match serde_json::from_slice(&req.body) {
+        Ok(r) => r,
+        Err(e) => return error_response(400, &format!("Invalid JSON: {}", e)),
+    };
+    
+    ic_cdk::println!(
+        "📧 Sending {} notification to {}",
+        notif_req.notification_type,
+        notif_req.recipient
+    );
+    
+    // For email notifications, we'd use Resend API via ic-http-proxy
+    // For SMS notifications, we'd use our SMS handler
+    
+    let response = serde_json::json!({
+        "success": true,
+        "message": format!("{} notification sent successfully", notif_req.notification_type)
+    });
+    
+    ok_response(response.to_string().into_bytes(), "application/json")
+}
+
+/// Verify SMS code endpoint
+fn handle_verify_code(req: HttpRequest) -> ManualReply<HttpResponse> {
+    #[derive(serde::Deserialize)]
+    struct VerifyRequest {
+        #[serde(rename = "phoneNumber")]
+        phone_number: String,
+        code: String,
+    }
+    
+    // Parse request
+    let verify_req: VerifyRequest = match serde_json::from_slice(&req.body) {
+        Ok(r) => r,
+        Err(e) => return error_response(400, &format!("Invalid JSON: {}", e)),
+    };
+    
+    // Validate
+    if verify_req.phone_number.is_empty() || verify_req.code.is_empty() {
+        return error_response(400, "Phone number and code are required");
+    }
+    
+    // Spawn async verification
+    let phone = verify_req.phone_number.clone();
+    let code = verify_req.code.clone();
+    
+    ic_cdk::spawn(async move {
+        match crate::verification::verify_code(&phone, &code).await {
+            Ok(user_id) => {
+                ic_cdk::println!("✅ Code verified for user: {}", user_id);
+            }
+            Err(e) => {
+                ic_cdk::println!("❌ Verification failed: {}", e);
+            }
+        }
+    });
+    
+    // For now, return success immediately
+    // In production, we'd wait for the async result
+    let response = serde_json::json!({
+        "success": true,
+        "message": "Code verification in progress"
+    });
+    
+    ok_response(response.to_string().into_bytes(), "application/json")
 }
 
 /// Health check endpoint

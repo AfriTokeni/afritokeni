@@ -16,6 +16,10 @@ const AT_SMS_URL: &str = "https://api.sandbox.africastalking.com/version1/messag
 struct SmsRequest {
     to: Vec<String>,
     message: String,
+    #[serde(rename = "verificationCode")]
+    verification_code: Option<String>,
+    #[serde(rename = "userId")]
+    user_id: Option<String>,
 }
 
 /// Africa's Talking SMS response
@@ -86,16 +90,44 @@ pub fn handle_sms_webhook(req: HttpRequest) -> ManualReply<HttpResponse> {
     }
     
     ic_cdk::println!(
-        "SMS Request - To: {:?}, Message: '{}'",
+        "📱 SMS Request - To: {:?}, Message: '{}', HasVerificationCode: {}",
         sms_req.to,
-        sms_req.message
+        sms_req.message,
+        sms_req.verification_code.is_some()
     );
     
-    // For now, return success (actual SMS sending will be implemented with HTTPS outcalls)
-    // TODO: Implement actual SMS sending via Africa's Talking API
+    // If verification code provided, store it
+    if let Some(code) = &sms_req.verification_code {
+        let phone = &sms_req.to[0]; // First recipient
+        let user_id = sms_req.user_id.as_deref().unwrap_or("anonymous");
+        
+        // Spawn async task to store verification code
+        ic_cdk::spawn(async move {
+            if let Err(e) = crate::verification::store_verification_code(phone, code, user_id).await {
+                ic_cdk::println!("❌ Failed to store verification code: {}", e);
+            }
+        });
+    }
+    
+    // Spawn async task to send SMS
+    let to = sms_req.to.clone();
+    let message = sms_req.message.clone();
+    
+    ic_cdk::spawn(async move {
+        match send_sms_via_api(to, message).await {
+            Ok(message_id) => {
+                ic_cdk::println!("✅ SMS sent successfully: {}", message_id);
+            }
+            Err(e) => {
+                ic_cdk::println!("❌ Failed to send SMS: {}", e);
+            }
+        }
+    });
+    
+    // Return immediate success (actual sending happens async)
     let response = SmsResponse {
         success: true,
-        message_id: Some("DEMO-MSG-ID".to_string()),
+        message_id: Some(format!("msg_{}", ic_cdk::api::time())),
         error: None,
     };
     
@@ -108,7 +140,6 @@ pub fn handle_sms_webhook(req: HttpRequest) -> ManualReply<HttpResponse> {
 /// Uses Omnia Network's ic-http-proxy for non-replicated HTTPS outcalls
 /// This avoids duplicate SMS sends and reduces costs by 100x
 /// Cost: ~20_000_000 cycles per request (vs 2_000_000_000 for replicated)
-#[allow(dead_code)]
 async fn send_sms_via_api(to: Vec<String>, message: String) -> Result<String, String> {
     // Get credentials from environment (set via juno config set-secret)
     // TODO: Implement secret retrieval from Juno config
