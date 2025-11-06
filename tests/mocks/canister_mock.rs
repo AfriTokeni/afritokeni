@@ -10,6 +10,7 @@ pub struct CanisterBalance {
 }
 
 // Mock ckBTC canister
+#[derive(Debug)]
 pub struct MockCkBtcCanister {
     balances: Arc<Mutex<HashMap<String, f64>>>,
     btc_to_kes_rate: f64,
@@ -58,6 +59,7 @@ impl Default for MockCkBtcCanister {
 }
 
 // Mock ckUSDC canister
+#[derive(Debug)]
 pub struct MockCkUsdcCanister {
     balances: Arc<Mutex<HashMap<String, f64>>>,
     usdc_to_kes_rate: f64,

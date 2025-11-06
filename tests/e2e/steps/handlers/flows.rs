@@ -1,7 +1,7 @@
 // Multi-step transaction flows
 
 use super::super::world::UssdWorld;
-use crate::mocks::juno_mock::{Balance, Transaction};
+use crate::mocks::juno_mock::Balance;
 
 pub async fn send_money(world: &mut UssdWorld, input: &str) -> (String, bool) {
     let step = world.get_or_create_session().step;

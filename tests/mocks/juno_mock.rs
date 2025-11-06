@@ -40,6 +40,7 @@ pub struct DaoProposal {
 }
 
 // Mock datastore - shared across all tests
+#[derive(Debug)]
 pub struct MockJunoStore {
     pub users: Arc<Mutex<HashMap<String, String>>>, // phone -> language
     pub pins: Arc<Mutex<HashMap<String, String>>>,  // phone -> PIN hash

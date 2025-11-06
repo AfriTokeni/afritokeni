@@ -4,6 +4,7 @@ members = [
     "canisters/exchange_canister",
     "canisters/withdrawal_canister",
 ]
+exclude = ["tests"]
 resolver = "2"
 
 [workspace.dependencies]

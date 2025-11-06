@@ -2,8 +2,8 @@ pub mod flows;
 
 // USSD handler implementations - calls REAL satellite logic with mocks
 
-use super::super::world::UssdWorld;
-use crate::mocks::juno_mock::{Balance, Agent, DaoProposal};
+use super::world::UssdWorld;
+use crate::mocks::juno_mock::Balance;
 
 pub async fn handle_main_menu(world: &mut UssdWorld, input: &str) -> (String, bool) {
     let session = world.get_or_create_session();
@@ -72,21 +72,21 @@ pub async fn handle_submenu(world: &mut UssdWorld, input: &str) -> (String, bool
 }
 
 async fn handle_language(world: &mut UssdWorld, choice: &str) -> (String, bool) {
-    let session = world.get_or_create_session();
+    let phone = world.get_or_create_session().phone_number.clone();
     match choice {
         "1" => {
-            session.language = "en".to_string();
-            world.juno_store.set_user_language(&session.phone_number, "en");
+            world.get_or_create_session().language = "en".to_string();
+            world.juno_store.set_user_language(&phone, "en");
             ("Language set to English\n0. Back".to_string(), true)
         }
         "2" => {
-            session.language = "lg".to_string();
-            world.juno_store.set_user_language(&session.phone_number, "lg");
+            world.get_or_create_session().language = "lg".to_string();
+            world.juno_store.set_user_language(&phone, "lg");
             ("Olulimi luteekeddwa mu Luganda\n0. Ddayo".to_string(), true)
         }
         "3" => {
-            session.language = "sw".to_string();
-            world.juno_store.set_user_language(&session.phone_number, "sw");
+            world.get_or_create_session().language = "sw".to_string();
+            world.juno_store.set_user_language(&phone, "sw");
             ("Lugha imewekwa kwa Kiswahili\n0. Rudi".to_string(), true)
         }
         _ => ("Invalid option".to_string(), true),

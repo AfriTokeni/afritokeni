@@ -1,12 +1,12 @@
 mod mocks;
-mod steps;
+mod e2e;
 
 use cucumber::World;
-use steps::world::UssdWorld;
+use e2e::steps::world::UssdWorld;
 
 #[tokio::main]
 async fn main() {
     UssdWorld::cucumber()
-        .run("tests/features/")
+        .run("e2e/features/")
         .await;
 }
