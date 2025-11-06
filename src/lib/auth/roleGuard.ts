@@ -1,5 +1,15 @@
+/**
+ * Client-Side Role Guard for SPA
+ * 
+ * This guard runs in the browser to protect routes based on user roles.
+ * Since SSR is disabled, all auth checks happen client-side.
+ * 
+ * Security: Client-side guards are UI-only. Real security is enforced
+ * by Juno's managed/controllers permissions on collections.
+ */
+
 import { get } from "svelte/store";
-import { redirect } from "@sveltejs/kit";
+import { goto } from "$app/navigation";
 import { getDoc } from "@junobuild/core";
 import { browser } from "$app/environment";
 import { toast } from "$lib/stores/toast";
@@ -7,105 +17,154 @@ import { authUser, junoInitialized, type AuthUser } from "$lib/stores/auth";
 
 export type UserRole = "user" | "agent" | "admin";
 
-interface RequireRoleResult {
+// Centralized protected routes configuration
+export const PROTECTED_ROUTES = {
+  admin: ['/admin'],
+  agent: ['/agents'],
+  user: ['/users'],
+} as const;
+
+export interface RoleGuardResult {
   user: AuthUser;
   role: UserRole;
 }
 
 const roleCache = new Map<string, UserRole>();
 
-async function waitForJunoInitialization(timeoutMs = 7000): Promise<void> {
+/**
+ * Wait for Juno to initialize before checking auth
+ */
+async function waitForJunoInitialization(timeoutMs = 10000): Promise<boolean> {
+  if (!browser) return false;
+  
   if (get(junoInitialized)) {
-    return;
+    return true;
   }
 
-  await new Promise<void>((resolve, reject) => {
+  return new Promise<boolean>((resolve) => {
     const timeout = setTimeout(() => {
       unsubscribe();
-      reject(new Error("Timed out waiting for Juno initialization"));
+      console.error('⏱️ Juno initialization timed out after', timeoutMs, 'ms');
+      resolve(false);
     }, timeoutMs);
 
     const unsubscribe = junoInitialized.subscribe((value) => {
       if (value) {
         clearTimeout(timeout);
         unsubscribe();
-        resolve();
+        console.log('✅ Juno initialized');
+        resolve(true);
       }
     });
   });
 }
 
+/**
+ * Fetch user role from Juno with caching
+ */
 async function fetchUserRole(principalId: string): Promise<UserRole | null> {
   if (roleCache.has(principalId)) {
     return roleCache.get(principalId) ?? null;
   }
 
-  const roleDoc = await getDoc({
-    collection: "user_roles",
-    key: principalId,
-  }).catch((error) => {
-    console.error("Failed to load user role", error);
-    return null;
-  });
+  try {
+    const roleDoc = await getDoc({
+      collection: "user_roles",
+      key: principalId,
+    });
 
-  const role = (roleDoc?.data as { role?: string } | undefined)?.role ?? null;
+    const role = (roleDoc?.data as { role?: string } | undefined)?.role;
 
-  if (role && ["user", "agent", "admin"].includes(role)) {
-    roleCache.set(principalId, role as UserRole);
-    return role as UserRole;
+    if (role && ["user", "agent", "admin"].includes(role)) {
+      roleCache.set(principalId, role as UserRole);
+      return role as UserRole;
+    }
+  } catch (error) {
+    console.error("❌ Failed to load user role:", error);
   }
 
   return null;
 }
 
-function redirectWithToast(destination: string, message: string): never {
-  if (browser) {
-    toast.show("info", message);
-  }
-
-  throw redirect(303, destination);
-}
-
-export async function requireRole(
+/**
+ * Client-side navigation guard for protected routes
+ * Call this in +layout.svelte files (not +layout.ts)
+ */
+export async function checkRoleGuard(
   allowedRoles: UserRole[],
-): Promise<RequireRoleResult> {
-  try {
-    await waitForJunoInitialization();
-  } catch (error) {
-    console.error("Juno auth failed to initialise", error);
-    redirectWithToast("/", "Please sign in to continue.");
+): Promise<RoleGuardResult | null> {
+  if (!browser) {
+    console.warn('⚠️ checkRoleGuard called on server - skipping');
+    return null;
   }
 
+  // Wait for Juno to initialize
+  const initialized = await waitForJunoInitialization();
+  if (!initialized) {
+    console.error('❌ Juno failed to initialize');
+    toast.show("error", "Could not verify login status. Please refresh.");
+    goto('/');
+    return null;
+  }
+
+  // Check if user is authenticated
   const user = get(authUser);
-
   if (!user) {
-    // Not signed in
-    redirectWithToast("/", "Please sign in to access that page.");
+    console.log('🚫 Not authenticated - redirecting to home');
+    toast.show("info", "Please sign in to access that page.");
+    // Small delay to ensure toast renders before redirect
+    setTimeout(() => goto('/'), 100);
+    return null;
   }
 
+  // Fetch user role
   const role = await fetchUserRole(user.key);
-
+  
   if (!role) {
-    // Authenticated but no role selected yet
-    redirectWithToast(
-      "/auth/role-selection",
-      "Finish setting up your account to continue.",
-    );
+    console.log('🚫 No role assigned - redirecting to role selection');
+    toast.show("info", "Please select your account type to continue.");
+    setTimeout(() => goto('/auth/role-selection'), 100);
+    return null;
   }
 
+  // Check if user has required role
   if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
-    // Authenticated but not authorized for this route
-    redirectWithToast("/", "You do not have access to that area.");
+    console.log(`🚫 Insufficient permissions - required: ${allowedRoles.join(', ')}, has: ${role}`);
+    toast.show("error", "You do not have access to that area.");
+    setTimeout(() => goto('/'), 100);
+    return null;
   }
 
+  console.log(`✅ Access granted - role: ${role}`);
   return { user, role };
 }
 
-export function clearRoleCache(principalId?: string) {
+/**
+ * Check if current route is protected
+ */
+export function isProtectedRoute(pathname: string): boolean {
+  return Object.values(PROTECTED_ROUTES)
+    .flat()
+    .some(route => pathname.startsWith(route));
+}
+
+/**
+ * Get required roles for a route
+ */
+export function getRequiredRoles(pathname: string): UserRole[] {
+  if (pathname.startsWith('/admin')) return ['admin'];
+  if (pathname.startsWith('/agents')) return ['agent'];
+  if (pathname.startsWith('/users')) return ['user'];
+  return [];
+}
+
+/**
+ * Clear role cache (call on logout)
+ */
+export function clearRoleCache(principalId?: string): void {
   if (principalId) {
     roleCache.delete(principalId);
     return;
   }
-
   roleCache.clear();
 }

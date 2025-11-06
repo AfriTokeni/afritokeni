@@ -1,6 +1,7 @@
 <script lang="ts">
   import "../app.css";
   import DemoModeBanner from "$lib/components/shared/DemoModeBanner.svelte";
+  import ToastContainer from "$lib/components/shared/ToastContainer.svelte";
   import { onMount } from "svelte";
   import {
     getDoc,
@@ -126,3 +127,4 @@
 
 <DemoModeBanner />
 {@render children()}
+<ToastContainer />

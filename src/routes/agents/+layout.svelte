@@ -4,11 +4,20 @@
   import DashboardLayout from "$lib/components/dashboard/DashboardLayout.svelte";
   import ToastContainer from "$lib/components/shared/ToastContainer.svelte";
   import AgentOnboardingModal from "$lib/components/agent/AgentOnboardingModal.svelte";
+  import { checkRoleGuard } from "$lib/auth/roleGuard";
 
   let { children } = $props();
   let showOnboarding = $state(false);
+  let isAuthorized = $state(false);
 
   onMount(() => {
+    // Check role guard first
+    checkRoleGuard(["agent"]).then((result) => {
+      if (result) {
+        isAuthorized = true;
+      }
+    });
+
     // Listen for onboarding trigger from settings page
     const handleOnboardingTrigger = () => {
       showOnboarding = true;
@@ -32,16 +41,22 @@
   }
 </script>
 
-<DashboardLayout userType="agent">
-  {@render children()}
-</DashboardLayout>
+{#if isAuthorized}
+  <DashboardLayout userType="agent">
+    {@render children()}
+  </DashboardLayout>
 
-<!-- Toast Notifications -->
-<ToastContainer />
+  <!-- Toast Notifications -->
+  <ToastContainer />
 
-<!-- Global Onboarding Modal -->
-<AgentOnboardingModal
-  isOpen={showOnboarding}
-  onClose={() => (showOnboarding = false)}
-  onComplete={handleOnboardingComplete}
-/>
+  <!-- Global Onboarding Modal -->
+  <AgentOnboardingModal
+    isOpen={showOnboarding}
+    onClose={() => (showOnboarding = false)}
+    onComplete={handleOnboardingComplete}
+  />
+{:else}
+  <div class="flex items-center justify-center min-h-screen">
+    <p class="text-gray-500">Checking permissions...</p>
+  </div>
+{/if}
