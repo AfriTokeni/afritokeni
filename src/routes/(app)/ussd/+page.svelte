@@ -46,9 +46,12 @@
         `📱 USSD Playground: sessionId="${sessionId}", text="${ussdText}"`,
       );
 
-      const satelliteId =
-        import.meta.env.VITE_SATELLITE_ID || "dkk74-oyaaa-aaaal-askxq-cai";
-      const response = await fetch(`https://${satelliteId}.icp0.io/ussd`, {
+      const satId = import.meta.env.VITE_SATELLITE_ID;
+      if (!satId) {
+        throw new Error("Satellite ID not configured");
+      }
+
+      const response = await fetch(`https://${satId}.icp0.io/ussd`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
