@@ -66,7 +66,9 @@ function redirectWithToast(destination: string, message: string): never {
   throw redirect(303, destination);
 }
 
-export async function requireRole(allowedRoles: UserRole[]): Promise<RequireRoleResult> {
+export async function requireRole(
+  allowedRoles: UserRole[],
+): Promise<RequireRoleResult> {
   try {
     await waitForJunoInitialization();
   } catch (error) {
