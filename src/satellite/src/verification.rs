@@ -53,7 +53,10 @@ pub async fn verify_code(phone_number: &str, code: &str) -> Result<String, Strin
         VERIFICATION_COLLECTION.to_string(),
         phone_number.to_string(),
     )
-    .ok_or("No verification code found for this number")?;
+    .ok_or_else(|| {
+        let lang = crate::translations::Language::English;
+        crate::translations::TranslationService::translate("user_not_found", lang).to_string()
+    })?;
     
     // Decode data
     let data: VerificationData = junobuild_utils::decode_doc_data(&doc.data)
@@ -62,12 +65,14 @@ pub async fn verify_code(phone_number: &str, code: &str) -> Result<String, Strin
     // Check expiry
     let current_time = time();
     if current_time - data.timestamp > CODE_EXPIRY_NANOS {
-        return Err("Verification code has expired".to_string());
+        let lang = crate::translations::Language::English;
+        return Err(crate::translations::TranslationService::translate("session_expired", lang).to_string());
     }
     
     // Verify code
     if data.code != code {
-        return Err("Invalid verification code".to_string());
+        let lang = crate::translations::Language::English;
+        return Err(crate::translations::TranslationService::translate("incorrect_pin", lang).to_string());
     }
     
     // Code is valid, return user_id

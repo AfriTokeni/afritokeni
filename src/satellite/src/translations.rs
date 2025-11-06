@@ -446,6 +446,10 @@ impl TranslationService {
             ("to", Language::English) => "To",
             ("to", Language::Luganda) => "Eri",
             ("to", Language::Swahili) => "Kwa",
+            
+            ("with", Language::English) => "with",
+            ("with", Language::Luganda) => "ne",
+            ("with", Language::Swahili) => "na",
 
             ("network_fee", Language::English) => "Network Fee",
             ("network_fee", Language::Luganda) => "Ssente z'omutimbagano",

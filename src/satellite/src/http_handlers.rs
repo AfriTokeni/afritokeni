@@ -80,11 +80,15 @@ fn handle_incoming_sms(req: HttpRequest) -> ManualReply<HttpResponse> {
     let command = text.trim().to_uppercase();
     let parts: Vec<&str> = text.trim().split_whitespace().collect();
     
+    // Default to English for SMS commands (could fetch user's language preference from DB)
+    let lang = crate::translations::Language::English;
+    
     let response_message = match parts.get(0).map(|s| s.to_uppercase()).as_deref() {
         Some("BAL") | Some("BALANCE") => {
             // Check balance command - spawn async task to fetch and send SMS
             let from_clone = from.to_string();
             ic_cdk::spawn(async move {
+                let lang = crate::translations::Language::English; // TODO: fetch user's language
                 match junobuild_satellite::get_doc_store(
                     ic_cdk::caller(),
                     "balances".to_string(),
@@ -102,7 +106,9 @@ fn handle_incoming_sms(req: HttpRequest) -> ManualReply<HttpResponse> {
                         match junobuild_utils::decode_doc_data::<Balance>(&doc.data) {
                             Ok(balance) => {
                                 let sms_message = format!(
-                                    "AfriTokeni Balance:\nKES: {:.2}\nckBTC: {:.8}\nckUSDC: {:.2}",
+                                    "{} {}:\nKES: {:.2}\nckBTC: {:.8}\nckUSDC: {:.2}",
+                                    crate::translations::TranslationService::translate("welcome_afritokeni", lang),
+                                    crate::translations::TranslationService::translate("balance", lang),
                                     balance.kes, balance.ckbtc, balance.ckusdc
                                 );
                                 // Send SMS with balance
@@ -114,18 +120,23 @@ fn handle_incoming_sms(req: HttpRequest) -> ManualReply<HttpResponse> {
                         }
                     }
                     None => {
-                        // No balance found - send SMS to register
-                        let sms_message = "No account found. Dial *229# to register with AfriTokeni.".to_string();
+                        // No account found - send SMS to register
+                        let sms_message = format!("{}. {} *229#.", 
+                            crate::translations::TranslationService::translate("user_not_found", lang),
+                            crate::translations::TranslationService::translate("help_ussd", lang).replace("Dial", "").trim());
                         let _ = crate::sms::send_sms_via_api(vec![from_clone], sms_message).await;
                     }
                 }
             });
-            "Balance request received. You will receive an SMS shortly.".to_string()
+            format!("{}. {}", 
+                crate::translations::TranslationService::translate("balance", lang),
+                crate::translations::TranslationService::translate("sms_sent", lang))
         }
         Some("SEND") => {
             // Send money command: SEND +256... 10000
             if parts.len() < 3 {
-                "Invalid format. Use: SEND +phone amount".to_string()
+                format!("{}: SEND +phone amount", 
+                    crate::translations::TranslationService::translate("invalid_phone_format", lang))
             } else {
                 let recipient = parts[1];
                 let amount = parts[2];
@@ -170,7 +181,13 @@ fn handle_incoming_sms(req: HttpRequest) -> ManualReply<HttpResponse> {
                         doc,
                     ) {
                         Ok(_) => {
-                            let sms = format!("Sending {} KES to {}. Transaction pending.", amount_clone, recipient_clone);
+                            let lang = crate::translations::Language::English;
+                            let sms = format!("{} {} KES {} {}. {}.", 
+                                crate::translations::TranslationService::translate("send_money", lang),
+                                amount_clone, 
+                                crate::translations::TranslationService::translate("to", lang),
+                                recipient_clone,
+                                crate::translations::TranslationService::translate("transaction_successful", lang));
                             let _ = crate::sms::send_sms_via_api(vec![from_clone], sms).await;
                         }
                         Err(e) => {
@@ -179,14 +196,20 @@ fn handle_incoming_sms(req: HttpRequest) -> ManualReply<HttpResponse> {
                     }
                 });
                 
-                format!("Sending {} KES to {}. You will receive confirmation SMS.", amount, recipient)
+                format!("{} {} KES {} {}. {}.", 
+                    crate::translations::TranslationService::translate("send_money", lang),
+                    amount,
+                    crate::translations::TranslationService::translate("to", lang),
+                    recipient,
+                    crate::translations::TranslationService::translate("sms_confirmations_sent", lang))
             }
         }
         Some(cmd) if cmd.contains("BTC") || (parts.len() > 1 && parts[1].to_uppercase() == "BTC") => {
             // Buy Bitcoin command: BUY BTC 50000 or BTC BUY 50000
             let amount_idx = if cmd == "BUY" { 2 } else { 2 };
             if parts.len() <= amount_idx {
-                "Invalid format. Use: BUY BTC amount or BTC BUY amount".to_string()
+                format!("{}: BUY BTC amount", 
+                    crate::translations::TranslationService::translate("invalid_amount", lang))
             } else {
                 let amount = parts[amount_idx];
                 let from_clone = from.to_string();
@@ -226,7 +249,12 @@ fn handle_incoming_sms(req: HttpRequest) -> ManualReply<HttpResponse> {
                         doc,
                     ) {
                         Ok(_) => {
-                            let sms = format!("Buying ckBTC with {} KES. Transaction pending.", amount_clone);
+                            let lang = crate::translations::Language::English;
+                            let sms = format!("{} ckBTC {} {} KES. {}.", 
+                                crate::translations::TranslationService::translate("buy_bitcoin", lang),
+                                crate::translations::TranslationService::translate("with", lang),
+                                amount_clone,
+                                crate::translations::TranslationService::translate("transaction_successful", lang));
                             let _ = crate::sms::send_sms_via_api(vec![from_clone], sms).await;
                         }
                         Err(e) => {
@@ -235,14 +263,19 @@ fn handle_incoming_sms(req: HttpRequest) -> ManualReply<HttpResponse> {
                     }
                 });
                 
-                format!("Buying ckBTC with {} KES. You will receive confirmation SMS.", amount)
+                format!("{} ckBTC {} {} KES. {}.", 
+                    crate::translations::TranslationService::translate("buy_bitcoin", lang),
+                    crate::translations::TranslationService::translate("with", lang),
+                    amount,
+                    crate::translations::TranslationService::translate("sms_confirmations_sent", lang))
             }
         }
         Some(cmd) if cmd.contains("USDC") || (parts.len() > 1 && parts[1].to_uppercase() == "USDC") => {
             // Buy USDC command: BUY USDC 50000 or USDC BUY 50000
             let amount_idx = if cmd == "BUY" { 2 } else { 2 };
             if parts.len() <= amount_idx {
-                "Invalid format. Use: BUY USDC amount or USDC BUY amount".to_string()
+                format!("{}: BUY USDC amount", 
+                    crate::translations::TranslationService::translate("invalid_amount", lang))
             } else {
                 let amount = parts[amount_idx];
                 let from_clone = from.to_string();
@@ -282,7 +315,12 @@ fn handle_incoming_sms(req: HttpRequest) -> ManualReply<HttpResponse> {
                         doc,
                     ) {
                         Ok(_) => {
-                            let sms = format!("Buying ckUSDC with {} KES. Transaction pending.", amount_clone);
+                            let lang = crate::translations::Language::English;
+                            let sms = format!("{} ckUSDC {} {} KES. {}.", 
+                                crate::translations::TranslationService::translate("buy_usdc", lang),
+                                crate::translations::TranslationService::translate("with", lang),
+                                amount_clone,
+                                crate::translations::TranslationService::translate("transaction_successful", lang));
                             let _ = crate::sms::send_sms_via_api(vec![from_clone], sms).await;
                         }
                         Err(e) => {
@@ -291,11 +329,17 @@ fn handle_incoming_sms(req: HttpRequest) -> ManualReply<HttpResponse> {
                     }
                 });
                 
-                format!("Buying ckUSDC with {} KES. You will receive confirmation SMS.", amount)
+                format!("{} ckUSDC {} {} KES. {}.", 
+                    crate::translations::TranslationService::translate("buy_usdc", lang),
+                    crate::translations::TranslationService::translate("with", lang),
+                    amount,
+                    crate::translations::TranslationService::translate("sms_confirmations_sent", lang))
             }
         }
         _ => {
-            "Unknown command. Send:\nBAL - Check balance\nSEND +phone amount - Send money\nBUY BTC amount - Buy Bitcoin\nBUY USDC amount - Buy USDC".to_string()
+            format!("{}:\n{}", 
+                crate::translations::TranslationService::translate("invalid_selection", lang),
+                crate::translations::TranslationService::translate("help_commands", lang))
         }
     };
     
@@ -330,9 +374,12 @@ fn handle_send_notification(req: HttpRequest) -> ManualReply<HttpResponse> {
     // For email notifications, we'd use Resend API via ic-http-proxy
     // For SMS notifications, we'd use our SMS handler
     
+    let lang = crate::translations::Language::English;
     let response = serde_json::json!({
         "success": true,
-        "message": format!("{} notification sent successfully", notif_req.notification_type)
+        "message": format!("{} {}", 
+            notif_req.notification_type,
+            crate::translations::TranslationService::translate("sms_sent", lang))
     });
     
     ok_response(response.to_string().into_bytes(), "application/json")
@@ -355,7 +402,8 @@ fn handle_verify_code(req: HttpRequest) -> ManualReply<HttpResponse> {
     
     // Validate
     if verify_req.phone_number.is_empty() || verify_req.code.is_empty() {
-        return error_response(400, "Phone number and code are required");
+        let lang = crate::translations::Language::English;
+        return error_response(400, crate::translations::TranslationService::translate("invalid_phone", lang));
     }
     
     // Spawn async verification
@@ -375,9 +423,10 @@ fn handle_verify_code(req: HttpRequest) -> ManualReply<HttpResponse> {
     
     // For now, return success immediately
     // In production, we'd wait for the async result
+    let lang = crate::translations::Language::English;
     let response = serde_json::json!({
         "success": true,
-        "message": "Code verification in progress"
+        "message": crate::translations::TranslationService::translate("verification_required", lang)
     });
     
     ok_response(response.to_string().into_bytes(), "application/json")

@@ -190,7 +190,7 @@ fn process_ussd_menu_with_session(input: &str, session: &mut crate::session::Uss
                     let lang = crate::translations::Language::from_code(&session.language);
                     (format!("{} ckBTC {} {} KES\n{}...", 
                         crate::translations::TranslationService::translate("buy_bitcoin", lang),
-                        crate::translations::TranslationService::translate("with", lang).unwrap_or("with"),
+                        crate::translations::TranslationService::translate("with", lang),
                         amount,
                         crate::translations::TranslationService::translate("transaction_successful", lang)), false)
                 }
@@ -214,7 +214,7 @@ fn process_ussd_menu_with_session(input: &str, session: &mut crate::session::Uss
                     let lang = crate::translations::Language::from_code(&session.language);
                     (format!("{} ckUSDC {} {} KES\n{}...", 
                         crate::translations::TranslationService::translate("buy_usdc", lang),
-                        crate::translations::TranslationService::translate("with", lang).unwrap_or("with"),
+                        crate::translations::TranslationService::translate("with", lang),
                         amount,
                         crate::translations::TranslationService::translate("transaction_successful", lang)), false)
                 }
@@ -299,14 +299,9 @@ pub fn process_ussd_menu(input: &str, _phone_number: &str) -> (String, bool) {
     
     // New session (empty input)
     if input.is_empty() {
+        let lang = crate::translations::Language::English;
         return (
-            "Welcome to AfriTokeni\n\
-            1. Check Balance\n\
-            2. Send Money\n\
-            3. Buy ckBTC\n\
-            4. Buy ckUSDC\n\
-            5. Withdraw\n\
-            0. Exit".to_string(),
+            crate::translations::TranslationService::get_main_menu(lang),
             true, // Continue session
         );
     }
@@ -318,8 +313,14 @@ pub fn process_ussd_menu(input: &str, _phone_number: &str) -> (String, bool) {
         Some(&"3") => handle_buy_ckbtc(parts),
         Some(&"4") => handle_buy_ckusdc(parts),
         Some(&"5") => handle_withdraw(parts),
-        Some(&"0") => ("Thank you for using AfriTokeni!".to_string(), false),
-        _ => ("Invalid option. Please try again.".to_string(), false),
+        Some(&"0") => {
+            let lang = crate::translations::Language::English;
+            (crate::translations::TranslationService::translate("thank_you", lang).to_string(), false)
+        }
+        _ => {
+            let lang = crate::translations::Language::English;
+            (crate::translations::TranslationService::translate("invalid_option", lang).to_string(), false)
+        }
     }
 }
 
@@ -351,51 +352,77 @@ fn handle_check_balance(parts: Vec<&str>) -> (String, bool) {
         });
     }
     
-    ("Your Balance:\nKES: 0\nckBTC: 0\nckUSDC: 0\nNote: Real-time balance coming soon".to_string(), false)
+    let lang = crate::translations::Language::English;
+    (format!("{}:\nKES: 0\nckBTC: 0\nckUSDC: 0", 
+        crate::translations::TranslationService::translate("your_balance", lang)), false)
 }
 
 fn handle_send_money(parts: Vec<&str>) -> (String, bool) {
+    let lang = crate::translations::Language::English;
     match parts.len() {
-        1 => ("Enter recipient phone number:".to_string(), true),
-        2 => ("Enter amount (KES):".to_string(), true),
+        1 => (crate::translations::TranslationService::translate("enter_recipient_phone", lang).to_string(), true),
+        2 => (format!("{} (KES):", crate::translations::TranslationService::translate("enter_amount", lang)), true),
         3 => (
-            format!("Sending {} KES to {}\nTransaction pending...", parts[2], parts[1]),
+            format!("{} {} KES {} {}\n{}...", 
+                crate::translations::TranslationService::translate("send_money", lang),
+                parts[2],
+                crate::translations::TranslationService::translate("to", lang),
+                parts[1],
+                crate::translations::TranslationService::translate("transaction_successful", lang)),
             false,
         ),
-        _ => ("Invalid input.".to_string(), false),
+        _ => (crate::translations::TranslationService::translate("invalid_selection", lang).to_string(), false),
     }
 }
 
 fn handle_buy_ckbtc(parts: Vec<&str>) -> (String, bool) {
+    let lang = crate::translations::Language::English;
     match parts.len() {
-        1 => ("Enter amount in KES to convert to ckBTC:".to_string(), true),
+        1 => (format!("{} (KES) {} ckBTC:", 
+            crate::translations::TranslationService::translate("enter_amount", lang),
+            crate::translations::TranslationService::translate("to", lang)), true),
         2 => (
-            format!("Buying ckBTC with {} KES\nTransaction pending...", parts[1]),
+            format!("{} ckBTC {} {} KES\n{}...", 
+                crate::translations::TranslationService::translate("buy_bitcoin", lang),
+                crate::translations::TranslationService::translate("with", lang),
+                parts[1],
+                crate::translations::TranslationService::translate("transaction_successful", lang)),
             false,
         ),
-        _ => ("Invalid input.".to_string(), false),
+        _ => (crate::translations::TranslationService::translate("invalid_selection", lang).to_string(), false),
     }
 }
 
 fn handle_buy_ckusdc(parts: Vec<&str>) -> (String, bool) {
+    let lang = crate::translations::Language::English;
     match parts.len() {
-        1 => ("Enter amount in KES to convert to ckUSDC:".to_string(), true),
+        1 => (format!("{} (KES) {} ckUSDC:", 
+            crate::translations::TranslationService::translate("enter_amount", lang),
+            crate::translations::TranslationService::translate("to", lang)), true),
         2 => (
-            format!("Buying ckUSDC with {} KES\nTransaction pending...", parts[1]),
+            format!("{} ckUSDC {} {} KES\n{}...", 
+                crate::translations::TranslationService::translate("buy_usdc", lang),
+                crate::translations::TranslationService::translate("with", lang),
+                parts[1],
+                crate::translations::TranslationService::translate("transaction_successful", lang)),
             false,
         ),
-        _ => ("Invalid input.".to_string(), false),
+        _ => (crate::translations::TranslationService::translate("invalid_selection", lang).to_string(), false),
     }
 }
 
 fn handle_withdraw(parts: Vec<&str>) -> (String, bool) {
+    let lang = crate::translations::Language::English;
     match parts.len() {
-        1 => ("Enter amount to withdraw (KES):".to_string(), true),
+        1 => (format!("{} (KES):", crate::translations::TranslationService::translate("enter_amount", lang)), true),
         2 => (
-            format!("Withdrawing {} KES\nPlease visit your nearest agent...", parts[1]),
+            format!("{} {} KES\n{}", 
+                crate::translations::TranslationService::translate("withdraw", lang),
+                parts[1],
+                crate::translations::TranslationService::translate("receive_cash", lang)),
             false,
         ),
-        _ => ("Invalid input.".to_string(), false),
+        _ => (crate::translations::TranslationService::translate("invalid_selection", lang).to_string(), false),
     }
 }
 
