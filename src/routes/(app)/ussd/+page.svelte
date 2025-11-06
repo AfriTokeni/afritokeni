@@ -41,17 +41,18 @@
     const ussdText = trimmedCmd;
 
     try {
-      // Call real USSD backend with session context
+      // Call Juno satellite function (Rust backend)
       console.log(
         `📱 USSD Playground: sessionId="${sessionId}", text="${ussdText}"`,
       );
 
-      const response = await fetch("/api/ussd", {
+      const satelliteId = import.meta.env.VITE_SATELLITE_ID || 'dkk74-oyaaa-aaaal-askxq-cai';
+      const response = await fetch(`https://${satelliteId}.icp0.io/ussd`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: JSON.stringify({
+        body: new URLSearchParams({
           sessionId,
           phoneNumber,
           text: ussdText,
@@ -62,10 +63,10 @@
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const result = await response.json();
+      const result = await response.text();
 
       // Clean up response (remove CON/END prefixes)
-      return result.response.replace(/^(CON |END )/, "");
+      return result.replace(/^(CON |END )/, "");
     } catch (error) {
       console.error("Failed to process USSD command:", error);
       return "❌ Error processing command\n\nPlease try again or dial *384*22948# to restart";

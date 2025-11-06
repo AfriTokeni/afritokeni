@@ -551,25 +551,51 @@ NO fallbacks, NO localStorage for business data
 
 ## 🚀 Deployment
 
-### PR Previews (Vercel)
-- Automatic unique preview URL per PR
-- Auto-comments on PR with preview link
-- Uses development Juno satellite: `atbka-rp777-77775-aaaaq-cai`
-- Free tier: Unlimited previews
+### Development Workflow
+1. **Create feature branch**: `feature/my-feature` or `fix/bug-fix`
+2. **Open PR**: Automatic CI checks run (TypeScript, ESLint, tests)
+3. **Merge to main**: No deployment triggered
+4. **Dependabot PRs**: Auto-merge for minor/patch updates (no deployment)
 
-**Setup (2 min):**
-1. Sign up at [vercel.com](https://vercel.com) with GitHub
-2. Import `afritokeni` repo
-3. Add environment variables:
-   - `AT_USERNAME`, `AT_API_KEY`, `AT_SHORT_CODE` (all environments)
-   - `VITE_JUNO_SATELLITE_ID=64njw-oiaaa-aaaal-asppa-cai` (preview only)
-   - `VITE_JUNO_SATELLITE_ID=dkk74-oyaaa-aaaal-askxq-cai` (production only)
+### Production Deployment (Release-Based)
 
-### Production (Juno/ICP)
-- Deploys on merge to `main`
-- URL: https://dkk74-oyaaa-aaaal-askxq-cai.icp0.io
-- Decentralized blockchain hosting
-- Uses production Juno satellite
+**Deployments only happen on GitHub Releases:**
+
+```bash
+# 1. Ensure main is up to date
+git checkout main
+git pull origin main
+
+# 2. Create a new release on GitHub
+# Go to: https://github.com/AfriTokeni/afritokeni/releases/new
+# - Tag: v1.0.0, v1.1.0, etc. (semantic versioning)
+# - Title: "Release v1.0.0"
+# - Description: Changelog of what's included
+# - Click "Publish release"
+
+# 3. CD pipeline automatically:
+#    - Builds frontend (SvelteKit)
+#    - Builds Rust satellite functions
+#    - Deploys to Juno production satellite
+```
+
+**Manual Deploy (Emergency Hotfixes):**
+```bash
+# Go to: Actions → CD - Deploy to Production → Run workflow
+```
+
+**Production Details:**
+- **URL**: https://dkk74-oyaaa-aaaal-askxq-cai.icp0.io
+- **Custom Domain**: https://afritokeni.com
+- **Satellite ID**: `dkk74-oyaaa-aaaal-askxq-cai`
+- **Hosting**: 100% on ICP (no AWS, no servers)
+- **Functions**: Rust satellite (USSD/SMS webhooks)
+
+### PR Preview (Juno)
+- **Preview Satellite**: `64njw-oiaaa-aaaal-asppa-cai`
+- Automatic Juno config deployment on PR
+- Test changes before merging
+- Skipped for Dependabot PRs (no secrets)
 
 ---
 
