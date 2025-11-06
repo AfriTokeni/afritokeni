@@ -1,10 +1,13 @@
 use crate::http_handlers::{error_response, ok_response, HttpRequest, HttpResponse};
+use candid::{CandidType, Principal};
 use ic_cdk::api::call::ManualReply;
-use ic_cdk::api::management_canister::http_request::{
-    http_request as http_request_outcall, CanisterHttpRequestArgument, HttpMethod, HttpHeader,
-};
+use ic_cdk::call;
 use serde::{Deserialize, Serialize};
 use std::str;
+
+// Omnia Network's ic-http-proxy canister (mainnet)
+// This proxy handles non-replicated HTTPS outcalls to avoid duplicate requests
+const HTTP_PROXY_CANISTER: &str = "7hcrm-4iaaa-aaaak-akuka-cai";
 
 const AT_SMS_URL: &str = "https://api.sandbox.africastalking.com/version1/messaging";
 
@@ -48,6 +51,23 @@ struct SmsResponse {
     error: Option<String>,
 }
 
+/// ic-http-proxy request structure
+#[derive(CandidType, Serialize)]
+struct ProxyHttpRequest {
+    url: String,
+    method: String,
+    headers: Vec<(String, String)>,
+    body: Option<Vec<u8>>,
+}
+
+/// ic-http-proxy response structure
+#[derive(CandidType, Deserialize)]
+struct ProxyHttpResponse {
+    status: u16,
+    headers: Vec<(String, String)>,
+    body: Vec<u8>,
+}
+
 /// Handle SMS webhook/request
 pub fn handle_sms_webhook(req: HttpRequest) -> ManualReply<HttpResponse> {
     // Parse JSON body
@@ -83,10 +103,11 @@ pub fn handle_sms_webhook(req: HttpRequest) -> ManualReply<HttpResponse> {
     ok_response(response_json, "application/json")
 }
 
-/// Send SMS via Africa's Talking API (using HTTPS outcalls)
+/// Send SMS via Africa's Talking API using ic-http-proxy
 /// 
-/// This is an async function that makes an HTTP request to Africa's Talking
-/// Cost: ~2_000_000_000 cycles per request
+/// Uses Omnia Network's ic-http-proxy for non-replicated HTTPS outcalls
+/// This avoids duplicate SMS sends and reduces costs by 100x
+/// Cost: ~20_000_000 cycles per request (vs 2_000_000_000 for replicated)
 #[allow(dead_code)]
 async fn send_sms_via_api(to: Vec<String>, message: String) -> Result<String, String> {
     // Get credentials from environment (set via juno config set-secret)
@@ -102,53 +123,45 @@ async fn send_sms_via_api(to: Vec<String>, message: String) -> Result<String, St
         urlencoding::encode(&message)
     );
     
-    // Prepare HTTP request
-    let request = CanisterHttpRequestArgument {
+    // Prepare HTTP request for proxy
+    let proxy_request = ProxyHttpRequest {
         url: AT_SMS_URL.to_string(),
-        method: HttpMethod::POST,
-        body: Some(form_data.as_bytes().to_vec()),
-        max_response_bytes: Some(2048),
-        transform: None,
+        method: "POST".to_string(),
         headers: vec![
-            HttpHeader {
-                name: "apiKey".to_string(),
-                value: api_key.to_string(),
-            },
-            HttpHeader {
-                name: "Content-Type".to_string(),
-                value: "application/x-www-form-urlencoded".to_string(),
-            },
-            HttpHeader {
-                name: "Accept".to_string(),
-                value: "application/json".to_string(),
-            },
+            ("apiKey".to_string(), api_key.to_string()),
+            ("Content-Type".to_string(), "application/x-www-form-urlencoded".to_string()),
+            ("Accept".to_string(), "application/json".to_string()),
         ],
+        body: Some(form_data.as_bytes().to_vec()),
     };
     
-    // Make HTTPS outcall (costs cycles!)
-    match http_request_outcall(request, 2_000_000_000).await {
-        Ok((response,)) => {
-            if response.status != 200u8.into() && response.status != 201u8.into() {
-                return Err(format!("API returned status: {:?}", response.status));
-            }
-            
-            // Parse response
-            let body_str = String::from_utf8(response.body)
-                .map_err(|e| format!("Invalid UTF-8 response: {}", e))?;
-            
-            let at_response: AtSmsResponse = serde_json::from_str(&body_str)
-                .map_err(|e| format!("Failed to parse response: {}", e))?;
-            
-            // Get first message ID
-            let message_id = at_response
-                .sms_message_data
-                .recipients
-                .first()
-                .map(|r| r.message_id.clone())
-                .unwrap_or_else(|| "unknown".to_string());
-            
-            Ok(message_id)
-        }
-        Err((code, msg)) => Err(format!("HTTP outcall failed: {:?} - {}", code, msg)),
+    // Call ic-http-proxy canister
+    let proxy_principal = Principal::from_text(HTTP_PROXY_CANISTER)
+        .map_err(|e| format!("Invalid proxy principal: {}", e))?;
+    
+    let (response,): (ProxyHttpResponse,) = call(proxy_principal, "http_request", (proxy_request,))
+        .await
+        .map_err(|(code, msg)| format!("Proxy call failed: {:?} - {}", code, msg))?;
+    
+    // Check response status
+    if response.status != 200 && response.status != 201 {
+        return Err(format!("API returned status: {}", response.status));
     }
+    
+    // Parse response
+    let body_str = String::from_utf8(response.body)
+        .map_err(|e| format!("Invalid UTF-8 response: {}", e))?;
+    
+    let at_response: AtSmsResponse = serde_json::from_str(&body_str)
+        .map_err(|e| format!("Failed to parse response: {}", e))?;
+    
+    // Get first message ID
+    let message_id = at_response
+        .sms_message_data
+        .recipients
+        .first()
+        .map(|r| r.message_id.clone())
+        .unwrap_or_else(|| "unknown".to_string());
+    
+    Ok(message_id)
 }
