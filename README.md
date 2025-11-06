@@ -184,17 +184,27 @@ cargo test --release
 ## 🏗️ Technical Stack
 
 **Frontend**:
-- SvelteKit 2.x + TypeScript
+- SvelteKit 2.x + TypeScript (Static SPA)
 - Svelte 5 (Runes)
 - TailwindCSS 4
 - Vite 7
+- Deployed to Juno (ICP)
 
-**Backend**:
-- SvelteKit API Routes (+server.ts)
-- Juno (ICP) - Decentralized storage
-- ICP Canisters - Smart contracts (Rust)
-- ICRC-1 - Token standard
-- Internet Identity - Authentication
+**Backend (100% on ICP)**:
+- **Juno Satellite** - Serverless functions (Rust)
+  - Custom HTTP endpoints for USSD/SMS webhooks
+  - Event hooks for background tasks
+  - HTTPS outcalls to Africa's Talking API
+- **ICP Canisters** - Smart contracts (Rust)
+  - Deposit canister
+  - Withdrawal canister
+  - Exchange canister
+- **Juno Datastore** - Decentralized database
+- **Juno Storage** - File storage (KYC docs, images)
+
+**Authentication & Identity**:
+- Internet Identity - Decentralized auth
+- USSD PIN - SMS-based authentication
 
 **Blockchain**:
 - ckBTC - ICP-native Bitcoin (1:1 backed)
