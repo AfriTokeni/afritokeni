@@ -30,7 +30,7 @@ jobs:
         run: pnpm run build
       
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: frontend-build
           path: build/
@@ -58,7 +58,7 @@ jobs:
         run: juno functions build --lang rust
       
       - name: Upload Satellite Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: satellite-build
           path: .juno/
