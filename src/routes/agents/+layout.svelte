@@ -56,7 +56,7 @@
     onComplete={handleOnboardingComplete}
   />
 {:else}
-  <div class="flex items-center justify-center min-h-screen">
+  <div class="flex min-h-screen items-center justify-center">
     <p class="text-gray-500">Checking permissions...</p>
   </div>
 {/if}

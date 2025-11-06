@@ -1,9 +1,9 @@
 /**
  * Client-Side Role Guard for SPA
- * 
+ *
  * This guard runs in the browser to protect routes based on user roles.
  * Since SSR is disabled, all auth checks happen client-side.
- * 
+ *
  * Security: Client-side guards are UI-only. Real security is enforced
  * by Juno's managed/controllers permissions on collections.
  */
@@ -19,9 +19,9 @@ export type UserRole = "user" | "agent" | "admin";
 
 // Centralized protected routes configuration
 export const PROTECTED_ROUTES = {
-  admin: ['/admin'],
-  agent: ['/agents'],
-  user: ['/users'],
+  admin: ["/admin"],
+  agent: ["/agents"],
+  user: ["/users"],
 } as const;
 
 export interface RoleGuardResult {
@@ -36,7 +36,7 @@ const roleCache = new Map<string, UserRole>();
  */
 async function waitForJunoInitialization(timeoutMs = 10000): Promise<boolean> {
   if (!browser) return false;
-  
+
   if (get(junoInitialized)) {
     return true;
   }
@@ -44,7 +44,7 @@ async function waitForJunoInitialization(timeoutMs = 10000): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
     const timeout = setTimeout(() => {
       unsubscribe();
-      console.error('⏱️ Juno initialization timed out after', timeoutMs, 'ms');
+      console.error("⏱️ Juno initialization timed out after", timeoutMs, "ms");
       resolve(false);
     }, timeoutMs);
 
@@ -52,7 +52,7 @@ async function waitForJunoInitialization(timeoutMs = 10000): Promise<boolean> {
       if (value) {
         clearTimeout(timeout);
         unsubscribe();
-        console.log('✅ Juno initialized');
+        console.log("✅ Juno initialized");
         resolve(true);
       }
     });
@@ -94,44 +94,46 @@ export async function checkRoleGuard(
   allowedRoles: UserRole[],
 ): Promise<RoleGuardResult | null> {
   if (!browser) {
-    console.warn('⚠️ checkRoleGuard called on server - skipping');
+    console.warn("⚠️ checkRoleGuard called on server - skipping");
     return null;
   }
 
   // Wait for Juno to initialize
   const initialized = await waitForJunoInitialization();
   if (!initialized) {
-    console.error('❌ Juno failed to initialize');
+    console.error("❌ Juno failed to initialize");
     toast.show("error", "Could not verify login status. Please refresh.");
-    goto('/');
+    goto("/");
     return null;
   }
 
   // Check if user is authenticated
   const user = get(authUser);
   if (!user) {
-    console.log('🚫 Not authenticated - redirecting to home');
+    console.log("🚫 Not authenticated - redirecting to home");
     toast.show("info", "Please sign in to access that page.");
     // Small delay to ensure toast renders before redirect
-    setTimeout(() => goto('/'), 100);
+    setTimeout(() => goto("/"), 100);
     return null;
   }
 
   // Fetch user role
   const role = await fetchUserRole(user.key);
-  
+
   if (!role) {
-    console.log('🚫 No role assigned - redirecting to role selection');
+    console.log("🚫 No role assigned - redirecting to role selection");
     toast.show("info", "Please select your account type to continue.");
-    setTimeout(() => goto('/auth/role-selection'), 100);
+    setTimeout(() => goto("/auth/role-selection"), 100);
     return null;
   }
 
   // Check if user has required role
   if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
-    console.log(`🚫 Insufficient permissions - required: ${allowedRoles.join(', ')}, has: ${role}`);
+    console.log(
+      `🚫 Insufficient permissions - required: ${allowedRoles.join(", ")}, has: ${role}`,
+    );
     toast.show("error", "You do not have access to that area.");
-    setTimeout(() => goto('/'), 100);
+    setTimeout(() => goto("/"), 100);
     return null;
   }
 
@@ -145,16 +147,16 @@ export async function checkRoleGuard(
 export function isProtectedRoute(pathname: string): boolean {
   return Object.values(PROTECTED_ROUTES)
     .flat()
-    .some(route => pathname.startsWith(route));
+    .some((route) => pathname.startsWith(route));
 }
 
 /**
  * Get required roles for a route
  */
 export function getRequiredRoles(pathname: string): UserRole[] {
-  if (pathname.startsWith('/admin')) return ['admin'];
-  if (pathname.startsWith('/agents')) return ['agent'];
-  if (pathname.startsWith('/users')) return ['user'];
+  if (pathname.startsWith("/admin")) return ["admin"];
+  if (pathname.startsWith("/agents")) return ["agent"];
+  if (pathname.startsWith("/users")) return ["user"];
   return [];
 }
 
