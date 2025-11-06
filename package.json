@@ -58,7 +58,7 @@
     "africastalking": "0.7.4",
     "apexcharts": "^5.3.6",
     "chart.js": "^4.5.1",
-    "dotenv": "16.6.1",
+    "dotenv": "17.2.3",
     "ethers": "5.8.0",
     "flowbite": "^3.1.2",
     "flowbite-svelte": "^1.22.0",
