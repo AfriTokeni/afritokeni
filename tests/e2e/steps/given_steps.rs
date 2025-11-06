@@ -5,6 +5,12 @@ use super::world::UssdWorld;
 use crate::mocks::juno_mock::{Balance, Agent, DaoProposal};
 
 #[given(expr = "I have a valid phone number {string}")]
+async fn have_valid_phone_number(world: &mut UssdWorld, phone: String) {
+    world.phone_number = phone.clone();
+    world.juno_store.set_balance(&phone, Balance { kes: 10000.0, ckbtc: 0.001, ckusdc: 100.0 });
+}
+
+#[given(expr = "I have a phone number {string}")]
 async fn have_phone_number(world: &mut UssdWorld, phone: String) {
     world.phone_number = phone.clone();
     world.juno_store.set_balance(&phone, Balance { kes: 10000.0, ckbtc: 0.001, ckusdc: 100.0 });

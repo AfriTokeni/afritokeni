@@ -13,6 +13,11 @@ async fn select_option_for(world: &mut UssdWorld, option: String, _description: 
     world.process_ussd_input(&option).await;
 }
 
+#[when(expr = "I select {string} for {word} {word}")]
+async fn select_option_for_two_words(world: &mut UssdWorld, option: String, _word1: String, _word2: String) {
+    world.process_ussd_input(&option).await;
+}
+
 #[when(expr = "I select {string} to go back")]
 async fn select_to_go_back(world: &mut UssdWorld, option: String) {
     world.process_ussd_input(&option).await;
@@ -31,4 +36,9 @@ async fn select_invalid_option(world: &mut UssdWorld, option: String) {
 #[when(expr = "I enter {string}")]
 async fn enter_input(world: &mut UssdWorld, input: String) {
     world.process_ussd_input(&input).await;
+}
+
+#[when(expr = "I enter PIN {string}")]
+async fn enter_pin(world: &mut UssdWorld, pin: String) {
+    world.process_ussd_input(&pin).await;
 }
