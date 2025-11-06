@@ -1,0 +1,92 @@
+[
+  {
+    "rank": 1,
+    "name": "Agent Network Uganda",
+    "userId": "agent-network-001",
+    "balance": 245000,
+    "proposalsCreated": 12,
+    "votesParticipated": 47,
+    "votingPower": "24.5%"
+  },
+  {
+    "rank": 2,
+    "name": "Community Treasury",
+    "userId": "treasury-001",
+    "balance": 180000,
+    "proposalsCreated": 5,
+    "votesParticipated": 52,
+    "votingPower": "18.0%"
+  },
+  {
+    "rank": 3,
+    "name": "Early Adopter #0042",
+    "userId": "user-0042",
+    "balance": 125000,
+    "proposalsCreated": 8,
+    "votesParticipated": 45,
+    "votingPower": "12.5%"
+  },
+  {
+    "rank": 4,
+    "name": "Kampala Agents Collective",
+    "userId": "agent-collective-kampala",
+    "balance": 98000,
+    "proposalsCreated": 3,
+    "votesParticipated": 38,
+    "votingPower": "9.8%"
+  },
+  {
+    "rank": 5,
+    "name": "Mobile Money Pioneer",
+    "userId": "user-1337",
+    "balance": 87000,
+    "proposalsCreated": 15,
+    "votesParticipated": 51,
+    "votingPower": "8.7%"
+  },
+  {
+    "rank": 6,
+    "name": "Bitcoin Advocate UG",
+    "userId": "btc-advocate-001",
+    "balance": 72000,
+    "proposalsCreated": 9,
+    "votesParticipated": 42,
+    "votingPower": "7.2%"
+  },
+  {
+    "rank": 7,
+    "name": "Rural Agent Network",
+    "userId": "rural-agents-001",
+    "balance": 65000,
+    "proposalsCreated": 4,
+    "votesParticipated": 35,
+    "votingPower": "6.5%"
+  },
+  {
+    "rank": 8,
+    "name": "Financial Inclusion DAO",
+    "userId": "fi-dao-001",
+    "balance": 58000,
+    "proposalsCreated": 7,
+    "votesParticipated": 48,
+    "votingPower": "5.8%"
+  },
+  {
+    "rank": 9,
+    "name": "SMS Banking Enthusiast",
+    "userId": "user-sms-789",
+    "balance": 45000,
+    "proposalsCreated": 2,
+    "votesParticipated": 29,
+    "votingPower": "4.5%"
+  },
+  {
+    "rank": 10,
+    "name": "Agent #2048",
+    "userId": "agent-2048",
+    "balance": 38000,
+    "proposalsCreated": 1,
+    "votesParticipated": 31,
+    "votingPower": "3.8%"
+  }
+]

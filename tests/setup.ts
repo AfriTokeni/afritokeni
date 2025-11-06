@@ -3,8 +3,8 @@
  * Mocks Juno to prevent IndexedDB errors in Node.js
  */
 
-// Set global test flag for mock detection
-(global as any).__AFRITOKENI_TEST_MODE__ = true;
+// Set global test flag for// Global test flag
+(global as Record<string, unknown>).__AFRITOKENI_TEST_MODE__ = true;
 
 // Set test environment - will be overridden by npm scripts
 // unit tests: NODE_ENV=unit-test
@@ -26,16 +26,17 @@ const mockSatelliteState = {
 };
 
 // Mock the @junobuild/core module before it's imported
-const Module = require('module');
+import Module from 'module';
+import { mockJuno } from './mocks/juno.js';
+
 const originalRequire = Module.prototype.require;
 
 Module.prototype.require = function(id: string) {
   if (id === '@junobuild/core') {
-    const mockJuno = require('./mocks/juno');
     return {
-      setDoc: mockJuno.mockJuno.setDoc,
-      getDoc: mockJuno.mockJuno.getDoc,
-      listDocs: mockJuno.mockJuno.listDocs,
+      setDoc: mockJuno.setDoc,
+      getDoc: mockJuno.getDoc,
+      listDocs: mockJuno.listDocs,
       deleteDoc: async () => {},
       initSatellite: async () => mockSatelliteState,
       authSubscribe: () => () => {},
@@ -43,6 +44,7 @@ Module.prototype.require = function(id: string) {
       satelliteId: () => mockSatelliteState.satelliteId
     };
   }
+   
   return originalRequire.apply(this, arguments as any);
 };
 

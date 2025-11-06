@@ -1,0 +1,50 @@
+[
+	{
+		"id": "dep-001",
+		"userId": "user-001",
+		"userName": "John Doe",
+		"userPhone": "+256700123456",
+		"amount": 50000,
+		"currency": "UGX",
+		"code": "DEP8BL",
+		"status": "pending",
+		"createdAt": "2024-11-03T08:00:00Z",
+		"userLocation": "Kampala, Uganda"
+	},
+	{
+		"id": "dep-002",
+		"userId": "user-002",
+		"userName": "Sarah Nakato",
+		"userPhone": "+256700234567",
+		"amount": 100000,
+		"currency": "UGX",
+		"code": "DEP6CP",
+		"status": "pending",
+		"createdAt": "2024-11-03T07:30:00Z",
+		"userLocation": "Kampala, Uganda"
+	},
+	{
+		"id": "dep-003",
+		"userId": "user-003",
+		"userName": "David Okello",
+		"userPhone": "+256700345678",
+		"amount": 75000,
+		"currency": "UGX",
+		"code": "DEPKY3",
+		"status": "confirmed",
+		"createdAt": "2024-11-03T07:00:00Z",
+		"userLocation": "Kampala, Uganda"
+	},
+	{
+		"id": "dep-004",
+		"userId": "user-004",
+		"userName": "Mary Auma",
+		"userPhone": "+256700456789",
+		"amount": 200000,
+		"currency": "UGX",
+		"code": "DEP9XY",
+		"status": "completed",
+		"createdAt": "2024-11-02T15:00:00Z",
+		"userLocation": "Kampala, Uganda"
+	}
+]

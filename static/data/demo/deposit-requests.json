@@ -1,0 +1,62 @@
+[
+  {
+    "id": "dep-001",
+    "userId": "user-001",
+    "userName": "Sarah Nakato",
+    "userPhone": "+256701234567",
+    "agentId": "demo-agent-1",
+    "amount": 150000,
+    "currency": "UGX",
+    "depositCode": "123456",
+    "status": "pending",
+    "createdAt": 1728691200000
+  },
+  {
+    "id": "dep-002",
+    "userId": "user-002",
+    "userName": "James Okello",
+    "userPhone": "+256702345678",
+    "agentId": "demo-agent-1",
+    "amount": 75000,
+    "currency": "UGX",
+    "depositCode": "234567",
+    "status": "pending",
+    "createdAt": 1728687600000
+  },
+  {
+    "id": "dep-003",
+    "userId": "user-003",
+    "userName": "Grace Achieng",
+    "userPhone": "+256703456789",
+    "agentId": "demo-agent-1",
+    "amount": 200000,
+    "currency": "UGX",
+    "depositCode": "345678",
+    "status": "confirmed",
+    "createdAt": 1728684000000
+  },
+  {
+    "id": "dep-004",
+    "userId": "user-004",
+    "userName": "David Musoke",
+    "userPhone": "+256704567890",
+    "agentId": "demo-agent-1",
+    "amount": 50000,
+    "currency": "UGX",
+    "depositCode": "456789",
+    "status": "pending",
+    "createdAt": 1728680400000
+  },
+  {
+    "id": "dep-005",
+    "userId": "user-005",
+    "userName": "Mary Nambi",
+    "userPhone": "+256705678901",
+    "agentId": "demo-agent-1",
+    "amount": 120000,
+    "currency": "UGX",
+    "depositCode": "567890",
+    "status": "pending",
+    "createdAt": 1728676800000
+  }
+]

@@ -3,9 +3,9 @@
  * Intercepts DataService calls and returns test data
  */
 
-import { WebhookDataService } from '../../src/services/webHookServices';
+import { WebhookDataService } from '../../src/lib/services/webHookServices';
 import { listDocs } from '@junobuild/core';
-import { CkBTCService } from '../../src/services/ckBTCService';
+import { CkBTCService } from '../../src/lib/services/ckBTCService';
 
 // Store original methods
 const originalGetUserBalance = WebhookDataService.getUserBalance;
@@ -87,7 +87,7 @@ export function enableDataServiceMock() {
     // Also update in BalanceService for the test to see
     const userId = phoneToUserId.get(senderPhone) || phoneToUserId.get(cleanSender) || phoneToUserId.get(withPlusSender);
     if (userId) {
-      const { BalanceService } = await import('../../src/services/balanceService');
+      const { BalanceService } = await import('../../src/lib/services/balanceService');
       try {
         await BalanceService.updateUserBalance(userId, newBalance);
       } catch (e) {

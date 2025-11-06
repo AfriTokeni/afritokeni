@@ -1,0 +1,276 @@
+{
+  "user-transactions": [
+    {
+      "id": "tx-001",
+      "userId": "demo-user-1",
+      "type": "deposit",
+      "amount": 100000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Cash deposit at agent",
+      "createdAt": 1728691200000
+    },
+    {
+      "id": "tx-002",
+      "userId": "demo-user-1",
+      "type": "transfer",
+      "amount": 25000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Sent to +256701234567",
+      "createdAt": 1728604800000
+    },
+    {
+      "id": "tx-003",
+      "userId": "demo-user-1",
+      "type": "deposit",
+      "amount": 50000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Cash deposit at agent",
+      "createdAt": 1728518400000
+    },
+    {
+      "id": "tx-004",
+      "userId": "demo-user-1",
+      "type": "withdrawal",
+      "amount": 20000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Cash withdrawal",
+      "createdAt": 1728432000000
+    },
+    {
+      "id": "tx-005",
+      "userId": "demo-user-1",
+      "type": "transfer",
+      "amount": 15000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Sent to +256702345678",
+      "createdAt": 1728345600000
+    },
+    {
+      "id": "tx-006",
+      "userId": "demo-user-1",
+      "type": "deposit",
+      "amount": 75000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Mobile money deposit",
+      "createdAt": 1728259200000
+    },
+    {
+      "id": "tx-007",
+      "userId": "demo-user-1",
+      "type": "exchange",
+      "amount": 50000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Bitcoin purchase",
+      "createdAt": 1728172800000
+    },
+    {
+      "id": "tx-008",
+      "userId": "demo-user-1",
+      "type": "transfer",
+      "amount": 30000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Sent to +256703456789",
+      "createdAt": 1728086400000
+    },
+    {
+      "id": "tx-009",
+      "userId": "demo-user-1",
+      "type": "deposit",
+      "amount": 120000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Cash deposit at agent",
+      "createdAt": 1728000000000
+    },
+    {
+      "id": "tx-010",
+      "userId": "demo-user-1",
+      "type": "withdrawal",
+      "amount": 40000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Cash withdrawal",
+      "createdAt": 1727913600000
+    },
+    {
+      "id": "tx-011",
+      "userId": "demo-user-1",
+      "type": "transfer",
+      "amount": 18000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Sent to +256704567890",
+      "createdAt": 1727827200000
+    },
+    {
+      "id": "tx-012",
+      "userId": "demo-user-1",
+      "type": "deposit",
+      "amount": 85000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Bank transfer deposit",
+      "createdAt": 1727740800000
+    }
+  ],
+  "agent-transactions": [
+    {
+      "id": "tx-a001",
+      "userId": "demo-agent-1",
+      "type": "deposit",
+      "amount": 50000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Customer deposit processed",
+      "createdAt": 1728691200000
+    },
+    {
+      "id": "tx-a002",
+      "userId": "demo-agent-1",
+      "type": "deposit",
+      "amount": 75000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Customer deposit processed",
+      "createdAt": 1728604800000
+    },
+    {
+      "id": "tx-a003",
+      "userId": "demo-agent-1",
+      "type": "withdrawal",
+      "amount": 30000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Customer withdrawal processed",
+      "createdAt": 1728518400000
+    },
+    {
+      "id": "tx-a004",
+      "userId": "demo-agent-1",
+      "type": "exchange",
+      "amount": 100000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Bitcoin exchange completed",
+      "createdAt": 1728432000000
+    },
+    {
+      "id": "tx-a005",
+      "userId": "demo-agent-1",
+      "type": "deposit",
+      "amount": 45000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Customer deposit processed",
+      "createdAt": 1728345600000
+    },
+    {
+      "id": "tx-a006",
+      "userId": "demo-agent-1",
+      "type": "withdrawal",
+      "amount": 55000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Customer withdrawal processed",
+      "createdAt": 1728259200000
+    },
+    {
+      "id": "tx-a007",
+      "userId": "demo-agent-1",
+      "type": "deposit",
+      "amount": 90000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Customer deposit processed",
+      "createdAt": 1728172800000
+    },
+    {
+      "id": "tx-a008",
+      "userId": "demo-agent-1",
+      "type": "exchange",
+      "amount": 150000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Bitcoin exchange completed",
+      "createdAt": 1728086400000
+    },
+    {
+      "id": "tx-a009",
+      "userId": "demo-agent-1",
+      "type": "deposit",
+      "amount": 65000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Customer deposit processed",
+      "createdAt": 1728000000000
+    },
+    {
+      "id": "tx-a010",
+      "userId": "demo-agent-1",
+      "type": "withdrawal",
+      "amount": 42000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Customer withdrawal processed",
+      "createdAt": 1727913600000
+    },
+    {
+      "id": "tx-a011",
+      "userId": "demo-agent-1",
+      "type": "deposit",
+      "amount": 80000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Customer deposit processed",
+      "createdAt": 1727827200000
+    },
+    {
+      "id": "tx-a012",
+      "userId": "demo-agent-1",
+      "type": "exchange",
+      "amount": 120000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Bitcoin exchange completed",
+      "createdAt": 1727740800000
+    },
+    {
+      "id": "tx-a013",
+      "userId": "demo-agent-1",
+      "type": "withdrawal",
+      "amount": 38000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Customer withdrawal processed",
+      "createdAt": 1727654400000
+    },
+    {
+      "id": "tx-a014",
+      "userId": "demo-agent-1",
+      "type": "deposit",
+      "amount": 95000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Customer deposit processed",
+      "createdAt": 1727568000000
+    },
+    {
+      "id": "tx-a015",
+      "userId": "demo-agent-1",
+      "type": "deposit",
+      "amount": 72000,
+      "currency": "UGX",
+      "status": "completed",
+      "description": "Customer deposit processed",
+      "createdAt": 1727481600000
+    }
+  ]
+}

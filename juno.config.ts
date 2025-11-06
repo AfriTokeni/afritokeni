@@ -4,166 +4,97 @@ export default defineConfig({
   satellite: {
     ids: {
       development: "atbka-rp777-77775-aaaaq-cai",
+      preview: "64njw-oiaaa-aaaal-asppa-cai",
       production: "dkk74-oyaaa-aaaal-askxq-cai"
     },
-    source: "dist",
-    predeploy: ["npm run build"],
+    source: "build",
+    predeploy: ["pnpm run build"],
     collections: {
       datastore: [
         {
           collection: "users",
-          read: "public",
-          write: "public",
-          memory: "stable",
-        },
-        {
-          collection: "transactions",
-          read: "public",
-          write: "public",
-          memory: "stable",
-        },
-        {
-          collection: "balances",
-          read: "public",
-          write: "public",
+          read: "managed",
+          write: "managed",
           memory: "stable",
         },
         {
           collection: "agents",
-          read: "public",
-          write: "public",
+          read: "public",   // Agent profiles are public for discovery
+          write: "managed", // Agents can only edit their own profile
+          memory: "stable",
+        },
+        {
+          collection: "agent_customers",
+          read: "managed",  // Agents can only see their own customers
+          write: "managed",
+          memory: "stable",
+        },
+        {
+          collection: "agent_reviews",
+          read: "public",   // Reviews are public
+          write: "managed", // Users can write their own reviews
           memory: "stable",
         },
         {
           collection: "user_roles",
-          read: "public",
-          write: "public",
-          memory: "stable",
-        },
-        {
-          collection: "sms_messages",
-          read: "public",
-          write: "public",
-          memory: "stable",
-        },
-        {
-          collection: "notes",
-          read: "public",
-          write: "public",
-          memory: "stable",
-        },
-        {
-          collection: "email_subscriptions",
-          read: "public",
-          write: "public",
-          memory: "stable",
-        },
-        {
-          collection: "kyc_submissions",
           read: "managed",
           write: "managed",
+          memory: "stable",
+        },
+        {
+          collection: "user_pins",
+          read: "managed",  // Users can only see their own PIN
+          write: "managed",
+          memory: "stable",
+        },
+        {
+          collection: "balances",
+          read: "managed",
+          write: "controllers", // Only backend can modify balances
+          memory: "stable",
+        },
+        {
+          collection: "transactions",
+          read: "managed",
+          write: "controllers",
           memory: "stable",
         },
         {
           collection: "deposit_requests",
-          read: "public",
-          write: "public",
-          memory: "stable",
-        },
-        {
-          collection: "bitcoin_wallets",
-          read: "public",
-          write: "public",
-          memory: "stable",
-        },
-        {
-          collection: "bitcoin_transactions",
-          read: "public",
-          write: "public",
-          memory: "stable",
-        },
-        {
-          collection: "platform_revenue",
           read: "managed",
           write: "managed",
           memory: "stable",
         },
-         {
-          collection: "ckbtc_deposit_addresses",
-          read: "public",
-          write: "public",
-          memory: "stable",
-        },
-        {
-          collection: "ckbtc_transactions",
-          read: "public",
-          write: "public",
-          memory: "stable",
-        },
-        {
-          collection: "ckusdc_transactions",
-          read: "public",
-          write: "public",
-          memory: "stable",
-        },
-        {
-          collection: "pending_transactions",
-          read: "public",
-          write: "public",
-          memory: "stable",
-        },
         {
           collection: "escrow_transactions",
-          read: "public",
-          write: "public",
-          memory: "stable",
-        },
-        {
-          collection: "ussd_sessions",
-          read: "public",
-          write: "public",
-          memory: "stable",
-        },
-        {
-          collection: "demo_balances",
-          read: "public",
-          write: "public",
-          memory: "stable",
-        },
-        {
-          collection: "withdrawal_requests",
-          read: "public",
-          write: "public",
+          read: "managed",
+          write: "controllers",
           memory: "stable",
         },
       ],
       storage: [
         {
-          collection: "images",
-          read: "managed",
-          write: "managed",
-          memory: "stable",
-        },
-        {
           collection: "profile-images",
           read: "public",
           write: "managed",
           memory: "stable",
-          maxSize: 5242880n, // 5MB max file size
+          maxSize: 5242880n, // 5MB
         },
         {
-          collection: "kyc_documents",
+          collection: "agent-profile-images",
           read: "public",
           write: "managed",
           memory: "stable",
+          maxSize: 5242880n, // 5MB
+        },
+        {
+          collection: "kyc_documents",
+          read: "managed",  // Only owner can read their own KYC docs
+          write: "managed",
+          memory: "stable",
+          maxSize: 10485760n, // 10MB
         },
       ],
     },
-  },
-  emulator: {
-    runner: {
-      type: "docker",
-    },
-    skylab: {},
   },
 });

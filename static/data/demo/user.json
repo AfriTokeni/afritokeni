@@ -1,0 +1,29 @@
+{
+  "id": "usr_001",
+  "firstName": "John",
+  "lastName": "Mugisha",
+  "email": "john.mugisha@afritokeni.com",
+  "phone": "+256701234567",
+  "userType": "user",
+  "isVerified": true,
+  "kycStatus": "completed",
+  "balance": 500000,
+  "bitcoinBalance": 0.00125,
+  "ckBTCBalance": 0.00125,
+  "ckUSDBalance": 50.00,
+  "daoTokens": 1000,
+  "daoTokensBreakdown": {
+    "transactions": 250,
+    "agentActivity": 500,
+    "referrals": 150,
+    "staking": 100
+  },
+  "preferredCurrency": "UGX",
+  "location": {
+    "country": "Uganda",
+    "state": "Central",
+    "city": "Kampala",
+    "address": "Kampala, Uganda"
+  },
+  "createdAt": "2024-01-15T08:30:00.000Z"
+}

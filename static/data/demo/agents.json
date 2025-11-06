@@ -1,0 +1,602 @@
+[
+  {
+    "id": "agt_001",
+    "userId": "usr_003",
+    "businessName": "Kampala Central Financial Services",
+    "location": {
+      "country": "Uganda",
+      "state": "Central",
+      "city": "Kampala",
+      "address": "Kampala Road, Central Division, Kampala",
+      "coordinates": {
+        "lat": 0.3476,
+        "lng": 32.5825
+      }
+    },
+    "isActive": true,
+    "cashBalance": 2500000,
+    "digitalBalance": 850000,
+    "commissionRate": 0.02,
+    "createdAt": "2024-01-25T14:20:00.000Z"
+  },
+  {
+    "id": "agt_002",
+    "userId": "usr_006",
+    "businessName": "Rubaga Mobile Money Hub",
+    "location": {
+      "country": "Uganda",
+      "state": "Central",
+      "city": "Kampala",
+      "address": "Buganda Road, Mengo, Kampala",
+      "coordinates": {
+        "lat": 0.3136,
+        "lng": 32.5811
+      }
+    },
+    "isActive": true,
+    "cashBalance": 1800000,
+    "digitalBalance": 650000,
+    "commissionRate": 0.025,
+    "createdAt": "2024-02-10T11:10:00.000Z"
+  },
+  {
+    "id": "agt_003",
+    "userId": "usr_010",
+    "businessName": "Lugogo Shopping Agent",
+    "location": {
+      "country": "Uganda",
+      "state": "Central",
+      "city": "Kampala",
+      "address": "Jinja Road, Nakawa Division, Kampala",
+      "coordinates": {
+        "lat": 0.3563,
+        "lng": 32.6378
+      }
+    },
+    "isActive": true,
+    "cashBalance": 3200000,
+    "digitalBalance": 950000,
+    "commissionRate": 0.015,
+    "createdAt": "2024-03-01T12:05:00.000Z"
+  },
+  {
+    "id": "agt_004",
+    "userId": "usr_015",
+    "businessName": "Quality Mall Financial Point",
+    "location": {
+      "country": "Uganda",
+      "state": "Central",
+      "city": "Kampala",
+      "address": "Entebbe Road, Wakiso, Kampala",
+      "coordinates": {
+        "lat": 0.2906,
+        "lng": 32.5739
+      }
+    },
+    "isActive": true,
+    "cashBalance": 2100000,
+    "digitalBalance": 720000,
+    "commissionRate": 0.02,
+    "createdAt": "2024-03-25T16:45:00.000Z"
+  },
+  {
+    "id": "agt_005",
+    "userId": "usr_020",
+    "businessName": "Mulago Hospital Money Services",
+    "location": {
+      "country": "Uganda",
+      "state": "Central",
+      "city": "Kampala",
+      "address": "Bombo Road, Kawempe Division, Kampala",
+      "coordinates": {
+        "lat": 0.3319,
+        "lng": 32.5729
+      }
+    },
+    "isActive": true,
+    "cashBalance": 1950000,
+    "digitalBalance": 580000,
+    "commissionRate": 0.025,
+    "createdAt": "2024-04-20T12:55:00.000Z"
+  },
+  {
+    "id": "agt_006",
+    "userId": "usr_021",
+    "businessName": "Ggaba Landing Financial Hub",
+    "location": {
+      "country": "Uganda",
+      "state": "Central",
+      "city": "Kampala",
+      "address": "Masaka Road, Makindye Division, Kampala",
+      "coordinates": {
+        "lat": 0.3157,
+        "lng": 32.5656
+      }
+    },
+    "isActive": true,
+    "cashBalance": 1650000,
+    "digitalBalance": 480000,
+    "commissionRate": 0.03,
+    "createdAt": "2024-01-30T09:15:00.000Z"
+  },
+  {
+    "id": "agt_007",
+    "userId": "usr_022",
+    "businessName": "Makerere University Agent",
+    "location": {
+      "country": "Uganda",
+      "state": "Central",
+      "city": "Kampala",
+      "address": "Gayaza Road, Kasangati, Kampala",
+      "coordinates": {
+        "lat": 0.3341,
+        "lng": 32.6189
+      }
+    },
+    "isActive": true,
+    "cashBalance": 2850000,
+    "digitalBalance": 890000,
+    "commissionRate": 0.015,
+    "createdAt": "2024-02-15T14:30:00.000Z"
+  },
+  {
+    "id": "agt_008",
+    "userId": "usr_023",
+    "businessName": "Kabalagala Money Exchange",
+    "location": {
+      "country": "Uganda",
+      "state": "Central",
+      "city": "Kampala",
+      "address": "Ggaba Road, Kabalagala, Kampala",
+      "coordinates": {
+        "lat": 0.2742,
+        "lng": 32.6014
+      }
+    },
+    "isActive": true,
+    "cashBalance": 2200000,
+    "digitalBalance": 750000,
+    "commissionRate": 0.02,
+    "createdAt": "2024-03-05T10:45:00.000Z"
+  },
+  {
+    "id": "agt_009",
+    "userId": "usr_024",
+    "businessName": "Makerere Hill Financial Services",
+    "location": {
+      "country": "Uganda",
+      "state": "Central",
+      "city": "Kampala",
+      "address": "Hoima Road, Makerere, Kampala",
+      "coordinates": {
+        "lat": 0.3298,
+        "lng": 32.5456
+      }
+    },
+    "isActive": true,
+    "cashBalance": 1750000,
+    "digitalBalance": 620000,
+    "commissionRate": 0.025,
+    "createdAt": "2024-03-20T13:20:00.000Z"
+  },
+  {
+    "id": "agt_010",
+    "userId": "usr_025",
+    "businessName": "Kamwokya Media Center Agent",
+    "location": {
+      "country": "Uganda",
+      "state": "Central",
+      "city": "Kampala",
+      "address": "Kamwokya, Central Division, Kampala",
+      "coordinates": {
+        "lat": 0.3789,
+        "lng": 32.6156
+      }
+    },
+    "isActive": true,
+    "cashBalance": 2650000,
+    "digitalBalance": 840000,
+    "commissionRate": 0.018,
+    "createdAt": "2024-04-05T11:35:00.000Z"
+  },
+  {
+    "id": "agt_011",
+    "userId": "usr_026",
+    "businessName": "Muyenga Acacia Mall Agent",
+    "location": {
+      "country": "Uganda",
+      "state": "Central",
+      "city": "Kampala",
+      "address": "Muyenga, Makindye Division, Kampala",
+      "coordinates": {
+        "lat": 0.3023,
+        "lng": 32.5698
+      }
+    },
+    "isActive": true,
+    "cashBalance": 3100000,
+    "digitalBalance": 1200000,
+    "commissionRate": 0.015,
+    "createdAt": "2024-01-18T15:50:00.000Z"
+  },
+  {
+    "id": "agt_012",
+    "userId": "usr_027",
+    "businessName": "Wandegeya Student Services",
+    "location": {
+      "country": "Uganda",
+      "state": "Central",
+      "city": "Kampala",
+      "address": "Wandegeya, Central Division, Kampala",
+      "coordinates": {
+        "lat": 0.3645,
+        "lng": 32.5923
+      }
+    },
+    "isActive": true,
+    "cashBalance": 1900000,
+    "digitalBalance": 680000,
+    "commissionRate": 0.022,
+    "createdAt": "2024-02-28T08:25:00.000Z"
+  },
+  {
+    "id": "agt_013",
+    "userId": "usr_028",
+    "businessName": "Ntinda Shopping Mall Agent",
+    "location": {
+      "country": "Uganda",
+      "state": "Central",
+      "city": "Kampala",
+      "address": "Ntinda, Nakawa Division, Kampala",
+      "coordinates": {
+        "lat": 0.2987,
+        "lng": 32.6234
+      }
+    },
+    "isActive": true,
+    "cashBalance": 2750000,
+    "digitalBalance": 920000,
+    "commissionRate": 0.017,
+    "createdAt": "2024-03-12T16:40:00.000Z"
+  },
+  {
+    "id": "agt_014",
+    "userId": "usr_029",
+    "businessName": "Old Kampala Mosque Agent",
+    "location": {
+      "country": "Uganda",
+      "state": "Central",
+      "city": "Kampala",
+      "address": "Old Kampala, Central Division, Kampala",
+      "coordinates": {
+        "lat": 0.3512,
+        "lng": 32.5634
+      }
+    },
+    "isActive": true,
+    "cashBalance": 2300000,
+    "digitalBalance": 780000,
+    "commissionRate": 0.02,
+    "createdAt": "2024-04-08T12:15:00.000Z"
+  },
+  {
+    "id": "agt_015",
+    "userId": "usr_030",
+    "businessName": "Kyanja Kira Road Services",
+    "location": {
+      "country": "Uganda",
+      "state": "Central",
+      "city": "Kampala",
+      "address": "Kyanja, Nakawa Division, Kampala",
+      "coordinates": {
+        "lat": 0.3167,
+        "lng": 32.6445
+      }
+    },
+    "isActive": true,
+    "cashBalance": 1850000,
+    "digitalBalance": 590000,
+    "commissionRate": 0.025,
+    "createdAt": "2024-01-22T14:05:00.000Z"
+  },
+  {
+    "id": "agt_016",
+    "userId": "usr_031",
+    "businessName": "Kansanga Market Financial Point",
+    "location": {
+      "country": "Uganda",
+      "state": "Central",
+      "city": "Kampala",
+      "address": "Kansanga, Makindye Division, Kampala",
+      "coordinates": {
+        "lat": 0.2834,
+        "lng": 32.5512
+      }
+    },
+    "isActive": true,
+    "cashBalance": 2050000,
+    "digitalBalance": 700000,
+    "commissionRate": 0.022,
+    "createdAt": "2024-02-05T09:30:00.000Z"
+  },
+  {
+    "id": "agt_017",
+    "userId": "usr_032",
+    "businessName": "Bwaise Market Money Services",
+    "location": {
+      "country": "Uganda",
+      "state": "Central",
+      "city": "Kampala",
+      "address": "Bwaise, Kawempe Division, Kampala",
+      "coordinates": {
+        "lat": 0.3423,
+        "lng": 32.5512
+      }
+    },
+    "isActive": true,
+    "cashBalance": 1700000,
+    "digitalBalance": 520000,
+    "commissionRate": 0.028,
+    "createdAt": "2024-03-18T11:20:00.000Z"
+  },
+  {
+    "id": "agt_018",
+    "userId": "usr_033",
+    "businessName": "Kisaasi Market Agent",
+    "location": {
+      "country": "Uganda",
+      "state": "Central",
+      "city": "Kampala",
+      "address": "Kisaasi, Nakawa Division, Kampala",
+      "coordinates": {
+        "lat": 0.3689,
+        "lng": 32.6523
+      }
+    },
+    "isActive": true,
+    "cashBalance": 2400000,
+    "digitalBalance": 810000,
+    "commissionRate": 0.019,
+    "createdAt": "2024-04-12T15:45:00.000Z"
+  },
+  {
+    "id": "agt_019",
+    "userId": "usr_034",
+    "businessName": "Nsambya Hospital Financial Hub",
+    "location": {
+      "country": "Uganda",
+      "state": "Central",
+      "city": "Kampala",
+      "address": "Nsambya, Makindye Division, Kampala",
+      "coordinates": {
+        "lat": 0.2945,
+        "lng": 32.5823
+      }
+    },
+    "isActive": true,
+    "cashBalance": 2150000,
+    "digitalBalance": 730000,
+    "commissionRate": 0.021,
+    "createdAt": "2024-01-28T10:55:00.000Z"
+  },
+  {
+    "id": "agt_020",
+    "userId": "usr_035",
+    "businessName": "Bukoto Market Money Exchange",
+    "location": {
+      "country": "Uganda",
+      "state": "Central",
+      "city": "Kampala",
+      "address": "Bukoto, Central Division, Kampala",
+      "coordinates": {
+        "lat": 0.3834,
+        "lng": 32.5834
+      }
+    },
+    "isActive": true,
+    "cashBalance": 2950000,
+    "digitalBalance": 1050000,
+    "commissionRate": 0.016,
+    "createdAt": "2024-04-25T13:10:00.000Z"
+  },
+  {
+    "id": "agt_021",
+    "userId": "usr_021",
+    "businessName": "Lagos Bitcoin Exchange",
+    "location": {
+      "country": "Nigeria",
+      "state": "Lagos",
+      "city": "Lagos",
+      "address": "Victoria Island, Lagos",
+      "coordinates": {
+        "lat": 6.4281,
+        "lng": 3.4219
+      }
+    },
+    "isActive": true,
+    "cashBalance": 5000000,
+    "digitalBalance": 2000000,
+    "commissionRate": 0.025,
+    "createdAt": "2024-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "agt_022",
+    "userId": "usr_022",
+    "businessName": "Nairobi Crypto Hub",
+    "location": {
+      "country": "Kenya",
+      "state": "Nairobi",
+      "city": "Nairobi",
+      "address": "Westlands, Nairobi",
+      "coordinates": {
+        "lat": -1.2641,
+        "lng": 36.8023
+      }
+    },
+    "isActive": true,
+    "cashBalance": 3500000,
+    "digitalBalance": 1500000,
+    "commissionRate": 0.022,
+    "createdAt": "2024-01-20T11:00:00.000Z"
+  },
+  {
+    "id": "agt_023",
+    "userId": "usr_023",
+    "businessName": "Accra Digital Finance",
+    "location": {
+      "country": "Ghana",
+      "state": "Greater Accra",
+      "city": "Accra",
+      "address": "Osu, Accra",
+      "coordinates": {
+        "lat": 5.6037,
+        "lng": -0.1870
+      }
+    },
+    "isActive": true,
+    "cashBalance": 2800000,
+    "digitalBalance": 1200000,
+    "commissionRate": 0.023,
+    "createdAt": "2024-02-01T09:00:00.000Z"
+  },
+  {
+    "id": "agt_024",
+    "userId": "usr_024",
+    "businessName": "Cape Town Bitcoin Services",
+    "location": {
+      "country": "South Africa",
+      "state": "Western Cape",
+      "city": "Cape Town",
+      "address": "City Centre, Cape Town",
+      "coordinates": {
+        "lat": -33.9249,
+        "lng": 18.4241
+      }
+    },
+    "isActive": true,
+    "cashBalance": 4500000,
+    "digitalBalance": 1800000,
+    "commissionRate": 0.020,
+    "createdAt": "2024-02-10T12:00:00.000Z"
+  },
+  {
+    "id": "agt_025",
+    "userId": "usr_025",
+    "businessName": "Dar es Salaam Money Transfer",
+    "location": {
+      "country": "Tanzania",
+      "state": "Dar es Salaam",
+      "city": "Dar es Salaam",
+      "address": "Kariakoo, Dar es Salaam",
+      "coordinates": {
+        "lat": -6.7924,
+        "lng": 39.2083
+      }
+    },
+    "isActive": true,
+    "cashBalance": 2200000,
+    "digitalBalance": 900000,
+    "commissionRate": 0.024,
+    "createdAt": "2024-02-15T10:30:00.000Z"
+  },
+  {
+    "id": "agt_026",
+    "userId": "usr_026",
+    "businessName": "Kigali Bitcoin Point",
+    "location": {
+      "country": "Rwanda",
+      "state": "Kigali",
+      "city": "Kigali",
+      "address": "Kigali City Centre",
+      "coordinates": {
+        "lat": -1.9403,
+        "lng": 29.8739
+      }
+    },
+    "isActive": true,
+    "cashBalance": 1800000,
+    "digitalBalance": 750000,
+    "commissionRate": 0.025,
+    "createdAt": "2024-02-20T11:00:00.000Z"
+  },
+  {
+    "id": "agt_027",
+    "userId": "usr_027",
+    "businessName": "Addis Ababa Crypto Exchange",
+    "location": {
+      "country": "Ethiopia",
+      "state": "Addis Ababa",
+      "city": "Addis Ababa",
+      "address": "Bole, Addis Ababa",
+      "coordinates": {
+        "lat": 9.0320,
+        "lng": 38.7469
+      }
+    },
+    "isActive": true,
+    "cashBalance": 3000000,
+    "digitalBalance": 1300000,
+    "commissionRate": 0.023,
+    "createdAt": "2024-03-01T09:30:00.000Z"
+  },
+  {
+    "id": "agt_028",
+    "userId": "usr_028",
+    "businessName": "Abidjan Financial Hub",
+    "location": {
+      "country": "Côte d'Ivoire",
+      "state": "Abidjan",
+      "city": "Abidjan",
+      "address": "Plateau, Abidjan",
+      "coordinates": {
+        "lat": 5.3600,
+        "lng": -4.0083
+      }
+    },
+    "isActive": true,
+    "cashBalance": 2600000,
+    "digitalBalance": 1100000,
+    "commissionRate": 0.024,
+    "createdAt": "2024-03-05T10:00:00.000Z"
+  },
+  {
+    "id": "agt_029",
+    "userId": "usr_029",
+    "businessName": "Dakar Bitcoin Services",
+    "location": {
+      "country": "Senegal",
+      "state": "Dakar",
+      "city": "Dakar",
+      "address": "Plateau, Dakar",
+      "coordinates": {
+        "lat": 14.6928,
+        "lng": -17.4467
+      }
+    },
+    "isActive": true,
+    "cashBalance": 2100000,
+    "digitalBalance": 850000,
+    "commissionRate": 0.025,
+    "createdAt": "2024-03-10T11:30:00.000Z"
+  },
+  {
+    "id": "agt_030",
+    "userId": "usr_030",
+    "businessName": "Lusaka Money Exchange",
+    "location": {
+      "country": "Zambia",
+      "state": "Lusaka",
+      "city": "Lusaka",
+      "address": "Cairo Road, Lusaka",
+      "coordinates": {
+        "lat": -15.3875,
+        "lng": 28.3228
+      }
+    },
+    "isActive": true,
+    "cashBalance": 1900000,
+    "digitalBalance": 800000,
+    "commissionRate": 0.026,
+    "createdAt": "2024-03-15T12:00:00.000Z"
+  }
+]

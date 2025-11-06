@@ -1,8 +1,0 @@
-{
-  "name": "afritokeni-functions",
-  "version": "1.0.0",
-  "type": "module",
-  "dependencies": {
-    "@junobuild/functions": "^0.0.20"
-  }
-}

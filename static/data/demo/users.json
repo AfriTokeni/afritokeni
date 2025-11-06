@@ -1,0 +1,202 @@
+ [
+    {
+      "id": "usr_001",
+      "firstName": "John",
+      "lastName": "Mugisha",
+      "email": "+256701234567",
+      "userType": "user",
+      "isVerified": true,
+      "kycStatus": "completed",
+      "createdAt": "2024-01-15T08:30:00.000Z"
+    },
+    {
+      "id": "usr_002",
+      "firstName": "Sarah",
+      "lastName": "Nakato",
+      "email": "+256702345678",
+      "userType": "user",
+      "isVerified": true,
+      "kycStatus": "pending",
+      "createdAt": "2024-01-20T10:15:00.000Z"
+    },
+    {
+      "id": "usr_003",
+      "firstName": "Peter",
+      "lastName": "Okello",
+      "email": "+256703456789",
+      "userType": "agent",
+      "isVerified": true,
+      "kycStatus": "completed",
+      "createdAt": "2024-01-25T14:20:00.000Z"
+    },
+    {
+      "id": "usr_004",
+      "firstName": "Grace",
+      "lastName": "Namukasa",
+      "email": "+256704567890",
+      "userType": "user",
+      "isVerified": true,
+      "kycStatus": "not_started",
+      "createdAt": "2024-02-01T09:45:00.000Z"
+    },
+    {
+      "id": "usr_005",
+      "firstName": "David",
+      "lastName": "Kiprotich",
+      "email": "+256705678901",
+      "userType": "user",
+      "isVerified": false,
+      "kycStatus": "not_started",
+      "createdAt": "2024-02-05T16:30:00.000Z"
+    },
+    {
+      "id": "usr_006",
+      "firstName": "Mary",
+      "lastName": "Achieng",
+      "email": "+256706789012",
+      "userType": "agent",
+      "isVerified": true,
+      "kycStatus": "completed",
+      "createdAt": "2024-02-10T11:10:00.000Z"
+    },
+    {
+      "id": "usr_007",
+      "firstName": "James",
+      "lastName": "Ssekandi",
+      "email": "+256707890123",
+      "userType": "user",
+      "isVerified": true,
+      "kycStatus": "pending",
+      "createdAt": "2024-02-15T13:25:00.000Z"
+    },
+    {
+      "id": "usr_008",
+      "firstName": "Faith",
+      "lastName": "Nabirye",
+      "email": "+256708901234",
+      "userType": "user",
+      "isVerified": true,
+      "kycStatus": "completed",
+      "createdAt": "2024-02-20T07:50:00.000Z"
+    },
+    {
+      "id": "usr_009",
+      "firstName": "Samuel",
+      "lastName": "Wanyama",
+      "email": "+256709012345",
+      "userType": "user",
+      "isVerified": false,
+      "kycStatus": "not_started",
+      "createdAt": "2024-02-25T15:40:00.000Z"
+    },
+    {
+      "id": "usr_010",
+      "firstName": "Rose",
+      "lastName": "Akello",
+      "email": "+256770123456",
+      "userType": "agent",
+      "isVerified": true,
+      "kycStatus": "completed",
+      "createdAt": "2024-03-01T12:05:00.000Z"
+    },
+    {
+      "id": "usr_011",
+      "firstName": "Michael",
+      "lastName": "Tumwesigye",
+      "email": "+256771234567",
+      "userType": "user",
+      "isVerified": true,
+      "kycStatus": "pending",
+      "createdAt": "2024-03-05T09:20:00.000Z"
+    },
+    {
+      "id": "usr_012",
+      "firstName": "Lucy",
+      "lastName": "Nansubuga",
+      "email": "+256772345678",
+      "userType": "user",
+      "isVerified": true,
+      "kycStatus": "not_started",
+      "createdAt": "2024-03-10T14:35:00.000Z"
+    },
+    {
+      "id": "usr_013",
+      "firstName": "Daniel",
+      "lastName": "Kizito",
+      "email": "+256773456789",
+      "userType": "user",
+      "isVerified": false,
+      "kycStatus": "not_started",
+      "createdAt": "2024-03-15T10:55:00.000Z"
+    },
+    {
+      "id": "usr_014",
+      "firstName": "Esther",
+      "lastName": "Nalubega",
+      "email": "+256774567890",
+      "userType": "user",
+      "isVerified": true,
+      "kycStatus": "completed",
+      "createdAt": "2024-03-20T08:15:00.000Z"
+    },
+    {
+      "id": "usr_015",
+      "firstName": "Benjamin",
+      "lastName": "Kasozi",
+      "email": "+256775678901",
+      "userType": "agent",
+      "isVerified": true,
+      "kycStatus": "completed",
+      "createdAt": "2024-03-25T16:45:00.000Z"
+    },
+    {
+      "id": "usr_016",
+      "firstName": "Agnes",
+      "lastName": "Nanteza",
+      "email": "+256776789012",
+      "userType": "user",
+      "isVerified": true,
+      "kycStatus": "pending",
+      "createdAt": "2024-04-01T11:30:00.000Z"
+    },
+    {
+      "id": "usr_017",
+      "firstName": "Patrick",
+      "lastName": "Ojwok",
+      "email": "+256777890123",
+      "userType": "user",
+      "isVerified": false,
+      "kycStatus": "not_started",
+      "createdAt": "2024-04-05T13:10:00.000Z"
+    },
+    {
+      "id": "usr_018",
+      "firstName": "Catherine",
+      "lastName": "Nakimuli",
+      "email": "+256778901234",
+      "userType": "user",
+      "isVerified": true,
+      "kycStatus": "completed",
+      "createdAt": "2024-04-10T15:25:00.000Z"
+    },
+    {
+      "id": "usr_019",
+      "firstName": "Joseph",
+      "lastName": "Bbosa",
+      "email": "+256779012345",
+      "userType": "user",
+      "isVerified": true,
+      "kycStatus": "not_started",
+      "createdAt": "2024-04-15T09:40:00.000Z"
+    },
+    {
+      "id": "usr_020",
+      "firstName": "Margaret",
+      "lastName": "Namatovu",
+      "email": "+256790123456",
+      "userType": "agent",
+      "isVerified": true,
+      "kycStatus": "completed",
+      "createdAt": "2024-04-20T12:55:00.000Z"
+    }
+  ]

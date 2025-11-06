@@ -1,0 +1,67 @@
+[
+  {
+    "id": "with-001",
+    "userId": "user-006",
+    "userName": "Peter Kato",
+    "userPhone": "+256706789012",
+    "agentId": "demo-agent-1",
+    "amount": 80000,
+    "currency": "UGX",
+    "withdrawalCode": "789012",
+    "withdrawalType": "cash",
+    "status": "pending",
+    "createdAt": 1728691200000
+  },
+  {
+    "id": "with-002",
+    "userId": "user-007",
+    "userName": "Betty Namutebi",
+    "userPhone": "+256707890123",
+    "agentId": "demo-agent-1",
+    "amount": 45000,
+    "currency": "UGX",
+    "withdrawalCode": "890123",
+    "withdrawalType": "cash",
+    "status": "pending",
+    "createdAt": 1728687600000
+  },
+  {
+    "id": "with-003",
+    "userId": "user-008",
+    "userName": "John Ssemakula",
+    "userPhone": "+256708901234",
+    "agentId": "demo-agent-1",
+    "amount": 100000,
+    "currency": "UGX",
+    "withdrawalCode": "901234",
+    "withdrawalType": "cash",
+    "status": "confirmed",
+    "createdAt": 1728684000000
+  },
+  {
+    "id": "with-004",
+    "userId": "user-009",
+    "userName": "Rose Nakku",
+    "userPhone": "+256709012345",
+    "agentId": "demo-agent-1",
+    "amount": 60000,
+    "currency": "UGX",
+    "withdrawalCode": "012345",
+    "withdrawalType": "cash",
+    "status": "pending",
+    "createdAt": 1728680400000
+  },
+  {
+    "id": "with-005",
+    "userId": "user-010",
+    "userName": "Moses Lubega",
+    "userPhone": "+256700123456",
+    "agentId": "demo-agent-1",
+    "amount": 90000,
+    "currency": "UGX",
+    "withdrawalCode": "123450",
+    "withdrawalType": "cash",
+    "status": "pending",
+    "createdAt": 1728676800000
+  }
+]

@@ -3,39 +3,54 @@
     "sns_governance": {
       "type": "custom",
       "candid": "https://raw.githubusercontent.com/dfinity/ic/master/rs/sns/governance/canister/governance.did",
-      "wasm": "https://download.dfinity.systems/ic/02571e8f58b4f6d90e1102a4e3f6a3e7e2c64fde/canisters/sns-governance-canister.wasm.gz"
+      "wasm": "https://download.dfinity.systems/ic/d87954601e4b22972899e9957e800406a0a6b929/canisters/sns-governance-canister.wasm.gz"
     },
     "sns_ledger": {
       "type": "custom",
-      "candid": "https://raw.githubusercontent.com/dfinity/ic/master/rs/rosetta-api/icrc1/ledger/ledger.did",
-      "wasm": "https://download.dfinity.systems/ic/02571e8f58b4f6d90e1102a4e3f6a3e7e2c64fde/canisters/ic-icrc1-ledger.wasm.gz"
+      "candid": "https://raw.githubusercontent.com/dfinity/ic/master/rs/ledger_suite/icrc1/ledger/ledger.did",
+      "wasm": "https://download.dfinity.systems/ic/d87954601e4b22972899e9957e800406a0a6b929/canisters/ic-icrc1-ledger.wasm.gz"
     },
     "sns_root": {
       "type": "custom",
       "candid": "https://raw.githubusercontent.com/dfinity/ic/master/rs/sns/root/canister/root.did",
-      "wasm": "https://download.dfinity.systems/ic/02571e8f58b4f6d90e1102a4e3f6a3e7e2c64fde/canisters/sns-root-canister.wasm.gz"
+      "wasm": "https://download.dfinity.systems/ic/d87954601e4b22972899e9957e800406a0a6b929/canisters/sns-root-canister.wasm.gz"
     },
     "sns_swap": {
       "type": "custom",
       "candid": "https://raw.githubusercontent.com/dfinity/ic/master/rs/sns/swap/canister/swap.did",
-      "wasm": "https://download.dfinity.systems/ic/02571e8f58b4f6d90e1102a4e3f6a3e7e2c64fde/canisters/sns-swap-canister.wasm.gz"
+      "wasm": "https://download.dfinity.systems/ic/d87954601e4b22972899e9957e800406a0a6b929/canisters/sns-swap-canister.wasm.gz"
     },
     "sns_index": {
       "type": "custom",
-      "candid": "https://raw.githubusercontent.com/dfinity/ic/master/rs/rosetta-api/icrc1/index/index.did",
-      "wasm": "https://download.dfinity.systems/ic/02571e8f58b4f6d90e1102a4e3f6a3e7e2c64fde/canisters/ic-icrc1-index-ng.wasm.gz"
+      "candid": "https://raw.githubusercontent.com/dfinity/ic/master/rs/ledger_suite/icrc1/index-ng/index-ng.did",
+      "wasm": "https://download.dfinity.systems/ic/d87954601e4b22972899e9957e800406a0a6b929/canisters/ic-icrc1-index-ng.wasm.gz"
     },
     "ckbtc_ledger": {
       "type": "custom",
       "candid": "https://raw.githubusercontent.com/dfinity/ic/master/rs/ledger_suite/icrc1/ledger/ledger.did",
       "wasm": "https://download.dfinity.systems/ic/d87954601e4b22972899e9957e800406a0a6b929/canisters/ic-icrc1-ledger.wasm.gz",
-      "init_arg": "(variant { Init = record { token_name = \"ckBTC\"; token_symbol = \"ckBTC\"; decimals = opt 8; minting_account = record { owner = principal \"aaaaa-aa\" }; transfer_fee = 10; metadata = vec {}; initial_balances = vec {}; archive_options = record { trigger_threshold = 2000; num_blocks_to_archive = 1000; controller_id = principal \"aaaaa-aa\" }; feature_flags = opt record { icrc2 = true }; } })"
+      "init_arg": "(variant { Init = record { token_name = \"ckBTC\"; token_symbol = \"ckBTC\"; decimals = opt 8; minting_account = record { owner = principal \"aaaaa-aa\" }; transfer_fee = 10; metadata = vec {}; initial_balances = vec { record { record { owner = principal \"2vxsx-fae\"; subaccount = null }; 100000000 } }; archive_options = record { trigger_threshold = 2000; num_blocks_to_archive = 1000; controller_id = principal \"aaaaa-aa\" }; feature_flags = opt record { icrc2 = true }; } })"
     },
     "ckusdc_ledger": {
       "type": "custom",
       "candid": "https://raw.githubusercontent.com/dfinity/ic/master/rs/ledger_suite/icrc1/ledger/ledger.did",
       "wasm": "https://download.dfinity.systems/ic/d87954601e4b22972899e9957e800406a0a6b929/canisters/ic-icrc1-ledger.wasm.gz",
-      "init_arg": "(variant { Init = record { token_name = \"ckUSDC\"; token_symbol = \"ckUSDC\"; decimals = opt 6; minting_account = record { owner = principal \"aaaaa-aa\" }; transfer_fee = 10000; metadata = vec {}; initial_balances = vec {}; archive_options = record { trigger_threshold = 2000; num_blocks_to_archive = 1000; controller_id = principal \"aaaaa-aa\" }; feature_flags = opt record { icrc2 = true }; } })"
+      "init_arg": "(variant { Init = record { token_name = \"ckUSDC\"; token_symbol = \"ckUSDC\"; decimals = opt 6; minting_account = record { owner = principal \"aaaaa-aa\" }; transfer_fee = 10000; metadata = vec {}; initial_balances = vec { record { record { owner = principal \"2vxsx-fae\"; subaccount = null }; 100000000 } }; archive_options = record { trigger_threshold = 2000; num_blocks_to_archive = 1000; controller_id = principal \"aaaaa-aa\" }; feature_flags = opt record { icrc2 = true }; } })"
+    },
+    "exchange_canister": {
+      "type": "rust",
+      "package": "exchange_canister",
+      "candid": "canisters/exchange_canister/exchange_canister.did"
+    },
+    "deposit_canister": {
+      "type": "rust",
+      "package": "deposit_canister",
+      "candid": "canisters/deposit_canister/deposit_canister.did"
+    },
+    "withdrawal_canister": {
+      "type": "rust",
+      "package": "withdrawal_canister",
+      "candid": "canisters/withdrawal_canister/withdrawal_canister.did"
     }
   },
   "defaults": {

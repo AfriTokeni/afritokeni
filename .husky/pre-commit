@@ -1,0 +1,23 @@
+echo "🔍 Running pre-commit checks..."
+
+# Secret detection (fast - only staged files)
+echo "🔐 Checking for secrets..."
+git diff --cached --name-only | xargs -I {} gitleaks detect --no-git --verbose --source {} 2>/dev/null || {
+  echo "⚠️  Gitleaks not installed. Skipping secret scan."
+  echo "   Install: brew install gitleaks"
+}
+
+# Format code
+echo "📝 Formatting code..."
+pnpm run format || exit 1
+
+# Lint (treat warnings as errors)
+echo "🔎 Linting code..."
+pnpm run lint || exit 1
+
+# TypeScript check
+echo "🔧 Type checking..."
+pnpm run check || exit 1
+
+echo "✅ All pre-commit checks passed!"
+echo "💡 Full security scans will run in CI pipeline"

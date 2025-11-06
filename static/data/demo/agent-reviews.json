@@ -1,0 +1,102 @@
+[
+  {
+    "id": "rev_001",
+    "agentId": "agt_001",
+    "userId": "usr_001",
+    "userName": "John Doe",
+    "rating": 5,
+    "comment": "Excellent service! Very professional and quick transaction. Highly recommended.",
+    "transactionId": "txn_001",
+    "createdAt": "2024-03-15T10:30:00.000Z"
+  },
+  {
+    "id": "rev_002",
+    "agentId": "agt_001",
+    "userId": "usr_002",
+    "userName": "Sarah M.",
+    "rating": 4,
+    "comment": "Good experience overall. Agent was friendly and helpful.",
+    "transactionId": "txn_002",
+    "createdAt": "2024-03-14T14:20:00.000Z"
+  },
+  {
+    "id": "rev_003",
+    "agentId": "agt_001",
+    "userId": "usr_004",
+    "userName": "David K.",
+    "rating": 5,
+    "comment": "Best agent in Kampala! Always available and very trustworthy.",
+    "transactionId": "txn_003",
+    "createdAt": "2024-03-13T09:15:00.000Z"
+  },
+  {
+    "id": "rev_004",
+    "agentId": "agt_002",
+    "userId": "usr_001",
+    "userName": "John Doe",
+    "rating": 4,
+    "comment": "Great location and fast service. Will use again.",
+    "transactionId": "txn_004",
+    "createdAt": "2024-03-12T16:45:00.000Z"
+  },
+  {
+    "id": "rev_005",
+    "agentId": "agt_002",
+    "userId": "usr_005",
+    "userName": "Mary N.",
+    "rating": 5,
+    "comment": "Very professional and courteous. Made the process easy.",
+    "transactionId": "txn_005",
+    "createdAt": "2024-03-11T11:30:00.000Z"
+  },
+  {
+    "id": "rev_006",
+    "agentId": "agt_003",
+    "userId": "usr_002",
+    "userName": "Sarah M.",
+    "rating": 3,
+    "comment": "Service was okay but had to wait a bit longer than expected.",
+    "transactionId": "txn_006",
+    "createdAt": "2024-03-10T13:20:00.000Z"
+  },
+  {
+    "id": "rev_007",
+    "agentId": "agt_003",
+    "userId": "usr_006",
+    "userName": "James O.",
+    "rating": 4,
+    "comment": "Good agent, convenient location in Nakawa.",
+    "transactionId": "txn_007",
+    "createdAt": "2024-03-09T15:10:00.000Z"
+  },
+  {
+    "id": "rev_008",
+    "agentId": "agt_004",
+    "userId": "usr_001",
+    "userName": "John Doe",
+    "rating": 5,
+    "comment": "Amazing service! Agent went above and beyond to help.",
+    "transactionId": "txn_008",
+    "createdAt": "2024-03-08T10:00:00.000Z"
+  },
+  {
+    "id": "rev_009",
+    "agentId": "agt_004",
+    "userId": "usr_003",
+    "userName": "Peter L.",
+    "rating": 5,
+    "comment": "Highly professional and efficient. Best experience so far!",
+    "transactionId": "txn_009",
+    "createdAt": "2024-03-07T12:30:00.000Z"
+  },
+  {
+    "id": "rev_010",
+    "agentId": "agt_005",
+    "userId": "usr_004",
+    "userName": "David K.",
+    "rating": 4,
+    "comment": "Good service in Makindye area. Agent was helpful.",
+    "transactionId": "txn_010",
+    "createdAt": "2024-03-06T14:45:00.000Z"
+  }
+]

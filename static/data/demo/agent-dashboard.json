@@ -1,0 +1,23 @@
+{
+	"agent": {
+		"id": "demo-agent-1",
+		"businessName": "AfriTokeni Agent - Kampala Central",
+		"ownerName": "John Doe",
+		"email": "agent@afritokeni.com",
+		"phone": "+256700000000",
+		"preferredCurrency": "UGX",
+		"country": "Uganda",
+		"city": "Kampala",
+		"address": "Plot 123, Kampala Road",
+		"kycStatus": "verified",
+		"isActive": true,
+		"status": "available",
+		"ckBTCBalance": 500000,
+		"ckUSDBalance": 150.00
+	},
+	"digitalBalance": 2500000,
+	"cashBalance": 1800000,
+	"dailyEarnings": 125000,
+	"todayTransactions": 47,
+	"activeCustomers": 28
+}

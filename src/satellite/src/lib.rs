@@ -1,3 +1,6 @@
+use candid::{CandidType, Deserialize};
+use ic_cdk::api::call::ManualReply;
+use ic_cdk_macros::update;
 use junobuild_macros::{
     assert_delete_asset, assert_delete_doc, assert_set_doc, assert_upload_asset, on_delete_asset,
     on_delete_doc, on_delete_filtered_assets, on_delete_filtered_docs, on_delete_many_assets,
@@ -9,6 +12,17 @@ use junobuild_satellite::{
     OnDeleteFilteredAssetsContext, OnDeleteFilteredDocsContext, OnDeleteManyAssetsContext,
     OnDeleteManyDocsContext, OnSetDocContext, OnSetManyDocsContext, OnUploadAssetContext,
 };
+use serde::Serialize;
+
+mod http_handlers;
+mod ussd;
+mod sms;
+mod verification;
+mod session;
+mod translations;
+
+#[cfg(test)]
+mod tests;
 
 // All the available hooks and assertions for your Datastore and Storage are scaffolded by default in this `lib.rs` module.
 // However, if you don’t have to implement all of them, for example to improve readability or reduce unnecessary logic,
@@ -87,6 +101,17 @@ fn assert_upload_asset(_context: AssertUploadAssetContext) -> Result<(), String>
 #[assert_delete_asset]
 fn assert_delete_asset(_context: AssertDeleteAssetContext) -> Result<(), String> {
     Ok(())
+}
+
+/// Custom HTTP endpoint handler for USSD and SMS webhooks
+/// 
+/// This allows Africa's Talking to send webhooks directly to the Satellite
+/// Routes:
+/// - POST /api/ussd - USSD webhook handler
+/// - POST /api/sms - SMS webhook handler
+#[update(manual_reply = true)]
+fn http_request_update(req: http_handlers::HttpRequest) -> ManualReply<http_handlers::HttpResponse> {
+    http_handlers::route_request(req)
 }
 
 include_satellite!();

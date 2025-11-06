@@ -1,0 +1,13 @@
+# Cargo audit configuration
+# https://docs.rs/cargo-audit/latest/cargo_audit/
+
+[advisories]
+# Ignore unmaintained warning for paste (transitive dependency from candid/ic-cdk)
+# This is maintained by DFINITY and is safe to use
+ignore = [
+    "RUSTSEC-2024-0436"  # paste - unmaintained but safe
+]
+
+[output]
+deny = ["unsound", "yanked"]
+quiet = false

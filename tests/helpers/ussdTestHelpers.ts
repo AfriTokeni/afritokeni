@@ -3,7 +3,8 @@
  * Utilities for testing USSD service and handlers
  */
 
-import { USSDService, USSDSession } from '../../src/services/ussdService';
+import type { USSDSession } from '../../src/lib/services/ussdService';
+import { USSDService } from '../../src/lib/services/ussdService';
 
 export class USSDTestHelper {
   /**
@@ -127,8 +128,9 @@ export class USSDTestHelper {
 
   /**
    * Generate test phone number
+   * Returns a consistent number for all tests to ensure language preferences persist
    */
   static generatePhoneNumber(): string {
-    return `+256700${Math.floor(100000 + Math.random() * 900000)}`;
+    return '+256700999888';
   }
 }

@@ -1,0 +1,53 @@
+[
+  {
+    "id": "DEMO-001",
+    "type": "fee_adjustment",
+    "title": "Reduce Transaction Fees for Rural Areas",
+    "description": "Proposal to reduce transaction fees from 2.5% to 1.5% for rural and remote areas to increase financial inclusion.",
+    "proposer": "Community Member #1247",
+    "createdAt": 1728691200000,
+    "votingEndsAt": 1729123200000,
+    "status": "active",
+    "votes": {
+      "yes": 125000,
+      "no": 45000,
+      "abstain": 12000
+    },
+    "quorum": 10,
+    "threshold": 50
+  },
+  {
+    "id": "DEMO-002",
+    "type": "currency_addition",
+    "title": "Add Support for Rwandan Franc (RWF)",
+    "description": "Expand AfriTokeni services to Rwanda by adding support for Rwandan Franc (RWF).",
+    "proposer": "Agent Network Lead",
+    "createdAt": 1728518400000,
+    "votingEndsAt": 1728950400000,
+    "status": "active",
+    "votes": {
+      "yes": 98000,
+      "no": 15000,
+      "abstain": 8000
+    },
+    "quorum": 10,
+    "threshold": 50
+  },
+  {
+    "id": "DEMO-003",
+    "type": "agent_standards",
+    "title": "Increase Agent Commission for Bitcoin Exchanges",
+    "description": "Increase agent commission for Bitcoin exchange transactions from 2% to 3%.",
+    "proposer": "Agent Association",
+    "createdAt": 1728777600000,
+    "votingEndsAt": 1729209600000,
+    "status": "active",
+    "votes": {
+      "yes": 67000,
+      "no": 89000,
+      "abstain": 5000
+    },
+    "quorum": 10,
+    "threshold": 50
+  }
+]

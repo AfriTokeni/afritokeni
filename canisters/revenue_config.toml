@@ -1,0 +1,46 @@
+# AfriTokeni Revenue Configuration
+# This file configures ALL revenue-generating canisters (deposit, withdrawal, exchange)
+
+[company_wallet]
+# AfriTokeni Company Wallet - receives ALL platform fees (YOUR REVENUE!)
+# This is the platform's revenue, NOT the DAO treasury
+principal = "ctfzw-zjxmq-in44p-737ub-a73mu-uiuhb-rkehx-42rpn-ukhaf-7yzor-aae"
+
+[deposit]
+# Deposit canister fees
+# Agent commission: What agents earn for processing deposits
+agent_commission_basis_points = 1000  # 10%
+# Platform fee: Your revenue on each deposit
+platform_fee_basis_points = 50  # 0.5%
+# Limits
+min_deposit_ugx = 1000
+max_deposit_ugx = 10000000
+
+[withdrawal]
+# Withdrawal canister fees
+# Agent commission: What agents earn for processing withdrawals
+agent_commission_basis_points = 1000  # 10%
+# Platform fee: Your revenue on each withdrawal
+platform_fee_basis_points = 50  # 0.5%
+# Limits
+min_withdrawal_ugx = 1000
+max_withdrawal_ugx = 5000000
+
+[exchange]
+# Exchange canister configuration
+# Spread: Your revenue on each token swap
+spread_basis_points = 50  # 0.5%
+# DEX provider
+dex_provider = "sonic"
+
+[exchange.sonic]
+# Sonic DEX Configuration (mainnet)
+swap_canister = "3xwpq-ziaaa-aaaah-qcn4a-cai"
+
+[exchange.tokens.ckbtc]
+ledger = "mxzaz-hqaaa-aaaar-qaada-cai"
+decimals = 8
+
+[exchange.tokens.ckusdc]
+ledger = "xevnm-gaaaa-aaaar-qafnq-cai"
+decimals = 6

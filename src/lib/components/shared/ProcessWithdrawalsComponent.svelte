@@ -1,0 +1,512 @@
+<script lang="ts">
+  import { demoMode } from "$lib/stores/demoMode";
+  import { principalId } from "$lib/stores/auth";
+  import { toast } from "$lib/stores/toast";
+  import { fetchAgentWithdrawalRequests } from "$lib/services/data/withdrawalsData";
+  import {
+    AlertCircle,
+    CheckCircle,
+    Clock,
+    Info,
+    MapPin,
+    Phone,
+    Search,
+    X,
+    XCircle,
+  } from "@lucide/svelte";
+
+  let showInstructions = $state(false);
+
+  interface WithdrawalRequest {
+    id: string;
+    userId: string;
+    userName: string;
+    userPhone: string;
+    amount: number;
+    currency: string;
+    code: string;
+    status: "pending" | "confirmed" | "completed" | "rejected";
+    createdAt: string;
+    userLocation?: string;
+    userPhoto?: string;
+  }
+
+  function getUserInitials(name: string): string {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  }
+
+  let withdrawalRequests = $state<WithdrawalRequest[]>([]);
+  let selectedRequest = $state<WithdrawalRequest | null>(null);
+  let verificationCodes = $state<Record<string, string>>({});
+  let isProcessing = $state(false);
+  let loading = $state(true);
+  let error = $state("");
+  let filter = $state<
+    "all" | "pending" | "confirmed" | "completed" | "rejected"
+  >("pending");
+  let searchQuery = $state("");
+
+  // Auto-fetch when stores change
+  $effect(() => {
+    loadWithdrawalRequests($demoMode, $principalId);
+  });
+
+  async function loadWithdrawalRequests(
+    isDemoMode: boolean,
+    agentPrincipal: string | null,
+  ) {
+    // In demo mode, we don't need a principal
+    if (!isDemoMode && !agentPrincipal) {
+      withdrawalRequests = [];
+      loading = false;
+      return;
+    }
+
+    try {
+      loading = true;
+      error = "";
+
+      // Use real data service (handles both demo and real mode)
+      withdrawalRequests = await fetchAgentWithdrawalRequests(
+        agentPrincipal,
+        isDemoMode,
+      );
+    } catch (err: any) {
+      error = err.message || "Failed to load withdrawal requests";
+      withdrawalRequests = [];
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function handleVerifyCode(request: WithdrawalRequest) {
+    const currentCode = (verificationCodes[request.id] || "")
+      .trim()
+      .toUpperCase();
+    const expectedCode = request.code.trim().toUpperCase();
+
+    if (currentCode === expectedCode) {
+      try {
+        if ($demoMode) {
+          // Demo: mark as confirmed
+          withdrawalRequests = withdrawalRequests.map((r) =>
+            r.id === request.id ? { ...r, status: "confirmed" as const } : r,
+          );
+          selectedRequest = { ...request, status: "confirmed" };
+          error = "";
+        } else {
+          // Real canister call
+          // await withdrawalCanister.confirm_withdrawal(request.id);
+          await loadWithdrawalRequests($demoMode, $principalId);
+          selectedRequest = request;
+          error = "";
+        }
+      } catch (err: any) {
+        error = "Failed to confirm withdrawal request. Please try again.";
+      }
+    } else {
+      error = `Invalid withdrawal code. Expected: ${expectedCode}, Got: ${currentCode}`;
+    }
+  }
+
+  async function handleConfirmWithdrawal(request: WithdrawalRequest) {
+    isProcessing = true;
+    try {
+      if ($demoMode) {
+        // Demo: mark as completed (change status, don't remove)
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        withdrawalRequests = withdrawalRequests.map((r) =>
+          r.id === request.id ? { ...r, status: "completed" as const } : r,
+        );
+        selectedRequest = null;
+        verificationCodes[request.id] = "";
+        error = "";
+        toast.show(
+          "success",
+          `Withdrawal completed! ${formatAmount(request.amount, request.currency)} given to ${request.userName}.`,
+        );
+      } else {
+        // Real canister call
+        // await withdrawalCanister.process_withdrawal(request.id, $principalId);
+        await loadWithdrawalRequests($demoMode, $principalId);
+        selectedRequest = null;
+        verificationCodes[request.id] = "";
+        error = "";
+      }
+    } catch (err: any) {
+      error = "Failed to process withdrawal. Please try again.";
+    } finally {
+      isProcessing = false;
+    }
+  }
+
+  async function handleRejectWithdrawal(request: WithdrawalRequest) {
+    isProcessing = true;
+    try {
+      if ($demoMode) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        withdrawalRequests = withdrawalRequests.map((r) =>
+          r.id === request.id ? { ...r, status: "rejected" as const } : r,
+        );
+        selectedRequest = null;
+        verificationCodes[request.id] = "";
+        error = "";
+        toast.show(
+          "info",
+          `Withdrawal from ${request.userName} has been rejected.`,
+        );
+      } else {
+        // Real canister call
+        // await withdrawalCanister.reject_withdrawal(request.id);
+        await loadWithdrawalRequests($demoMode, $principalId);
+        selectedRequest = null;
+        verificationCodes[request.id] = "";
+        error = "";
+        toast.show(
+          "info",
+          `Withdrawal from ${request.userName} has been rejected.`,
+        );
+      }
+    } catch (err: any) {
+      error = "Failed to reject withdrawal. Please try again.";
+      toast.show("error", "Failed to reject withdrawal. Please try again.");
+    } finally {
+      isProcessing = false;
+    }
+  }
+
+  const filteredRequests = $derived(
+    withdrawalRequests.filter((request) => {
+      const statusMatch = filter === "all" || request.status === filter;
+      const searchMatch =
+        !searchQuery ||
+        request.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        request.userPhone.includes(searchQuery);
+      return statusMatch && searchMatch;
+    }),
+  );
+
+  function formatAmount(amount: number, currency: string): string {
+    return new Intl.NumberFormat("en-UG", {
+      style: "currency",
+      currency: currency,
+      minimumFractionDigits: 0,
+    }).format(amount);
+  }
+
+  function getStatusColor(status: string): string {
+    switch (status) {
+      case "pending":
+        return "text-yellow-600 bg-yellow-50 border-yellow-200";
+      case "confirmed":
+        return "text-blue-600 bg-blue-50 border-blue-200";
+      case "completed":
+        return "text-green-600 bg-green-50 border-green-200";
+      case "rejected":
+        return "text-red-600 bg-red-50 border-red-200";
+      default:
+        return "text-neutral-600 bg-neutral-50 border-neutral-200";
+    }
+  }
+</script>
+
+<!-- Error Message -->
+{#if error}
+  <div
+    class="mb-6 rounded-2xl border-2 border-red-500 bg-red-50 p-3 shadow-lg sm:p-4"
+  >
+    <div class="flex items-start">
+      <AlertCircle
+        class="mt-0.5 mr-2 h-5 w-5 shrink-0 text-red-600 sm:mr-3 sm:h-6 sm:w-6"
+      />
+      <div class="min-w-0 flex-1">
+        <h3 class="mb-1 text-sm font-semibold text-red-900 sm:text-base">
+          Verification Failed
+        </h3>
+        <p class="text-xs text-red-700 sm:text-sm">{error}</p>
+      </div>
+      <button
+        onclick={() => (error = "")}
+        class="shrink-0 text-red-400 hover:text-red-600"
+      >
+        <X class="h-4 w-4 sm:h-5 sm:w-5" />
+      </button>
+    </div>
+  </div>
+{/if}
+
+<!-- Collapsible Instructions -->
+{#if showInstructions}
+  <div
+    class="mb-6 rounded-2xl border border-blue-200 bg-blue-50 p-4 sm:p-5 md:p-6"
+  >
+    <div class="mb-2 flex items-start justify-between sm:mb-3">
+      <h3 class="text-sm font-semibold text-blue-900 sm:text-base">
+        Withdrawal Process:
+      </h3>
+      <button
+        onclick={() => (showInstructions = false)}
+        class="shrink-0 text-blue-600 hover:text-blue-800"
+      >
+        <X class="h-4 w-4" />
+      </button>
+    </div>
+    <ol
+      class="list-inside list-decimal space-y-1.5 text-xs text-blue-800 sm:space-y-2 sm:text-sm"
+    >
+      <li>Customer shows you their withdrawal code</li>
+      <li>Verify the code matches the request</li>
+      <li>Give the cash amount to customer</li>
+      <li>Complete the withdrawal to debit their digital balance</li>
+      <li>Customer receives confirmation notification</li>
+    </ol>
+    <div class="mt-3 rounded-lg bg-blue-100 p-2.5 sm:mt-4 sm:p-3">
+      <p class="text-xs font-medium text-blue-900 sm:text-sm">
+        ⚠️ Always verify the withdrawal code before giving cash. Rejected
+        withdrawals cannot be reversed.
+      </p>
+    </div>
+    {#if $demoMode}
+      <div
+        class="mt-3 rounded-lg border border-purple-200 bg-purple-100 p-2.5 sm:mt-4 sm:p-3"
+      >
+        <p class="text-xs font-medium text-purple-900 sm:text-sm">
+          🎭 Demo: Alice (WTH4MN), Peter (WTH7PQ), Grace (WTH2RS)
+        </p>
+      </div>
+    {/if}
+  </div>
+{/if}
+
+<!-- Search and Filter -->
+<div class="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 md:p-6">
+  <!-- Header with Info Button -->
+  <div class="mb-4 flex items-center justify-between">
+    <h2 class="text-lg font-semibold text-gray-900 sm:text-xl">
+      Withdrawal Requests
+    </h2>
+    <button
+      onclick={() => (showInstructions = !showInstructions)}
+      class="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 sm:px-4"
+    >
+      <Info class="h-4 w-4 sm:h-5 sm:w-5" />
+      <span>How it works</span>
+    </button>
+  </div>
+
+  <!-- Search Bar -->
+  <div class="mb-4 sm:mb-5 md:mb-6">
+    <div class="relative">
+      <Search
+        class="absolute top-1/2 left-3 h-4 w-4 shrink-0 -translate-y-1/2 transform text-gray-400 sm:h-5 sm:w-5"
+      />
+      <input
+        type="text"
+        placeholder="Search by name or phone number..."
+        bind:value={searchQuery}
+        class="w-full rounded-lg border border-gray-300 py-2.5 pr-4 pl-9 text-sm focus:border-transparent focus:ring-2 focus:ring-gray-500 sm:py-3 sm:pl-10 sm:text-base"
+      />
+    </div>
+  </div>
+
+  <!-- Filter Tabs -->
+  <div
+    class="scrollbar-hide mb-4 flex space-x-1 overflow-x-auto rounded-lg bg-gray-100 p-1 sm:mb-5 md:mb-6"
+  >
+    {#each ["all", "pending", "confirmed", "completed", "rejected"] as tab}
+      <button
+        onclick={() => (filter = tab as any)}
+        class="shrink-0 rounded-md px-2 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm {filter ===
+        tab
+          ? 'bg-white text-neutral-900 shadow-sm'
+          : 'text-neutral-600 hover:text-neutral-900'}"
+      >
+        <span class="block whitespace-nowrap sm:inline"
+          >{tab.charAt(0).toUpperCase() + tab.slice(1)}</span
+        >
+        <span
+          class="ml-1 rounded-full bg-neutral-200 px-1.5 py-0.5 text-xs text-neutral-600 sm:ml-2 sm:px-2"
+        >
+          {tab === "all"
+            ? withdrawalRequests.length
+            : withdrawalRequests.filter((r) => r.status === tab).length}
+        </span>
+      </button>
+    {/each}
+  </div>
+
+  <!-- Withdrawal Requests List -->
+  <div class="space-y-3 sm:space-y-4">
+    {#if loading}
+      <div class="py-8 text-center sm:py-10 md:py-12">
+        <div
+          class="mx-auto mb-3 h-7 w-7 animate-spin rounded-full border-2 border-blue-600 border-t-transparent sm:mb-4 sm:h-8 sm:w-8"
+        ></div>
+        <p class="text-sm text-neutral-600 sm:text-base">
+          Loading withdrawal requests...
+        </p>
+      </div>
+    {:else if filteredRequests.length === 0}
+      <div class="py-8 text-center sm:py-10 md:py-12">
+        <Clock
+          class="mx-auto mb-3 h-10 w-10 shrink-0 text-neutral-400 sm:mb-4 sm:h-12 sm:w-12"
+        />
+        <h3 class="mb-2 text-base font-semibold text-neutral-900 sm:text-lg">
+          No withdrawal requests
+        </h3>
+        <p class="text-sm text-neutral-600 sm:text-base">
+          {filter === "pending"
+            ? "No pending withdrawals at the moment."
+            : `No ${filter} withdrawals found.`}
+        </p>
+      </div>
+    {:else}
+      {#each filteredRequests as request (request.id)}
+        <div
+          class="space-y-3 rounded-2xl border border-gray-200 p-3 transition-colors hover:border-gray-300 sm:space-y-4 sm:p-4"
+        >
+          <!-- Header: User Info + Status -->
+          <div class="flex items-start justify-between gap-2 sm:gap-3">
+            <div class="flex min-w-0 flex-1 items-start space-x-2 sm:space-x-3">
+              <!-- User Photo/Avatar -->
+              <div
+                class="h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 border-gray-200 sm:h-12 sm:w-12"
+              >
+                {#if request.userPhoto}
+                  <img
+                    src={request.userPhoto}
+                    alt={request.userName}
+                    class="h-full w-full object-cover"
+                  />
+                {:else}
+                  <div
+                    class="flex h-full w-full items-center justify-center bg-black"
+                  >
+                    <span class="text-sm font-bold text-white sm:text-base">
+                      {getUserInitials(request.userName)}
+                    </span>
+                  </div>
+                {/if}
+              </div>
+              <div class="min-w-0 flex-1">
+                <h3
+                  class="truncate text-sm font-semibold text-gray-900 sm:text-base"
+                >
+                  {request.userName}
+                </h3>
+                <div
+                  class="mt-0.5 flex flex-col text-xs text-gray-600 sm:text-sm"
+                >
+                  <div class="flex items-center space-x-1">
+                    <Phone class="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" />
+                    <span class="truncate">{request.userPhone}</span>
+                  </div>
+                  {#if request.userLocation}
+                    <div class="mt-0.5 flex items-center space-x-1">
+                      <MapPin class="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" />
+                      <span class="truncate">{request.userLocation}</span>
+                    </div>
+                  {/if}
+                </div>
+              </div>
+            </div>
+            <div
+              class="inline-flex shrink-0 items-center space-x-1 rounded-md border px-1.5 py-0.5 text-xs font-medium sm:px-2 sm:py-1 {getStatusColor(
+                request.status,
+              )}"
+            >
+              {#if request.status === "pending"}
+                <Clock class="h-4 w-4 sm:h-5 sm:w-5" />
+              {:else if request.status === "confirmed"}
+                <AlertCircle class="h-4 w-4 sm:h-5 sm:w-5" />
+              {:else if request.status === "completed"}
+                <CheckCircle class="h-4 w-4 sm:h-5 sm:w-5" />
+              {:else}
+                <XCircle class="h-4 w-4 sm:h-5 sm:w-5" />
+              {/if}
+              <span class="hidden capitalize sm:inline">{request.status}</span>
+            </div>
+          </div>
+
+          <!-- Amount Section -->
+          <div class="rounded-lg bg-gray-50 p-2.5 sm:p-3">
+            <div class="mb-0.5 text-xs text-gray-500 sm:mb-1">
+              Withdrawal Amount
+            </div>
+            <div class="font-mono text-xl font-bold text-gray-900 sm:text-2xl">
+              {formatAmount(request.amount, request.currency)}
+            </div>
+          </div>
+
+          <div
+            class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+          >
+            <div class="text-xs text-gray-600 sm:text-sm">
+              {#if !$demoMode}
+                <span>Code: </span>
+                <span class="font-mono font-semibold text-gray-900"
+                  >{request.code}</span
+                >
+                <span class="ml-2 sm:ml-4"></span>
+              {/if}
+              <span>{new Date(request.createdAt).toLocaleString()}</span>
+            </div>
+
+            <div class="flex flex-col gap-2 sm:flex-row">
+              {#if request.status === "pending"}
+                <div class="flex items-center space-x-2">
+                  <input
+                    type="text"
+                    placeholder="Enter code"
+                    bind:value={verificationCodes[request.id]}
+                    class="flex-1 rounded border border-neutral-300 px-2 py-1 font-mono text-xs uppercase sm:w-32 sm:px-3 sm:text-sm"
+                  />
+                  <button
+                    onclick={() => handleVerifyCode(request)}
+                    disabled={!verificationCodes[request.id]}
+                    class="rounded bg-blue-600 px-2 py-1 text-xs whitespace-nowrap text-white hover:bg-blue-700 disabled:bg-neutral-300 sm:px-3 sm:text-sm"
+                  >
+                    Verify
+                  </button>
+                </div>
+              {/if}
+
+              {#if request.status === "confirmed" && selectedRequest?.id === request.id}
+                <div class="flex flex-col gap-2 sm:flex-row">
+                  <button
+                    onclick={() => handleConfirmWithdrawal(request)}
+                    disabled={isProcessing}
+                    class="flex w-full items-center justify-center space-x-1 rounded bg-green-600 px-3 py-1.5 text-xs text-white hover:bg-green-700 disabled:bg-neutral-300 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
+                  >
+                    {#if isProcessing}
+                      <div
+                        class="h-3.5 w-3.5 animate-spin rounded-full border-b-2 border-white sm:h-4 sm:w-4"
+                      ></div>
+                      <span>Processing...</span>
+                    {:else}
+                      <CheckCircle class="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
+                      <span>Complete Withdrawal</span>
+                    {/if}
+                  </button>
+                  <button
+                    onclick={() => handleRejectWithdrawal(request)}
+                    disabled={isProcessing}
+                    class="flex w-full items-center justify-center space-x-1 rounded bg-red-600 px-3 py-1.5 text-xs text-white hover:bg-red-700 disabled:bg-neutral-300 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
+                  >
+                    <XCircle class="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
+                    <span>Reject</span>
+                  </button>
+                </div>
+              {/if}
+            </div>
+          </div>
+        </div>
+      {/each}
+    {/if}
+  </div>
+</div>

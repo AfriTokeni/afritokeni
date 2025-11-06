@@ -49,8 +49,8 @@ Everything you need to know about AfriTokeni:
 
 ```bash
 # Clone the repository
-git clone https://github.com/AfriTokeni/afritokeni-mvp.git
-cd afritokeni-mvp
+git clone https://github.com/AfriTokeni/afritokeni.git
+cd afritokeni
 
 # Install dependencies
 npm install
@@ -65,58 +65,88 @@ npm run dev
 npm run build
 ```
 
+### ICP Canister Development
+
+AfriTokeni uses custom ICP canisters (smart contracts) for deposit, withdrawal, and exchange operations. TypeScript bindings are **auto-generated** from Rust code.
+
+```bash
+# Build all canisters + generate Candid interfaces + TypeScript bindings
+npm run canisters:generate
+
+# Or run steps individually:
+npm run canisters:build              # Build Rust → WASM
+npm run canisters:generate-candid    # Extract Candid (.did) from WASM
+npm run canisters:generate-ts        # Generate TypeScript types from Candid
+```
+
+**What gets generated:**
+- `canisters/*/canister_name.did` - Candid interface (IDL)
+- `sveltekit-app/src/lib/services/icp/canisters/*.ts` - TypeScript types & actor interfaces
+
+**⚠️ Important:** Always run `npm run canisters:generate` after modifying canister Rust code to keep TypeScript bindings in sync!
+
 ### Testing
 
 ```bash
-# Run all tests (unit + integration)
-npm test
+# Run all tests
+npm run test:all
 
-# Run unit tests only (fast, no ICP required)
+# Run unit tests (USSD logic, mocks)
 npm run test:unit
 
-# Run integration tests (requires local ICP replica)
+# Run integration tests (real blockchain - ckBTC/ckUSDC ledgers)
 npm run test:integration
-
-# Watch integration tests
-npm run test:integration:watch
 ```
 
 **Test Coverage:**
-- ✅ **60 BDD scenarios PASSING** (54 unit + 6 ICP integration)
-- ⏳ **3 scenarios UNDEFINED** (PIN verification steps)
-- ✅ **317+ test steps** - All with meaningful assertions
-- ✅ **Core tests**: USSD, ckBTC, ckUSDC, Fiat operations
-- ✅ **DAO Governance**: 12 scenarios covering voting, proposals, validation
-- ✅ **ICP integration**: Real ckBTC/ckUSDC ledger queries on local replica
-- ✅ **Error handling**: Balance checks, invalid amounts, expired escrows
-- ✅ **Multi-currency**: NGN, KES, GHS, ZAR, UGX with real exchange rates
-- ✅ **Agent operations**: Deposits, withdrawals, liquidity management
-- ✅ **DAO features**: View proposals, vote YES/NO/ABSTAIN, voting power, active votes
-- ✅ **Fast execution**: All tests complete in <1 second
-- 📋 **95% test coverage** - Production ready!
+- ✅ **58 Rust canister tests** (deposit, withdrawal, exchange)
+- ✅ **162 USSD unit test scenarios** (Bitcoin, USDC, local currency, DAO)
+- ✅ **19 ICP integration scenarios** (real ckBTC/ckUSDC ledger on local replica)
+- 📊 **Total: 239 tests - 100% passing**
+
+**What's Tested:**
+- ✅ **USSD Flows**: Menu navigation, Bitcoin/USDC buy/sell/send, local currency ops
+- ✅ **DAO Governance**: Proposals, voting, token locking, voting power
+- ✅ **ICP Integration**: Real ckBTC/ckUSDC ledger queries on local replica
+- ✅ **Revenue Model**: Platform fees (0.5%), agent commissions (2-12%), on-chain tracking
+- ✅ **Multi-currency**: 39 African currencies with real exchange rates
+- ✅ **Error Handling**: Balance checks, invalid amounts, PIN verification
+- ✅ **Security**: Escrow codes, transaction expiry, fraud prevention
 
 **Test Structure:**
 ```
-tests/features/
-├── ckbtc.feature (3 scenarios)
-├── ckusdc.feature (3 scenarios)
-├── fiat.feature (2 scenarios)
-├── ussd.feature (3 scenarios)
-├── ussd-dao.feature (12 scenarios) ✨ NEW
-├── error-handling.feature (10 scenarios)
-├── multi-currency.feature (8 scenarios)
-├── agent-flows.feature (10 scenarios)
-├── security.feature (10 scenarios)
-├── icp-integration.feature (6 scenarios)
-└── step-definitions/
-    ├── shared-steps.ts (setup & mocks)
-    ├── core-steps.ts (USSD, ckBTC, ckUSDC, Fiat)
-    ├── ussd-dao-steps.ts (DAO governance) ✨ NEW
-    ├── icp-integration-steps.ts (real blockchain)
-    ├── error-handling-steps.ts (error scenarios)
-    ├── multi-currency-steps.ts (multi-currency ops)
-    ├── agent-steps.ts (agent operations)
-    └── security-steps.ts (security features)
+tests/
+├── unit/              # USSD service unit tests (15 features, 162 scenarios)
+│   ├── ussd-bitcoin.feature
+│   ├── ussd-usdc.feature
+│   ├── ussd-dao.feature
+│   ├── ussd-handlers.feature
+│   └── ... (11 more)
+│
+├── integration/       # ICP canister integration (2 features, 19 scenarios)
+│   ├── integration-ckbtc.feature
+│   └── integration-ckusdc.feature
+│
+├── e2e/              # End-to-end tests (5 features, 36 scenarios)
+│   ├── e2e-deposit-flow.feature
+│   ├── e2e-withdrawal-flow.feature
+│   ├── e2e-exchange-flow.feature
+│   ├── e2e-api-routes.feature
+│   └── e2e-revenue-tracking.feature
+│
+├── helpers/          # Shared test utilities
+└── mocks/            # Mock implementations
+```
+
+**Rust Canister Tests:**
+```bash
+# Test all canisters
+cargo test --release
+
+# Results:
+# ✅ Deposit canister: 20 tests
+# ✅ Withdrawal canister: 19 tests
+# ✅ Exchange canister: 19 tests
 ```
 
 ---
@@ -154,16 +184,27 @@ tests/features/
 ## 🏗️ Technical Stack
 
 **Frontend**:
-- React 19.2 + TypeScript
-- TailwindCSS
+- SvelteKit 2.x + TypeScript (Static SPA)
+- Svelte 5 (Runes)
+- TailwindCSS 4
 - Vite 7
-- React Router
+- Deployed to Juno (ICP)
 
-**Backend**:
-- Juno (ICP) - Decentralized storage
-- ICP Canisters - Smart contracts
-- ICRC-1 - Token standard
-- Internet Identity - Authentication
+**Backend (100% on ICP)**:
+- **Juno Satellite** - Serverless functions (Rust)
+  - Custom HTTP endpoints for USSD/SMS webhooks
+  - Event hooks for background tasks
+  - HTTPS outcalls to Africa's Talking API
+- **ICP Canisters** - Smart contracts (Rust)
+  - Deposit canister
+  - Withdrawal canister
+  - Exchange canister
+- **Juno Datastore** - Decentralized database
+- **Juno Storage** - File storage (KYC docs, images)
+
+**Authentication & Identity**:
+- Internet Identity - Decentralized auth
+- USSD PIN - SMS-based authentication
 
 **Blockchain**:
 - ckBTC - ICP-native Bitcoin (1:1 backed)
@@ -178,10 +219,10 @@ tests/features/
 - Multi-language support (English, Luganda, Swahili)
 
 **Testing**:
-- Cucumber.js (BDD)
+- Cucumber.js (BDD) - 275 tests
+- Cargo (Rust canister tests) - 58 tests
 - DFX (local ICP replica)
 - Real ledger canister integration
-- Juno emulator
 
 ---
 
@@ -394,32 +435,151 @@ Enter PIN: ****
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](./CONTRIBUTING.md).
+We welcome contributions! Please follow our coding standards below.
 
 ### Development Setup
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
+
+# Install Gitleaks (for pre-commit secret detection)
+brew install gitleaks
 
 # Start dev server
-npm run dev
+pnpm run dev
 
 # Run tests
-npm test
+pnpm run test:unit
+pnpm run test:integration
 
 # Build
-npm run build
+pnpm run build
 
 # Lint
-npm run lint
+pnpm run lint
 ```
+
+**Pre-Commit Hooks:** Automatically run on every commit:
+- 🔐 Secret detection (Gitleaks)
+- 📝 Code formatting (Prettier)
+- 🔎 Linting (ESLint)
+- 🔧 Type checking (svelte-check)
+
+**CI Pipeline:** Full security scans on every PR:
+- CodeQL (GitHub security scanner)
+- Semgrep (AI-powered bug detection)
+- Trivy (dependency vulnerabilities)
+- pnpm audit (npm vulnerabilities)
+
+### Coding Standards
+
+#### 🔥 CRITICAL RULES - NEVER VIOLATE
+
+**1. NO HARDCODED DATA**
+```typescript
+// ❌ WRONG - Hardcoded fallbacks
+const userData = {
+  firstName: data?.firstName || '',
+  balance: data?.balance || 0
+};
+
+// ✅ CORRECT - Use exact data or show error
+if (!doc) {
+  console.error('❌ DATA ERROR:', error);
+  toast.show('error', 'Data not found');
+  return;
+}
+const userData = doc.data;
+```
+
+**2. NO localStorage FOR BUSINESS DATA**
+```typescript
+// ❌ WRONG - Business data in localStorage
+localStorage.setItem('kycStatus', 'verified');
+
+// ✅ CORRECT - Business data in Juno
+await setDoc({
+  collection: 'users',
+  doc: { key: principalId, data: userData }
+});
+
+// ✅ OK - UI preferences only
+localStorage.setItem('theme', 'dark');
+```
+
+**3. REUSE COMPONENTS**
+```typescript
+// ❌ WRONG - Duplicating logic
+<input type="file" onchange={handleUpload} />
+// ... 50 lines of upload logic
+
+// ✅ CORRECT - Reuse existing
+import KYCModal from '$lib/components/shared/KYCModal.svelte';
+<KYCModal onSubmit={handleKYCSubmit} />
+```
+
+**4. SINGLE RESPONSIBILITY**
+```typescript
+// ❌ WRONG - God component
+function Dashboard() {
+  // 500 lines doing everything
+}
+
+// ✅ CORRECT - Separated concerns
+<BalanceCard balance={balance} />
+<TransactionHistory transactions={txs} />
+<KYCBanner kycStatus={status} />
+```
+
+**5. CONSISTENT DATA FLOW**
+```
+Juno DB → Component → UI
+NO fallbacks, NO localStorage for business data
+```
+
+#### Checklist Before Committing
+- [ ] No hardcoded fallback values (`||`, `??`)
+- [ ] No localStorage for business data
+- [ ] Checked if component already exists
+- [ ] Each component has single responsibility
+- [ ] Error handling with console.error + toast
+- [ ] TypeScript interfaces for props
+- [ ] Data flows from Juno → Component → UI
+
+---
+
+## 🚀 Deployment
+
+### PR Previews (Vercel)
+- Automatic unique preview URL per PR
+- Auto-comments on PR with preview link
+- Uses development Juno satellite: `atbka-rp777-77775-aaaaq-cai`
+- Free tier: Unlimited previews
+
+**Setup (2 min):**
+1. Sign up at [vercel.com](https://vercel.com) with GitHub
+2. Import `afritokeni` repo
+3. Add environment variables:
+   - `AT_USERNAME`, `AT_API_KEY`, `AT_SHORT_CODE` (all environments)
+   - `VITE_JUNO_SATELLITE_ID=64njw-oiaaa-aaaal-asppa-cai` (preview only)
+   - `VITE_JUNO_SATELLITE_ID=dkk74-oyaaa-aaaal-askxq-cai` (production only)
+
+### Production (Juno/ICP)
+- Deploys on merge to `main`
+- URL: https://dkk74-oyaaa-aaaal-askxq-cai.icp0.io
+- Decentralized blockchain hosting
+- Uses production Juno satellite
 
 ---
 
 ## 📄 License
 
-MIT License - see [LICENSE](./LICENSE) for details
+AGPL-3.0 License - see [LICENSE](./LICENSE) for details
+
+This project is open source under AGPL-3.0. You are free to use, modify, and distribute this software, but any modifications or services using this code must also be open sourced under AGPL-3.0.
+
+**In simple terms:** If you use our code, you must share your code too. This prevents closed-source competitors from stealing our work.
 
 ---
 
