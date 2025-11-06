@@ -64,12 +64,31 @@ pub fn handle_ussd_webhook(req: HttpRequest) -> ManualReply<HttpResponse> {
     let phone_clone = phone_number.clone();
     let text_clone = text.clone();
     
-    ic_cdk::spawn(async move {
+    ic_cdk::futures::spawn(async move {
         // Get or create session
         match crate::session::get_or_create_session(&session_id_clone, &phone_clone).await {
             Ok(mut session) => {
-                // Process menu with session context
-                let (response_text, continue_session) = process_ussd_menu_with_session(&text_clone, &mut session);
+                // Process menu with async handlers
+                let (response_text, continue_session) = if session.current_menu.is_empty() {
+                    // Main menu
+                    crate::ussd_handlers::handle_main_menu(&text_clone, &mut session).await
+                } else {
+                    // Route to submenu
+                    match session.current_menu.as_str() {
+                        "register" => {
+                            // Extract PIN from input
+                            let parts: Vec<&str> = text_clone.split('*').collect();
+                            let pin = parts.last().unwrap_or(&"");
+                            crate::ussd_handlers::handle_registration(&mut session, pin).await
+                        },
+                        "local_currency" => crate::ussd_handlers::handle_local_currency_menu(&text_clone, &mut session).await,
+                        "bitcoin" => crate::ussd_handlers::handle_bitcoin_menu(&text_clone, &mut session).await,
+                        "usdc" => crate::ussd_handlers::handle_usdc_menu(&text_clone, &mut session).await,
+                        "dao" => crate::ussd_handlers::handle_dao_menu(&text_clone, &mut session).await,
+                        "language" => crate::ussd_handlers::handle_language_menu(&text_clone, &mut session).await,
+                        _ => crate::ussd_handlers::handle_main_menu(&text_clone, &mut session).await,
+                    }
+                };
                 
                 if continue_session {
                     // Save session for next interaction
@@ -132,10 +151,41 @@ fn parse_json_request(body: &str) -> Result<(String, String, String), String> {
 
 /// Process USSD menu with session state
 /// This version uses the session to track multi-step flows
+#[allow(dead_code)]
 fn process_ussd_menu_with_session(input: &str, session: &mut crate::session::UssdSession) -> (String, bool) {
+    // Check if awaiting PIN entry
+    if session.data.get("awaiting_pin").map(|v| v == "true").unwrap_or(false) {
+        let parts: Vec<&str> = input.split('*').collect();
+        let pin = parts.last().unwrap_or(&"");
+        
+        // Spawn async PIN verification
+        let phone = session.phone_number.clone();
+        let pin_str = pin.to_string();
+        let lang = crate::translations::Language::from_code(&session.language);
+        
+        ic_cdk::futures::spawn(async move {
+            match crate::pin::verify_user_pin(&phone, &pin_str).await {
+                Ok(true) => ic_cdk::println!("✅ PIN verified for {}", phone),
+                Ok(false) => ic_cdk::println!("❌ Incorrect PIN for {}", phone),
+                Err(e) => ic_cdk::println!("❌ PIN verification error: {}", e),
+            }
+        });
+        
+        // For now, accept any 4-6 digit PIN and continue
+        if crate::pin::is_valid_pin(pin) {
+            crate::pin::mark_pin_verified(session);
+            session.data.remove("awaiting_pin");
+            return (crate::translations::TranslationService::translate("pin_verified", lang).to_string(), true);
+        } else {
+            return (format!("{}\n{}", 
+                crate::translations::TranslationService::translate("invalid_pin", lang),
+                crate::translations::TranslationService::translate("pin_4_6_digits", lang)), true);
+        }
+    }
+    
+    // Route to appropriate menu handler based on current menu
     let parts: Vec<&str> = input.split('*').collect();
     
-    // Check if we're in a multi-step flow
     match session.current_menu.as_str() {
         "send_money" => {
             // Multi-step send money flow
@@ -335,18 +385,21 @@ fn handle_check_balance(parts: Vec<&str>) -> (String, bool) {
     // Spawn async task to fetch balance
     if !phone_number.is_empty() {
         let phone = phone_number.to_string();
-        ic_cdk::spawn(async move {
+        ic_cdk::futures::spawn(async move {
             match junobuild_satellite::get_doc_store(
-                ic_cdk::caller(),
+                ic_cdk::api::caller(),
                 "balances".to_string(),
                 phone.clone(),
             ) {
-                Some(doc) => {
+                Ok(Some(_doc)) => {
                     ic_cdk::println!("✅ Balance fetched for {}", phone);
                     // Balance data would be decoded here
                 }
-                None => {
+                Ok(None) => {
                     ic_cdk::println!("⚠️ No balance found for {}", phone);
+                }
+                Err(e) => {
+                    ic_cdk::println!("❌ Error fetching balance: {}", e);
                 }
             }
         });

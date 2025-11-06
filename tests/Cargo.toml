@@ -1,0 +1,18 @@
+[package]
+name = "afritokeni-tests"
+version = "0.1.0"
+edition = "2021"
+
+[[test]]
+name = "e2e_tests"
+harness = false
+
+[[test]]
+name = "unit_tests"
+harness = false
+
+[dependencies]
+cucumber = "0.21"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+uuid = { version = "1", features = ["v4"] }
+argon2 = "0.5"

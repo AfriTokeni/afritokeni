@@ -77,7 +77,7 @@ fn handle_incoming_sms(req: HttpRequest) -> ManualReply<HttpResponse> {
     }
     
     // Process SMS command
-    let command = text.trim().to_uppercase();
+    let _command = text.trim().to_uppercase();
     let parts: Vec<&str> = text.trim().split_whitespace().collect();
     
     // Default to English for SMS commands (could fetch user's language preference from DB)
@@ -87,14 +87,14 @@ fn handle_incoming_sms(req: HttpRequest) -> ManualReply<HttpResponse> {
         Some("BAL") | Some("BALANCE") => {
             // Check balance command - spawn async task to fetch and send SMS
             let from_clone = from.to_string();
-            ic_cdk::spawn(async move {
+            ic_cdk::futures::spawn(async move {
                 let lang = crate::translations::Language::English; // TODO: fetch user's language
                 match junobuild_satellite::get_doc_store(
-                    ic_cdk::caller(),
+                    ic_cdk::api::caller(),
                     "balances".to_string(),
                     from_clone.clone(),
                 ) {
-                    Some(doc) => {
+                    Ok(Some(doc)) => {
                         // Decode balance data
                         #[derive(serde::Deserialize)]
                         struct Balance {
@@ -119,7 +119,7 @@ fn handle_incoming_sms(req: HttpRequest) -> ManualReply<HttpResponse> {
                             }
                         }
                     }
-                    None => {
+                    Ok(None) | Err(_) => {
                         // No account found - send SMS to register
                         let sms_message = format!("{}. {} *229#.", 
                             crate::translations::TranslationService::translate("user_not_found", lang),
@@ -145,7 +145,7 @@ fn handle_incoming_sms(req: HttpRequest) -> ManualReply<HttpResponse> {
                 let recipient_clone = recipient.to_string();
                 let amount_clone = amount.to_string();
                 
-                ic_cdk::spawn(async move {
+                ic_cdk::futures::spawn(async move {
                     // Create transaction in Juno datastore
                     #[derive(serde::Serialize)]
                     struct Transaction {
@@ -175,7 +175,7 @@ fn handle_incoming_sms(req: HttpRequest) -> ManualReply<HttpResponse> {
                     
                     let tx_id = format!("tx_{}", ic_cdk::api::time());
                     match junobuild_satellite::set_doc_store(
-                        ic_cdk::caller(),
+                        ic_cdk::api::caller(),
                         "transactions".to_string(),
                         tx_id,
                         doc,
@@ -215,7 +215,7 @@ fn handle_incoming_sms(req: HttpRequest) -> ManualReply<HttpResponse> {
                 let from_clone = from.to_string();
                 let amount_clone = amount.to_string();
                 
-                ic_cdk::spawn(async move {
+                ic_cdk::futures::spawn(async move {
                     // Create BTC purchase transaction
                     #[derive(serde::Serialize)]
                     struct BtcPurchase {
@@ -243,7 +243,7 @@ fn handle_incoming_sms(req: HttpRequest) -> ManualReply<HttpResponse> {
                     
                     let tx_id = format!("btc_{}", ic_cdk::api::time());
                     match junobuild_satellite::set_doc_store(
-                        ic_cdk::caller(),
+                        ic_cdk::api::caller(),
                         "transactions".to_string(),
                         tx_id,
                         doc,
@@ -281,7 +281,7 @@ fn handle_incoming_sms(req: HttpRequest) -> ManualReply<HttpResponse> {
                 let from_clone = from.to_string();
                 let amount_clone = amount.to_string();
                 
-                ic_cdk::spawn(async move {
+                ic_cdk::futures::spawn(async move {
                     // Create USDC purchase transaction
                     #[derive(serde::Serialize)]
                     struct UsdcPurchase {
@@ -309,7 +309,7 @@ fn handle_incoming_sms(req: HttpRequest) -> ManualReply<HttpResponse> {
                     
                     let tx_id = format!("usdc_{}", ic_cdk::api::time());
                     match junobuild_satellite::set_doc_store(
-                        ic_cdk::caller(),
+                        ic_cdk::api::caller(),
                         "transactions".to_string(),
                         tx_id,
                         doc,

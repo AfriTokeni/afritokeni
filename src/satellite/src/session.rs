@@ -55,11 +55,11 @@ pub async fn get_or_create_session(
 ) -> Result<UssdSession, String> {
     // Try to get existing session
     match get_doc_store(
-        ic_cdk::caller(),
+        ic_cdk::api::caller(),
         SESSION_COLLECTION.to_string(),
         session_id.to_string(),
     ) {
-        Some(doc) => {
+        Ok(Some(doc)) => {
             // Decode existing session
             match junobuild_utils::decode_doc_data::<UssdSession>(&doc.data) {
                 Ok(mut session) => {
@@ -81,9 +81,14 @@ pub async fn get_or_create_session(
                 }
             }
         }
-        None => {
+        Ok(None) => {
             // No existing session, create new one
             ic_cdk::println!("✨ Creating new USSD session for {}", phone_number);
+            Ok(UssdSession::new(session_id.to_string(), phone_number.to_string()))
+        }
+        Err(e) => {
+            ic_cdk::println!("❌ Error getting session: {}", e);
+            // Create new session on error
             Ok(UssdSession::new(session_id.to_string(), phone_number.to_string()))
         }
     }
@@ -100,8 +105,8 @@ pub async fn save_session(session: &UssdSession) -> Result<(), String> {
         version: None,
     };
     
-    set_doc_store(
-        ic_cdk::caller(),
+    junobuild_satellite::set_doc_store(
+        ic_cdk::api::caller(),
         SESSION_COLLECTION.to_string(),
         session.session_id.clone(),
         doc,
@@ -113,10 +118,15 @@ pub async fn save_session(session: &UssdSession) -> Result<(), String> {
 
 /// Delete USSD session (when user exits)
 pub async fn delete_session(session_id: &str) -> Result<(), String> {
+    let del_doc = junobuild_satellite::DelDoc {
+        version: None,
+    };
+    
     match junobuild_satellite::delete_doc_store(
-        ic_cdk::caller(),
+        ic_cdk::api::caller(),
         SESSION_COLLECTION.to_string(),
         session_id.to_string(),
+        del_doc,
     ) {
         Ok(_) => {
             ic_cdk::println!("🗑️ Deleted session {}", session_id);

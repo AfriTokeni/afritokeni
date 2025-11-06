@@ -20,9 +20,11 @@ mod sms;
 mod verification;
 mod session;
 mod translations;
+mod juno_store;
+mod pin;
+mod ussd_handlers;
+mod config;
 
-#[cfg(test)]
-mod tests;
 
 // All the available hooks and assertions for your Datastore and Storage are scaffolded by default in this `lib.rs` module.
 // However, if you don’t have to implement all of them, for example to improve readability or reduce unnecessary logic,

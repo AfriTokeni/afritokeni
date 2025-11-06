@@ -36,7 +36,7 @@ pub async fn store_verification_code(
     
     // Store with phone number as key
     set_doc_store(
-        ic_cdk::caller(),
+        ic_cdk::api::caller(),
         VERIFICATION_COLLECTION.to_string(),
         phone_number.to_string(),
         doc,
@@ -48,15 +48,18 @@ pub async fn store_verification_code(
 /// Verify code and return user_id if valid
 pub async fn verify_code(phone_number: &str, code: &str) -> Result<String, String> {
     // Get verification data from Juno
-    let doc = get_doc_store(
-        ic_cdk::caller(),
+    let doc = match get_doc_store(
+        ic_cdk::api::caller(),
         VERIFICATION_COLLECTION.to_string(),
         phone_number.to_string(),
-    )
-    .ok_or_else(|| {
-        let lang = crate::translations::Language::English;
-        crate::translations::TranslationService::translate("user_not_found", lang).to_string()
-    })?;
+    ) {
+        Ok(Some(doc)) => doc,
+        Ok(None) => {
+            let lang = crate::translations::Language::English;
+            return Err(crate::translations::TranslationService::translate("user_not_found", lang).to_string());
+        }
+        Err(e) => return Err(format!("Failed to get verification data: {}", e)),
+    };
     
     // Decode data
     let data: VerificationData = junobuild_utils::decode_doc_data(&doc.data)

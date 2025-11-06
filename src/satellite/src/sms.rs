@@ -9,8 +9,6 @@ use std::str;
 // This proxy handles non-replicated HTTPS outcalls to avoid duplicate requests
 const HTTP_PROXY_CANISTER: &str = "7hcrm-4iaaa-aaaak-akuka-cai";
 
-const AT_SMS_URL: &str = "https://api.sandbox.africastalking.com/version1/messaging";
-
 /// SMS request from frontend
 #[derive(Deserialize)]
 struct SmsRequest {
@@ -98,12 +96,13 @@ pub fn handle_sms_webhook(req: HttpRequest) -> ManualReply<HttpResponse> {
     
     // If verification code provided, store it
     if let Some(code) = &sms_req.verification_code {
-        let phone = &sms_req.to[0]; // First recipient
-        let user_id = sms_req.user_id.as_deref().unwrap_or("anonymous");
+        let phone = sms_req.to[0].clone(); // First recipient
+        let code_clone = code.clone();
+        let user_id = sms_req.user_id.clone().unwrap_or_else(|| "anonymous".to_string());
         
         // Spawn async task to store verification code
-        ic_cdk::spawn(async move {
-            if let Err(e) = crate::verification::store_verification_code(phone, code, user_id).await {
+        ic_cdk::futures::spawn(async move {
+            if let Err(e) = crate::verification::store_verification_code(&phone, &code_clone, &user_id).await {
                 ic_cdk::println!("❌ Failed to store verification code: {}", e);
             }
         });
@@ -141,32 +140,30 @@ pub fn handle_sms_webhook(req: HttpRequest) -> ManualReply<HttpResponse> {
 /// This avoids duplicate SMS sends and reduces costs by 100x
 /// Cost: ~20_000_000 cycles per request (vs 2_000_000_000 for replicated)
 pub async fn send_sms_via_api(to: Vec<String>, message: String) -> Result<String, String> {
-    // Get credentials from Juno satellite config
-    // Set via: juno config set-secret AT_USERNAME <value>
-    //          juno config set-secret AT_API_KEY <value>
-    let username = junobuild_satellite::get_config()
-        .ok_or("Failed to get satellite config")?
-        .get("AT_USERNAME")
-        .and_then(|v| v.as_str())
-        .unwrap_or("sandbox");
+    // Get Africa's Talking credentials from Juno datastore
+    // Store config in "config" collection with key "afritalking":
+    // {
+    //   "at_username": "your_username",
+    //   "at_api_key": "your_api_key",
+    //   "playground_mode": false  // set to true for testing
+    // }
+    let (username, api_key, api_url, is_sandbox) = crate::config::get_at_credentials_async().await?;
     
-    let api_key = junobuild_satellite::get_config()
-        .ok_or("Failed to get satellite config")?
-        .get("AT_API_KEY")
-        .and_then(|v| v.as_str())
-        .unwrap_or("dummy");
+    if is_sandbox {
+        ic_cdk::println!("🎮 SANDBOX MODE: SMS will not be delivered to real phones");
+    }
     
     // Prepare form data
     let form_data = format!(
         "username={}&to={}&message={}",
-        urlencoding::encode(username),
+        urlencoding::encode(&username),
         urlencoding::encode(&to.join(",")),
         urlencoding::encode(&message)
     );
     
     // Prepare HTTP request for proxy
     let proxy_request = ProxyHttpRequest {
-        url: AT_SMS_URL.to_string(),
+        url: api_url,
         method: "POST".to_string(),
         headers: vec![
             ("apiKey".to_string(), api_key.to_string()),

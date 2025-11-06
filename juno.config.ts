@@ -1,5 +1,24 @@
 import { defineConfig } from "@junobuild/config";
 
+/**
+ * REQUIRED CONFIGURATION FOR PRODUCTION:
+ * 
+ * Store Africa's Talking credentials in the "config" collection:
+ * 
+ * 1. Create a document in the "config" collection with key "afritalking"
+ * 2. Set the data to:
+ *    {
+ *      "at_username": "your_africastalking_username",
+ *      "at_api_key": "your_africastalking_api_key",
+ *      "playground_mode": false
+ *    }
+ * 
+ * For testing/playground mode (uses sandbox credentials):
+ *    Set "playground_mode": true in the config
+ * 
+ * If no config is found, the system defaults to sandbox mode (safe fallback).
+ */
+
 export default defineConfig({
   satellite: {
     ids: {
@@ -69,6 +88,12 @@ export default defineConfig({
           collection: "escrow_transactions",
           read: "managed",
           write: "controllers",
+          memory: "stable",
+        },
+        {
+          collection: "config",
+          read: "controllers",  // Only controllers can read config (contains secrets)
+          write: "controllers", // Only controllers can write config
           memory: "stable",
         },
       ],

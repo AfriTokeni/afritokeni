@@ -1082,8 +1082,8 @@ impl TranslationService {
             ("thank_you_using_afritokeni", Language::English) => "Thank you for using AfriTokeni!",
             ("thank_you_using_afritokeni", Language::Luganda) => "Webale okukozesa AfriTokeni!",
             ("thank_you_using_afritokeni", Language::Swahili) => "Asante kwa kutumia AfriTokeni!",
-            // Default fallback
-            _ => key,
+            // Default fallback - return empty string for unknown keys
+            _ => "",
         }
     }
     

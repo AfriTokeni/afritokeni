@@ -1,8 +1,13 @@
 [workspace]
 members = [
-    "src/satellite",
     "canisters/deposit_canister",
+    "canisters/exchange_canister",
     "canisters/withdrawal_canister",
-    "canisters/exchange_canister"
 ]
 resolver = "2"
+
+[workspace.dependencies]
+argon2 = "0.5"
+cucumber = "0.21"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+uuid = { version = "1", features = ["v4"] }
