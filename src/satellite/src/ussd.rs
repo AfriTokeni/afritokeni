@@ -99,7 +99,7 @@ fn parse_json_request(body: &str) -> Result<(String, String, String), String> {
 
 /// Process USSD menu navigation
 /// Returns (response_text, continue_session)
-fn process_ussd_menu(input: &str, _phone_number: &str) -> (String, bool) {
+pub fn process_ussd_menu(input: &str, _phone_number: &str) -> (String, bool) {
     let parts: Vec<&str> = input.split('*').collect();
     
     // New session (empty input)

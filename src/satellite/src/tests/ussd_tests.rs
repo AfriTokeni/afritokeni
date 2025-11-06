@@ -1,159 +1,179 @@
-use crate::http_handlers::HttpRequest;
-use crate::ussd::handle_ussd_webhook;
+use crate::ussd::process_ussd_menu;
 
-fn create_ussd_request(session_id: &str, phone: &str, text: &str) -> HttpRequest {
-    let body = format!(
-        "sessionId={}&phoneNumber={}&text={}",
-        urlencoding::encode(session_id),
-        urlencoding::encode(phone),
-        urlencoding::encode(text)
-    );
+#[test]
+fn test_new_session_shows_main_menu() {
+    let (response, continue_session) = process_ussd_menu("", "+254700000000");
     
-    HttpRequest {
-        method: "POST".to_string(),
-        url: "/api/ussd".to_string(),
-        headers: vec![("Content-Type".to_string(), "application/x-www-form-urlencoded".to_string())],
-        body: body.into_bytes(),
-    }
+    assert!(continue_session, "New session should continue");
+    assert!(response.contains("Welcome to AfriTokeni"), "Should show welcome message");
+    assert!(response.contains("1. Check Balance"), "Should show option 1");
+    assert!(response.contains("2. Send Money"), "Should show option 2");
+    assert!(response.contains("3. Buy ckBTC"), "Should show option 3");
+    assert!(response.contains("4. Buy ckUSDC"), "Should show option 4");
+    assert!(response.contains("5. Withdraw"), "Should show option 5");
+    assert!(response.contains("0. Exit"), "Should show option 0");
 }
 
 #[test]
-fn test_ussd_new_session_shows_menu() {
-    let req = create_ussd_request("session123", "+254700000000", "");
-    let response = handle_ussd_webhook(req);
-    // Should return CON with main menu
-}
-
-#[test]
-fn test_ussd_check_balance() {
-    let req = create_ussd_request("session123", "+254700000000", "1");
-    let response = handle_ussd_webhook(req);
-    // Should return END with balance
-}
-
-#[test]
-fn test_ussd_send_money_flow() {
-    // Step 1: Select send money
-    let req1 = create_ussd_request("session123", "+254700000000", "2");
-    let response1 = handle_ussd_webhook(req1);
-    // Should ask for recipient
+fn test_check_balance_ends_session() {
+    let (response, continue_session) = process_ussd_menu("1", "+254700000000");
     
-    // Step 2: Enter recipient
-    let req2 = create_ussd_request("session123", "+254700000000", "2*254711111111");
-    let response2 = handle_ussd_webhook(req2);
-    // Should ask for amount
+    assert!(!continue_session, "Check balance should end session");
+    assert!(response.contains("Balance"), "Should show balance");
+    assert!(response.contains("KES"), "Should show KES balance");
+    assert!(response.contains("ckBTC"), "Should show ckBTC balance");
+    assert!(response.contains("ckUSDC"), "Should show ckUSDC balance");
+}
+
+#[test]
+fn test_send_money_step1_asks_for_recipient() {
+    let (response, continue_session) = process_ussd_menu("2", "+254700000000");
     
-    // Step 3: Enter amount
-    let req3 = create_ussd_request("session123", "+254700000000", "2*254711111111*100");
-    let response3 = handle_ussd_webhook(req3);
-    // Should confirm transaction
+    assert!(continue_session, "Should continue to ask for recipient");
+    assert!(response.contains("recipient"), "Should ask for recipient");
+    assert!(response.contains("phone number"), "Should mention phone number");
 }
 
 #[test]
-fn test_ussd_buy_ckbtc() {
-    let req = create_ussd_request("session123", "+254700000000", "3");
-    let response = handle_ussd_webhook(req);
-    // Should ask for amount
+fn test_send_money_step2_asks_for_amount() {
+    let (response, continue_session) = process_ussd_menu("2*254711111111", "+254700000000");
+    
+    assert!(continue_session, "Should continue to ask for amount");
+    assert!(response.contains("amount"), "Should ask for amount");
+    assert!(response.contains("KES"), "Should mention KES");
 }
 
 #[test]
-fn test_ussd_buy_ckusdc() {
-    let req = create_ussd_request("session123", "+254700000000", "4");
-    let response = handle_ussd_webhook(req);
-    // Should ask for amount
+fn test_send_money_step3_confirms_transaction() {
+    let (response, continue_session) = process_ussd_menu("2*254711111111*100", "+254700000000");
+    
+    assert!(!continue_session, "Should end after confirmation");
+    assert!(response.contains("Sending"), "Should confirm sending");
+    assert!(response.contains("100"), "Should show amount");
+    assert!(response.contains("254711111111"), "Should show recipient");
+    assert!(response.contains("pending"), "Should mention pending status");
 }
 
 #[test]
-fn test_ussd_withdraw() {
-    let req = create_ussd_request("session123", "+254700000000", "5");
-    let response = handle_ussd_webhook(req);
-    // Should ask for amount
+fn test_buy_ckbtc_asks_for_amount() {
+    let (response, continue_session) = process_ussd_menu("3", "+254700000000");
+    
+    assert!(continue_session, "Should continue to ask for amount");
+    assert!(response.contains("amount"), "Should ask for amount");
+    assert!(response.contains("ckBTC"), "Should mention ckBTC");
 }
 
 #[test]
-fn test_ussd_exit() {
-    let req = create_ussd_request("session123", "+254700000000", "0");
-    let response = handle_ussd_webhook(req);
-    // Should return END with goodbye message
+fn test_buy_ckbtc_confirms_purchase() {
+    let (response, continue_session) = process_ussd_menu("3*500", "+254700000000");
+    
+    assert!(!continue_session, "Should end after confirmation");
+    assert!(response.contains("Buying"), "Should confirm buying");
+    assert!(response.contains("ckBTC"), "Should mention ckBTC");
+    assert!(response.contains("500"), "Should show amount");
 }
 
 #[test]
-fn test_ussd_invalid_option() {
-    let req = create_ussd_request("session123", "+254700000000", "99");
-    let response = handle_ussd_webhook(req);
-    // Should return END with error
+fn test_buy_ckusdc_asks_for_amount() {
+    let (response, continue_session) = process_ussd_menu("4", "+254700000000");
+    
+    assert!(continue_session, "Should continue to ask for amount");
+    assert!(response.contains("amount"), "Should ask for amount");
+    assert!(response.contains("ckUSDC"), "Should mention ckUSDC");
 }
 
 #[test]
-fn test_ussd_security_xss_attempt() {
-    let req = create_ussd_request("session123", "+254700000000", "<script>alert('xss')</script>");
-    let response = handle_ussd_webhook(req);
-    // Should sanitize and return error
+fn test_buy_ckusdc_confirms_purchase() {
+    let (response, continue_session) = process_ussd_menu("4*1000", "+254700000000");
+    
+    assert!(!continue_session, "Should end after confirmation");
+    assert!(response.contains("Buying"), "Should confirm buying");
+    assert!(response.contains("ckUSDC"), "Should mention ckUSDC");
+    assert!(response.contains("1000"), "Should show amount");
 }
 
 #[test]
-fn test_ussd_security_sql_injection() {
-    let req = create_ussd_request("session123", "+254700000000", "1'; DROP TABLE users; --");
-    let response = handle_ussd_webhook(req);
-    // Should treat as invalid input
+fn test_withdraw_asks_for_amount() {
+    let (response, continue_session) = process_ussd_menu("5", "+254700000000");
+    
+    assert!(continue_session, "Should continue to ask for amount");
+    assert!(response.contains("amount"), "Should ask for amount");
+    assert!(response.contains("withdraw"), "Should mention withdraw");
 }
 
 #[test]
-fn test_ussd_invalid_phone_number() {
-    let req = create_ussd_request("session123", "invalid", "1");
-    let response = handle_ussd_webhook(req);
-    // Should still process (phone validation happens elsewhere)
+fn test_withdraw_confirms() {
+    let (response, continue_session) = process_ussd_menu("5*200", "+254700000000");
+    
+    assert!(!continue_session, "Should end after confirmation");
+    assert!(response.contains("Withdrawing"), "Should confirm withdrawing");
+    assert!(response.contains("200"), "Should show amount");
+    assert!(response.contains("agent"), "Should mention agent");
 }
 
 #[test]
-fn test_ussd_empty_session_id() {
-    let req = create_ussd_request("", "+254700000000", "1");
-    let response = handle_ussd_webhook(req);
+fn test_exit_option() {
+    let (response, continue_session) = process_ussd_menu("0", "+254700000000");
+    
+    assert!(!continue_session, "Exit should end session");
+    assert!(response.contains("Thank you"), "Should show thank you message");
+    assert!(response.contains("AfriTokeni"), "Should mention AfriTokeni");
+}
+
+#[test]
+fn test_invalid_option() {
+    let (response, continue_session) = process_ussd_menu("99", "+254700000000");
+    
+    assert!(!continue_session, "Invalid option should end session");
+    assert!(response.contains("Invalid"), "Should show invalid message");
+}
+
+#[test]
+fn test_security_sql_injection_treated_as_invalid() {
+    let (response, continue_session) = process_ussd_menu("1'; DROP TABLE users; --", "+254700000000");
+    
+    assert!(!continue_session, "Should end session");
+    assert!(response.contains("Invalid"), "Should treat as invalid input");
+}
+
+#[test]
+fn test_security_xss_treated_as_invalid() {
+    let (response, continue_session) = process_ussd_menu("<script>alert('xss')</script>", "+254700000000");
+    
+    assert!(!continue_session, "Should end session");
+    assert!(response.contains("Invalid"), "Should treat as invalid input");
+}
+
+#[test]
+fn test_unicode_characters_handled() {
+    let (response, continue_session) = process_ussd_menu("1*émoji🎉", "+254700000000");
+    
+    // Should not panic, should return some response
+    assert!(!response.is_empty(), "Should return a response");
+}
+
+#[test]
+fn test_very_long_input() {
+    let long_input = "1*".to_string() + &"9".repeat(1000);
+    let (response, continue_session) = process_ussd_menu(&long_input, "+254700000000");
+    
     // Should handle gracefully
+    assert!(!response.is_empty(), "Should return a response");
+    assert!(!continue_session, "Should end session for invalid input");
 }
 
 #[test]
-fn test_ussd_malformed_body() {
-    let req = HttpRequest {
-        method: "POST".to_string(),
-        url: "/api/ussd".to_string(),
-        headers: vec![],
-        body: b"invalid=data&no=session".to_vec(),
-    };
-    let response = handle_ussd_webhook(req);
-    // Should return error
-}
-
-#[test]
-fn test_ussd_unicode_characters() {
-    let req = create_ussd_request("session123", "+254700000000", "1*émoji🎉");
-    let response = handle_ussd_webhook(req);
-    // Should handle unicode properly
-}
-
-#[test]
-fn test_ussd_very_long_input() {
-    let long_text = "1*".to_string() + &"9".repeat(1000);
-    let req = create_ussd_request("session123", "+254700000000", &long_text);
-    let response = handle_ussd_webhook(req);
-    // Should handle or reject gracefully
-}
-
-#[test]
-fn test_ussd_special_characters() {
-    let req = create_ussd_request("session123", "+254700000000", "1*#*0*9");
-    let response = handle_ussd_webhook(req);
-    // Should parse correctly
-}
-
-#[test]
-fn test_ussd_concurrent_sessions() {
-    // Different session IDs should be independent
-    let req1 = create_ussd_request("session1", "+254700000000", "1");
-    let req2 = create_ussd_request("session2", "+254711111111", "2");
+fn test_special_characters_in_amount() {
+    let (response, continue_session) = process_ussd_menu("3*#*0*9", "+254700000000");
     
-    let response1 = handle_ussd_webhook(req1);
-    let response2 = handle_ussd_webhook(req2);
+    // Should handle special characters
+    assert!(!response.is_empty(), "Should return a response");
+}
+
+#[test]
+fn test_empty_parts_in_flow() {
+    let (response, continue_session) = process_ussd_menu("2**", "+254700000000");
     
-    // Both should work independently
+    // Should handle empty parts
+    assert!(!response.is_empty(), "Should return a response");
 }

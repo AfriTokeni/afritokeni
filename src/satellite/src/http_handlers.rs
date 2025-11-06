@@ -25,10 +25,27 @@ pub fn route_request(req: HttpRequest) -> ManualReply<HttpResponse> {
     let path = req.url.split('?').next().unwrap_or(&req.url);
     
     match (req.method.as_str(), path) {
+        ("GET", "/api/health") => health_check(),
         ("POST", "/api/ussd") => crate::ussd::handle_ussd_webhook(req),
         ("POST", "/api/sms") => crate::sms::handle_sms_webhook(req),
         _ => not_found(),
     }
+}
+
+/// Health check endpoint
+fn health_check() -> ManualReply<HttpResponse> {
+    let health_data = serde_json::json!({
+        "status": "healthy",
+        "service": "AfriTokeni Satellite Functions",
+        "timestamp": ic_cdk::api::time() / 1_000_000_000, // Convert nanoseconds to seconds
+        "endpoints": {
+            "ussd": "/api/ussd",
+            "sms": "/api/sms",
+            "health": "/api/health"
+        }
+    });
+    
+    ok_response(health_data.to_string().into_bytes(), "application/json")
 }
 
 /// Return 404 Not Found response
