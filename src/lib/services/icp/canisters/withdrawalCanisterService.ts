@@ -25,18 +25,16 @@ import type {
 } from "./withdrawalCanister";
 import { idlFactory } from "./withdrawalCanister";
 import { IC_HOST } from "./config";
-import * as env from "$env/static/public";
 
 /**
  * Get Withdrawal Canister ID from environment
  */
 function getWithdrawalCanisterId(): string {
-  const WITHDRAWAL_CANISTER_ID = (env as Record<string, string>)
-    .PUBLIC_WITHDRAWAL_CANISTER_ID;
+  const WITHDRAWAL_CANISTER_ID = process.env.CANISTER_ID_WITHDRAWAL_CANISTER;
 
   if (!WITHDRAWAL_CANISTER_ID) {
     throw new Error(
-      "PUBLIC_WITHDRAWAL_CANISTER_ID not configured. Set it in .env or Vercel environment variables.",
+      "CANISTER_ID_WITHDRAWAL_CANISTER not configured. Set it in .env or run dfx deploy.",
     );
   }
 

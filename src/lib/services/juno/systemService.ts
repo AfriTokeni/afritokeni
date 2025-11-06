@@ -4,11 +4,7 @@
  * Fetches from both Juno DB and ICP Network
  */
 
-import {
-  PUBLIC_DEPOSIT_CANISTER_ID,
-  PUBLIC_WITHDRAWAL_CANISTER_ID,
-  PUBLIC_EXCHANGE_CANISTER_ID,
-} from "$env/static/public";
+// Use DFX-generated canister IDs (source of truth)
 import { getCanisterStatus as getICPCanisterStatus } from "$lib/services/icp/canisterService";
 
 export interface CanisterStatus {
@@ -25,20 +21,24 @@ export interface CanisterStatus {
  * Get canister list from env vars
  */
 function getCanisterList(): Array<{ id: string; name: string }> {
-  if (!PUBLIC_DEPOSIT_CANISTER_ID) {
-    throw new Error("PUBLIC_DEPOSIT_CANISTER_ID not found in environment");
+  const depositId = process.env.CANISTER_ID_DEPOSIT_CANISTER;
+  const withdrawalId = process.env.CANISTER_ID_WITHDRAWAL_CANISTER;
+  const exchangeId = process.env.CANISTER_ID_EXCHANGE_CANISTER;
+
+  if (!depositId) {
+    throw new Error("CANISTER_ID_DEPOSIT_CANISTER not found in environment");
   }
-  if (!PUBLIC_WITHDRAWAL_CANISTER_ID) {
-    throw new Error("PUBLIC_WITHDRAWAL_CANISTER_ID not found in environment");
+  if (!withdrawalId) {
+    throw new Error("CANISTER_ID_WITHDRAWAL_CANISTER not found in environment");
   }
-  if (!PUBLIC_EXCHANGE_CANISTER_ID) {
-    throw new Error("PUBLIC_EXCHANGE_CANISTER_ID not found in environment");
+  if (!exchangeId) {
+    throw new Error("CANISTER_ID_EXCHANGE_CANISTER not found in environment");
   }
 
   return [
-    { id: PUBLIC_DEPOSIT_CANISTER_ID, name: "Deposit Canister" },
-    { id: PUBLIC_WITHDRAWAL_CANISTER_ID, name: "Withdrawal Canister" },
-    { id: PUBLIC_EXCHANGE_CANISTER_ID, name: "Exchange Canister" },
+    { id: depositId, name: "Deposit Canister" },
+    { id: withdrawalId, name: "Withdrawal Canister" },
+    { id: exchangeId, name: "Exchange Canister" },
   ];
 }
 

@@ -21,18 +21,16 @@ import type {
 } from "./depositCanister";
 import { idlFactory } from "./depositCanister";
 import { IC_HOST } from "./config";
-import * as env from "$env/static/public";
 
 /**
  * Get Deposit Canister ID from environment
  */
 function getDepositCanisterId(): string {
-  const DEPOSIT_CANISTER_ID = (env as Record<string, string>)
-    .PUBLIC_DEPOSIT_CANISTER_ID;
+  const DEPOSIT_CANISTER_ID = process.env.CANISTER_ID_DEPOSIT_CANISTER;
 
   if (!DEPOSIT_CANISTER_ID) {
     throw new Error(
-      "PUBLIC_DEPOSIT_CANISTER_ID not configured. Set it in .env or Vercel environment variables.",
+      "CANISTER_ID_DEPOSIT_CANISTER not configured. Set it in .env or run dfx deploy.",
     );
   }
 

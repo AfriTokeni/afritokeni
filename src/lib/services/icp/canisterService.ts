@@ -4,28 +4,22 @@
  */
 
 import { Actor, HttpAgent } from "@dfinity/agent";
-import {
-  PUBLIC_DEPOSIT_CANISTER_ID,
-  PUBLIC_DFX_NETWORK,
-} from "$env/static/public";
+// Use DFX-generated environment variables
+const DFX_NETWORK = process.env.DFX_NETWORK || "playground";
 
 // Determine IC host based on network
-if (!PUBLIC_DFX_NETWORK) {
-  throw new Error("PUBLIC_DFX_NETWORK environment variable is required");
-}
-
 let HOST: string;
-if (PUBLIC_DFX_NETWORK === "ic") {
+if (DFX_NETWORK === "ic") {
   HOST = "https://ic0.app";
-} else if (PUBLIC_DFX_NETWORK === "playground") {
+} else if (DFX_NETWORK === "playground") {
   HOST = "https://icp0.io";
 } else {
   throw new Error(
-    `Unknown DFX_NETWORK: ${PUBLIC_DFX_NETWORK}. Expected 'ic' or 'playground'`,
+    `Unknown DFX_NETWORK: ${DFX_NETWORK}. Expected 'ic' or 'playground'`,
   );
 }
 
-const IS_LOCAL = PUBLIC_DFX_NETWORK !== "ic";
+const IS_LOCAL = DFX_NETWORK !== "ic";
 
 // Canister query IDL
 const canisterIdlFactory = ({ IDL }: any) => {
@@ -97,7 +91,11 @@ export async function getCanisterStatus(canisterId: string): Promise<{
  */
 export async function getDepositCanisterRevenue(): Promise<number> {
   try {
-    const actor = await createActor(PUBLIC_DEPOSIT_CANISTER_ID);
+    const depositCanisterId = process.env.CANISTER_ID_DEPOSIT_CANISTER;
+    if (!depositCanisterId) {
+      throw new Error("CANISTER_ID_DEPOSIT_CANISTER not found in environment");
+    }
+    const actor = await createActor(depositCanisterId);
     const revenue = await (actor as any).get_total_revenue();
     return Number(revenue);
   } catch (error) {
