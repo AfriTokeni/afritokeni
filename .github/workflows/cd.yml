@@ -27,32 +27,30 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       
-      - name: Setup Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: stable
-          target: wasm32-unknown-unknown
-      
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
       
       - name: Build SvelteKit App
         run: pnpm run build
       
-      - name: Install Juno CLI
-        run: npm install -g @junobuild/cli
-      
-      - name: Install ic-wasm
-        run: cargo install ic-wasm
-      
       - name: Build Satellite Functions
-        run: juno functions build --lang rust
+        uses: junobuild/juno-action@full
+        with:
+          args: functions build
       
-      - name: Deploy to Juno
-        run: juno deploy --mode production
+      - name: Publish Satellite Functions
+        uses: junobuild/juno-action@full
+        with:
+          args: functions publish
         env:
           JUNO_TOKEN: ${{ secrets.JUNO_PRODUCTION_TOKEN }}
-          NODE_ENV: production
+      
+      - name: Deploy Frontend to Juno
+        uses: junobuild/juno-action@main
+        with:
+          args: deploy --mode production
+        env:
+          JUNO_TOKEN: ${{ secrets.JUNO_PRODUCTION_TOKEN }}
       
       - name: Deployment Summary
         run: |
