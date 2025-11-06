@@ -8,12 +8,9 @@ env:
   NODE_VERSION: 22
 
 jobs:
-  deploy:
-    name: Deploy to Production
+  build-frontend:
+    name: Build Frontend
     runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: https://dkk74-oyaaa-aaaal-askxq-cai.icp0.io
     steps:
       - uses: actions/checkout@v4
       
@@ -29,14 +26,27 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
       
+      - name: Build SvelteKit App
+        run: pnpm run build
+      
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: build/
+          retention-days: 1
+
+  build-satellite:
+    name: Build Satellite Functions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
           target: wasm32-unknown-unknown
-      
-      - name: Build SvelteKit App
-        run: pnpm run build
       
       - name: Install Juno CLI
         run: npm install -g @junobuild/cli
@@ -47,7 +57,36 @@ jobs:
       - name: Build Satellite Functions
         run: juno functions build --lang rust
       
-      - name: Deploy to Juno (Frontend + Satellite Functions)
+      - name: Upload Satellite Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: satellite-build
+          path: .juno/
+          retention-days: 1
+
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-frontend, build-satellite]
+    environment:
+      name: production
+      url: https://dkk74-oyaaa-aaaal-askxq-cai.icp0.io
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download Frontend Build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: build/
+      
+      - name: Download Satellite Build
+        uses: actions/download-artifact@v4
+        with:
+          name: satellite-build
+          path: .juno/
+      
+      - name: Deploy to Juno
         uses: junobuild/juno-action@main
         with:
           args: deploy --mode production
