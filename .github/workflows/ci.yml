@@ -25,11 +25,11 @@ jobs:
     name: TypeScript Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
         with:
           version: 9
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
@@ -45,11 +45,11 @@ jobs:
     name: ESLint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
         with:
           version: 9
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
@@ -61,12 +61,12 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: javascript-typescript
           queries: security-and-quality
@@ -87,11 +87,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
       
-      - uses: pnpm/action-setup@v3
+      - uses: pnpm/action-setup@v4
         with:
           version: 9
       
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
@@ -111,7 +111,7 @@ jobs:
             p/nodejs
       
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:javascript-typescript"
       
@@ -143,13 +143,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: [typecheck, lint, security]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
-      - uses: pnpm/action-setup@v3
+      - uses: pnpm/action-setup@v4
         with:
           version: 9
       
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
@@ -164,7 +164,7 @@ jobs:
           AT_SHORT_CODE: "ci-dummy"
       
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: build
           path: build/
@@ -175,13 +175,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
-      - uses: pnpm/action-setup@v3
+      - uses: pnpm/action-setup@v4
         with:
           version: 9
       
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
@@ -199,7 +199,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -227,13 +227,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
-      - uses: pnpm/action-setup@v3
+      - uses: pnpm/action-setup@v4
         with:
           version: 9
       
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
@@ -260,7 +260,7 @@ jobs:
     needs: [typecheck, lint]
     if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Apply Juno Config to Preview Satellite
         uses: junobuild/juno-action@main
