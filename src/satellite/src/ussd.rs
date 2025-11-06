@@ -201,14 +201,22 @@ fn process_ussd_menu_with_session(input: &str, session: &mut crate::session::Uss
             match session.step {
                 0 => {
                     session.step = 1;
-                    ("Enter amount in KES to convert to ckUSDC:".to_string(), true)
+                    let lang = crate::translations::Language::from_code(&session.language);
+                    (format!("{} (KES) {} ckUSDC:", 
+                        crate::translations::TranslationService::translate("enter_amount", lang),
+                        crate::translations::TranslationService::translate("to", lang)), true)
                 }
                 1 => {
                     if parts.len() > 0 {
                         session.set_data("amount", parts[parts.len() - 1]);
                     }
                     let amount = session.get_data("amount").cloned().unwrap_or_default();
-                    (format!("Buying ckUSDC with {} KES\nTransaction pending...", amount), false)
+                    let lang = crate::translations::Language::from_code(&session.language);
+                    (format!("{} ckUSDC {} {} KES\n{}...", 
+                        crate::translations::TranslationService::translate("buy_usdc", lang),
+                        crate::translations::TranslationService::translate("with", lang).unwrap_or("with"),
+                        amount,
+                        crate::translations::TranslationService::translate("transaction_successful", lang)), false)
                 }
                 _ => ("Invalid state".to_string(), false)
             }
@@ -217,14 +225,19 @@ fn process_ussd_menu_with_session(input: &str, session: &mut crate::session::Uss
             match session.step {
                 0 => {
                     session.step = 1;
-                    ("Enter amount to withdraw (KES):".to_string(), true)
+                    let lang = crate::translations::Language::from_code(&session.language);
+                    (format!("{} (KES):", crate::translations::TranslationService::translate("enter_amount", lang)), true)
                 }
                 1 => {
                     if parts.len() > 0 {
                         session.set_data("amount", parts[parts.len() - 1]);
                     }
                     let amount = session.get_data("amount").cloned().unwrap_or_default();
-                    (format!("Withdrawing {} KES\nPlease visit your nearest agent...", amount), false)
+                    let lang = crate::translations::Language::from_code(&session.language);
+                    (format!("{} {} KES\n{}", 
+                        crate::translations::TranslationService::translate("withdraw", lang),
+                        amount,
+                        crate::translations::TranslationService::translate("receive_cash", lang)), false)
                 }
                 _ => ("Invalid state".to_string(), false)
             }
@@ -241,7 +254,11 @@ fn process_ussd_menu_with_session(input: &str, session: &mut crate::session::Uss
             
             // Handle menu selection
             match parts.get(0) {
-                Some(&"1") => ("Your Balance:\nKES: 0\nckBTC: 0\nckUSDC: 0".to_string(), false),
+                Some(&"1") => {
+                    let lang = crate::translations::Language::from_code(&session.language);
+                    (format!("{}:\nKES: 0\nckBTC: 0\nckUSDC: 0", 
+                        crate::translations::TranslationService::translate("your_balance", lang)), false)
+                }
                 Some(&"2") => {
                     session.current_menu = "send_money".to_string();
                     session.step = 0;
@@ -262,8 +279,14 @@ fn process_ussd_menu_with_session(input: &str, session: &mut crate::session::Uss
                     session.step = 0;
                     process_ussd_menu_with_session(input, session)
                 }
-                Some(&"0") => ("Thank you for using AfriTokeni!".to_string(), false),
-                _ => ("Invalid option. Please try again.".to_string(), false),
+                Some(&"0") => {
+                    let lang = crate::translations::Language::from_code(&session.language);
+                    (crate::translations::TranslationService::translate("thank_you", lang).to_string(), false)
+                }
+                _ => {
+                    let lang = crate::translations::Language::from_code(&session.language);
+                    (crate::translations::TranslationService::translate("invalid_option", lang).to_string(), false)
+                }
             }
         }
     }
