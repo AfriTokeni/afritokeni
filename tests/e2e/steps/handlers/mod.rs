@@ -20,7 +20,7 @@ pub async fn handle_main_menu(world: &mut UssdWorld, input: &str) -> (String, bo
         }
         "2" => {
             session.current_menu = "bitcoin".to_string();
-            ("Bitcoin (ckBTC)\n1. Check Balance\n2. Bitcoin Rate\n3. Buy Bitcoin\n4. Sell Bitcoin\n5. Send Bitcoin\n0. Back to Main Menu".to_string(), true)
+            ("Bitcoin (ckBTC)\n1. Check Balance\n2. Bitcoin rate\n3. Buy Bitcoin\n4. Sell Bitcoin\n5. Send Bitcoin\n0. Back to Main Menu".to_string(), true)
         }
         "3" => {
             session.current_menu = "usdc".to_string();
@@ -61,6 +61,14 @@ pub async fn handle_submenu(world: &mut UssdWorld, input: &str) -> (String, bool
         "send_money" => flows::send_money(world, choice).await,
         "deposit" => flows::deposit(world, choice).await,
         "withdraw" => flows::withdraw(world, choice).await,
+        "check_bitcoin_balance" => {
+            // Verify PIN and show balance
+            let phone = world.phone_number.clone();
+            let balance = world.juno_store.get_balance(&phone)
+                .unwrap_or(Balance { kes: 0.0, ckbtc: 0.0, ckusdc: 0.0 });
+            world.get_or_create_session().current_menu = String::new();
+            (format!("Your ckBTC Balance:\n{:.8} BTC", balance.ckbtc), false)
+        }
         "buy_bitcoin" => flows::buy_bitcoin(world, choice).await,
         "sell_bitcoin" => flows::sell_bitcoin(world, choice).await,
         "send_bitcoin" => flows::send_bitcoin(world, choice).await,
@@ -151,9 +159,9 @@ async fn handle_bitcoin(world: &mut UssdWorld, choice: &str) -> (String, bool) {
     
     match choice {
         "1" => {
-            let balance = world.juno_store.get_balance(&world.phone_number)
-                .unwrap_or(Balance { kes: 0.0, ckbtc: 0.0, ckusdc: 0.0 });
-            (format!("Your Bitcoin balance:\nckBTC: {:.8}", balance.ckbtc), false)
+            session.current_menu = "check_bitcoin_balance".to_string();
+            session.step = 0;
+            ("Enter your 4-digit PIN:".to_string(), true)
         }
         "2" => {
             let rate = world.ckbtc_canister.get_rate();
