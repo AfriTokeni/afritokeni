@@ -108,7 +108,7 @@
               >
             </li>
             <li>
-              <a href="/info/dao" class="transition-colors hover:text-white"
+              <a href="/dao" class="transition-colors hover:text-white"
                 >DAO Governance</a
               >
             </li>
