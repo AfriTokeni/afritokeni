@@ -253,29 +253,6 @@ export class CkBTCService {
         depositAddress = this.generateMockBitcoinAddress(request.principalId);
       }
 
-      // Store deposit address information if using satellite (SMS/USSD)
-      if (useSatellite) {
-        const satellite = this.getSatelliteConfig(useSatellite);
-        const depositAddressDoc = {
-          principalId: request.principalId,
-          address: depositAddress,
-          createdAt: new Date().toISOString(),
-          expiresAt: new Date(
-            Date.now() + 30 * 24 * 60 * 60 * 1000,
-          ).toISOString(), // 30 days
-        };
-
-        await setDoc({
-          collection: "ckbtc_deposit_addresses",
-          doc: {
-            key: `addr_${request.principalId}`,
-            data: depositAddressDoc,
-            version: 1n,
-          },
-          satellite,
-        });
-      }
-
       return {
         success: true,
         depositAddress,

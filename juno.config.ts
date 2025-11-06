@@ -66,12 +66,6 @@ export default defineConfig({
           memory: "stable",
         },
         {
-          collection: "ckbtc_deposit_addresses",
-          read: "managed",
-          write: "controllers",
-          memory: "stable",
-        },
-        {
           collection: "escrow_transactions",
           read: "managed",
           write: "controllers",
