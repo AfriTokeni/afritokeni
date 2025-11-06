@@ -46,7 +46,8 @@
         `📱 USSD Playground: sessionId="${sessionId}", text="${ussdText}"`,
       );
 
-      const satelliteId = import.meta.env.VITE_SATELLITE_ID || 'dkk74-oyaaa-aaaal-askxq-cai';
+      const satelliteId =
+        import.meta.env.VITE_SATELLITE_ID || "dkk74-oyaaa-aaaal-askxq-cai";
       const response = await fetch(`https://${satelliteId}.icp0.io/ussd`, {
         method: "POST",
         headers: {
