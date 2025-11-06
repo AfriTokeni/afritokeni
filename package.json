@@ -61,7 +61,7 @@
     "dotenv": "17.2.3",
     "ethers": "5.8.0",
     "flowbite": "^3.1.2",
-    "flowbite-svelte": "^1.22.0",
+    "flowbite-svelte": "^1.23.0",
     "flowbite-svelte-icons": "^3.0.0",
     "leaflet": "1.9.4",
     "marked": "^16.4.1",
