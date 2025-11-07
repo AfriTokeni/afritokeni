@@ -78,6 +78,11 @@ pub fn handle_ussd_webhook(req: HttpRequest) -> ManualReply<HttpResponse> {
         return error_response(429, message);
     }
     
+    // Periodically clean up old rate limit entries (every ~10th request)
+    if ic_cdk::api::time() % 10 == 0 {
+        crate::utils::rate_limit::cleanup_old_entries();
+    }
+    
     // Log the request
     ic_cdk::println!(
         "📱 USSD Request - Session: {}, Phone: {}, Text: '{}', JSON: {}",

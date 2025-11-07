@@ -13,6 +13,7 @@ pub struct UssdSession {
     pub step: u32,
     pub language: String, // "en", "lg", or "sw"
     pub last_activity: u64,
+    pub data: HashMap<String, String>, // Store flow data (recipient, amount, etc)
 }
 
 impl UssdSession {
@@ -24,7 +25,20 @@ impl UssdSession {
             step: 0,
             language: "en".to_string(), // Default to English
             last_activity: time(),
+            data: HashMap::new(),
         }
+    }
+    
+    pub fn set_data(&mut self, key: &str, value: &str) {
+        self.data.insert(key.to_string(), value.to_string());
+    }
+    
+    pub fn get_data(&self, key: &str) -> Option<&String> {
+        self.data.get(key)
+    }
+    
+    pub fn clear_data(&mut self) {
+        self.data.clear();
     }
     
     pub fn is_expired(&self) -> bool {
@@ -104,31 +118,19 @@ mod tests {
 
     #[test]
     fn test_session_structure() {
-        // Test session structure without calling time()
-        let session = UssdSession {
-            session_id: "test123".to_string(),
-            phone_number: "+256700123456".to_string(),
-            current_menu: String::new(),
-            step: 0,
-            language: "en".to_string(),
-            last_activity: 0,
-        };
+        let session = UssdSession::new("test123".to_string(), "+256700123456".to_string());
         assert_eq!(session.session_id, "test123");
         assert_eq!(session.phone_number, "+256700123456");
         assert_eq!(session.language, "en");
         assert_eq!(session.step, 0);
+        assert!(session.data.is_empty());
     }
 
     #[tokio::test]
     async fn test_save_and_retrieve() {
-        let session = UssdSession {
-            session_id: "test789".to_string(),
-            phone_number: "+256700123456".to_string(),
-            current_menu: "bitcoin".to_string(),
-            step: 1,
-            language: "en".to_string(),
-            last_activity: 0,
-        };
+        let mut session = UssdSession::new("test789".to_string(), "+256700123456".to_string());
+        session.current_menu = "bitcoin".to_string();
+        session.step = 1;
         
         let save_result = save_session(&session).await;
         assert!(save_result.is_ok());
@@ -136,14 +138,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete() {
-        let session = UssdSession {
-            session_id: "test999".to_string(),
-            phone_number: "+256700123456".to_string(),
-            current_menu: String::new(),
-            step: 0,
-            language: "en".to_string(),
-            last_activity: 0,
-        };
+        let session = UssdSession::new("test999".to_string(), "+256700123456".to_string());
         save_session(&session).await.unwrap();
         
         let delete_result = delete_session("test999").await;

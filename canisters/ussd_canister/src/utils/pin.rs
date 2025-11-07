@@ -1,6 +1,4 @@
 use crate::utils::datastore;
-use crate::models::session::UssdSession;
-use crate::utils::translations::{Language, TranslationService};
 use argon2::{
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2
@@ -10,7 +8,6 @@ use std::collections::HashMap;
 use crate::config_loader::get_config;
 
 #[derive(Clone)]
-#[allow(dead_code)]
 struct PinAttempt {
     count: u32,
     lockout_until: u64,
@@ -39,7 +36,6 @@ pub fn hash_pin_with_phone(pin: &str, phone: &str) -> Result<String, String> {
 }
 
 /// Verify PIN matches stored Argon2 hash
-#[allow(dead_code)]
 pub fn verify_pin_hash(pin: &str, hash: &str) -> bool {
     let parsed_hash = match PasswordHash::new(hash) {
         Ok(h) => h,
@@ -60,7 +56,6 @@ pub fn is_valid_pin(pin: &str) -> bool {
 }
 
 /// Check if phone number is locked out from PIN attempts
-#[allow(dead_code)]
 pub fn check_pin_lockout(phone: &str) -> Result<(), String> {
     let current_time = ic_cdk::api::time();
     
@@ -76,7 +71,6 @@ pub fn check_pin_lockout(phone: &str) -> Result<(), String> {
 }
 
 /// Record failed PIN attempt
-#[allow(dead_code)]
 pub fn record_failed_attempt(phone: &str) {
     let config = get_config();
     let current_time = ic_cdk::api::time();
@@ -101,26 +95,13 @@ pub fn record_failed_attempt(phone: &str) {
 }
 
 /// Reset PIN attempts after successful verification
-#[allow(dead_code)]
 pub fn reset_pin_attempts(phone: &str) {
     PIN_ATTEMPTS.with(|attempts| {
         attempts.borrow_mut().remove(phone);
     });
 }
 
-/// Request PIN verification
-#[allow(dead_code)]
-pub fn request_pin_verification(session: &mut UssdSession, _action: &str) -> String {
-    let lang = Language::from_code(&session.language);
-    session.step = 999; // Special step for PIN entry
-    
-    format!("{}\n{}", 
-        TranslationService::translate("enter_pin", lang),
-        TranslationService::translate("pin_4_6_digits", lang))
-}
-
 /// Verify user's PIN
-#[allow(dead_code)]
 pub async fn verify_user_pin(phone: &str, pin: &str) -> Result<bool, String> {
     // Check if locked out
     check_pin_lockout(phone)?;
@@ -146,49 +127,6 @@ pub async fn verify_user_pin(phone: &str, pin: &str) -> Result<bool, String> {
             // No PIN set - user must set up PIN first
             Err("PIN not set. Please set up your PIN first.".to_string())
         }
-    }
-}
-
-/// Handle PIN entry step
-#[allow(dead_code)]
-pub async fn handle_pin_entry(
-    pin: &str,
-    session: &mut UssdSession,
-) -> Result<(String, bool), String> {
-    let lang = Language::from_code(&session.language);
-    
-    // Validate PIN format
-    if !is_valid_pin(pin) {
-        return Ok((
-            format!("{}\n{}", 
-                TranslationService::translate("invalid_pin", lang),
-                TranslationService::translate("pin_4_6_digits", lang)),
-            true
-        ));
-    }
-    
-    // Verify PIN
-    match verify_user_pin(&session.phone_number, pin).await {
-        Ok(true) => {
-            // PIN correct - reset step and continue
-            session.step = 0;
-            
-            // Return success message and let the flow continue
-            Ok((
-                TranslationService::translate("pin_verified", lang).to_string(),
-                true
-            ))
-        }
-        Ok(false) => {
-            // PIN incorrect
-            Ok((
-                format!("{}\n{}", 
-                    TranslationService::translate("incorrect_pin", lang),
-                    TranslationService::translate("try_again", lang)),
-                true
-            ))
-        }
-        Err(e) => Err(format!("PIN verification error: {}", e)),
     }
 }
 
