@@ -3,6 +3,7 @@ members = [
     "canisters/deposit_canister",
     "canisters/exchange_canister",
     "canisters/withdrawal_canister",
+    "canisters/ussd_canister",
 ]
 exclude = ["tests", "src/satellite"]
 resolver = "2"

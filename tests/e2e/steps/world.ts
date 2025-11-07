@@ -15,10 +15,10 @@ export class UssdWorld extends World {
   public inputHistory: string[] = [];
   
   // Satellite endpoint - will be configurable
+  // Preview (deployed with custom USSD handlers): https://64njw-oiaaa-aaaal-asppa-cai.icp0.io
   // Local Juno dev (raw domain): http://atbka-rp777-77775-aaaaq-cai.raw.localhost:5987
-  // Preview (deployed): https://64njw-oiaaa-aaaal-asppa-cai.icp0.io
   // Docker emulator: http://jx5yt-yyaaa-aaaal-abzbq-cai.localhost:5987
-  public satelliteUrl: string = process.env.SATELLITE_URL || 'http://atbka-rp777-77775-aaaaq-cai.raw.localhost:5987';
+  public satelliteUrl: string = process.env.SATELLITE_URL || 'https://64njw-oiaaa-aaaal-asppa-cai.icp0.io';
   
   async callUssdEndpoint(text: string): Promise<string> {
     const request: UssdRequest = {

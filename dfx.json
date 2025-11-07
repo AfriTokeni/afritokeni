@@ -51,6 +51,11 @@
       "type": "rust",
       "package": "withdrawal_canister",
       "candid": "canisters/withdrawal_canister/withdrawal_canister.did"
+    },
+    "ussd_canister": {
+      "type": "rust",
+      "package": "ussd_canister",
+      "candid": "canisters/ussd_canister/ussd_canister.did"
     }
   },
   "defaults": {
