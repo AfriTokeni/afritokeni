@@ -40,15 +40,20 @@ pub fn route_request(req: HttpRequest) -> ManualReply<HttpResponse> {
 /// Verify request is from Africa's Talking
 /// Checks User-Agent and optionally API key header
 fn verify_africas_talking_request(req: &HttpRequest) -> bool {
+    let config = crate::config_loader::get_config();
+    let allowed_agents: Vec<&str> = config.security.allowed_user_agents.split(',').collect();
+    
     // Check for Africa's Talking User-Agent
     let has_valid_user_agent = req.headers.iter().any(|(key, value)| {
         key.to_lowercase() == "user-agent" && 
-        (value.contains("AfricasTalking") || value.contains("AT-Gateway"))
+        allowed_agents.iter().any(|agent| value.contains(agent))
     });
     
-    // In production, also verify API key or signature
-    // For now, just check User-Agent
-    // TODO: Add HMAC signature verification with shared secret
+    // In production, verify HMAC signature if enabled
+    if config.security.verify_signature && !config.security.hmac_secret.is_empty() {
+        // TODO: Implement HMAC signature verification
+        ic_cdk::println!("⚠️ HMAC verification not yet implemented");
+    }
     
     if !has_valid_user_agent {
         ic_cdk::println!("⚠️ Rejected request - invalid User-Agent");

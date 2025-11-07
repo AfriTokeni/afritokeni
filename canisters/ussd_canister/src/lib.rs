@@ -2,6 +2,7 @@ use ic_cdk::api::call::ManualReply;
 use ic_cdk_macros::{query, update};
 
 // Organized module structure
+mod config_loader;
 mod handlers;
 mod models;
 mod utils;

@@ -1,0 +1,38 @@
+# USSD Canister Configuration
+
+[rate_limiting]
+max_requests_per_minute = 10
+rate_limit_window_seconds = 60
+
+[pin_security]
+max_pin_attempts = 3
+lockout_duration_minutes = 15
+min_pin_length = 4
+max_pin_length = 6
+
+[transaction_limits]
+min_amount_kes = 10.0
+max_amount_kes = 1000000.0
+min_amount_btc = 0.00001
+max_amount_btc = 0.1
+min_amount_usdc = 1.0
+max_amount_usdc = 100000.0
+
+[session]
+timeout_minutes = 5
+max_active_sessions = 10000
+
+[security]
+# Africa's Talking User-Agent patterns (comma-separated)
+allowed_user_agents = "AfricasTalking,AT-Gateway"
+# Enable signature verification (requires shared secret)
+verify_signature = false
+# Shared secret for HMAC verification (set in production)
+hmac_secret = ""
+
+[africas_talking]
+# Sandbox credentials (override in production)
+username = "sandbox"
+api_key = "sandbox_api_key"
+api_url = "https://api.sandbox.africastalking.com/version1/messaging"
+is_sandbox = true

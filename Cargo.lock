@@ -914,10 +914,12 @@ dependencies = [
  "getrandom",
  "ic-cdk",
  "ic-cdk-macros",
+ "lazy_static",
  "serde",
  "serde_json",
  "serde_urlencoded",
  "tokio",
+ "toml",
  "urlencoding",
 ]
 

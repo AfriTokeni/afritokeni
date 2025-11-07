@@ -16,6 +16,8 @@ serde_urlencoded = "0.7"
 urlencoding = "2.1"
 getrandom = { version = "0.3", features = ["wasm_js"] }
 argon2 = "0.5"
+toml = "0.8"
+lazy_static = "1.4"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

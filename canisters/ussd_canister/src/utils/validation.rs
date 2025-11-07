@@ -1,8 +1,5 @@
 // Input validation utilities
-
-const MAX_TRANSACTION_AMOUNT: f64 = 1_000_000.0; // 1M KES max
-const MIN_TRANSACTION_AMOUNT: f64 = 10.0; // 10 KES min
-const MAX_PIN_ATTEMPTS: u32 = 3;
+use crate::config_loader::get_config;
 
 /// Validate phone number format
 pub fn is_valid_phone(phone: &str) -> bool {
@@ -17,12 +14,14 @@ pub fn is_valid_phone(phone: &str) -> bool {
 
 /// Validate transaction amount
 pub fn is_valid_amount(amount: f64) -> Result<(), String> {
-    if amount < MIN_TRANSACTION_AMOUNT {
-        return Err(format!("Amount too small. Minimum is {} KES", MIN_TRANSACTION_AMOUNT));
+    let config = get_config();
+    
+    if amount < config.transaction_limits.min_amount_kes {
+        return Err(format!("Amount too small. Minimum is {} KES", config.transaction_limits.min_amount_kes));
     }
     
-    if amount > MAX_TRANSACTION_AMOUNT {
-        return Err(format!("Amount too large. Maximum is {} KES", MAX_TRANSACTION_AMOUNT));
+    if amount > config.transaction_limits.max_amount_kes {
+        return Err(format!("Amount too large. Maximum is {} KES", config.transaction_limits.max_amount_kes));
     }
     
     if amount.is_nan() || amount.is_infinite() {

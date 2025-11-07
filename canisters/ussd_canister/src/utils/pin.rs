@@ -7,9 +7,7 @@ use argon2::{
 };
 use std::cell::RefCell;
 use std::collections::HashMap;
-
-const MAX_PIN_ATTEMPTS: u32 = 3;
-const LOCKOUT_DURATION_NANOS: u64 = 15 * 60 * 1_000_000_000; // 15 minutes
+use crate::config_loader::get_config;
 
 #[derive(Clone)]
 struct PinAttempt {
@@ -53,7 +51,10 @@ pub fn verify_pin_hash(pin: &str, hash: &str) -> bool {
 
 /// Validate PIN format (4-6 digits)
 pub fn is_valid_pin(pin: &str) -> bool {
-    pin.len() >= 4 && pin.len() <= 6 && pin.chars().all(|c| c.is_numeric())
+    let config = get_config();
+    pin.len() >= config.pin_security.min_pin_length && 
+    pin.len() <= config.pin_security.max_pin_length && 
+    pin.chars().all(|c| c.is_numeric())
 }
 
 /// Check if phone number is locked out from PIN attempts
@@ -73,7 +74,9 @@ pub fn check_pin_lockout(phone: &str) -> Result<(), String> {
 
 /// Record failed PIN attempt
 pub fn record_failed_attempt(phone: &str) {
+    let config = get_config();
     let current_time = ic_cdk::api::time();
+    let lockout_nanos = config.pin_security.lockout_duration_minutes * 60 * 1_000_000_000;
     
     PIN_ATTEMPTS.with(|attempts| {
         let mut attempts_map = attempts.borrow_mut();
@@ -85,9 +88,10 @@ pub fn record_failed_attempt(phone: &str) {
         
         attempt.count += 1;
         
-        if attempt.count >= MAX_PIN_ATTEMPTS {
-            attempt.lockout_until = current_time + LOCKOUT_DURATION_NANOS;
-            ic_cdk::println!("🔒 Locked out {} for 15 minutes after {} failed attempts", phone, attempt.count);
+        if attempt.count >= config.pin_security.max_pin_attempts {
+            attempt.lockout_until = current_time + lockout_nanos;
+            ic_cdk::println!("🔒 Locked out {} for {} minutes after {} failed attempts", 
+                phone, config.pin_security.lockout_duration_minutes, attempt.count);
         }
     });
 }

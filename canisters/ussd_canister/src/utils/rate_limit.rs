@@ -2,9 +2,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use ic_cdk::api::time;
-
-const MAX_REQUESTS_PER_MINUTE: u32 = 10;
-const RATE_LIMIT_WINDOW_NANOS: u64 = 60 * 1_000_000_000; // 1 minute
+use crate::config_loader::get_config;
 
 #[derive(Clone)]
 struct RateLimitEntry {
@@ -19,7 +17,10 @@ thread_local! {
 /// Check if request is rate limited
 /// Returns true if allowed, false if rate limited
 pub fn check_rate_limit(phone_number: &str) -> bool {
+    let config = get_config();
     let current_time = time();
+    let window_nanos = config.rate_limiting.rate_limit_window_seconds * 1_000_000_000;
+    let max_requests = config.rate_limiting.max_requests_per_minute;
     
     RATE_LIMITS.with(|limits| {
         let mut limits_map = limits.borrow_mut();
@@ -27,9 +28,9 @@ pub fn check_rate_limit(phone_number: &str) -> bool {
         match limits_map.get_mut(phone_number) {
             Some(entry) => {
                 // Check if we're still in the same window
-                if current_time - entry.window_start < RATE_LIMIT_WINDOW_NANOS {
+                if current_time - entry.window_start < window_nanos {
                     // Same window - check count
-                    if entry.count >= MAX_REQUESTS_PER_MINUTE {
+                    if entry.count >= max_requests {
                         ic_cdk::println!("🚫 Rate limit exceeded for {}", phone_number);
                         return false;
                     }
@@ -59,12 +60,14 @@ pub fn check_rate_limit(phone_number: &str) -> bool {
 
 /// Clean up old rate limit entries (call periodically)
 pub fn cleanup_old_entries() {
+    let config = get_config();
     let current_time = time();
+    let window_nanos = config.rate_limiting.rate_limit_window_seconds * 1_000_000_000;
     
     RATE_LIMITS.with(|limits| {
         let mut limits_map = limits.borrow_mut();
         limits_map.retain(|_, entry| {
-            current_time - entry.window_start < RATE_LIMIT_WINDOW_NANOS * 2
+            current_time - entry.window_start < window_nanos * 2
         });
     });
 }
