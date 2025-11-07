@@ -1,16 +1,14 @@
 // Unit tests runner using Cucumber BDD
 // Run with: cargo test --test unit_tests
 
-mod steps {
-    pub mod pin_steps;
-}
+mod unit;
 
 use cucumber::World;
-use steps::pin_steps::PinWorld;
+use unit::steps::pin_steps::PinWorld;
 
 #[tokio::main]
 async fn main() {
     PinWorld::cucumber()
-        .run("tests/unit/features/")
+        .run("unit/features/")
         .await;
 }
