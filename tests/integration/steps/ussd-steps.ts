@@ -3,11 +3,26 @@
  * Tests real USSD flows with deployed canister
  */
 
-import { Given, When, Then } from '@cucumber/cucumber';
+import { Given, When, Then, Before } from '@cucumber/cucumber';
 import assert from 'assert';
 
 // Shared world object for test state
 const world: any = {};
+
+// Reset world state before each scenario
+Before(function () {
+  world.sessionId = undefined;
+  world.phoneNumber = undefined;
+  world.lastResponse = undefined;
+  world.lastText = undefined;
+  world.currentFlow = [];
+  world.userPin = undefined;
+  world.kesBalance = 0;
+  world.ckbtcBalance = 0;
+  world.ckusdcBalance = 0;
+  world.recipientPhone = undefined;
+  world.btcAddress = undefined;
+});
 
 // Helper to call USSD canister via HTTP gateway
 async function callUssdCanister(sessionId: string, phoneNumber: string, text: string): Promise<string> {
@@ -114,6 +129,8 @@ Given('I have set my language to Swahili', async function () {
 When('I dial USSD code {string}', async function (code: string) {
   const response = await callUssdCanister(world.sessionId, world.phoneNumber, '');
   world.lastResponse = response;
+  world.currentFlow = []; // Reset flow
+  world.lastText = '';
   console.log(`📱 Dialed ${code}, response: ${response.substring(0, 50)}...`);
 });
 
@@ -127,17 +144,23 @@ When('I dial USSD code {string} in a new session', async function (code: string)
 When('I select option {string} for Local Currency', async function (option: string) {
   const response = await callUssdCanister(world.sessionId, world.phoneNumber, option);
   world.lastResponse = response;
+  world.currentFlow = [option]; // Start new flow
+  world.lastText = option;
   console.log(`➡️ Selected option ${option}`);
 });
 
 When('I select option {string} for Bitcoin', async function (option: string) {
   const response = await callUssdCanister(world.sessionId, world.phoneNumber, option);
   world.lastResponse = response;
+  world.currentFlow = [option]; // Start new flow
+  world.lastText = option;
 });
 
 When('I select option {string} for USDC', async function (option: string) {
   const response = await callUssdCanister(world.sessionId, world.phoneNumber, option);
   world.lastResponse = response;
+  world.currentFlow = [option]; // Start new flow
+  world.lastText = option;
 });
 
 When('I select option {string} for Language', async function (option: string) {
@@ -146,39 +169,51 @@ When('I select option {string} for Language', async function (option: string) {
 });
 
 When('I select option {string} for Check Balance', async function (option: string) {
-  const text = `1*${option}`;
+  world.currentFlow.push(option);
+  const text = world.currentFlow.join('*');
   const response = await callUssdCanister(world.sessionId, world.phoneNumber, text);
   world.lastResponse = response;
+  world.lastText = text;
 });
 
 When('I select option {string} for Send Money', async function (option: string) {
-  const text = `1*${option}`;
+  world.currentFlow.push(option);
+  const text = world.currentFlow.join('*');
   const response = await callUssdCanister(world.sessionId, world.phoneNumber, text);
   world.lastResponse = response;
+  world.lastText = text;
 });
 
 When('I select option {string} for Withdraw', async function (option: string) {
-  const text = `1*${option}`;
+  world.currentFlow.push(option);
+  const text = world.currentFlow.join('*');
   const response = await callUssdCanister(world.sessionId, world.phoneNumber, text);
   world.lastResponse = response;
+  world.lastText = text;
 });
 
 When('I select option {string} for Buy Bitcoin', async function (option: string) {
-  const text = `2*${option}`;
+  world.currentFlow.push(option);
+  const text = world.currentFlow.join('*');
   const response = await callUssdCanister(world.sessionId, world.phoneNumber, text);
   world.lastResponse = response;
+  world.lastText = text;
 });
 
 When('I select option {string} for Send Bitcoin', async function (option: string) {
-  const text = `2*${option}`;
+  world.currentFlow.push(option);
+  const text = world.currentFlow.join('*');
   const response = await callUssdCanister(world.sessionId, world.phoneNumber, text);
   world.lastResponse = response;
+  world.lastText = text;
 });
 
 When('I select option {string} for Buy USDC', async function (option: string) {
-  const text = `3*${option}`;
+  world.currentFlow.push(option);
+  const text = world.currentFlow.join('*');
   const response = await callUssdCanister(world.sessionId, world.phoneNumber, text);
   world.lastResponse = response;
+  world.lastText = text;
 });
 
 When('I select option {string} for English', async function (option: string) {
@@ -205,39 +240,41 @@ When('I select option {string} to go back', async function (option: string) {
 });
 
 When('I enter recipient phone {string}', async function (phone: string) {
-  const text = `1*2*${phone}`;
+  world.currentFlow.push(phone);
+  const text = world.currentFlow.join('*');
   const response = await callUssdCanister(world.sessionId, world.phoneNumber, text);
   world.lastResponse = response;
+  world.lastText = text;
   world.recipientPhone = phone;
 });
 
 When('I enter amount {string}', async function (amount: string) {
-  // Append amount to current flow
-  const currentText = world.lastText || '1*2*+254700999888';
-  const text = `${currentText}*${amount}`;
+  world.currentFlow.push(amount);
+  const text = world.currentFlow.join('*');
   const response = await callUssdCanister(world.sessionId, world.phoneNumber, text);
   world.lastResponse = response;
   world.lastText = text;
 });
 
 When('I enter amount {string} KES', async function (amount: string) {
-  const currentText = world.lastText || '1*2';
-  const text = `${currentText}*${amount}`;
+  world.currentFlow.push(amount);
+  const text = world.currentFlow.join('*');
   const response = await callUssdCanister(world.sessionId, world.phoneNumber, text);
   world.lastResponse = response;
   world.lastText = text;
 });
 
 When('I enter amount {string} ckBTC', async function (amount: string) {
-  const currentText = world.lastText || '2*4*bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh';
-  const text = `${currentText}*${amount}`;
+  world.currentFlow.push(amount);
+  const text = world.currentFlow.join('*');
   const response = await callUssdCanister(world.sessionId, world.phoneNumber, text);
   world.lastResponse = response;
   world.lastText = text;
 });
 
 When('I enter BTC address {string}', async function (address: string) {
-  const text = `2*4*${address}`;
+  world.currentFlow.push(address);
+  const text = world.currentFlow.join('*');
   const response = await callUssdCanister(world.sessionId, world.phoneNumber, text);
   world.lastResponse = response;
   world.lastText = text;
@@ -245,8 +282,8 @@ When('I enter BTC address {string}', async function (address: string) {
 });
 
 When('I enter PIN {string}', async function (pin: string) {
-  const currentText = world.lastText || '1*2*+254700999888*100';
-  const text = `${currentText}*${pin}`;
+  world.currentFlow.push(pin);
+  const text = world.currentFlow.join('*');
   const response = await callUssdCanister(world.sessionId, world.phoneNumber, text);
   world.lastResponse = response;
   world.lastText = text;
@@ -254,10 +291,11 @@ When('I enter PIN {string}', async function (pin: string) {
 
 When('I enter wrong PIN {int} times', async function (times: number) {
   for (let i = 0; i < times; i++) {
-    const currentText = world.lastText || '1*2*+254700999888*100';
-    const text = `${currentText}*9999`;
+    world.currentFlow.push('9999');
+    const text = world.currentFlow.join('*');
     const response = await callUssdCanister(world.sessionId, world.phoneNumber, text);
     world.lastResponse = response;
+    world.currentFlow.pop(); // Remove wrong PIN for next attempt
   }
 });
 
