@@ -20,3 +20,6 @@ fn http_request(req: handlers::http_handlers::HttpRequest) {
 fn http_request_update(req: handlers::http_handlers::HttpRequest) {
     handlers::http_handlers::route_request(req)
 }
+
+// Export Candid interface
+ic_cdk::export_candid!();
