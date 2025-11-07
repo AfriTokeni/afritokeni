@@ -18,7 +18,7 @@
     "juno:emulator:deploy": "juno deploy --mode test",
     "data:seed": "tsx scripts/primeDemoData.ts",
     "test:unit": "NODE_ENV=unit-test TSX_TSCONFIG_PATH=./tsconfig.test.json cucumber-js 'tests/unit/*.feature' --require 'tests/unit/setup.ts' --require 'tests/unit/*.ts' --require-module tsx",
-    "test:integration": "npm run icp:start && npm run icp:deploy && NODE_ENV=integration DFX_NETWORK=local TSX_TSCONFIG_PATH=./tsconfig.test.json cucumber-js 'tests/integration/features/*.feature' --require 'tests/integration/setup.ts' --require 'tests/integration/steps/*.ts' --require-module tsx",
+    "test:integration": "npm run icp:stop && npm run icp:start && npm run icp:deploy && NODE_ENV=integration DFX_NETWORK=local TSX_TSCONFIG_PATH=./tsconfig.test.json cucumber-js 'tests/integration/features/*.feature' --require 'tests/integration/setup.ts' --require 'tests/integration/steps/*.ts' --require-module tsx",
     "test:e2e": "cucumber-js",
     "test:e2e:local": "SATELLITE_URL=http://localhost:5987 cucumber-js",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
