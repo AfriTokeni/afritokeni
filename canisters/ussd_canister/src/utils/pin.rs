@@ -5,6 +5,21 @@ use argon2::{
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2
 };
+use std::cell::RefCell;
+use std::collections::HashMap;
+
+const MAX_PIN_ATTEMPTS: u32 = 3;
+const LOCKOUT_DURATION_NANOS: u64 = 15 * 60 * 1_000_000_000; // 15 minutes
+
+#[derive(Clone)]
+struct PinAttempt {
+    count: u32,
+    lockout_until: u64,
+}
+
+thread_local! {
+    static PIN_ATTEMPTS: RefCell<HashMap<String, PinAttempt>> = RefCell::new(HashMap::new());
+}
 
 /// Hash PIN using Argon2id with per-user salt
 /// Uses phone number as salt to ensure each user has unique hash
@@ -41,6 +56,49 @@ pub fn is_valid_pin(pin: &str) -> bool {
     pin.len() >= 4 && pin.len() <= 6 && pin.chars().all(|c| c.is_numeric())
 }
 
+/// Check if phone number is locked out from PIN attempts
+pub fn check_pin_lockout(phone: &str) -> Result<(), String> {
+    let current_time = ic_cdk::api::time();
+    
+    PIN_ATTEMPTS.with(|attempts| {
+        if let Some(attempt) = attempts.borrow().get(phone) {
+            if current_time < attempt.lockout_until {
+                let remaining_secs = (attempt.lockout_until - current_time) / 1_000_000_000;
+                return Err(format!("Too many failed attempts. Try again in {} minutes", remaining_secs / 60));
+            }
+        }
+        Ok(())
+    })
+}
+
+/// Record failed PIN attempt
+pub fn record_failed_attempt(phone: &str) {
+    let current_time = ic_cdk::api::time();
+    
+    PIN_ATTEMPTS.with(|attempts| {
+        let mut attempts_map = attempts.borrow_mut();
+        
+        let attempt = attempts_map.entry(phone.to_string()).or_insert(PinAttempt {
+            count: 0,
+            lockout_until: 0,
+        });
+        
+        attempt.count += 1;
+        
+        if attempt.count >= MAX_PIN_ATTEMPTS {
+            attempt.lockout_until = current_time + LOCKOUT_DURATION_NANOS;
+            ic_cdk::println!("🔒 Locked out {} for 15 minutes after {} failed attempts", phone, attempt.count);
+        }
+    });
+}
+
+/// Reset PIN attempts after successful verification
+pub fn reset_pin_attempts(phone: &str) {
+    PIN_ATTEMPTS.with(|attempts| {
+        attempts.borrow_mut().remove(phone);
+    });
+}
+
 /// Request PIN verification
 pub fn request_pin_verification(session: &mut UssdSession, _action: &str) -> String {
     let lang = Language::from_code(&session.language);
@@ -53,14 +111,26 @@ pub fn request_pin_verification(session: &mut UssdSession, _action: &str) -> Str
 
 /// Verify user's PIN
 pub async fn verify_user_pin(phone: &str, pin: &str) -> Result<bool, String> {
+    // Check if locked out
+    check_pin_lockout(phone)?;
+    
     // Validate PIN format
     if !is_valid_pin(pin) {
+        record_failed_attempt(phone);
         return Ok(false);
     }
     
     // Get stored PIN hash
     match datastore::get_user_pin(phone).await {
-        Ok(hash) => Ok(verify_pin_hash(pin, &hash)),
+        Ok(hash) => {
+            let is_valid = verify_pin_hash(pin, &hash);
+            if is_valid {
+                reset_pin_attempts(phone);
+            } else {
+                record_failed_attempt(phone);
+            }
+            Ok(is_valid)
+        },
         Err(_) => {
             // No PIN set - user must set up PIN first
             Err("PIN not set. Please set up your PIN first.".to_string())

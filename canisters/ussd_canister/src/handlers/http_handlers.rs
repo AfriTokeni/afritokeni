@@ -26,9 +26,35 @@ pub fn route_request(req: HttpRequest) -> ManualReply<HttpResponse> {
     
     match (req.method.as_str(), path) {
         ("GET", "/api/health") => health_check(),
-        ("POST", "/api/ussd") => handle_ussd_webhook(req),
+        ("POST", "/api/ussd") => {
+            // Verify request is from Africa's Talking
+            if !verify_africas_talking_request(&req) {
+                return error_response(403, "Forbidden: Invalid request source");
+            }
+            handle_ussd_webhook(req)
+        },
         _ => not_found(),
     }
+}
+
+/// Verify request is from Africa's Talking
+/// Checks User-Agent and optionally API key header
+fn verify_africas_talking_request(req: &HttpRequest) -> bool {
+    // Check for Africa's Talking User-Agent
+    let has_valid_user_agent = req.headers.iter().any(|(key, value)| {
+        key.to_lowercase() == "user-agent" && 
+        (value.contains("AfricasTalking") || value.contains("AT-Gateway"))
+    });
+    
+    // In production, also verify API key or signature
+    // For now, just check User-Agent
+    // TODO: Add HMAC signature verification with shared secret
+    
+    if !has_valid_user_agent {
+        ic_cdk::println!("⚠️ Rejected request - invalid User-Agent");
+    }
+    
+    has_valid_user_agent
 }
 
 /// Health check endpoint

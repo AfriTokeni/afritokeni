@@ -70,6 +70,11 @@ pub fn handle_ussd_webhook(req: HttpRequest) -> ManualReply<HttpResponse> {
         return error_response(400, "Missing required fields: sessionId and phoneNumber");
     }
     
+    // Check rate limit
+    if !crate::utils::rate_limit::check_rate_limit(&phone_number) {
+        return error_response(429, "Too many requests. Please try again later.");
+    }
+    
     // Log the request
     ic_cdk::println!(
         "📱 USSD Request - Session: {}, Phone: {}, Text: '{}', JSON: {}",
