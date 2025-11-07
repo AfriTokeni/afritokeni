@@ -30,7 +30,7 @@ pub fn route_request(req: HttpRequest) {
             if !verify_africas_talking_request(&req) {
                 return error_response(403, "Forbidden: Invalid request source");
             }
-            handle_ussd_webhook(req)
+            ic_cdk::spawn(handle_ussd_webhook(req));
         },
         _ => not_found(),
     }
@@ -97,9 +97,9 @@ fn error_response(status_code: u16, message: &str) {
 }
 
 /// Handle USSD webhook from Africa's Talking
-fn handle_ussd_webhook(req: HttpRequest) {
+async fn handle_ussd_webhook(req: HttpRequest) {
     // Delegate to ussd module
-    crate::handlers::ussd::handle_ussd_webhook(req)
+    crate::handlers::ussd::handle_ussd_webhook(req).await
 }
 
 #[cfg(test)]

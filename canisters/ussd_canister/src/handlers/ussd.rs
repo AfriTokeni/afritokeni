@@ -34,7 +34,7 @@ fn ok_response(body: &str) {
 /// - serviceCode: string (optional)
 /// - phoneNumber: string
 /// - text: string
-pub fn handle_ussd_webhook(req: HttpRequest) {
+pub async fn handle_ussd_webhook(req: HttpRequest) {
     // Check content type
     let content_type = req
         .headers
@@ -93,34 +93,30 @@ pub fn handle_ussd_webhook(req: HttpRequest) {
         is_json
     );
     
-    // Get or create session, process menu, and save session - all async
-    let session_id_clone = session_id.clone();
-    let phone_clone = phone_number.clone();
-    let text_clone = text.clone();
-    
-    ic_cdk::futures::spawn(async move {
+    // Process USSD request and get response
+    let (response_text, continue_session) = {
         // Get or create session
-        match crate::models::session::get_or_create_session(&session_id_clone, &phone_clone).await {
+        match crate::models::session::get_or_create_session(&session_id, &phone_number).await {
             Ok(mut session) => {
                 // Process menu with async handlers
                 let (response_text, continue_session) = if session.current_menu.is_empty() {
                     // Main menu
-                    crate::handlers::ussd_handlers::handle_main_menu(&text_clone, &mut session).await
+                    crate::handlers::ussd_handlers::handle_main_menu(&text, &mut session).await
                 } else {
                     // Route to submenu
                     match session.current_menu.as_str() {
                         "register" => {
                             // Extract PIN from input
-                            let parts: Vec<&str> = text_clone.split('*').collect();
+                            let parts: Vec<&str> = text.split('*').collect();
                             let pin = parts.last().unwrap_or(&"");
                             crate::handlers::ussd_handlers::handle_registration(&mut session, pin).await
                         },
-                        "local_currency" => crate::handlers::ussd_handlers::handle_local_currency_menu(&text_clone, &mut session).await,
-                        "bitcoin" => crate::handlers::ussd_handlers::handle_bitcoin_menu(&text_clone, &mut session).await,
-                        "usdc" => crate::handlers::ussd_handlers::handle_usdc_menu(&text_clone, &mut session).await,
-                        "dao" => crate::handlers::ussd_handlers::handle_dao_menu(&text_clone, &mut session).await,
-                        "language" => crate::handlers::ussd_handlers::handle_language_menu(&text_clone, &mut session).await,
-                        _ => crate::handlers::ussd_handlers::handle_main_menu(&text_clone, &mut session).await,
+                        "local_currency" => crate::handlers::ussd_handlers::handle_local_currency_menu(&text, &mut session).await,
+                        "bitcoin" => crate::handlers::ussd_handlers::handle_bitcoin_menu(&text, &mut session).await,
+                        "usdc" => crate::handlers::ussd_handlers::handle_usdc_menu(&text, &mut session).await,
+                        "dao" => crate::handlers::ussd_handlers::handle_dao_menu(&text, &mut session).await,
+                        "language" => crate::handlers::ussd_handlers::handle_language_menu(&text, &mut session).await,
+                        _ => crate::handlers::ussd_handlers::handle_main_menu(&text, &mut session).await,
                     }
                 };
                 
@@ -131,22 +127,20 @@ pub fn handle_ussd_webhook(req: HttpRequest) {
                     }
                 } else {
                     // Session ended, delete it
-                    if let Err(e) = crate::models::session::delete_session(&session_id_clone).await {
+                    if let Err(e) = crate::models::session::delete_session(&session_id).await {
                         ic_cdk::println!("❌ Failed to delete session: {}", e);
                     }
                 }
                 
                 ic_cdk::println!("✅ USSD processed: continue={}, response_len={}", continue_session, response_text.len());
+                (response_text, continue_session)
             }
             Err(e) => {
                 ic_cdk::println!("❌ Session error: {}", e);
+                (format!("Error: {}", e), false)
             }
         }
-    });
-    
-    // Return immediate response (actual processing happens async)
-    // For now, use simple menu logic synchronously
-    let (response_text, continue_session) = process_ussd_menu(&text, &phone_number);
+    };
     
     // Return response based on request type
     if is_json {

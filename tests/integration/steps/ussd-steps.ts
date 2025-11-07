@@ -9,11 +9,18 @@ import assert from 'assert';
 // Shared world object for test state
 const world: any = {};
 
-// Helper to call USSD canister via http_request_update
+// Helper to call USSD canister via HTTP gateway
 async function callUssdCanister(sessionId: string, phoneNumber: string, text: string): Promise<string> {
   const { exec } = await import('child_process');
   const { promisify } = await import('util');
   const execAsync = promisify(exec);
+  
+  // Get canister ID
+  const { stdout: canisterId } = await execAsync('dfx canister id ussd_canister --network local');
+  const cleanCanisterId = canisterId.trim();
+  
+  // Build the HTTP URL for local replica - use raw.localhost to bypass response verification
+  const url = `http://${cleanCanisterId}.raw.localhost:4943/api/ussd`;
   
   // Build the request body
   const requestBody = JSON.stringify({
@@ -22,41 +29,27 @@ async function callUssdCanister(sessionId: string, phoneNumber: string, text: st
     text
   });
   
-  // Call the canister using dfx
-  const command = `dfx canister call ussd_canister http_request_update '(record { 
-    method = "POST"; 
-    url = "/api/ussd"; 
-    headers = vec { record { "Content-Type"; "application/json" }; record { "User-Agent"; "AfricasTalking" } }; 
-    body = blob "${Buffer.from(requestBody).toString('hex')}" 
-  })' --network local`;
-  
   try {
-    const { stdout } = await execAsync(command);
-    console.log('Raw response:', stdout.substring(0, 200));
+    // Use curl to make HTTP POST request
+    const curlCommand = `curl -X POST "${url}" \
+      -H "Content-Type: application/json" \
+      -H "User-Agent: AfricasTalking" \
+      -d '${requestBody}' \
+      -s`;
     
-    // Parse the response - it's in Candid format
-    // The response body is hex-encoded blob
-    const bodyMatch = stdout.match(/body = blob "([^"]+)"/);
-    if (bodyMatch) {
-      const responseHex = bodyMatch[1].replace(/\\/g, '');
-      const responseBody = Buffer.from(responseHex, 'hex').toString('utf8');
-      console.log('Decoded body:', responseBody.substring(0, 100));
-      
-      // Try to parse as JSON first
-      try {
-        const jsonResponse = JSON.parse(responseBody);
-        return jsonResponse.response || jsonResponse;
-      } catch {
-        // Not JSON, return as plain text
-        return responseBody;
-      }
+    const { stdout } = await execAsync(curlCommand);
+    console.log('HTTP response:', stdout.substring(0, 100));
+    
+    // Try to parse as JSON first
+    try {
+      const jsonResponse = JSON.parse(stdout);
+      return jsonResponse.response || stdout;
+    } catch {
+      // Not JSON, return as plain text
+      return stdout;
     }
-    
-    // Fallback: return raw stdout
-    console.warn('Could not parse response, returning raw stdout');
-    return stdout;
   } catch (error: any) {
-    console.error('USSD call failed:', error.message);
+    console.error('USSD HTTP call failed:', error.message);
     throw error;
   }
 }
