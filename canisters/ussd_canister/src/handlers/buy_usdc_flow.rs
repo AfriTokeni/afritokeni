@@ -20,8 +20,9 @@ pub async fn handle_buy_usdc(text: &str, session: &mut UssdSession) -> (String, 
                 TranslationService::translate("to", lang)), true)
         }
         1 => {
-            // Step 1: Validate amount (parts[3])
-            let amount_str = parts.get(3).unwrap_or(&"");
+            // Step 1: Validate amount (parts[2])
+            // Text: "3*2*amount" -> parts[0]=3, parts[1]=2, parts[2]=amount
+            let amount_str = parts.get(2).unwrap_or(&"");
             
             match validation::parse_amount(amount_str) {
                 Ok(amount) => {
@@ -78,16 +79,10 @@ pub async fn handle_buy_usdc(text: &str, session: &mut UssdSession) -> (String, 
                         .await.ok().flatten().and_then(|b| b.parse::<f64>().ok()).unwrap_or(0.0);
                     let _ = crate::utils::datastore::set_user_data(&phone, "ckusdc_balance", &(usdc_balance + usdc_f64).to_string()).await;
                     
-                    session.clear_data();
-                    session.current_menu = String::new();
-                    session.step = 0;
-                    
-                    (format!("{}\n{} {} KES\n{} {} ckUSDC\n\n0. {}", 
+                    (format!("{}\nBought {} ckUSDC for {} KES\n\n0. {}", 
                         TranslationService::translate("transaction_successful", lang),
-                        TranslationService::translate("paid", lang),
-                        amount_kes,
-                        TranslationService::translate("received", lang),
                         amount_usdc,
+                        amount_kes,
                         TranslationService::translate("main_menu", lang)), false)
                 }
                 Ok(false) => {
@@ -96,18 +91,12 @@ pub async fn handle_buy_usdc(text: &str, session: &mut UssdSession) -> (String, 
                         TranslationService::translate("try_again", lang)), true)
                 }
                 Err(e) => {
-                    session.clear_data();
-                    session.current_menu = String::new();
-                    session.step = 0;
-                    (format!("{}\n\n0. {}", e, TranslationService::translate("main_menu", lang)), true)
+                    (format!("{}\n\n0. {}", e, TranslationService::translate("main_menu", lang)), false)
                 }
             }
         }
         _ => {
-            session.clear_data();
-            session.current_menu = String::new();
-            session.step = 0;
-            (TranslationService::translate("invalid_selection", lang).to_string(), true)
+            (TranslationService::translate("invalid_selection", lang).to_string(), false)
         }
     }
 }

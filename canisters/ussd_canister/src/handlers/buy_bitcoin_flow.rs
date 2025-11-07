@@ -20,8 +20,9 @@ pub async fn handle_buy_bitcoin(text: &str, session: &mut UssdSession) -> (Strin
                 TranslationService::translate("to", lang)), true)
         }
         1 => {
-            // Step 1: Validate amount (parts[3])
-            let amount_str = parts.get(3).unwrap_or(&"");
+            // Step 1: Validate amount (parts[2])
+            // Text: "2*3*amount" -> parts[0]=2, parts[1]=3, parts[2]=amount
+            let amount_str = parts.get(2).unwrap_or(&"");
             
             match validation::parse_amount(amount_str) {
                 Ok(amount) => {
@@ -78,12 +79,10 @@ pub async fn handle_buy_bitcoin(text: &str, session: &mut UssdSession) -> (Strin
                         .await.ok().flatten().and_then(|b| b.parse::<f64>().ok()).unwrap_or(0.0);
                     let _ = crate::utils::datastore::set_user_data(&phone, "ckbtc_balance", &(btc_balance + btc_f64).to_string()).await;
                     
-                    (format!("{}\n{} {} KES\n{} {} ckBTC\n\n0. {}", 
+                    (format!("{}\nBought {} ckBTC for {} KES\n\n0. {}", 
                         TranslationService::translate("transaction_successful", lang),
-                        TranslationService::translate("paid", lang),
-                        amount_kes,
-                        TranslationService::translate("received", lang),
                         amount_btc,
+                        amount_kes,
                         TranslationService::translate("main_menu", lang)), false)
                 }
                 Ok(false) => {

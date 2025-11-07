@@ -111,12 +111,12 @@ pub async fn handle_bitcoin_menu(text: &str, session: &mut UssdSession) -> (Stri
     // If we have more than 2 parts, we're in a flow
     if parts.len() > 2 {
         match parts.get(1) {
-            Some(&"3") => {
-                // Buy Bitcoin flow
+            Some(&"2") => {
+                // Buy Bitcoin flow (option 2 in bitcoin menu)
                 return crate::handlers::buy_bitcoin_flow::handle_buy_bitcoin(text, session).await;
             }
             Some(&"4") => {
-                // Send Bitcoin flow
+                // Send Bitcoin flow (option 4 in bitcoin menu)
                 return crate::handlers::send_bitcoin_flow::handle_send_bitcoin(text, session).await;
             }
             _ => {}
@@ -127,7 +127,7 @@ pub async fn handle_bitcoin_menu(text: &str, session: &mut UssdSession) -> (Stri
     
     match *choice {
         "2" => {
-            // Show Bitcoin menu
+            // Show Bitcoin menu (when text is just "2")
             let menu = format!("{}\n1. {}\n2. {}\n3. {}\n4. {}\n0. {}",
                 TranslationService::translate("bitcoin_menu", lang),
                 TranslationService::translate("check_balance", lang),
@@ -137,12 +137,21 @@ pub async fn handle_bitcoin_menu(text: &str, session: &mut UssdSession) -> (Stri
                 TranslationService::translate("back", lang));
             (menu, true)
         }
-        "3" => {
-            // Buy Bitcoin - start the flow
+        "1" => {
+            // Check balance (when text is "2*1")
+            let balance = crate::utils::datastore::get_balance(&session.phone_number).await
+                .unwrap_or_default();
+            (format!("{}:\nckBTC: {:.8}\n\n0. {}", 
+                TranslationService::translate("bitcoin_balance", lang),
+                balance.ckbtc,
+                TranslationService::translate("main_menu", lang)), false)
+        }
+        "2" => {
+            // Buy Bitcoin - start the flow (when text is "2*2")
             crate::handlers::buy_bitcoin_flow::handle_buy_bitcoin(text, session).await
         }
         "4" => {
-            // Send Bitcoin - start the flow
+            // Send Bitcoin - start the flow (when text is "2*4")
             crate::handlers::send_bitcoin_flow::handle_send_bitcoin(text, session).await
         }
         _ => {
@@ -170,7 +179,7 @@ pub async fn handle_usdc_menu(text: &str, session: &mut UssdSession) -> (String,
     
     match *choice {
         "3" => {
-            // Show USDC menu
+            // Show USDC menu (when text is just "3")
             let menu = format!("{}\n1. {}\n2. {}\n3. {}\n0. {}",
                 TranslationService::translate("usdc_menu", lang),
                 TranslationService::translate("check_balance", lang),
@@ -179,8 +188,17 @@ pub async fn handle_usdc_menu(text: &str, session: &mut UssdSession) -> (String,
                 TranslationService::translate("back", lang));
             (menu, true)
         }
+        "1" => {
+            // Check balance (when text is "3*1")
+            let balance = crate::utils::datastore::get_balance(&session.phone_number).await
+                .unwrap_or_default();
+            (format!("{}:\nckUSDC: {:.2}\n\n0. {}", 
+                TranslationService::translate("usdc_balance", lang),
+                balance.ckusdc,
+                TranslationService::translate("main_menu", lang)), false)
+        }
         "2" => {
-            // Buy USDC - start the flow
+            // Buy USDC - start the flow (when text is "3*2")
             crate::handlers::buy_usdc_flow::handle_buy_usdc(text, session).await
         }
         _ => {
@@ -210,63 +228,47 @@ pub async fn handle_dao_menu(_text: &str, session: &mut UssdSession) -> (String,
 pub async fn handle_language_menu(text: &str, session: &mut UssdSession) -> (String, bool) {
     let lang = Language::from_code(&session.language);
     
-    // If no input yet, show language menu
-    if text.is_empty() || session.current_menu != "language" {
-        session.current_menu = "language".to_string();
-        let menu = format!("{}\n1. English\n2. Luganda\n3. Swahili\n0. {}",
-            TranslationService::translate("select_language", lang),
-            TranslationService::translate("back", lang));
-        return (menu, true);
-    }
-    
-    // Process language selection
     let parts: Vec<&str> = text.split('*').collect();
     let choice = parts.last().unwrap_or(&"");
     
     match *choice {
+        "5" => {
+            // Show language menu (when text is just "5")
+            let menu = format!("{}\n1. English\n2. Luganda\n3. Swahili\n0. {}",
+                TranslationService::translate("select_language", lang),
+                TranslationService::translate("back", lang));
+            (menu, true)
+        }
         "1" => {
             let new_lang = Language::English;
             session.language = new_lang.to_code().to_string();
             let phone = session.phone_number.clone();
             let lang_code = new_lang.to_code();
             // Save language preference to datastore
-            ic_cdk::futures::spawn(async move {
-                let _ = crate::utils::datastore::set_user_language(&phone, lang_code).await;
-            });
-            session.current_menu = String::new();
+            let _ = crate::utils::datastore::set_user_language(&phone, lang_code).await;
             (format!("{}\n0. {}", 
                 TranslationService::translate("language_set", new_lang),
-                TranslationService::translate("main_menu", new_lang)), true)
+                TranslationService::translate("main_menu", new_lang)), false)
         }
         "2" => {
             let new_lang = Language::Luganda;
             session.language = new_lang.to_code().to_string();
             let phone = session.phone_number.clone();
             let lang_code = new_lang.to_code();
-            ic_cdk::futures::spawn(async move {
-                let _ = crate::utils::datastore::set_user_language(&phone, lang_code).await;
-            });
-            session.current_menu = String::new();
+            let _ = crate::utils::datastore::set_user_language(&phone, lang_code).await;
             (format!("{}\n0. {}", 
                 TranslationService::translate("language_set", new_lang),
-                TranslationService::translate("main_menu", new_lang)), true)
+                TranslationService::translate("main_menu", new_lang)), false)
         }
         "3" => {
             let new_lang = Language::Swahili;
             session.language = new_lang.to_code().to_string();
             let phone = session.phone_number.clone();
             let lang_code = new_lang.to_code();
-            ic_cdk::futures::spawn(async move {
-                let _ = crate::utils::datastore::set_user_language(&phone, lang_code).await;
-            });
-            session.current_menu = String::new();
+            let _ = crate::utils::datastore::set_user_language(&phone, lang_code).await;
             (format!("{}\n0. {}", 
                 TranslationService::translate("language_set", new_lang),
-                TranslationService::translate("main_menu", new_lang)), true)
-        }
-        "0" => {
-            session.current_menu = String::new();
-            handle_main_menu("", session).await
+                TranslationService::translate("main_menu", new_lang)), false)
         }
         _ => {
             (format!("{}\n0. {}", 

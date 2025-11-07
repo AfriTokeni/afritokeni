@@ -19,8 +19,9 @@ pub async fn handle_send_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
                 TranslationService::translate("enter_btc_address", lang)), true)
         }
         1 => {
-            // Step 1: Validate BTC address (parts[3])
-            let address_raw = parts.get(3).unwrap_or(&"");
+            // Step 1: Validate BTC address (parts[2])
+            // Text: "2*4*address" -> parts[0]=2, parts[1]=4, parts[2]=address
+            let address_raw = parts.get(2).unwrap_or(&"");
             let address = validation::sanitize_input(address_raw);
             
             if !validation::is_valid_btc_address(&address) {
@@ -32,12 +33,13 @@ pub async fn handle_send_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
             (format!("{} (ckBTC):", TranslationService::translate("enter_amount", lang)), true)
         }
         2 => {
-            // Step 2: Validate amount (parts[4])
-            let amount_str = parts.get(4).unwrap_or(&"");
+            // Step 2: Validate amount (parts[3])
+            // Text: "2*4*address*amount" -> parts[3]=amount
+            let amount_str = parts.get(3).unwrap_or(&"");
             
             match validation::parse_amount(amount_str) {
                 Ok(amount) => {
-                    let address = parts.get(3).unwrap_or(&"");
+                    let address = parts.get(2).unwrap_or(&"");
                     (format!("{}\n{}: {}\n{}: {} ckBTC\n\n{}", 
                         TranslationService::translate("confirm_transaction", lang),
                         TranslationService::translate("to", lang),
