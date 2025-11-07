@@ -1,16 +1,17 @@
 // Configuration for Africa's Talking credentials
-// TODO: Implement proper config storage
+// Uses config_loader to load from config.toml
+
+use crate::config_loader::get_config;
 
 /// Get AT credentials and API URL - async version
 /// Returns (username, api_key, api_url, is_sandbox)
 pub async fn get_at_credentials_async() -> Result<(String, String, String, bool), String> {
-    // For now, use sandbox mode
-    ic_cdk::println!("🎮 Using sandbox mode");
+    let config = get_config();
     Ok((
-        "sandbox".to_string(),
-        "dummy".to_string(),
-        "https://api.sandbox.africastalking.com/version1/messaging".to_string(),
-        true
+        config.africas_talking.username.clone(),
+        config.africas_talking.api_key.clone(),
+        config.africas_talking.api_url.clone(),
+        config.africas_talking.is_sandbox,
     ))
 }
 

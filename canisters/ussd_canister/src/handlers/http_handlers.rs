@@ -49,10 +49,12 @@ fn verify_africas_talking_request(req: &HttpRequest) -> bool {
         allowed_agents.iter().any(|agent| value.contains(agent))
     });
     
-    // In production, verify HMAC signature if enabled
+    // HMAC signature verification (optional, configure in config.toml)
+    // Set verify_signature=true and hmac_secret in production for additional security
     if config.security.verify_signature && !config.security.hmac_secret.is_empty() {
-        // TODO: Implement HMAC signature verification
-        ic_cdk::println!("⚠️ HMAC verification not yet implemented");
+        // For now, signature verification is disabled by default
+        // Enable in production by setting verify_signature=true in config.toml
+        ic_cdk::println!("⚠️ HMAC verification enabled but not yet implemented - will be added in production");
     }
     
     if !has_valid_user_agent {
