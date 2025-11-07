@@ -56,18 +56,38 @@ pub async fn handle_buy_bitcoin(text: &str, session: &mut UssdSession) -> (Strin
             
             match crate::utils::pin::verify_user_pin(&phone, pin).await {
                 Ok(true) => {
-                    // TODO: Actually execute BTC purchase
+                    // Execute BTC purchase
+                    let kes_f64 = amount_kes.parse::<f64>().unwrap_or(0.0);
+                    let btc_f64 = amount_btc.parse::<f64>().unwrap_or(0.0);
+                    
+                    let kes_balance = crate::utils::datastore::get_user_data(&phone, "kes_balance")
+                        .await.ok().flatten().and_then(|b| b.parse::<f64>().ok()).unwrap_or(0.0);
+                    
+                    if kes_balance < kes_f64 {
+                        return (format!("{}\n{}: {} KES\n\n{}", 
+                            TranslationService::translate("insufficient_balance", lang),
+                            TranslationService::translate("your_balance", lang),
+                            kes_balance,
+                            TranslationService::translate("try_again", lang)), true);
+                    }
+                    
+                    let _ = crate::utils::datastore::set_user_data(&phone, "kes_balance", &(kes_balance - kes_f64).to_string()).await;
+                    
+                    let btc_balance = crate::utils::datastore::get_user_data(&phone, "ckbtc_balance")
+                        .await.ok().flatten().and_then(|b| b.parse::<f64>().ok()).unwrap_or(0.0);
+                    let _ = crate::utils::datastore::set_user_data(&phone, "ckbtc_balance", &(btc_balance + btc_f64).to_string()).await;
+                    
                     session.clear_data();
                     session.current_menu = String::new();
                     session.step = 0;
                     
-                    (format!("{}\n{} {} ckBTC {} {} KES\n\n0. {}", 
+                    (format!("{}\n{} {} KES\n{} {} ckBTC\n\n0. {}", 
                         TranslationService::translate("transaction_successful", lang),
-                        TranslationService::translate("bought", lang),
-                        amount_btc,
-                        TranslationService::translate("with", lang),
+                        TranslationService::translate("paid", lang),
                         amount_kes,
-                        TranslationService::translate("main_menu", lang)), true)
+                        TranslationService::translate("received", lang),
+                        amount_btc,
+                        TranslationService::translate("main_menu", lang)), false)
                 }
                 Ok(false) => {
                     (format!("{}\n{}", 

@@ -9,7 +9,9 @@ pub async fn handle_withdraw(text: &str, session: &mut UssdSession) -> (String, 
     let lang = Language::from_code(&session.language);
     let parts: Vec<&str> = text.split('*').collect();
     
-    match session.step {
+    let step = if parts.len() <= 2 { 0 } else { parts.len() - 2 };
+    
+    match step {
         0 => {
             // Step 0: Ask for amount
             session.current_menu = "withdraw".to_string();
@@ -46,17 +48,39 @@ pub async fn handle_withdraw(text: &str, session: &mut UssdSession) -> (String, 
             
             match crate::utils::pin::verify_user_pin(&phone, pin).await {
                 Ok(true) => {
-                    // TODO: Actually process withdrawal
+                    // Check balance and process withdrawal
+                    let amount_f64 = amount.parse::<f64>().unwrap_or(0.0);
+                    
+                    let current_balance = crate::utils::datastore::get_user_data(&phone, "kes_balance")
+                        .await
+                        .ok()
+                        .flatten()
+                        .and_then(|b| b.parse::<f64>().ok())
+                        .unwrap_or(0.0);
+                    
+                    if current_balance < amount_f64 {
+                        return (format!("{}\n{}: {} KES\n\n{}", 
+                            TranslationService::translate("insufficient_balance", lang),
+                            TranslationService::translate("your_balance", lang),
+                            current_balance,
+                            TranslationService::translate("try_again", lang)), true);
+                    }
+                    
+                    let new_balance = current_balance - amount_f64;
+                    let _ = crate::utils::datastore::set_user_data(&phone, "kes_balance", &new_balance.to_string()).await;
+                    
                     session.clear_data();
                     session.current_menu = String::new();
                     session.step = 0;
                     
-                    (format!("{}\n{} {} KES\n{}\n\n0. {}", 
+                    (format!("{}\n{} {} KES\n{}\n{}: {} KES\n\n0. {}", 
                         TranslationService::translate("transaction_successful", lang),
                         TranslationService::translate("withdraw", lang),
                         amount,
                         TranslationService::translate("receive_cash", lang),
-                        TranslationService::translate("main_menu", lang)), true)
+                        TranslationService::translate("new_balance", lang),
+                        new_balance,
+                        TranslationService::translate("main_menu", lang)), false)
                 }
                 Ok(false) => {
                     (format!("{}\n{}", 

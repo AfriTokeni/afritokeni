@@ -9,7 +9,10 @@ pub async fn handle_send_money(text: &str, session: &mut UssdSession) -> (String
     let lang = Language::from_code(&session.language);
     let parts: Vec<&str> = text.split('*').collect();
     
-    match session.step {
+    // Determine step based on number of parts: "1*2" = step 0, "1*2*phone" = step 1, etc.
+    let step = if parts.len() <= 2 { 0 } else { parts.len() - 2 };
+    
+    match step {
         0 => {
             // Step 0: Show send money menu, ask for recipient
             session.current_menu = "send_money".to_string();
@@ -67,20 +70,52 @@ pub async fn handle_send_money(text: &str, session: &mut UssdSession) -> (String
             // Verify PIN
             match crate::utils::pin::verify_user_pin(&phone, pin).await {
                 Ok(true) => {
-                    // PIN correct - execute transaction
-                    // TODO: Actually send money via inter-canister call
+                    // PIN correct - check balance and execute transaction
+                    let amount_f64 = amount.parse::<f64>().unwrap_or(0.0);
+                    
+                    // Get current balance
+                    let current_balance = crate::utils::datastore::get_user_data(&phone, "kes_balance")
+                        .await
+                        .ok()
+                        .flatten()
+                        .and_then(|b| b.parse::<f64>().ok())
+                        .unwrap_or(0.0);
+                    
+                    // Check sufficient balance
+                    if current_balance < amount_f64 {
+                        return (format!("{}\n{}: {} KES\n\n{}", 
+                            TranslationService::translate("insufficient_balance", lang),
+                            TranslationService::translate("your_balance", lang),
+                            current_balance,
+                            TranslationService::translate("try_again", lang)), true);
+                    }
+                    
+                    // Deduct from sender
+                    let new_balance = current_balance - amount_f64;
+                    let _ = crate::utils::datastore::set_user_data(&phone, "kes_balance", &new_balance.to_string()).await;
+                    
+                    // Add to recipient (in real system, this would be inter-canister call)
+                    let recipient_balance = crate::utils::datastore::get_user_data(&recipient, "kes_balance")
+                        .await
+                        .ok()
+                        .flatten()
+                        .and_then(|b| b.parse::<f64>().ok())
+                        .unwrap_or(0.0);
+                    let _ = crate::utils::datastore::set_user_data(&recipient, "kes_balance", &(recipient_balance + amount_f64).to_string()).await;
                     
                     session.clear_data();
                     session.current_menu = String::new();
                     session.step = 0;
                     
-                    (format!("{}\n{} {} KES {} {}\n\n0. {}", 
+                    (format!("{}\n{} {} KES {} {}\n{}: {} KES\n\n0. {}", 
                         TranslationService::translate("transaction_successful", lang),
                         TranslationService::translate("sent", lang),
                         amount,
                         TranslationService::translate("to", lang),
                         recipient,
-                        TranslationService::translate("main_menu", lang)), true)
+                        TranslationService::translate("new_balance", lang),
+                        new_balance,
+                        TranslationService::translate("main_menu", lang)), false)
                 }
                 Ok(false) => {
                     // PIN incorrect

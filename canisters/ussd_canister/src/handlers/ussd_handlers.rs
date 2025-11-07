@@ -41,33 +41,30 @@ pub async fn handle_registration(session: &mut UssdSession, pin: &str) -> (Strin
 pub async fn handle_local_currency_menu(text: &str, session: &mut UssdSession) -> (String, bool) {
     let lang = Language::from_code(&session.language);
     
-    // If we're in a submenu flow, delegate to it
-    if session.current_menu == "send_money" && session.step > 0 {
-        return crate::handlers::send_money_flow::handle_send_money(text, session).await;
-    }
-    if session.current_menu == "withdraw" && session.step > 0 {
-        return crate::handlers::withdraw_flow::handle_withdraw(text, session).await;
-    }
-    
-    // Show local currency menu
-    if text.is_empty() || session.current_menu != "local_currency" {
-        session.current_menu = "local_currency".to_string();
-        session.step = 0;
-        let menu = format!("{}\n1. {}\n2. {}\n3. {}\n4. {}\n0. {}",
-            TranslationService::translate("local_currency_menu", lang),
-            TranslationService::translate("check_balance", lang),
-            TranslationService::translate("send_money", lang),
-            TranslationService::translate("deposit", lang),
-            TranslationService::translate("withdraw", lang),
-            TranslationService::translate("back", lang));
-        return (menu, true);
-    }
-    
-    // Handle menu selection
+    // Parse the text to determine which submenu we're in
     let parts: Vec<&str> = text.split('*').collect();
-    let choice = parts.last().unwrap_or(&"");
     
-    match *choice {
+    // If we have more than 2 parts (e.g., "1*2*phone"), we're in a flow
+    if parts.len() > 2 {
+        // Determine which flow based on second part
+        match parts.get(1) {
+            Some(&"2") => {
+                // Send money flow
+                session.current_menu = "send_money".to_string();
+                return crate::handlers::send_money_flow::handle_send_money(text, session).await;
+            }
+            Some(&"4") => {
+                // Withdraw flow
+                session.current_menu = "withdraw".to_string();
+                return crate::handlers::withdraw_flow::handle_withdraw(text, session).await;
+            }
+            _ => {}
+        }
+    }
+    
+    let last_input = parts.last().unwrap_or(&"");
+    
+    match *last_input {
         "1" => {
             // Check balance
             let balance = crate::utils::datastore::get_balance(&session.phone_number).await

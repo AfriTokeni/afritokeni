@@ -98,6 +98,7 @@ pub async fn handle_ussd_webhook(req: HttpRequest) {
         // Get or create session
         match crate::models::session::get_or_create_session(&session_id, &phone_number).await {
             Ok(mut session) => {
+                ic_cdk::println!("🔍 Session state: menu='{}', step={}", session.current_menu, session.step);
                 // Process menu with async handlers
                 let (response_text, continue_session) = if session.current_menu.is_empty() {
                     // Main menu
@@ -112,8 +113,13 @@ pub async fn handle_ussd_webhook(req: HttpRequest) {
                             crate::handlers::ussd_handlers::handle_registration(&mut session, pin).await
                         },
                         "local_currency" => crate::handlers::ussd_handlers::handle_local_currency_menu(&text, &mut session).await,
+                        "send_money" => crate::handlers::send_money_flow::handle_send_money(&text, &mut session).await,
+                        "withdraw" => crate::handlers::withdraw_flow::handle_withdraw(&text, &mut session).await,
                         "bitcoin" => crate::handlers::ussd_handlers::handle_bitcoin_menu(&text, &mut session).await,
+                        "buy_bitcoin" => crate::handlers::buy_bitcoin_flow::handle_buy_bitcoin(&text, &mut session).await,
+                        "send_bitcoin" => crate::handlers::send_bitcoin_flow::handle_send_bitcoin(&text, &mut session).await,
                         "usdc" => crate::handlers::ussd_handlers::handle_usdc_menu(&text, &mut session).await,
+                        "buy_usdc" => crate::handlers::buy_usdc_flow::handle_buy_usdc(&text, &mut session).await,
                         "dao" => crate::handlers::ussd_handlers::handle_dao_menu(&text, &mut session).await,
                         "language" => crate::handlers::ussd_handlers::handle_language_menu(&text, &mut session).await,
                         _ => crate::handlers::ussd_handlers::handle_main_menu(&text, &mut session).await,
