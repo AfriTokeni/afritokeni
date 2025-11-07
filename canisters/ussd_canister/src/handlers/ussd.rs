@@ -1,25 +1,26 @@
 use crate::handlers::http_handlers::{HttpRequest, HttpResponse};
-use ic_cdk::api::call::ManualReply;
 use std::str;
 
 /// Helper to create error response
-fn error_response(status_code: u16, message: &str) -> ManualReply<HttpResponse> {
+fn error_response(status_code: u16, message: &str) {
     let response = HttpResponse {
         status_code,
         headers: vec![("Content-Type".to_string(), "text/plain".to_string())],
         body: message.as_bytes().to_vec(),
     };
-    ManualReply::one(response)
+    let bytes = candid::encode_one(&response).expect("Failed to encode response");
+    ic_cdk::api::call::reply_raw(&bytes);
 }
 
 /// Helper to create OK response
-fn ok_response(body: &str) -> ManualReply<HttpResponse> {
+fn ok_response(body: &str) {
     let response = HttpResponse {
         status_code: 200,
         headers: vec![("Content-Type".to_string(), "text/plain; charset=utf-8".to_string())],
         body: body.as_bytes().to_vec(),
     };
-    ManualReply::one(response)
+    let bytes = candid::encode_one(&response).expect("Failed to encode response");
+    ic_cdk::api::call::reply_raw(&bytes);
 }
 
 /// Handle USSD webhook from Africa's Talking
@@ -33,7 +34,7 @@ fn ok_response(body: &str) -> ManualReply<HttpResponse> {
 /// - serviceCode: string (optional)
 /// - phoneNumber: string
 /// - text: string
-pub fn handle_ussd_webhook(req: HttpRequest) -> ManualReply<HttpResponse> {
+pub fn handle_ussd_webhook(req: HttpRequest) {
     // Check content type
     let content_type = req
         .headers

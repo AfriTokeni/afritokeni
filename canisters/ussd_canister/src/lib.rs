@@ -1,4 +1,3 @@
-use ic_cdk::api::call::ManualReply;
 use ic_cdk_macros::{query, update};
 
 // Organized module structure
@@ -9,7 +8,7 @@ mod utils;
 
 /// HTTP request handler for GET requests (IC HTTP gateway)
 #[query(manual_reply = true)]
-fn http_request(req: handlers::http_handlers::HttpRequest) -> ManualReply<handlers::http_handlers::HttpResponse> {
+fn http_request(req: handlers::http_handlers::HttpRequest) {
     handlers::http_handlers::route_request(req)
 }
 
@@ -18,6 +17,6 @@ fn http_request(req: handlers::http_handlers::HttpRequest) -> ManualReply<handle
 /// Routes:
 /// - POST /api/ussd - USSD webhook handler
 #[update(manual_reply = true)]
-fn http_request_update(req: handlers::http_handlers::HttpRequest) -> ManualReply<handlers::http_handlers::HttpResponse> {
+fn http_request_update(req: handlers::http_handlers::HttpRequest) {
     handlers::http_handlers::route_request(req)
 }
