@@ -1,3 +1,4 @@
+use candid::CandidType;
 use ic_cdk::api::time;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
@@ -5,7 +6,7 @@ use std::collections::HashMap;
 
 const SESSION_TIMEOUT_NANOS: u64 = 5 * 60 * 1_000_000_000; // 5 minutes in nanoseconds
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, CandidType)]
 pub struct UssdSession {
     pub session_id: String,
     pub phone_number: String,
@@ -60,24 +61,30 @@ thread_local! {
 pub async fn get_or_create_session(session_id: &str, phone_number: &str) -> Result<UssdSession, String> {
     // Check existing session first
     let existing_session = SESSIONS.with(|sessions| {
-        let mut sessions_map = sessions.borrow_mut();
+        let sessions_map = sessions.borrow();
+        ic_cdk::println!("🔍 Looking for session '{}', total sessions: {}", session_id, sessions_map.len());
         
         // Check if session exists and is not expired
         if let Some(session) = sessions_map.get(session_id) {
+            ic_cdk::println!("✅ Found existing session: menu='{}', step={}", session.current_menu, session.step);
             if !session.is_expired() {
                 let mut session_clone = session.clone();
                 session_clone.update_activity();
-                sessions_map.insert(session_id.to_string(), session_clone.clone());
                 return Some(session_clone);
             } else {
-                // Session expired, remove it
-                sessions_map.remove(session_id);
+                ic_cdk::println!("⏰ Session expired");
+                return None;
             }
         }
+        ic_cdk::println!("❌ Session not found");
         None
     });
     
-    if let Some(session) = existing_session {
+    if let Some(mut session) = existing_session {
+        // Update the session in storage
+        SESSIONS.with(|sessions| {
+            sessions.borrow_mut().insert(session_id.to_string(), session.clone());
+        });
         return Ok(session);
     }
     
@@ -89,6 +96,7 @@ pub async fn get_or_create_session(session_id: &str, phone_number: &str) -> Resu
     let mut new_session = UssdSession::new(session_id.to_string(), phone_number.to_string());
     new_session.language = user_language;
     
+    ic_cdk::println!("🆕 Creating new session for '{}'", session_id);
     SESSIONS.with(|sessions| {
         sessions.borrow_mut().insert(session_id.to_string(), new_session.clone());
     });
@@ -98,6 +106,7 @@ pub async fn get_or_create_session(session_id: &str, phone_number: &str) -> Resu
 
 /// Save session
 pub async fn save_session(session: &UssdSession) -> Result<(), String> {
+    ic_cdk::println!("💾 Saving session '{}': menu='{}', step={}", session.session_id, session.current_menu, session.step);
     SESSIONS.with(|sessions| {
         sessions.borrow_mut().insert(session.session_id.clone(), session.clone());
     });
@@ -106,6 +115,7 @@ pub async fn save_session(session: &UssdSession) -> Result<(), String> {
 
 /// Delete session
 pub async fn delete_session(session_id: &str) -> Result<(), String> {
+    ic_cdk::println!("🗑️ Deleting session '{}'", session_id);
     SESSIONS.with(|sessions| {
         sessions.borrow_mut().remove(session_id);
     });
