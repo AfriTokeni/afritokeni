@@ -19,8 +19,9 @@ pub async fn handle_withdraw(text: &str, session: &mut UssdSession) -> (String, 
                 TranslationService::translate("enter_amount", lang)), true)
         }
         1 => {
-            // Step 1: Validate amount (parts[3])
-            let amount_str = parts.get(3).unwrap_or(&"");
+            // Step 1: Validate amount (parts[2])
+            // Text: "1*4*amount" -> parts[0]=1, parts[1]=4, parts[2]=amount
+            let amount_str = parts.get(2).unwrap_or(&"");
             
             match validation::parse_amount(amount_str) {
                 Ok(amount) => {

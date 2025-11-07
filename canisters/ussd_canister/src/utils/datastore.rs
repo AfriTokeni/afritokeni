@@ -1,5 +1,5 @@
-// In-memory datastore for USSD canister
-// Uses thread-local storage to persist data across calls
+// Stable datastore for USSD canister  
+// Uses ic_cdk::storage for persistence across canister calls
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -24,11 +24,45 @@ impl Default for Balance {
 }
 
 // Thread-local storage for user data
+// NOTE: This persists WITHIN a canister call but NOT across calls
+// For cross-call persistence, we need stable memory (see lib.rs upgrade hooks)
 thread_local! {
     static USER_PINS: RefCell<HashMap<String, String>> = RefCell::new(HashMap::new());
     static USER_BALANCES: RefCell<HashMap<String, Balance>> = RefCell::new(HashMap::new());
     static USER_LANGUAGES: RefCell<HashMap<String, String>> = RefCell::new(HashMap::new());
     static USER_DATA: RefCell<HashMap<String, HashMap<String, String>>> = RefCell::new(HashMap::new());
+    static PIN_ATTEMPTS: RefCell<HashMap<String, u32>> = RefCell::new(HashMap::new());
+}
+
+// Export functions to get all data for stable storage
+pub fn export_all_data() -> (
+    HashMap<String, String>,
+    HashMap<String, Balance>,
+    HashMap<String, String>,
+    HashMap<String, HashMap<String, String>>,
+    HashMap<String, u32>,
+) {
+    let pins = USER_PINS.with(|p| p.borrow().clone());
+    let balances = USER_BALANCES.with(|b| b.borrow().clone());
+    let languages = USER_LANGUAGES.with(|l| l.borrow().clone());
+    let data = USER_DATA.with(|d| d.borrow().clone());
+    let attempts = PIN_ATTEMPTS.with(|a| a.borrow().clone());
+    (pins, balances, languages, data, attempts)
+}
+
+// Import functions to restore data from stable storage
+pub fn import_all_data(
+    pins: HashMap<String, String>,
+    balances: HashMap<String, Balance>,
+    languages: HashMap<String, String>,
+    data: HashMap<String, HashMap<String, String>>,
+    attempts: HashMap<String, u32>,
+) {
+    USER_PINS.with(|p| *p.borrow_mut() = pins);
+    USER_BALANCES.with(|b| *b.borrow_mut() = balances);
+    USER_LANGUAGES.with(|l| *l.borrow_mut() = languages);
+    USER_DATA.with(|d| *d.borrow_mut() = data);
+    PIN_ATTEMPTS.with(|a| *a.borrow_mut() = attempts);
 }
 
 /// Get user's PIN hash from datastore
@@ -203,5 +237,30 @@ pub async fn clear_all_data() -> Result<(), String> {
     USER_BALANCES.with(|balances| balances.borrow_mut().clear());
     USER_LANGUAGES.with(|languages| languages.borrow_mut().clear());
     USER_DATA.with(|data| data.borrow_mut().clear());
+    PIN_ATTEMPTS.with(|attempts| attempts.borrow_mut().clear());
     Ok(())
+}
+
+/// Get PIN attempt count
+pub fn get_pin_attempts(phone_number: &str) -> u32 {
+    PIN_ATTEMPTS.with(|attempts| {
+        attempts.borrow().get(phone_number).copied().unwrap_or(0)
+    })
+}
+
+/// Increment PIN attempt count
+pub fn increment_pin_attempts(phone_number: &str) -> u32 {
+    PIN_ATTEMPTS.with(|attempts| {
+        let mut map = attempts.borrow_mut();
+        let count = map.get(phone_number).copied().unwrap_or(0) + 1;
+        map.insert(phone_number.to_string(), count);
+        count
+    })
+}
+
+/// Reset PIN attempt count
+pub fn reset_pin_attempts(phone_number: &str) {
+    PIN_ATTEMPTS.with(|attempts| {
+        attempts.borrow_mut().remove(phone_number);
+    });
 }

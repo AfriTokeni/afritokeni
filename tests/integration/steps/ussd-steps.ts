@@ -102,7 +102,9 @@ Given('I have {float} KES in my account', async function (amount: number) {
   const execAsync = promisify(exec);
   
   // Set balance via admin endpoint
-  const command = `dfx canister call ussd_canister admin_set_balance '("${world.phoneNumber}", ${amount}.0, ${world.ckbtcBalance || 0}.0, ${world.ckusdcBalance || 0}.0)' --network local`;
+  const ckbtcBalance = world.ckbtcBalance || 0;
+  const ckusdcBalance = world.ckusdcBalance || 0;
+  const command = `dfx canister call ussd_canister admin_set_balance '("${world.phoneNumber}", ${Number(amount).toFixed(1)}, ${Number(ckbtcBalance).toFixed(8)}, ${Number(ckusdcBalance).toFixed(2)})' --network local`;
   await execAsync(command);
   console.log(`💰 KES balance: ${amount}`);
 });
@@ -114,7 +116,9 @@ Given('I have {float} ckBTC in my account', async function (amount: number) {
   const execAsync = promisify(exec);
   
   // Set balance via admin endpoint
-  const command = `dfx canister call ussd_canister admin_set_balance '("${world.phoneNumber}", ${world.kesBalance || 0}.0, ${amount}.0, ${world.ckusdcBalance || 0}.0)' --network local`;
+  const kesBalance = world.kesBalance || 0;
+  const ckusdcBalance = world.ckusdcBalance || 0;
+  const command = `dfx canister call ussd_canister admin_set_balance '("${world.phoneNumber}", ${Number(kesBalance).toFixed(1)}, ${Number(amount).toFixed(8)}, ${Number(ckusdcBalance).toFixed(2)})' --network local`;
   await execAsync(command);
   console.log(`💰 ckBTC balance: ${amount}`);
 });
@@ -126,7 +130,9 @@ Given('I have {float} ckUSDC in my account', async function (amount: number) {
   const execAsync = promisify(exec);
   
   // Set balance via admin endpoint
-  const command = `dfx canister call ussd_canister admin_set_balance '("${world.phoneNumber}", ${world.kesBalance || 0}.0, ${world.ckbtcBalance || 0}.0, ${amount}.0)' --network local`;
+  const kesBalance = world.kesBalance || 0;
+  const ckbtcBalance = world.ckbtcBalance || 0;
+  const command = `dfx canister call ussd_canister admin_set_balance '("${world.phoneNumber}", ${Number(kesBalance).toFixed(1)}, ${Number(ckbtcBalance).toFixed(8)}, ${Number(amount).toFixed(2)})' --network local`;
   await execAsync(command);
   console.log(`💰 ckUSDC balance: ${amount}`);
 });

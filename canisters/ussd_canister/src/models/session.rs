@@ -88,10 +88,12 @@ pub async fn get_or_create_session(session_id: &str, phone_number: &str) -> Resu
         return Ok(session);
     }
     
-    // Create new session - load user's language preference from datastore
-    let user_language = crate::utils::datastore::get_user_language(phone_number)
+    // Create new session - load user's language preference from Juno
+    let user_language = crate::utils::juno_client::get_user_language(phone_number)
         .await
-        .unwrap_or_else(|_| "en".to_string());
+        .ok()
+        .flatten()
+        .unwrap_or_else(|| "en".to_string());
     
     let mut new_session = UssdSession::new(session_id.to_string(), phone_number.to_string());
     new_session.language = user_language;

@@ -25,8 +25,7 @@ pub async fn handle_send_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
             let address = validation::sanitize_input(address_raw);
             
             if !validation::is_valid_btc_address(&address) {
-                return (format!("{}\n{}", 
-                    TranslationService::translate("invalid_btc_address", lang),
+                return (format!("Invalid BTC address\n{}", 
                     TranslationService::translate("try_again", lang)), true);
             }
             

@@ -244,8 +244,8 @@ pub async fn handle_language_menu(text: &str, session: &mut UssdSession) -> (Str
             session.language = new_lang.to_code().to_string();
             let phone = session.phone_number.clone();
             let lang_code = new_lang.to_code();
-            // Save language preference to datastore
-            let _ = crate::utils::datastore::set_user_language(&phone, lang_code).await;
+            // Save language preference to Juno
+            let _ = crate::utils::juno_client::set_user_language(&phone, lang_code).await;
             (format!("{}\n0. {}", 
                 TranslationService::translate("language_set", new_lang),
                 TranslationService::translate("main_menu", new_lang)), false)
@@ -255,7 +255,7 @@ pub async fn handle_language_menu(text: &str, session: &mut UssdSession) -> (Str
             session.language = new_lang.to_code().to_string();
             let phone = session.phone_number.clone();
             let lang_code = new_lang.to_code();
-            let _ = crate::utils::datastore::set_user_language(&phone, lang_code).await;
+            let _ = crate::utils::juno_client::set_user_language(&phone, lang_code).await;
             (format!("{}\n0. {}", 
                 TranslationService::translate("language_set", new_lang),
                 TranslationService::translate("main_menu", new_lang)), false)
@@ -265,7 +265,7 @@ pub async fn handle_language_menu(text: &str, session: &mut UssdSession) -> (Str
             session.language = new_lang.to_code().to_string();
             let phone = session.phone_number.clone();
             let lang_code = new_lang.to_code();
-            let _ = crate::utils::datastore::set_user_language(&phone, lang_code).await;
+            let _ = crate::utils::juno_client::set_user_language(&phone, lang_code).await;
             (format!("{}\n0. {}", 
                 TranslationService::translate("language_set", new_lang),
                 TranslationService::translate("main_menu", new_lang)), false)

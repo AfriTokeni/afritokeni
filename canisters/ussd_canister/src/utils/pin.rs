@@ -103,12 +103,15 @@ pub fn reset_pin_attempts(phone: &str) {
 
 /// Verify user's PIN
 pub async fn verify_user_pin(phone: &str, pin: &str) -> Result<bool, String> {
-    // Check if locked out
-    check_pin_lockout(phone)?;
+    // Check if locked out (3 attempts max) - use Juno
+    let attempts = crate::utils::juno_client::get_pin_attempts(phone).await.unwrap_or(0);
+    if attempts >= 3 {
+        return Err("Account locked. Too many failed PIN attempts.".to_string());
+    }
     
     // Validate PIN format
     if !is_valid_pin(pin) {
-        record_failed_attempt(phone);
+        let _ = crate::utils::juno_client::set_pin_attempts(phone, attempts + 1).await;
         return Ok(false);
     }
     
@@ -117,9 +120,9 @@ pub async fn verify_user_pin(phone: &str, pin: &str) -> Result<bool, String> {
         Ok(hash) => {
             let is_valid = verify_pin_hash(pin, &hash);
             if is_valid {
-                reset_pin_attempts(phone);
+                let _ = crate::utils::juno_client::reset_pin_attempts(phone).await;
             } else {
-                record_failed_attempt(phone);
+                let _ = crate::utils::juno_client::set_pin_attempts(phone, attempts + 1).await;
             }
             Ok(is_valid)
         },
