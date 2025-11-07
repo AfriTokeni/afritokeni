@@ -28,6 +28,7 @@ thread_local! {
     static USER_PINS: RefCell<HashMap<String, String>> = RefCell::new(HashMap::new());
     static USER_BALANCES: RefCell<HashMap<String, Balance>> = RefCell::new(HashMap::new());
     static USER_LANGUAGES: RefCell<HashMap<String, String>> = RefCell::new(HashMap::new());
+    static USER_DATA: RefCell<HashMap<String, HashMap<String, String>>> = RefCell::new(HashMap::new());
 }
 
 /// Get user's PIN hash from datastore
@@ -173,4 +174,34 @@ mod tests {
         assert!(retrieved.is_ok());
         assert_eq!(retrieved.unwrap(), "en"); // Default
     }
+}
+
+/// Set generic user data
+pub async fn set_user_data(phone_number: &str, key: &str, value: &str) -> Result<(), String> {
+    USER_DATA.with(|data| {
+        let mut data_map = data.borrow_mut();
+        let user_data = data_map.entry(phone_number.to_string()).or_insert_with(HashMap::new);
+        user_data.insert(key.to_string(), value.to_string());
+    });
+    Ok(())
+}
+
+/// Get generic user data
+pub async fn get_user_data(phone_number: &str, key: &str) -> Result<Option<String>, String> {
+    USER_DATA.with(|data| {
+        let data_map = data.borrow();
+        Ok(data_map
+            .get(phone_number)
+            .and_then(|user_data| user_data.get(key))
+            .cloned())
+    })
+}
+
+/// Clear all data (for testing)
+pub async fn clear_all_data() -> Result<(), String> {
+    USER_PINS.with(|pins| pins.borrow_mut().clear());
+    USER_BALANCES.with(|balances| balances.borrow_mut().clear());
+    USER_LANGUAGES.with(|languages| languages.borrow_mut().clear());
+    USER_DATA.with(|data| data.borrow_mut().clear());
+    Ok(())
 }

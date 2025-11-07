@@ -83,27 +83,51 @@ Given('I have a registered account with phone {string}', function (phone: string
   console.log(`📱 Test user: ${phone}`);
 });
 
-Given('I have set up a PIN {string}', function (pin: string) {
+Given('I have set up a PIN {string}', async function (pin: string) {
   world.userPin = pin;
-  // TODO: Actually set up PIN in canister
+  const { exec } = await import('child_process');
+  const { promisify } = await import('util');
+  const execAsync = promisify(exec);
+  
+  // Set PIN via admin endpoint
+  const command = `dfx canister call ussd_canister admin_set_pin '("${world.phoneNumber}", "${pin}")' --network local`;
+  await execAsync(command);
   console.log(`🔐 PIN set: ${pin}`);
 });
 
-Given('I have {float} KES in my account', function (amount: number) {
+Given('I have {float} KES in my account', async function (amount: number) {
   world.kesBalance = amount;
-  // TODO: Set balance in canister
+  const { exec } = await import('child_process');
+  const { promisify } = await import('util');
+  const execAsync = promisify(exec);
+  
+  // Set balance via admin endpoint
+  const command = `dfx canister call ussd_canister admin_set_balance '("${world.phoneNumber}", ${amount}.0, ${world.ckbtcBalance || 0}.0, ${world.ckusdcBalance || 0}.0)' --network local`;
+  await execAsync(command);
   console.log(`💰 KES balance: ${amount}`);
 });
 
-Given('I have {float} ckBTC in my account', function (amount: number) {
+Given('I have {float} ckBTC in my account', async function (amount: number) {
   world.ckbtcBalance = amount;
-  // TODO: Set balance in canister
+  const { exec } = await import('child_process');
+  const { promisify } = await import('util');
+  const execAsync = promisify(exec);
+  
+  // Set balance via admin endpoint
+  const command = `dfx canister call ussd_canister admin_set_balance '("${world.phoneNumber}", ${world.kesBalance || 0}.0, ${amount}.0, ${world.ckusdcBalance || 0}.0)' --network local`;
+  await execAsync(command);
   console.log(`💰 ckBTC balance: ${amount}`);
 });
 
-Given('I have {float} ckUSDC in my account', function (amount: number) {
+Given('I have {float} ckUSDC in my account', async function (amount: number) {
   world.ckusdcBalance = amount;
-  // TODO: Set balance in canister
+  const { exec } = await import('child_process');
+  const { promisify } = await import('util');
+  const execAsync = promisify(exec);
+  
+  // Set balance via admin endpoint
+  const command = `dfx canister call ussd_canister admin_set_balance '("${world.phoneNumber}", ${world.kesBalance || 0}.0, ${world.ckbtcBalance || 0}.0, ${amount}.0)' --network local`;
+  await execAsync(command);
   console.log(`💰 ckUSDC balance: ${amount}`);
 });
 
