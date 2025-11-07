@@ -9,20 +9,19 @@ pub async fn handle_buy_usdc(text: &str, session: &mut UssdSession) -> (String, 
     let lang = Language::from_code(&session.language);
     let parts: Vec<&str> = text.split('*').collect();
     
-    match session.step {
+    let step = if parts.len() <= 2 { 0 } else { parts.len() - 2 };
+    
+    match step {
         0 => {
             // Step 0: Ask for KES amount
-            session.current_menu = "buy_usdc".to_string();
-            session.step = 1;
-            session.clear_data();
             (format!("{}\n{} (KES) {} ckUSDC:", 
                 TranslationService::translate("buy_usdc", lang),
                 TranslationService::translate("enter_amount", lang),
                 TranslationService::translate("to", lang)), true)
         }
         1 => {
-            // Step 1: Validate amount and ask for PIN
-            let amount_str = parts.last().unwrap_or(&"");
+            // Step 1: Validate amount (parts[3])
+            let amount_str = parts.get(3).unwrap_or(&"");
             
             match validation::parse_amount(amount_str) {
                 Ok(amount) => {
@@ -30,9 +29,6 @@ pub async fn handle_buy_usdc(text: &str, session: &mut UssdSession) -> (String, 
                     let usdc_rate = 150.0; // 150 KES per USDC (example)
                     let usdc_amount = amount / usdc_rate;
                     
-                    session.set_data("amount_kes", amount_str);
-                    session.set_data("amount_usdc", &format!("{:.2}", usdc_amount));
-                    session.step = 2;
                     
                     (format!("{}\n{}: {} KES\n{}: {:.2} ckUSDC\n\n{}", 
                         TranslationService::translate("confirm_transaction", lang),
@@ -49,10 +45,15 @@ pub async fn handle_buy_usdc(text: &str, session: &mut UssdSession) -> (String, 
         }
         2 => {
             // Step 2: Verify PIN and execute
-            let pin = parts.last().unwrap_or(&"");
+            let pin = parts.get(3).unwrap_or(&"");
             let phone = session.phone_number.clone();
-            let amount_kes = session.get_data("amount_kes").cloned().unwrap_or_default();
-            let amount_usdc = session.get_data("amount_usdc").cloned().unwrap_or_default();
+            let amount_kes_str = parts.get(2).unwrap_or(&"");
+            
+            let amount_kes = amount_kes_str.to_string();
+            let usdc_rate = 150.0;
+            let amount_f64 = amount_kes_str.parse::<f64>().unwrap_or(0.0);
+            let usdc_amount_f64 = amount_f64 / usdc_rate;
+            let amount_usdc = format!("{:.2}", usdc_amount_f64);
             
             match crate::utils::pin::verify_user_pin(&phone, pin).await {
                 Ok(true) => {

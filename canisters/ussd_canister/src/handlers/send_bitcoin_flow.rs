@@ -9,19 +9,18 @@ pub async fn handle_send_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
     let lang = Language::from_code(&session.language);
     let parts: Vec<&str> = text.split('*').collect();
     
-    match session.step {
+    let step = if parts.len() <= 2 { 0 } else { parts.len() - 2 };
+    
+    match step {
         0 => {
-            // Step 0: Ask for recipient BTC address
-            session.current_menu = "send_bitcoin".to_string();
-            session.step = 1;
-            session.clear_data();
+            // Step 0: Ask for BTC address
             (format!("{}\n{}", 
                 TranslationService::translate("send_bitcoin", lang),
                 TranslationService::translate("enter_btc_address", lang)), true)
         }
         1 => {
-            // Step 1: Validate and save BTC address
-            let address_raw = parts.last().unwrap_or(&"");
+            // Step 1: Validate BTC address (parts[3])
+            let address_raw = parts.get(3).unwrap_or(&"");
             let address = validation::sanitize_input(address_raw);
             
             if !validation::is_valid_btc_address(&address) {
@@ -30,20 +29,15 @@ pub async fn handle_send_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
                     TranslationService::translate("try_again", lang)), true);
             }
             
-            session.set_data("btc_address", &address);
-            session.step = 2;
             (format!("{} (ckBTC):", TranslationService::translate("enter_amount", lang)), true)
         }
         2 => {
-            // Step 2: Validate and save amount
-            let amount_str = parts.last().unwrap_or(&"");
+            // Step 2: Validate amount (parts[4])
+            let amount_str = parts.get(4).unwrap_or(&"");
             
             match validation::parse_amount(amount_str) {
                 Ok(amount) => {
-                    session.set_data("amount", amount_str);
-                    session.step = 3;
-                    
-                    let address = session.get_data("btc_address").cloned().unwrap_or_default();
+                    let address = parts.get(3).unwrap_or(&"");
                     (format!("{}\n{}: {}\n{}: {} ckBTC\n\n{}", 
                         TranslationService::translate("confirm_transaction", lang),
                         TranslationService::translate("to", lang),
@@ -59,10 +53,11 @@ pub async fn handle_send_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
         }
         3 => {
             // Step 3: Verify PIN and execute
-            let pin = parts.last().unwrap_or(&"");
+            // parts: [0]=2, [1]=4, [2]=address, [3]=amount, [4]=pin
+            let pin = parts.get(4).unwrap_or(&"");
             let phone = session.phone_number.clone();
-            let address = session.get_data("btc_address").cloned().unwrap_or_default();
-            let amount = session.get_data("amount").cloned().unwrap_or_default();
+            let address = parts.get(2).unwrap_or(&"").to_string();
+            let amount = parts.get(3).unwrap_or(&"").to_string();
             
             match crate::utils::pin::verify_user_pin(&phone, pin).await {
                 Ok(true) => {

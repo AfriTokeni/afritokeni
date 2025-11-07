@@ -43,13 +43,16 @@ pub async fn handle_local_currency_menu(text: &str, session: &mut UssdSession) -
     
     // Parse the text to determine which submenu we're in
     let parts: Vec<&str> = text.split('*').collect();
+    ic_cdk::println!("🔍 Local currency menu: parts={:?}, len={}", parts, parts.len());
     
     // If we have more than 2 parts (e.g., "1*2*phone"), we're in a flow
     if parts.len() > 2 {
+        ic_cdk::println!("🔍 Checking flow routing, parts[1]={:?}", parts.get(1));
         // Determine which flow based on second part
         match parts.get(1) {
             Some(&"2") => {
                 // Send money flow
+                ic_cdk::println!("✅ Routing to send_money flow");
                 session.current_menu = "send_money".to_string();
                 return crate::handlers::send_money_flow::handle_send_money(text, session).await;
             }
@@ -103,56 +106,44 @@ pub async fn handle_local_currency_menu(text: &str, session: &mut UssdSession) -
 pub async fn handle_bitcoin_menu(text: &str, session: &mut UssdSession) -> (String, bool) {
     let lang = Language::from_code(&session.language);
     
-    // If we're in a submenu flow, delegate to it
-    if session.current_menu == "buy_bitcoin" && session.step > 0 {
-        return crate::handlers::buy_bitcoin_flow::handle_buy_bitcoin(text, session).await;
-    }
-    if session.current_menu == "send_bitcoin" && session.step > 0 {
-        return crate::handlers::send_bitcoin_flow::handle_send_bitcoin(text, session).await;
-    }
-    
-    // Show Bitcoin menu
-    if text.is_empty() || session.current_menu != "bitcoin" {
-        session.current_menu = "bitcoin".to_string();
-        session.step = 0;
-        let menu = format!("{}\n1. {}\n2. {}\n3. {}\n4. {}\n0. {}",
-            TranslationService::translate("bitcoin_menu", lang),
-            TranslationService::translate("check_balance", lang),
-            TranslationService::translate("buy_bitcoin", lang),
-            TranslationService::translate("sell_bitcoin", lang),
-            TranslationService::translate("send_bitcoin", lang),
-            TranslationService::translate("back", lang));
-        return (menu, true);
-    }
-    
-    // Handle menu selection
     let parts: Vec<&str> = text.split('*').collect();
+    
+    // If we have more than 2 parts, we're in a flow
+    if parts.len() > 2 {
+        match parts.get(1) {
+            Some(&"3") => {
+                // Buy Bitcoin flow
+                return crate::handlers::buy_bitcoin_flow::handle_buy_bitcoin(text, session).await;
+            }
+            Some(&"4") => {
+                // Send Bitcoin flow
+                return crate::handlers::send_bitcoin_flow::handle_send_bitcoin(text, session).await;
+            }
+            _ => {}
+        }
+    }
+    
     let choice = parts.last().unwrap_or(&"");
     
     match *choice {
-        "1" => {
-            // Check balance
-            let balance = crate::utils::datastore::get_balance(&session.phone_number).await
-                .unwrap_or_default();
-            session.current_menu = String::new();
-            (format!("{}:\nckBTC: {:.8}\n\n0. {}", 
-                TranslationService::translate("bitcoin_balance", lang),
-                balance.ckbtc,
-                TranslationService::translate("main_menu", lang)), true)
-        }
         "2" => {
+            // Show Bitcoin menu
+            let menu = format!("{}\n1. {}\n2. {}\n3. {}\n4. {}\n0. {}",
+                TranslationService::translate("bitcoin_menu", lang),
+                TranslationService::translate("check_balance", lang),
+                TranslationService::translate("buy_bitcoin", lang),
+                TranslationService::translate("sell_bitcoin", lang),
+                TranslationService::translate("send_bitcoin", lang),
+                TranslationService::translate("back", lang));
+            (menu, true)
+        }
+        "3" => {
             // Buy Bitcoin - start the flow
-            session.step = 0;
             crate::handlers::buy_bitcoin_flow::handle_buy_bitcoin(text, session).await
         }
         "4" => {
             // Send Bitcoin - start the flow
-            session.step = 0;
             crate::handlers::send_bitcoin_flow::handle_send_bitcoin(text, session).await
-        }
-        "0" => {
-            session.current_menu = String::new();
-            handle_main_menu("", session).await
         }
         _ => {
             (format!("{}\n0. {}", 
@@ -166,47 +157,31 @@ pub async fn handle_bitcoin_menu(text: &str, session: &mut UssdSession) -> (Stri
 pub async fn handle_usdc_menu(text: &str, session: &mut UssdSession) -> (String, bool) {
     let lang = Language::from_code(&session.language);
     
-    // If we're in buy flow, delegate to it
-    if session.current_menu == "buy_usdc" && session.step > 0 {
-        return crate::handlers::buy_usdc_flow::handle_buy_usdc(text, session).await;
-    }
-    
-    // Show USDC menu
-    if text.is_empty() || session.current_menu != "usdc" {
-        session.current_menu = "usdc".to_string();
-        session.step = 0;
-        let menu = format!("{}\n1. {}\n2. {}\n3. {}\n0. {}",
-            TranslationService::translate("usdc_menu", lang),
-            TranslationService::translate("check_balance", lang),
-            TranslationService::translate("buy_usdc", lang),
-            TranslationService::translate("send_usdc", lang),
-            TranslationService::translate("back", lang));
-        return (menu, true);
-    }
-    
-    // Handle menu selection
     let parts: Vec<&str> = text.split('*').collect();
+    
+    // If we have more than 2 parts, we're in buy flow
+    if parts.len() > 2 {
+        if let Some(&"2") = parts.get(1) {
+            return crate::handlers::buy_usdc_flow::handle_buy_usdc(text, session).await;
+        }
+    }
+    
     let choice = parts.last().unwrap_or(&"");
     
     match *choice {
-        "1" => {
-            // Check balance
-            let balance = crate::utils::datastore::get_balance(&session.phone_number).await
-                .unwrap_or_default();
-            session.current_menu = String::new();
-            (format!("{}:\nckUSDC: {:.2}\n\n0. {}", 
-                TranslationService::translate("usdc_balance", lang),
-                balance.ckusdc,
-                TranslationService::translate("main_menu", lang)), true)
+        "3" => {
+            // Show USDC menu
+            let menu = format!("{}\n1. {}\n2. {}\n3. {}\n0. {}",
+                TranslationService::translate("usdc_menu", lang),
+                TranslationService::translate("check_balance", lang),
+                TranslationService::translate("buy_usdc", lang),
+                TranslationService::translate("send_usdc", lang),
+                TranslationService::translate("back", lang));
+            (menu, true)
         }
         "2" => {
             // Buy USDC - start the flow
-            session.step = 0;
             crate::handlers::buy_usdc_flow::handle_buy_usdc(text, session).await
-        }
-        "0" => {
-            session.current_menu = String::new();
-            handle_main_menu("", session).await
         }
         _ => {
             (format!("{}\n0. {}", 

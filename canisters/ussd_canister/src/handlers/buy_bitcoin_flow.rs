@@ -9,30 +9,25 @@ pub async fn handle_buy_bitcoin(text: &str, session: &mut UssdSession) -> (Strin
     let lang = Language::from_code(&session.language);
     let parts: Vec<&str> = text.split('*').collect();
     
-    match session.step {
+    let step = if parts.len() <= 2 { 0 } else { parts.len() - 2 };
+    
+    match step {
         0 => {
             // Step 0: Ask for KES amount
-            session.current_menu = "buy_bitcoin".to_string();
-            session.step = 1;
-            session.clear_data();
             (format!("{}\n{} (KES) {} ckBTC:", 
                 TranslationService::translate("buy_bitcoin", lang),
                 TranslationService::translate("enter_amount", lang),
                 TranslationService::translate("to", lang)), true)
         }
         1 => {
-            // Step 1: Validate amount and ask for PIN
-            let amount_str = parts.last().unwrap_or(&"");
+            // Step 1: Validate amount (parts[3])
+            let amount_str = parts.get(3).unwrap_or(&"");
             
             match validation::parse_amount(amount_str) {
                 Ok(amount) => {
                     // TODO: Get actual BTC rate
                     let btc_rate = 50_000_000.0; // 50M KES per BTC (example)
                     let btc_amount = amount / btc_rate;
-                    
-                    session.set_data("amount_kes", amount_str);
-                    session.set_data("amount_btc", &format!("{:.8}", btc_amount));
-                    session.step = 2;
                     
                     (format!("{}\n{}: {} KES\n{}: {:.8} ckBTC\n\n{}", 
                         TranslationService::translate("confirm_transaction", lang),
@@ -49,10 +44,16 @@ pub async fn handle_buy_bitcoin(text: &str, session: &mut UssdSession) -> (Strin
         }
         2 => {
             // Step 2: Verify PIN and execute
-            let pin = parts.last().unwrap_or(&"");
+            // parts: [0]=2, [1]=3, [2]=amount_kes, [3]=pin
+            let pin = parts.get(3).unwrap_or(&"");
             let phone = session.phone_number.clone();
-            let amount_kes = session.get_data("amount_kes").cloned().unwrap_or_default();
-            let amount_btc = session.get_data("amount_btc").cloned().unwrap_or_default();
+            let amount_kes_str = parts.get(2).unwrap_or(&"");
+            
+            let amount_kes = amount_kes_str.to_string();
+            let btc_rate = 50_000_000.0;
+            let amount_f64 = amount_kes_str.parse::<f64>().unwrap_or(0.0);
+            let btc_amount_f64 = amount_f64 / btc_rate;
+            let amount_btc = format!("{:.8}", btc_amount_f64);
             
             match crate::utils::pin::verify_user_pin(&phone, pin).await {
                 Ok(true) => {
@@ -77,10 +78,6 @@ pub async fn handle_buy_bitcoin(text: &str, session: &mut UssdSession) -> (Strin
                         .await.ok().flatten().and_then(|b| b.parse::<f64>().ok()).unwrap_or(0.0);
                     let _ = crate::utils::datastore::set_user_data(&phone, "ckbtc_balance", &(btc_balance + btc_f64).to_string()).await;
                     
-                    session.clear_data();
-                    session.current_menu = String::new();
-                    session.step = 0;
-                    
                     (format!("{}\n{} {} KES\n{} {} ckBTC\n\n0. {}", 
                         TranslationService::translate("transaction_successful", lang),
                         TranslationService::translate("paid", lang),
@@ -95,18 +92,12 @@ pub async fn handle_buy_bitcoin(text: &str, session: &mut UssdSession) -> (Strin
                         TranslationService::translate("try_again", lang)), true)
                 }
                 Err(e) => {
-                    session.clear_data();
-                    session.current_menu = String::new();
-                    session.step = 0;
-                    (format!("{}\n\n0. {}", e, TranslationService::translate("main_menu", lang)), true)
+                    (format!("{}\n\n0. {}", e, TranslationService::translate("main_menu", lang)), false)
                 }
             }
         }
         _ => {
-            session.clear_data();
-            session.current_menu = String::new();
-            session.step = 0;
-            (TranslationService::translate("invalid_selection", lang).to_string(), true)
+            (TranslationService::translate("invalid_selection", lang).to_string(), false)
         }
     }
 }

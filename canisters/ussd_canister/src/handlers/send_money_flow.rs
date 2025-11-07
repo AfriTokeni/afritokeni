@@ -15,16 +15,13 @@ pub async fn handle_send_money(text: &str, session: &mut UssdSession) -> (String
     match step {
         0 => {
             // Step 0: Show send money menu, ask for recipient
-            session.current_menu = "send_money".to_string();
-            session.step = 1;
-            session.clear_data();
             (format!("{}\n{}", 
                 TranslationService::translate("send_money", lang),
                 TranslationService::translate("enter_recipient_phone", lang)), true)
         }
         1 => {
-            // Step 1: Validate and save recipient phone
-            let recipient_raw = parts.last().unwrap_or(&"");
+            // Step 1: Validate recipient phone (parts[2])
+            let recipient_raw = parts.get(2).unwrap_or(&"");
             let recipient = validation::sanitize_input(recipient_raw);
             
             if !validation::is_valid_phone(&recipient) {
@@ -33,20 +30,15 @@ pub async fn handle_send_money(text: &str, session: &mut UssdSession) -> (String
                     TranslationService::translate("try_again", lang)), true);
             }
             
-            session.set_data("recipient", &recipient);
-            session.step = 2;
             (format!("{} (KES):", TranslationService::translate("enter_amount", lang)), true)
         }
         2 => {
-            // Step 2: Validate and save amount
-            let amount_str = parts.last().unwrap_or(&"");
+            // Step 2: Validate amount (parts[3])
+            let amount_str = parts.get(3).unwrap_or(&"");
             
             match validation::parse_amount(amount_str) {
                 Ok(amount) => {
-                    session.set_data("amount", amount_str);
-                    session.step = 3;
-                    
-                    let recipient = session.get_data("recipient").cloned().unwrap_or_default();
+                    let recipient = parts.get(2).unwrap_or(&"");
                     (format!("{}\n{}: {}\n{}: {} KES\n\n{}", 
                         TranslationService::translate("confirm_transaction", lang),
                         TranslationService::translate("to", lang),
@@ -62,10 +54,11 @@ pub async fn handle_send_money(text: &str, session: &mut UssdSession) -> (String
         }
         3 => {
             // Step 3: Verify PIN and execute transaction
-            let pin = parts.last().unwrap_or(&"");
+            // parts: [0]=1, [1]=2, [2]=phone, [3]=amount, [4]=pin
+            let pin = parts.get(4).unwrap_or(&"");
             let phone = session.phone_number.clone();
-            let recipient = session.get_data("recipient").cloned().unwrap_or_default();
-            let amount = session.get_data("amount").cloned().unwrap_or_default();
+            let recipient = parts.get(2).unwrap_or(&"").to_string();
+            let amount = parts.get(3).unwrap_or(&"").to_string();
             
             // Verify PIN
             match crate::utils::pin::verify_user_pin(&phone, pin).await {
@@ -103,10 +96,6 @@ pub async fn handle_send_money(text: &str, session: &mut UssdSession) -> (String
                         .unwrap_or(0.0);
                     let _ = crate::utils::datastore::set_user_data(&recipient, "kes_balance", &(recipient_balance + amount_f64).to_string()).await;
                     
-                    session.clear_data();
-                    session.current_menu = String::new();
-                    session.step = 0;
-                    
                     (format!("{}\n{} {} KES {} {}\n{}: {} KES\n\n0. {}", 
                         TranslationService::translate("transaction_successful", lang),
                         TranslationService::translate("sent", lang),
@@ -125,19 +114,13 @@ pub async fn handle_send_money(text: &str, session: &mut UssdSession) -> (String
                 }
                 Err(e) => {
                     // Locked out or error
-                    session.clear_data();
-                    session.current_menu = String::new();
-                    session.step = 0;
-                    (format!("{}\n\n0. {}", e, TranslationService::translate("main_menu", lang)), true)
+                    (format!("{}\n\n0. {}", e, TranslationService::translate("main_menu", lang)), false)
                 }
             }
         }
         _ => {
-            // Invalid state, reset
-            session.clear_data();
-            session.current_menu = String::new();
-            session.step = 0;
-            (TranslationService::translate("invalid_selection", lang).to_string(), true)
+            // Invalid state
+            (TranslationService::translate("invalid_selection", lang).to_string(), false)
         }
     }
 }

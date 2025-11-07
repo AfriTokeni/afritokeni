@@ -99,30 +99,42 @@ pub async fn handle_ussd_webhook(req: HttpRequest) {
         match crate::models::session::get_or_create_session(&session_id, &phone_number).await {
             Ok(mut session) => {
                 ic_cdk::println!("🔍 Session state: menu='{}', step={}", session.current_menu, session.step);
-                // Process menu with async handlers
-                let (response_text, continue_session) = if session.current_menu.is_empty() {
-                    // Main menu
+                
+                // Route based on text parsing (stateless)
+                let parts: Vec<&str> = text.split('*').collect();
+                ic_cdk::println!("🔍 Routing: text='{}', parts={:?}", text, parts);
+                
+                let (response_text, continue_session) = if text.is_empty() || parts.len() == 1 {
+                    // Main menu or first selection
                     crate::handlers::ussd_handlers::handle_main_menu(&text, &mut session).await
                 } else {
-                    // Route to submenu
-                    match session.current_menu.as_str() {
-                        "register" => {
-                            // Extract PIN from input
-                            let parts: Vec<&str> = text.split('*').collect();
-                            let pin = parts.last().unwrap_or(&"");
-                            crate::handlers::ussd_handlers::handle_registration(&mut session, pin).await
-                        },
-                        "local_currency" => crate::handlers::ussd_handlers::handle_local_currency_menu(&text, &mut session).await,
-                        "send_money" => crate::handlers::send_money_flow::handle_send_money(&text, &mut session).await,
-                        "withdraw" => crate::handlers::withdraw_flow::handle_withdraw(&text, &mut session).await,
-                        "bitcoin" => crate::handlers::ussd_handlers::handle_bitcoin_menu(&text, &mut session).await,
-                        "buy_bitcoin" => crate::handlers::buy_bitcoin_flow::handle_buy_bitcoin(&text, &mut session).await,
-                        "send_bitcoin" => crate::handlers::send_bitcoin_flow::handle_send_bitcoin(&text, &mut session).await,
-                        "usdc" => crate::handlers::ussd_handlers::handle_usdc_menu(&text, &mut session).await,
-                        "buy_usdc" => crate::handlers::buy_usdc_flow::handle_buy_usdc(&text, &mut session).await,
-                        "dao" => crate::handlers::ussd_handlers::handle_dao_menu(&text, &mut session).await,
-                        "language" => crate::handlers::ussd_handlers::handle_language_menu(&text, &mut session).await,
-                        _ => crate::handlers::ussd_handlers::handle_main_menu(&text, &mut session).await,
+                    // Route based on first part
+                    match parts.get(0) {
+                        Some(&"1") => {
+                            // Local currency menu
+                            ic_cdk::println!("✅ Routing to local_currency");
+                            crate::handlers::ussd_handlers::handle_local_currency_menu(&text, &mut session).await
+                        }
+                        Some(&"2") => {
+                            // Bitcoin menu
+                            crate::handlers::ussd_handlers::handle_bitcoin_menu(&text, &mut session).await
+                        }
+                        Some(&"3") => {
+                            // USDC menu
+                            crate::handlers::ussd_handlers::handle_usdc_menu(&text, &mut session).await
+                        }
+                        Some(&"4") => {
+                            // DAO menu
+                            crate::handlers::ussd_handlers::handle_dao_menu(&text, &mut session).await
+                        }
+                        Some(&"5") => {
+                            // Language menu
+                            crate::handlers::ussd_handlers::handle_language_menu(&text, &mut session).await
+                        }
+                        _ => {
+                            // Unknown, show main menu
+                            crate::handlers::ussd_handlers::handle_main_menu(&text, &mut session).await
+                        }
                     }
                 };
                 
