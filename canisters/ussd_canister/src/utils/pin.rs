@@ -1,6 +1,6 @@
-use crate::juno_store;
-use crate::session::UssdSession;
-use crate::translations::{Language, TranslationService};
+use crate::utils::datastore;
+use crate::models::session::UssdSession;
+use crate::utils::translations::{Language, TranslationService};
 use argon2::{
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2
