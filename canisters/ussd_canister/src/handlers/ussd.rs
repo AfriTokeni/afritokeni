@@ -72,7 +72,10 @@ pub fn handle_ussd_webhook(req: HttpRequest) -> ManualReply<HttpResponse> {
     
     // Check rate limit
     if !crate::utils::rate_limit::check_rate_limit(&phone_number) {
-        return error_response(429, "Too many requests. Please try again later.");
+        // Rate limit error - use English as fallback since we don't have session yet
+        let lang = crate::utils::translations::Language::English;
+        let message = crate::utils::translations::TranslationService::translate("rate_limit_exceeded", lang);
+        return error_response(429, message);
     }
     
     // Log the request
@@ -183,8 +186,10 @@ fn parse_form_data(body: &str) -> std::collections::HashMap<String, String> {
         .collect()
 }
 
-/// Process USSD menu - simplified version
+/// Process USSD menu - simplified version (DEPRECATED - use ussd_handlers instead)
+#[allow(dead_code)]
 fn process_ussd_menu(_text: &str, _phone_number: &str) -> (String, bool) {
-    // Simplified response for now
-    ("Welcome to AfriTokeni\n1. Check Balance\n2. Send Money\n0. Exit".to_string(), true)
+    // This function is deprecated and not used
+    // All menu logic is now in ussd_handlers.rs with proper translations
+    (String::new(), false)
 }

@@ -44,7 +44,8 @@ thread_local! {
 
 /// Get or create a USSD session
 pub async fn get_or_create_session(session_id: &str, phone_number: &str) -> Result<UssdSession, String> {
-    SESSIONS.with(|sessions| {
+    // Check existing session first
+    let existing_session = SESSIONS.with(|sessions| {
         let mut sessions_map = sessions.borrow_mut();
         
         // Check if session exists and is not expired
@@ -53,18 +54,32 @@ pub async fn get_or_create_session(session_id: &str, phone_number: &str) -> Resu
                 let mut session_clone = session.clone();
                 session_clone.update_activity();
                 sessions_map.insert(session_id.to_string(), session_clone.clone());
-                return Ok(session_clone);
+                return Some(session_clone);
             } else {
                 // Session expired, remove it
                 sessions_map.remove(session_id);
             }
         }
-        
-        // Create new session
-        let new_session = UssdSession::new(session_id.to_string(), phone_number.to_string());
-        sessions_map.insert(session_id.to_string(), new_session.clone());
-        Ok(new_session)
-    })
+        None
+    });
+    
+    if let Some(session) = existing_session {
+        return Ok(session);
+    }
+    
+    // Create new session - load user's language preference from datastore
+    let user_language = crate::utils::datastore::get_user_language(phone_number)
+        .await
+        .unwrap_or_else(|_| "en".to_string());
+    
+    let mut new_session = UssdSession::new(session_id.to_string(), phone_number.to_string());
+    new_session.language = user_language;
+    
+    SESSIONS.with(|sessions| {
+        sessions.borrow_mut().insert(session_id.to_string(), new_session.clone());
+    });
+    
+    Ok(new_session)
 }
 
 /// Save session

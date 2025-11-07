@@ -2,6 +2,7 @@
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Clone)]
+#[allow(dead_code)]
 pub struct Config {
     pub rate_limiting: RateLimitingConfig,
     pub pin_security: PinSecurityConfig,
@@ -12,12 +13,14 @@ pub struct Config {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+#[allow(dead_code)]
 pub struct RateLimitingConfig {
     pub max_requests_per_minute: u32,
     pub rate_limit_window_seconds: u64,
 }
 
 #[derive(Debug, Deserialize, Clone)]
+#[allow(dead_code)]
 pub struct PinSecurityConfig {
     pub max_pin_attempts: u32,
     pub lockout_duration_minutes: u64,
@@ -26,6 +29,7 @@ pub struct PinSecurityConfig {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+#[allow(dead_code)]
 pub struct TransactionLimitsConfig {
     pub min_amount_kes: f64,
     pub max_amount_kes: f64,
@@ -36,12 +40,14 @@ pub struct TransactionLimitsConfig {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+#[allow(dead_code)]
 pub struct SessionConfig {
     pub timeout_minutes: u64,
     pub max_active_sessions: usize,
 }
 
 #[derive(Debug, Deserialize, Clone)]
+#[allow(dead_code)]
 pub struct SecurityConfig {
     pub allowed_user_agents: String,
     pub verify_signature: bool,
@@ -49,6 +55,7 @@ pub struct SecurityConfig {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+#[allow(dead_code)]
 pub struct AfricasTalkingConfig {
     pub username: String,
     pub api_key: String,

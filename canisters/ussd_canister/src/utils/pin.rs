@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use crate::config_loader::get_config;
 
 #[derive(Clone)]
+#[allow(dead_code)]
 struct PinAttempt {
     count: u32,
     lockout_until: u64,
@@ -38,6 +39,7 @@ pub fn hash_pin_with_phone(pin: &str, phone: &str) -> Result<String, String> {
 }
 
 /// Verify PIN matches stored Argon2 hash
+#[allow(dead_code)]
 pub fn verify_pin_hash(pin: &str, hash: &str) -> bool {
     let parsed_hash = match PasswordHash::new(hash) {
         Ok(h) => h,
@@ -58,6 +60,7 @@ pub fn is_valid_pin(pin: &str) -> bool {
 }
 
 /// Check if phone number is locked out from PIN attempts
+#[allow(dead_code)]
 pub fn check_pin_lockout(phone: &str) -> Result<(), String> {
     let current_time = ic_cdk::api::time();
     
@@ -73,6 +76,7 @@ pub fn check_pin_lockout(phone: &str) -> Result<(), String> {
 }
 
 /// Record failed PIN attempt
+#[allow(dead_code)]
 pub fn record_failed_attempt(phone: &str) {
     let config = get_config();
     let current_time = ic_cdk::api::time();
@@ -97,6 +101,7 @@ pub fn record_failed_attempt(phone: &str) {
 }
 
 /// Reset PIN attempts after successful verification
+#[allow(dead_code)]
 pub fn reset_pin_attempts(phone: &str) {
     PIN_ATTEMPTS.with(|attempts| {
         attempts.borrow_mut().remove(phone);
@@ -104,6 +109,7 @@ pub fn reset_pin_attempts(phone: &str) {
 }
 
 /// Request PIN verification
+#[allow(dead_code)]
 pub fn request_pin_verification(session: &mut UssdSession, _action: &str) -> String {
     let lang = Language::from_code(&session.language);
     session.step = 999; // Special step for PIN entry
@@ -114,6 +120,7 @@ pub fn request_pin_verification(session: &mut UssdSession, _action: &str) -> Str
 }
 
 /// Verify user's PIN
+#[allow(dead_code)]
 pub async fn verify_user_pin(phone: &str, pin: &str) -> Result<bool, String> {
     // Check if locked out
     check_pin_lockout(phone)?;
@@ -143,6 +150,7 @@ pub async fn verify_user_pin(phone: &str, pin: &str) -> Result<bool, String> {
 }
 
 /// Handle PIN entry step
+#[allow(dead_code)]
 pub async fn handle_pin_entry(
     pin: &str,
     session: &mut UssdSession,

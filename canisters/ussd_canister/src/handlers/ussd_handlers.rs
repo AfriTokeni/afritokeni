@@ -100,13 +100,67 @@ pub async fn handle_dao_menu(_text: &str, session: &mut UssdSession) -> (String,
 }
 
 /// Handle language menu
-pub async fn handle_language_menu(_text: &str, session: &mut UssdSession) -> (String, bool) {
-    session.current_menu = "language".to_string();
+pub async fn handle_language_menu(text: &str, session: &mut UssdSession) -> (String, bool) {
+    let lang = Language::from_code(&session.language);
     
-    // Language menu is always in English since user is selecting language
-    let menu = "Select Language\n1. English\n2. Luganda\n3. Swahili\n0. Back".to_string();
+    // If no input yet, show language menu
+    if text.is_empty() || session.current_menu != "language" {
+        session.current_menu = "language".to_string();
+        let menu = format!("{}\n1. English\n2. Luganda\n3. Swahili\n0. {}",
+            TranslationService::translate("select_language", lang),
+            TranslationService::translate("back", lang));
+        return (menu, true);
+    }
     
-    (menu, true)
+    // Process language selection
+    let parts: Vec<&str> = text.split('*').collect();
+    let choice = parts.last().unwrap_or(&"");
+    
+    match *choice {
+        "1" => {
+            session.language = "en".to_string();
+            let phone = session.phone_number.clone();
+            // Save language preference to datastore
+            ic_cdk::futures::spawn(async move {
+                let _ = crate::utils::datastore::set_user_language(&phone, "en").await;
+            });
+            session.current_menu = String::new();
+            (format!("{}\n0. {}", 
+                TranslationService::translate("language_set", Language::English),
+                TranslationService::translate("main_menu", Language::English)), true)
+        }
+        "2" => {
+            session.language = "lg".to_string();
+            let phone = session.phone_number.clone();
+            ic_cdk::futures::spawn(async move {
+                let _ = crate::utils::datastore::set_user_language(&phone, "lg").await;
+            });
+            session.current_menu = String::new();
+            (format!("{}\n0. {}", 
+                TranslationService::translate("language_set", Language::Luganda),
+                TranslationService::translate("main_menu", Language::Luganda)), true)
+        }
+        "3" => {
+            session.language = "sw".to_string();
+            let phone = session.phone_number.clone();
+            ic_cdk::futures::spawn(async move {
+                let _ = crate::utils::datastore::set_user_language(&phone, "sw").await;
+            });
+            session.current_menu = String::new();
+            (format!("{}\n0. {}", 
+                TranslationService::translate("language_set", Language::Swahili),
+                TranslationService::translate("main_menu", Language::Swahili)), true)
+        }
+        "0" => {
+            session.current_menu = String::new();
+            handle_main_menu("", session).await
+        }
+        _ => {
+            (format!("{}\n0. {}", 
+                TranslationService::translate("invalid_option", lang),
+                TranslationService::translate("back", lang)), true)
+        }
+    }
 }
 
 #[cfg(test)]

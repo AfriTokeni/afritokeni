@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct Balance {
     pub kes: f64,
     pub ckbtc: f64,
@@ -29,7 +30,8 @@ thread_local! {
     static USER_LANGUAGES: RefCell<HashMap<String, String>> = RefCell::new(HashMap::new());
 }
 
-/// Get user PIN from datastore
+/// Get user's PIN hash from datastore
+#[allow(dead_code)]
 pub async fn get_user_pin(phone_number: &str) -> Result<String, String> {
     USER_PINS.with(|pins| {
         pins.borrow()
@@ -39,7 +41,8 @@ pub async fn get_user_pin(phone_number: &str) -> Result<String, String> {
     })
 }
 
-/// Set user PIN in datastore
+/// Set user's PIN hash in datastore
+#[allow(dead_code)]
 pub async fn set_user_pin(phone_number: &str, pin_hash: &str) -> Result<(), String> {
     USER_PINS.with(|pins| {
         pins.borrow_mut().insert(phone_number.to_string(), pin_hash.to_string());
@@ -47,7 +50,8 @@ pub async fn set_user_pin(phone_number: &str, pin_hash: &str) -> Result<(), Stri
     Ok(())
 }
 
-/// Get user balance from datastore
+/// Get user's balance from datastore
+#[allow(dead_code)]
 pub async fn get_balance(phone_number: &str) -> Result<Balance, String> {
     USER_BALANCES.with(|balances| {
         Ok(balances.borrow()
@@ -57,7 +61,8 @@ pub async fn get_balance(phone_number: &str) -> Result<Balance, String> {
     })
 }
 
-/// Set user balance in datastore
+/// Set user's balance in datastore
+#[allow(dead_code)]
 pub async fn set_balance(phone_number: &str, balance: &Balance) -> Result<(), String> {
     USER_BALANCES.with(|balances| {
         balances.borrow_mut().insert(phone_number.to_string(), balance.clone());
@@ -65,7 +70,8 @@ pub async fn set_balance(phone_number: &str, balance: &Balance) -> Result<(), St
     Ok(())
 }
 
-/// Get user language preference
+/// Get user's language preference
+#[allow(dead_code)]
 pub async fn get_user_language(phone_number: &str) -> Result<String, String> {
     USER_LANGUAGES.with(|languages| {
         Ok(languages.borrow()
@@ -75,7 +81,8 @@ pub async fn get_user_language(phone_number: &str) -> Result<String, String> {
     })
 }
 
-/// Set user language preference
+/// Set user's language preference
+#[allow(dead_code)]
 pub async fn set_user_language(phone_number: &str, language: &str) -> Result<(), String> {
     USER_LANGUAGES.with(|languages| {
         languages.borrow_mut().insert(phone_number.to_string(), language.to_string());

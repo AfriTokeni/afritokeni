@@ -5,6 +5,7 @@ use crate::config_loader::get_config;
 
 /// Get AT credentials and API URL - async version
 /// Returns (username, api_key, api_url, is_sandbox)
+#[allow(dead_code)]
 pub async fn get_at_credentials_async() -> Result<(String, String, String, bool), String> {
     let config = get_config();
     Ok((
