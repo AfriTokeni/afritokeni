@@ -41,21 +41,9 @@ pub fn is_valid_pin(pin: &str) -> bool {
     pin.len() >= 4 && pin.len() <= 6 && pin.chars().all(|c| c.is_numeric())
 }
 
-/// Check if user has verified their PIN in this session
-pub fn is_pin_verified(session: &UssdSession) -> bool {
-    session.data.get("pin_verified").map(|v| v == "true").unwrap_or(false)
-}
-
-/// Mark PIN as verified in session
-pub fn mark_pin_verified(session: &mut UssdSession) {
-    session.set_data("pin_verified", "true");
-}
-
 /// Request PIN verification
-pub fn request_pin_verification(session: &mut UssdSession, action: &str) -> String {
+pub fn request_pin_verification(session: &mut UssdSession, _action: &str) -> String {
     let lang = Language::from_code(&session.language);
-    session.set_data("pending_action", action);
-    session.set_data("awaiting_pin", "true");
     session.step = 999; // Special step for PIN entry
     
     format!("{}\n{}", 
@@ -71,7 +59,7 @@ pub async fn verify_user_pin(phone: &str, pin: &str) -> Result<bool, String> {
     }
     
     // Get stored PIN hash
-    match juno_store::get_user_pin(phone).await {
+    match datastore::get_user_pin(phone).await {
         Ok(hash) => Ok(verify_pin_hash(pin, &hash)),
         Err(_) => {
             // No PIN set - user must set up PIN first
@@ -100,11 +88,8 @@ pub async fn handle_pin_entry(
     // Verify PIN
     match verify_user_pin(&session.phone_number, pin).await {
         Ok(true) => {
-            // PIN correct - mark as verified and continue with pending action
-            mark_pin_verified(session);
-            session.data.remove("awaiting_pin");
-            let _action = session.get_data("pending_action").cloned().unwrap_or_default();
-            session.data.remove("pending_action");
+            // PIN correct - reset step and continue
+            session.step = 0;
             
             // Return success message and let the flow continue
             Ok((
@@ -132,7 +117,7 @@ pub async fn setup_pin(phone: &str, pin: &str) -> Result<(), String> {
     }
     
     let hash = hash_pin_with_phone(pin, phone)?;
-    juno_store::set_user_pin(phone, &hash).await
+    datastore::set_user_pin(phone, &hash).await
 }
 
 #[cfg(test)]
