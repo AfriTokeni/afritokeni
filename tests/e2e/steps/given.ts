@@ -1,5 +1,5 @@
 import { Given } from '@cucumber/cucumber';
-import { UssdWorld } from './world';
+import { UssdWorld } from './world.js';
 
 Given('I have a phone number {string}', async function(this: UssdWorld, phoneNumber: string) {
   this.phoneNumber = phoneNumber;

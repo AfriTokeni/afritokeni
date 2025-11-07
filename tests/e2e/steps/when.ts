@@ -1,5 +1,5 @@
 import { When } from '@cucumber/cucumber';
-import { UssdWorld } from './world';
+import { UssdWorld } from './world.js';
 
 When('I dial {string}', async function(this: UssdWorld, code: string) {
   // Initial USSD dial - empty text

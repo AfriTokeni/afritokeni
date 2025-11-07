@@ -15,7 +15,9 @@ export class UssdWorld extends World {
   public inputHistory: string[] = [];
   
   // Satellite endpoint - will be configurable
-  public satelliteUrl: string = process.env.SATELLITE_URL || 'http://localhost:5987';
+  // Docker emulator (for E2E): http://jx5yt-yyaaa-aaaal-abzbq-cai.localhost:5987
+  // Local Juno dev: http://atbka-rp777-77775-aaaaq-cai.localhost:5987
+  public satelliteUrl: string = process.env.SATELLITE_URL || 'http://jx5yt-yyaaa-aaaal-abzbq-cai.localhost:5987';
   
   async callUssdEndpoint(text: string): Promise<string> {
     const request: UssdRequest = {

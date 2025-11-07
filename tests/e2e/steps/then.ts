@@ -1,5 +1,5 @@
 import { Then } from '@cucumber/cucumber';
-import { UssdWorld } from './world';
+import { UssdWorld } from './world.js';
 import assert from 'assert';
 
 Then('I should see {string} in USSD response', async function(this: UssdWorld, expected: string) {

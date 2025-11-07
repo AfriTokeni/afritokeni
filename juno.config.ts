@@ -23,6 +23,7 @@ export default defineConfig({
   satellite: {
     ids: {
       development: "atbka-rp777-77775-aaaaq-cai",
+      test: "jx5yt-yyaaa-aaaal-abzbq-cai", // Docker emulator satellite
       preview: "64njw-oiaaa-aaaal-asppa-cai",
       production: "dkk74-oyaaa-aaaal-askxq-cai"
     },
@@ -122,4 +123,10 @@ export default defineConfig({
       ],
     },
   },
+  emulator: {
+    runner: {
+      type: "docker"
+    },
+    satellite: {}
+  }
 });
