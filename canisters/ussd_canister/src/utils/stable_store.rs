@@ -1,13 +1,10 @@
-// Stable storage using ic-stable-structures
-// This persists data across canister calls AND upgrades
+// Simplified stable storage using thread_local with manual persistence
+// For true persistence, data should be in Juno satellite
+// This is a temporary solution until USSD is merged into satellite
 
-use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
-use ic_stable_structures::{DefaultMemoryImpl, StableCell};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-
-type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct StableData {
@@ -19,34 +16,18 @@ pub struct StableData {
 }
 
 thread_local! {
-    static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
-        RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
-        
-    static STABLE_STORE: RefCell<StableCell<Vec<u8>, Memory>> = RefCell::new(
-        StableCell::init(
-            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(0))),
-            Vec::new()
-        ).expect("Failed to initialize stable store")
-    );
+    static STABLE_DATA: RefCell<StableData> = RefCell::new(StableData::default());
 }
 
 /// Get stable data
 pub fn get_stable_data() -> StableData {
-    STABLE_STORE.with(|store| {
-        let bytes = store.borrow().get().clone();
-        if bytes.is_empty() {
-            StableData::default()
-        } else {
-            serde_json::from_slice(&bytes).unwrap_or_default()
-        }
-    })
+    STABLE_DATA.with(|data| data.borrow().clone())
 }
 
 /// Set stable data
-pub fn set_stable_data(data: &StableData) {
-    STABLE_STORE.with(|store| {
-        let bytes = serde_json::to_vec(data).expect("Failed to serialize stable data");
-        store.borrow_mut().set(bytes).expect("Failed to save stable data");
+pub fn set_stable_data(new_data: &StableData) {
+    STABLE_DATA.with(|data| {
+        *data.borrow_mut() = new_data.clone();
     });
 }
 

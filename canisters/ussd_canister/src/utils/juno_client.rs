@@ -16,21 +16,19 @@ fn get_satellite_id() -> Result<Principal, String> {
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct SetDoc {
-    pub key: String,
     pub data: Vec<u8>,
     pub description: Option<String>,
+    pub version: Option<u64>,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
-pub struct GetDoc {
-    pub key: String,
-}
-
-#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
-pub struct DocData {
-    pub data: Vec<u8>,
-    pub created_at: u64,
+pub struct Doc {
     pub updated_at: u64,
+    pub owner: Principal,
+    pub data: Vec<u8>,
+    pub description: Option<String>,
+    pub created_at: u64,
+    pub version: Option<u64>,
 }
 
 /// Get user language from Juno
@@ -39,14 +37,11 @@ pub async fn get_user_language(phone_number: &str) -> Result<Option<String>, Str
     
     let key = format!("user_language_{}", phone_number);
     
-    // Call Juno's get_doc method
-    let result: Result<(Option<DocData>,), _> = ic_cdk::call(
+    // Call Juno's get_doc method: get_doc(collection: text, key: text) -> (opt Doc)
+    let result: Result<(Option<Doc>,), _> = ic_cdk::call(
         satellite_id,
         "get_doc",
-        (
-            "users".to_string(),
-            GetDoc { key: key.clone() },
-        ),
+        ("users", &key),
     )
     .await;
     
@@ -71,16 +66,17 @@ pub async fn set_user_language(phone_number: &str, language: &str) -> Result<(),
     
     let key = format!("user_language_{}", phone_number);
     
-    // Call Juno's set_doc method
-    let result: Result<(DocData,), _> = ic_cdk::call(
+    // Call Juno's set_doc method: set_doc(collection: text, key: text, doc: SetDoc) -> (Doc)
+    let result: Result<(Doc,), _> = ic_cdk::call(
         satellite_id,
         "set_doc",
         (
-            "users".to_string(),
+            "users",
+            &key,
             SetDoc {
-                key: key.clone(),
                 data: language.as_bytes().to_vec(),
                 description: Some("User language preference".to_string()),
+                version: None,
             },
         ),
     )
@@ -104,13 +100,10 @@ pub async fn get_pin_attempts(phone_number: &str) -> Result<u32, String> {
     
     let key = format!("pin_attempts_{}", phone_number);
     
-    let result: Result<(Option<DocData>,), _> = ic_cdk::call(
+    let result: Result<(Option<Doc>,), _> = ic_cdk::call(
         satellite_id,
         "get_doc",
-        (
-            "users".to_string(),
-            GetDoc { key: key.clone() },
-        ),
+        ("users", &key),
     )
     .await;
     
@@ -132,15 +125,16 @@ pub async fn set_pin_attempts(phone_number: &str, attempts: u32) -> Result<(), S
     
     let key = format!("pin_attempts_{}", phone_number);
     
-    let result: Result<(DocData,), _> = ic_cdk::call(
+    let result: Result<(Doc,), _> = ic_cdk::call(
         satellite_id,
         "set_doc",
         (
-            "users".to_string(),
+            "users",
+            &key,
             SetDoc {
-                key: key.clone(),
                 data: attempts.to_string().as_bytes().to_vec(),
                 description: Some("PIN attempt counter".to_string()),
+                version: None,
             },
         ),
     )
