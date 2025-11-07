@@ -7,9 +7,9 @@ use serde::Serialize;
 /// Get Juno satellite ID from environment variable
 fn get_satellite_id() -> Result<Principal, String> {
     // Try to get from environment variable first
-    // For local testing with Juno emulator, use development satellite ID
+    // For Juno emulator, use development satellite ID
     let satellite_id_str = option_env!("JUNO_SATELLITE_ID")
-        .unwrap_or("atbka-rp777-77775-aaaaq-cai"); // Juno development satellite (emulator)
+        .unwrap_or("atbka-rp777-77775-aaaaq-cai"); // Juno development satellite on emulator
     
     Principal::from_text(satellite_id_str)
         .map_err(|e| format!("Invalid satellite ID '{}': {}", satellite_id_str, e))

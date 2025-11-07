@@ -64,6 +64,12 @@
       "wasm": "src/satellite/target/wasm32-unknown-unknown/release/satellite.wasm"
     }
   },
+  "networks": {
+    "juno": {
+      "providers": ["http://127.0.0.1:5987"],
+      "type": "persistent"
+    }
+  },
   "defaults": {
     "build": {
       "args": "",

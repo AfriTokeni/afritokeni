@@ -31,11 +31,13 @@ async function callUssdCanister(sessionId: string, phoneNumber: string, text: st
   const execAsync = promisify(exec);
   
   // Get canister ID
-  const { stdout: canisterId } = await execAsync('dfx canister id ussd_canister --network local');
+  const network = process.env.DFX_NETWORK || 'local';
+  const { stdout: canisterId } = await execAsync(`dfx canister id ussd_canister --network ${network}`);
   const cleanCanisterId = canisterId.trim();
   
-  // Build the HTTP URL for local replica - use raw.localhost to bypass response verification
-  const url = `http://${cleanCanisterId}.raw.localhost:4943/api/ussd`;
+  // Build the HTTP URL - use raw.localhost to bypass response verification
+  const port = network === 'juno' ? '5987' : '4943';
+  const url = `http://${cleanCanisterId}.raw.localhost:${port}/api/ussd`;
   
   // Build the request body
   const requestBody = JSON.stringify({

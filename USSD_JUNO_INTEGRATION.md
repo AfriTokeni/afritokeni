@@ -161,6 +161,30 @@ All user data in Juno `users` collection:
 }
 ```
 
+## ⚠️ Current Status: Local Testing Limitation
+
+**Issue:** Juno emulator runs in Docker (separate IC network) while USSD canister runs on local dfx replica. They cannot communicate via inter-canister calls.
+
+**Solutions:**
+
+### Option 1: Use Stable Storage for Local Testing (Current)
+- Local tests use `stable_store` module
+- Production uses Juno satellite
+- Trade-off: Local tests don't verify Juno integration
+
+### Option 2: Merge USSD into Satellite (Recommended)
+- Move USSD handlers into `src/satellite/src/`
+- Add `http_request_update` endpoint to satellite
+- Deploy as single Juno satellite
+- Benefits: True integration, shared datastore, simpler architecture
+
+### Option 3: Deploy Satellite to Local DFX
+- Build satellite without wasm-bindgen
+- Deploy to local dfx with same ID as emulator
+- Requires custom satellite build
+
+**For now:** Using stable_store for local tests, Juno integration ready for production deployment.
+
 ## 🎉 Benefits of This Architecture
 
 1. **Single Source of Truth**

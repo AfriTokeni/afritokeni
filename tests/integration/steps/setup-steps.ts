@@ -11,14 +11,15 @@ const execAsync = promisify(exec);
 
 Given('the local ICP replica is running', async function () {
   try {
-    const { stdout } = await execAsync('dfx ping');
+    const network = process.env.DFX_NETWORK || 'local';
+    const { stdout } = await execAsync(`dfx ping ${network}`);
     const response = JSON.parse(stdout);
     
     if (response.replica_health_status !== 'healthy') {
       throw new Error(`ICP replica is not healthy: ${response.replica_health_status}`);
     }
     
-    console.log('✅ Local ICP replica is running and healthy');
+    console.log(`✅ ICP replica (${network}) is running and healthy`);
   } catch (error: any) {
     throw new Error(`Failed to ping ICP replica: ${error.message}`);
   }
