@@ -62,6 +62,11 @@
       "candid": "src/satellite/satellite.did",
       "build": "cd src/satellite && cargo build --target wasm32-unknown-unknown --release",
       "wasm": "src/satellite/target/wasm32-unknown-unknown/release/satellite.wasm"
+    },
+    "mock_juno": {
+      "type": "rust",
+      "package": "mock_juno",
+      "candid": "canisters/mock_juno/mock_juno.did"
     }
   },
   "networks": {

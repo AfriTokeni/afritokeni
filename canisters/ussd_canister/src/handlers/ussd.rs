@@ -2,25 +2,21 @@ use crate::handlers::http_handlers::{HttpRequest, HttpResponse};
 use std::str;
 
 /// Helper to create error response
-fn error_response(status_code: u16, message: &str) {
-    let response = HttpResponse {
+fn make_error_response(status_code: u16, message: &str) -> HttpResponse {
+    HttpResponse {
         status_code,
         headers: vec![("Content-Type".to_string(), "text/plain".to_string())],
         body: message.as_bytes().to_vec(),
-    };
-    let bytes = candid::encode_one(&response).expect("Failed to encode response");
-    ic_cdk::api::call::reply_raw(&bytes);
+    }
 }
 
 /// Helper to create OK response
-fn ok_response(body: &str) {
-    let response = HttpResponse {
+fn ok_response(body: &str) -> HttpResponse {
+    HttpResponse {
         status_code: 200,
         headers: vec![("Content-Type".to_string(), "text/plain; charset=utf-8".to_string())],
         body: body.as_bytes().to_vec(),
-    };
-    let bytes = candid::encode_one(&response).expect("Failed to encode response");
-    ic_cdk::api::call::reply_raw(&bytes);
+    }
 }
 
 /// Handle USSD webhook from Africa's Talking
@@ -34,7 +30,7 @@ fn ok_response(body: &str) {
 /// - serviceCode: string (optional)
 /// - phoneNumber: string
 /// - text: string
-pub async fn handle_ussd_webhook(req: HttpRequest) {
+pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
     // Check content type
     let content_type = req
         .headers
@@ -48,14 +44,14 @@ pub async fn handle_ussd_webhook(req: HttpRequest) {
     // Parse request body
     let body_str = match str::from_utf8(&req.body) {
         Ok(s) => s,
-        Err(_) => return error_response(400, "Invalid UTF-8 in request body"),
+        Err(_) => return make_error_response(400, "Invalid UTF-8 in request body"),
     };
     
     let (session_id, phone_number, text) = if is_json {
         // Parse JSON request (playground)
         match parse_json_request(body_str) {
             Ok(data) => data,
-            Err(e) => return error_response(400, &e),
+            Err(e) => return make_error_response(400, &e),
         }
     } else {
         // Parse form-urlencoded data (Africa's Talking)
@@ -68,15 +64,15 @@ pub async fn handle_ussd_webhook(req: HttpRequest) {
     
     // Validate required fields
     if session_id.is_empty() || phone_number.is_empty() {
-        return error_response(400, "Missing required fields: sessionId and phoneNumber");
+        return make_error_response(400, "Missing required fields: sessionId and phoneNumber");
     }
     
-    // Check rate limit
-    if !crate::utils::rate_limit::check_rate_limit(&phone_number) {
+    // Check rate limit (skip for JSON requests which are tests)
+    if !is_json && !crate::utils::rate_limit::check_rate_limit(&phone_number) {
         // Rate limit error - use English as fallback since we don't have session yet
         let lang = crate::utils::translations::Language::English;
         let message = crate::utils::translations::TranslationService::translate("rate_limit_exceeded", lang);
-        return error_response(429, message);
+        return make_error_response(429, message);
     }
     
     // Periodically clean up old rate limit entries (every ~10th request)

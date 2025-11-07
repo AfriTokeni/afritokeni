@@ -9,9 +9,10 @@ import assert from 'assert';
 // Shared world object for test state
 const world: any = {};
 
-// Reset world state before each scenario
-Before(function () {
-  world.sessionId = undefined;
+Before(async function () {
+  // Generate unique session ID for each test
+  const timestamp = Date.now();
+  world.sessionId = `test-session-${timestamp}`;
   world.phoneNumber = undefined;
   world.lastResponse = undefined;
   world.lastText = undefined;
@@ -24,49 +25,41 @@ Before(function () {
   world.btcAddress = undefined;
 });
 
-// Helper to call USSD canister via HTTP gateway
+// Helper to call USSD canister using test endpoint
 async function callUssdCanister(sessionId: string, phoneNumber: string, text: string): Promise<string> {
   const { exec } = await import('child_process');
   const { promisify } = await import('util');
   const execAsync = promisify(exec);
   
-  // Get canister ID
   const network = process.env.DFX_NETWORK || 'local';
-  const { stdout: canisterId } = await execAsync(`dfx canister id ussd_canister --network ${network}`);
-  const cleanCanisterId = canisterId.trim();
   
-  // Build the HTTP URL - use raw.localhost to bypass response verification
-  const port = network === 'juno' ? '5987' : '4943';
-  const url = `http://${cleanCanisterId}.raw.localhost:${port}/api/ussd`;
-  
-  // Build the request body
-  const requestBody = JSON.stringify({
-    sessionId,
-    phoneNumber,
-    text
-  });
+  // Call test_ussd endpoint
+  const dfxCommand = `dfx canister call ussd_canister test_ussd '("${sessionId}", "${phoneNumber}", "${text}")' --network ${network}`;
   
   try {
-    // Use curl to make HTTP POST request
-    const curlCommand = `curl -X POST "${url}" \
-      -H "Content-Type: application/json" \
-      -H "User-Agent: AfricasTalking" \
-      -d '${requestBody}' \
-      -s`;
+    const { stdout } = await execAsync(dfxCommand);
     
-    const { stdout } = await execAsync(curlCommand);
-    console.log('HTTP response:', stdout.substring(0, 100));
-    
-    // Try to parse as JSON first
-    try {
-      const jsonResponse = JSON.parse(stdout);
-      return jsonResponse.response || stdout;
-    } catch {
-      // Not JSON, return as plain text
-      return stdout;
+    // Parse candid string response - extract the string between first "( and last )"
+    const match = stdout.match(/\(\s*"(.*)"\s*,?\s*\)/s);
+    if (match) {
+      // Unescape the JSON string
+      const jsonStr = match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+      
+      // Try to parse as JSON (new format)
+      try {
+        const json = JSON.parse(jsonStr);
+        if (json.response) {
+          return json.response;
+        }
+      } catch {
+        // Not JSON, return as-is and remove CON/END prefix
+        return jsonStr.replace(/^(CON|END)\s+/, '');
+      }
     }
+    
+    return stdout.trim();
   } catch (error: any) {
-    console.error('USSD HTTP call failed:', error.message);
+    console.error('USSD canister call failed:', error.message);
     throw error;
   }
 }
@@ -79,9 +72,8 @@ Given('the USSD canister is deployed', async function () {
   console.log('✅ USSD canister is deployed');
 });
 
-Given('I have a registered account with phone {string}', function (phone: string) {
+Given('I have a registered account with phone {string}', async function (phone: string) {
   world.phoneNumber = phone;
-  world.sessionId = `test-session-${Date.now()}`;
   console.log(`📱 Test user: ${phone}`);
 });
 
@@ -91,52 +83,29 @@ Given('I have set up a PIN {string}', async function (pin: string) {
   const { promisify } = await import('util');
   const execAsync = promisify(exec);
   
-  // Set PIN via admin endpoint
-  const command = `dfx canister call ussd_canister admin_set_pin '("${world.phoneNumber}", "${pin}")' --network local`;
+  // Setup user with PIN, reset attempts, reset language in ONE call
+  const network = process.env.DFX_NETWORK || 'local';
+  const kes = (world.kesBalance || 0).toFixed(1);
+  const ckbtc = (world.ckbtcBalance || 0).toFixed(8);
+  const ckusdc = (world.ckusdcBalance || 0).toFixed(2);
+  const command = `dfx canister call ussd_canister admin_setup_test_user '("${world.phoneNumber}", "${pin}", ${kes}, ${ckbtc}, ${ckusdc})' --network ${network}`;
   await execAsync(command);
-  console.log(`🔐 PIN set: ${pin}`);
+  console.log(`✅ Test setup complete - Juno mocked`);
 });
 
 Given('I have {float} KES in my account', async function (amount: number) {
   world.kesBalance = amount;
-  const { exec } = await import('child_process');
-  const { promisify } = await import('util');
-  const execAsync = promisify(exec);
-  
-  // Set balance via admin endpoint
-  const ckbtcBalance = world.ckbtcBalance || 0;
-  const ckusdcBalance = world.ckusdcBalance || 0;
-  const command = `dfx canister call ussd_canister admin_set_balance '("${world.phoneNumber}", ${Number(amount).toFixed(1)}, ${Number(ckbtcBalance).toFixed(8)}, ${Number(ckusdcBalance).toFixed(2)})' --network local`;
-  await execAsync(command);
-  console.log(`💰 KES balance: ${amount}`);
+  // Balance will be set in batch during PIN setup
 });
 
 Given('I have {float} ckBTC in my account', async function (amount: number) {
   world.ckbtcBalance = amount;
-  const { exec } = await import('child_process');
-  const { promisify } = await import('util');
-  const execAsync = promisify(exec);
-  
-  // Set balance via admin endpoint
-  const kesBalance = world.kesBalance || 0;
-  const ckusdcBalance = world.ckusdcBalance || 0;
-  const command = `dfx canister call ussd_canister admin_set_balance '("${world.phoneNumber}", ${Number(kesBalance).toFixed(1)}, ${Number(amount).toFixed(8)}, ${Number(ckusdcBalance).toFixed(2)})' --network local`;
-  await execAsync(command);
-  console.log(`💰 ckBTC balance: ${amount}`);
+  // Balance will be set in batch during PIN setup
 });
 
 Given('I have {float} ckUSDC in my account', async function (amount: number) {
   world.ckusdcBalance = amount;
-  const { exec } = await import('child_process');
-  const { promisify } = await import('util');
-  const execAsync = promisify(exec);
-  
-  // Set balance via admin endpoint
-  const kesBalance = world.kesBalance || 0;
-  const ckbtcBalance = world.ckbtcBalance || 0;
-  const command = `dfx canister call ussd_canister admin_set_balance '("${world.phoneNumber}", ${Number(kesBalance).toFixed(1)}, ${Number(ckbtcBalance).toFixed(8)}, ${Number(amount).toFixed(2)})' --network local`;
-  await execAsync(command);
-  console.log(`💰 ckUSDC balance: ${amount}`);
+  // Balance will be set in batch during PIN setup
 });
 
 Given('I have set my language to Luganda', async function () {
@@ -341,6 +310,7 @@ Then('I should see my KES balance', function () {
 
 Then('I should see my ckBTC balance', function () {
   assert(world.lastResponse, 'No response received');
+  console.log('📋 Response:', world.lastResponse);
   assert(world.lastResponse.match(/ckBTC|BTC/i), 'ckBTC balance not shown');
   console.log('✅ ckBTC balance displayed');
 });

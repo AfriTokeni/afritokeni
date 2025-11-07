@@ -7,9 +7,9 @@ use serde::Serialize;
 /// Get Juno satellite ID from environment variable
 fn get_satellite_id() -> Result<Principal, String> {
     // Try to get from environment variable first
-    // For Juno emulator, use development satellite ID
+    // For local testing, use mock_juno canister
     let satellite_id_str = option_env!("JUNO_SATELLITE_ID")
-        .unwrap_or("atbka-rp777-77775-aaaaq-cai"); // Juno development satellite on emulator
+        .unwrap_or("uxrrr-q7777-77774-qaaaq-cai"); // mock_juno canister for local testing
     
     Principal::from_text(satellite_id_str)
         .map_err(|e| format!("Invalid satellite ID '{}': {}", satellite_id_str, e))
@@ -58,6 +58,52 @@ pub async fn get_user_language(phone_number: &str) -> Result<Option<String>, Str
             ic_cdk::println!("❌ Juno get_doc failed: {:?} - {}", code, msg);
             Ok(None) // Return None instead of error for missing data
         }
+    }
+}
+
+/// Set user PIN in Juno
+pub async fn set_user_pin(phone_number: &str, pin: &str) -> Result<(), String> {
+    let satellite_id = get_satellite_id()?;
+    
+    let key = format!("pin_{}", phone_number);
+    
+    let result: Result<(Doc,), _> = ic_cdk::call(
+        satellite_id,
+        "set_doc",
+        (
+            "users",
+            &key,
+            SetDoc {
+                data: pin.as_bytes().to_vec(),
+                description: Some("User PIN".to_string()),
+                version: None,
+            },
+        ),
+    )
+    .await;
+    
+    match result {
+        Ok(_) => Ok(()),
+        Err((code, msg)) => Err(format!("Failed to set PIN: {:?} - {}", code, msg)),
+    }
+}
+
+/// Delete user language from Juno
+pub async fn delete_user_language(phone_number: &str) -> Result<(), String> {
+    let satellite_id = get_satellite_id()?;
+    
+    let key = format!("user_language_{}", phone_number);
+    
+    let result: Result<(Option<Doc>,), _> = ic_cdk::call(
+        satellite_id,
+        "delete_doc",
+        ("users", &key),
+    )
+    .await;
+    
+    match result {
+        Ok(_) => Ok(()),
+        Err((code, msg)) => Err(format!("Failed to delete language: {:?} - {}", code, msg)),
     }
 }
 

@@ -18,21 +18,37 @@ pub struct HttpResponse {
     pub body: Vec<u8>,
 }
 
-/// Route incoming HTTP requests to appropriate handlers
-pub fn route_request(req: HttpRequest) {
+/// Route HTTP requests to appropriate handlers (sync version for GET)
+pub fn route_request(req: HttpRequest) -> HttpResponse {
     // Parse URL path
     let path = req.url.split('?').next().unwrap_or(&req.url);
     
     match (req.method.as_str(), path) {
         ("GET", "/api/health") => health_check(),
-        ("POST", "/api/ussd") => {
+        _ => not_found(),
+    }
+}
+
+/// Route HTTP requests to appropriate handlers (async version for POST)
+pub async fn route_request_async(req: HttpRequest) -> HttpResponse {
+    // Parse URL path
+    let path = req.url.split('?').next().unwrap_or(&req.url);
+    ic_cdk::println!("🔍 Route request: method={}, path={}", req.method, path);
+    
+    match req.method.as_str() {
+        "GET" if path.contains("/health") || path == "/api/health" => health_check(),
+        "POST" if path.contains("/ussd") || path == "/api/ussd" => {
             // Verify request is from Africa's Talking
             if !verify_africas_talking_request(&req) {
                 return error_response(403, "Forbidden: Invalid request source");
             }
-            ic_cdk::spawn(handle_ussd_webhook(req));
+            // Handle USSD webhook and return response
+            handle_ussd_webhook(req).await
         },
-        _ => not_found(),
+        _ => {
+            ic_cdk::println!("❌ No route matched for: {} {}", req.method, path);
+            not_found()
+        }
     }
 }
 
@@ -40,6 +56,14 @@ pub fn route_request(req: HttpRequest) {
 /// Checks User-Agent and optionally API key header
 fn verify_africas_talking_request(req: &HttpRequest) -> bool {
     let config = crate::config_loader::get_config();
+    
+    // In test/development mode, skip verification
+    // Check if environment is development (no signature verification configured)
+    if !config.security.verify_signature {
+        ic_cdk::println!("⚠️ Skipping request verification (development mode)");
+        return true;
+    }
+    
     let allowed_agents: Vec<&str> = config.security.allowed_user_agents.split(',').collect();
     
     // Check for Africa's Talking User-Agent
@@ -64,40 +88,34 @@ fn verify_africas_talking_request(req: &HttpRequest) -> bool {
 }
 
 /// Health check endpoint
-fn health_check() {
-    let response = HttpResponse {
+fn health_check() -> HttpResponse {
+    HttpResponse {
         status_code: 200,
         headers: vec![("Content-Type".to_string(), "application/json".to_string())],
-        body: b"{\"status\":\"ok\"}".to_vec(),
-    };
-    let bytes = candid::encode_one(&response).expect("Failed to encode response");
-    ic_cdk::api::call::reply_raw(&bytes);
+        body: b"{\"status\":\"healthy\"}".to_vec(),
+    }
 }
 
 /// 404 Not Found response
-fn not_found() {
-    let response = HttpResponse {
+fn not_found() -> HttpResponse {
+    HttpResponse {
         status_code: 404,
         headers: vec![("Content-Type".to_string(), "text/plain".to_string())],
         body: b"Not Found".to_vec(),
-    };
-    let bytes = candid::encode_one(&response).expect("Failed to encode response");
-    ic_cdk::api::call::reply_raw(&bytes);
+    }
 }
 
 /// Error response helper
-fn error_response(status_code: u16, message: &str) {
-    let response = HttpResponse {
+fn error_response(status_code: u16, message: &str) -> HttpResponse {
+    HttpResponse {
         status_code,
         headers: vec![("Content-Type".to_string(), "text/plain".to_string())],
         body: message.as_bytes().to_vec(),
-    };
-    let bytes = candid::encode_one(&response).expect("Failed to encode response");
-    ic_cdk::api::call::reply_raw(&bytes);
+    }
 }
 
 /// Handle USSD webhook from Africa's Talking
-async fn handle_ussd_webhook(req: HttpRequest) {
+async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
     // Delegate to ussd module
     crate::handlers::ussd::handle_ussd_webhook(req).await
 }

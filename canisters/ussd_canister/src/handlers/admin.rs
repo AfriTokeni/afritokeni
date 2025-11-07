@@ -41,8 +41,33 @@ pub async fn get_user_balance(phone_number: &str) -> Result<(f64, f64, f64), Str
     Ok((kes, ckbtc, ckusdc))
 }
 
-/// Clear all test data
-pub async fn clear_test_data() -> Result<(), String> {
-    // Clear all sessions and user data
-    datastore::clear_all_data().await
+/// Reset PIN attempts for a user
+pub async fn reset_pin_attempts(phone_number: &str) -> Result<(), String> {
+    crate::utils::juno_client::set_pin_attempts(phone_number, 0).await?;
+    Ok(())
+}
+
+/// Setup test user in one call (PIN + reset attempts + reset language)
+pub async fn setup_test_user(phone_number: &str, pin: &str, kes: f64, ckbtc: f64, ckusdc: f64) -> Result<(), String> {
+    // Set PIN
+    crate::utils::juno_client::set_user_pin(phone_number, pin).await?;
+    
+    // Reset PIN attempts
+    crate::utils::juno_client::set_pin_attempts(phone_number, 0).await?;
+    
+    // Delete language preference (will default to English)
+    let _ = crate::utils::juno_client::delete_user_language(phone_number).await;
+    
+    // Set balances
+    if kes > 0.0 {
+        datastore::set_user_data(phone_number, "kes_balance", &kes.to_string()).await?;
+    }
+    if ckbtc > 0.0 {
+        datastore::set_user_data(phone_number, "ckbtc_balance", &ckbtc.to_string()).await?;
+    }
+    if ckusdc > 0.0 {
+        datastore::set_user_data(phone_number, "ckusdc_balance", &ckusdc.to_string()).await?;
+    }
+    
+    Ok(())
 }
