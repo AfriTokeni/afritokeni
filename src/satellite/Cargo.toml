@@ -29,3 +29,7 @@ cucumber = "0.21"
 async-trait = "0.1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 uuid = { version = "1", features = ["v4"] }
+
+[[test]]
+name = "ussd_e2e"
+harness = false
