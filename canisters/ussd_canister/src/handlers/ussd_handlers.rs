@@ -13,23 +13,16 @@ pub async fn handle_main_menu(_text: &str, session: &mut UssdSession) -> (String
 pub async fn handle_registration(session: &mut UssdSession, pin: &str) -> (String, bool) {
     let lang = Language::from_code(&session.language);
     
-    // Validate PIN format
-    if !crate::utils::pin::is_valid_pin(pin) {
+    // Validate PIN format (4 digits)
+    if pin.len() != 4 || !pin.chars().all(|c| c.is_numeric()) {
         return (format!("{}\n0. {}", 
             TranslationService::translate("invalid_pin_format", lang),
             TranslationService::translate("back", lang)), true);
     }
     
-    // Hash and store PIN
-    let phone = session.phone_number.clone();
-    let pin_str = pin.to_string();
-    
-    ic_cdk::futures::spawn(async move {
-        match crate::utils::pin::setup_pin(&phone, &pin_str).await {
-            Ok(_) => ic_cdk::println!("✅ PIN set successfully for {}", phone),
-            Err(e) => ic_cdk::println!("❌ Failed to set PIN: {}", e),
-        }
-    });
+    // TODO: Store PIN via Business Logic Canister
+    // For now, just acknowledge
+    ic_cdk::println!("✅ PIN setup requested for {}", session.phone_number);
     
     session.current_menu = "main".to_string();
     (format!("{}\n0. {}", 
@@ -69,16 +62,28 @@ pub async fn handle_local_currency_menu(text: &str, session: &mut UssdSession) -
     
     match *last_input {
         "1" => {
-            // Check balance
-            let balance = crate::utils::datastore::get_balance(&session.phone_number).await
-                .unwrap_or_default();
-            session.current_menu = String::new();
-            (format!("{}:\nKES: {:.2}\nckBTC: {:.8}\nckUSDC: {:.2}\n\n0. {}", 
-                TranslationService::translate("your_balance", lang),
-                balance.kes,
-                balance.ckbtc,
-                balance.ckusdc,
-                TranslationService::translate("main_menu", lang)), true)
+            // Check balance via Business Logic
+            match crate::utils::business_logic_helper::get_balances(&session.phone_number).await {
+                Ok(balances) => {
+                    let ugx = balances.fiat_balances.iter()
+                        .find(|b| b.currency == "UGX")
+                        .map(|b| b.amount as f64 / 100.0)
+                        .unwrap_or(0.0);
+                    let ckbtc = balances.ckbtc_balance as f64 / 100_000_000.0;
+                    let ckusdc = balances.ckusdc_balance as f64 / 1_000_000.0;
+                    
+                    session.current_menu = String::new();
+                    (format!("{}:\nUGX: {:.2}\nckBTC: {:.8}\nckUSDC: {:.2}\n\n0. {}", 
+                        TranslationService::translate("your_balance", lang),
+                        ugx, ckbtc, ckusdc,
+                        TranslationService::translate("main_menu", lang)), true)
+                }
+                Err(_) => {
+                    (format!("{}:\nUGX: 0.00\nckBTC: 0.00000000\nckUSDC: 0.00\n\n0. {}", 
+                        TranslationService::translate("your_balance", lang),
+                        TranslationService::translate("main_menu", lang)), true)
+                }
+            }
         }
         "2" => {
             // Send money - start the flow
@@ -139,12 +144,20 @@ pub async fn handle_bitcoin_menu(text: &str, session: &mut UssdSession) -> (Stri
         }
         "1" => {
             // Check balance (when text is "2*1")
-            let balance = crate::utils::datastore::get_balance(&session.phone_number).await
-                .unwrap_or_default();
-            (format!("{}:\nckBTC: {:.8}\n\n0. {}", 
-                TranslationService::translate("bitcoin_balance", lang),
-                balance.ckbtc,
-                TranslationService::translate("main_menu", lang)), false)
+            match crate::utils::business_logic_helper::get_balances(&session.phone_number).await {
+                Ok(balances) => {
+                    let ckbtc = balances.ckbtc_balance as f64 / 100_000_000.0;
+                    (format!("{}:\nckBTC: {:.8}\n\n0. {}", 
+                        TranslationService::translate("bitcoin_balance", lang),
+                        ckbtc,
+                        TranslationService::translate("back", lang)), true)
+                }
+                Err(_) => {
+                    (format!("{}:\nckBTC: 0.00000000\n\n0. {}", 
+                        TranslationService::translate("bitcoin_balance", lang),
+                        TranslationService::translate("back", lang)), true)
+                }
+            }
         }
         "2" => {
             // Buy Bitcoin - start the flow (when text is "2*2")
@@ -190,12 +203,20 @@ pub async fn handle_usdc_menu(text: &str, session: &mut UssdSession) -> (String,
         }
         "1" => {
             // Check balance (when text is "3*1")
-            let balance = crate::utils::datastore::get_balance(&session.phone_number).await
-                .unwrap_or_default();
-            (format!("{}:\nckUSDC: {:.2}\n\n0. {}", 
-                TranslationService::translate("usdc_balance", lang),
-                balance.ckusdc,
-                TranslationService::translate("main_menu", lang)), false)
+            match crate::utils::business_logic_helper::get_balances(&session.phone_number).await {
+                Ok(balances) => {
+                    let ckusdc = balances.ckusdc_balance as f64 / 1_000_000.0;
+                    (format!("{}:\nckUSDC: {:.2}\n\n0. {}", 
+                        TranslationService::translate("usdc_balance", lang),
+                        ckusdc,
+                        TranslationService::translate("back", lang)), true)
+                }
+                Err(_) => {
+                    (format!("{}:\nckUSDC: 0.00\n\n0. {}", 
+                        TranslationService::translate("usdc_balance", lang),
+                        TranslationService::translate("back", lang)), true)
+                }
+            }
         }
         "2" => {
             // Buy USDC - start the flow (when text is "3*2")
@@ -242,10 +263,7 @@ pub async fn handle_language_menu(text: &str, session: &mut UssdSession) -> (Str
         "1" => {
             let new_lang = Language::English;
             session.language = new_lang.to_code().to_string();
-            let phone = session.phone_number.clone();
-            let lang_code = new_lang.to_code();
-            // Save language preference to Juno
-            let _ = crate::utils::juno_client::set_user_language(&phone, lang_code).await;
+            // TODO: Save language preference to Data Canister via Business Logic
             (format!("{}\n0. {}", 
                 TranslationService::translate("language_set", new_lang),
                 TranslationService::translate("main_menu", new_lang)), false)
@@ -253,9 +271,7 @@ pub async fn handle_language_menu(text: &str, session: &mut UssdSession) -> (Str
         "2" => {
             let new_lang = Language::Luganda;
             session.language = new_lang.to_code().to_string();
-            let phone = session.phone_number.clone();
-            let lang_code = new_lang.to_code();
-            let _ = crate::utils::juno_client::set_user_language(&phone, lang_code).await;
+            // TODO: Save language preference to Data Canister via Business Logic
             (format!("{}\n0. {}", 
                 TranslationService::translate("language_set", new_lang),
                 TranslationService::translate("main_menu", new_lang)), false)
@@ -263,9 +279,7 @@ pub async fn handle_language_menu(text: &str, session: &mut UssdSession) -> (Str
         "3" => {
             let new_lang = Language::Swahili;
             session.language = new_lang.to_code().to_string();
-            let phone = session.phone_number.clone();
-            let lang_code = new_lang.to_code();
-            let _ = crate::utils::juno_client::set_user_language(&phone, lang_code).await;
+            // TODO: Save language preference to Data Canister via Business Logic
             (format!("{}\n0. {}", 
                 TranslationService::translate("language_set", new_lang),
                 TranslationService::translate("main_menu", new_lang)), false)

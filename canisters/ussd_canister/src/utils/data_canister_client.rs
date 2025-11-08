@@ -81,47 +81,44 @@ impl DataCanisterClient {
 
     /// Create a new user
     pub async fn create_user(&self, user_data: CreateUserData) -> Result<User, String> {
-        let result: CallResult<(Result<User, String>,)> = ic_cdk::call(
-            self.canister_id,
-            "create_user",
-            (user_data,),
-        ).await;
-
-        match result {
-            Ok((Ok(user),)) => Ok(user),
-            Ok((Err(e),)) => Err(e),
-            Err((code, msg)) => Err(format!("Call failed: {:?} - {}", code, msg)),
-        }
+        let response = Call::unbounded_wait(self.canister_id, "create_user")
+            .with_arg((user_data,))
+            .await
+            .map_err(|e| format!("Call failed: {:?}", e))?;
+        
+        let (result,): (Result<User, String>,) = response
+            .candid_tuple()
+            .map_err(|e| format!("Decode failed: {}", e))?;
+        
+        result
     }
 
     /// Get user by phone number
     pub async fn get_user_by_phone(&self, phone_number: &str) -> Result<Option<User>, String> {
-        let result: CallResult<(Result<Option<User>, String>,)> = ic_cdk::call(
-            self.canister_id,
-            "get_user_by_phone",
-            (phone_number.to_string(),),
-        ).await;
-
-        match result {
-            Ok((Ok(user),)) => Ok(user),
-            Ok((Err(e),)) => Err(e),
-            Err((code, msg)) => Err(format!("Call failed: {:?} - {}", code, msg)),
-        }
+        let response = Call::unbounded_wait(self.canister_id, "get_user_by_phone")
+            .with_arg((phone_number.to_string(),))
+            .await
+            .map_err(|e| format!("Call failed: {:?}", e))?;
+        
+        let (result,): (Result<Option<User>, String>,) = response
+            .candid_tuple()
+            .map_err(|e| format!("Decode failed: {}", e))?;
+        
+        result
     }
 
     /// Get fiat balance
     pub async fn get_fiat_balance(&self, user_id: &str, currency: FiatCurrency) -> Result<u64, String> {
-        let result: CallResult<(Result<u64, String>,)> = ic_cdk::call(
-            self.canister_id,
-            "get_fiat_balance",
-            (user_id.to_string(), currency),
-        ).await;
-
-        match result {
-            Ok((Ok(balance),)) => Ok(balance),
-            Ok((Err(e),)) => Err(e),
-            Err((code, msg)) => Err(format!("Call failed: {:?} - {}", code, msg)),
-        }
+        let response = Call::unbounded_wait(self.canister_id, "get_fiat_balance")
+            .with_arg((user_id.to_string(), currency))
+            .await
+            .map_err(|e| format!("Call failed: {:?}", e))?;
+        
+        let (result,): (Result<u64, String>,) = response
+            .candid_tuple()
+            .map_err(|e| format!("Decode failed: {}", e))?;
+        
+        result
     }
 
     /// Deposit fiat
@@ -132,17 +129,16 @@ impl DataCanisterClient {
         currency: FiatCurrency,
         description: Option<String>,
     ) -> Result<Transaction, String> {
-        let result: CallResult<(Result<Transaction, String>,)> = ic_cdk::call(
-            self.canister_id,
-            "deposit_fiat",
-            (user_id.to_string(), amount, currency, description),
-        ).await;
-
-        match result {
-            Ok((Ok(tx),)) => Ok(tx),
-            Ok((Err(e),)) => Err(e),
-            Err((code, msg)) => Err(format!("Call failed: {:?} - {}", code, msg)),
-        }
+        let response = Call::unbounded_wait(self.canister_id, "deposit_fiat")
+            .with_arg((user_id.to_string(), amount, currency, description))
+            .await
+            .map_err(|e| format!("Call failed: {:?}", e))?;
+        
+        let (result,): (Result<Transaction, String>,) = response
+            .candid_tuple()
+            .map_err(|e| format!("Decode failed: {}", e))?;
+        
+        result
     }
 
     /// Transfer fiat between users
@@ -154,17 +150,16 @@ impl DataCanisterClient {
         currency: FiatCurrency,
         description: Option<String>,
     ) -> Result<Transaction, String> {
-        let result: CallResult<(Result<Transaction, String>,)> = ic_cdk::call(
-            self.canister_id,
-            "transfer_fiat",
-            (from_user.to_string(), to_user.to_string(), amount, currency, description),
-        ).await;
-
-        match result {
-            Ok((Ok(tx),)) => Ok(tx),
-            Ok((Err(e),)) => Err(e),
-            Err((code, msg)) => Err(format!("Call failed: {:?} - {}", code, msg)),
-        }
+        let response = Call::unbounded_wait(self.canister_id, "transfer_fiat")
+            .with_arg((from_user.to_string(), to_user.to_string(), amount, currency, description))
+            .await
+            .map_err(|e| format!("Call failed: {:?}", e))?;
+        
+        let (result,): (Result<Transaction, String>,) = response
+            .candid_tuple()
+            .map_err(|e| format!("Decode failed: {}", e))?;
+        
+        result
     }
 
     /// Setup user PIN
@@ -172,32 +167,30 @@ impl DataCanisterClient {
         // Generate salt
         let salt = self.generate_salt().await?;
         
-        let result: CallResult<(Result<(), String>,)> = ic_cdk::call(
-            self.canister_id,
-            "setup_user_pin",
-            (user_id.to_string(), pin.to_string(), salt),
-        ).await;
-
-        match result {
-            Ok((Ok(()),)) => Ok(()),
-            Ok((Err(e),)) => Err(e),
-            Err((code, msg)) => Err(format!("Call failed: {:?} - {}", code, msg)),
-        }
+        let response = Call::unbounded_wait(self.canister_id, "setup_user_pin")
+            .with_arg((user_id.to_string(), pin.to_string(), salt))
+            .await
+            .map_err(|e| format!("Call failed: {:?}", e))?;
+        
+        let (result,): (Result<(), String>,) = response
+            .candid_tuple()
+            .map_err(|e| format!("Decode failed: {}", e))?;
+        
+        result
     }
 
     /// Verify user PIN
     pub async fn verify_user_pin(&self, user_id: &str, pin: &str) -> Result<bool, String> {
-        let result: CallResult<(Result<bool, String>,)> = ic_cdk::call(
-            self.canister_id,
-            "verify_user_pin",
-            (user_id.to_string(), pin.to_string()),
-        ).await;
-
-        match result {
-            Ok((Ok(verified),)) => Ok(verified),
-            Ok((Err(e),)) => Err(e),
-            Err((code, msg)) => Err(format!("Call failed: {:?} - {}", code, msg)),
-        }
+        let response = Call::unbounded_wait(self.canister_id, "verify_user_pin")
+            .with_arg((user_id.to_string(), pin.to_string()))
+            .await
+            .map_err(|e| format!("Call failed: {:?}", e))?;
+        
+        let (result,): (Result<bool, String>,) = response
+            .candid_tuple()
+            .map_err(|e| format!("Decode failed: {}", e))?;
+        
+        result
     }
 
     /// Generate random salt for PIN hashing
@@ -220,17 +213,16 @@ impl DataCanisterClient {
         ckbtc_delta: i64,
         ckusdc_delta: i64,
     ) -> Result<(), String> {
-        let result: CallResult<(Result<(), String>,)> = ic_cdk::call(
-            self.canister_id,
-            "update_crypto_balance",
-            (user_id.to_string(), ckbtc_delta, ckusdc_delta),
-        ).await;
-
-        match result {
-            Ok((Ok(()),)) => Ok(()),
-            Ok((Err(e),)) => Err(e),
-            Err((code, msg)) => Err(format!("Call failed: {:?} - {}", code, msg)),
-        }
+        let response = Call::unbounded_wait(self.canister_id, "update_crypto_balance")
+            .with_arg((user_id.to_string(), ckbtc_delta, ckusdc_delta))
+            .await
+            .map_err(|e| format!("Call failed: {:?}", e))?;
+        
+        let (result,): (Result<(), String>,) = response
+            .candid_tuple()
+            .map_err(|e| format!("Decode failed: {}", e))?;
+        
+        result
     }
 
     /// Get crypto balance
@@ -241,17 +233,17 @@ impl DataCanisterClient {
             ckusdc: u64,
         }
 
-        let result: CallResult<(Result<CryptoBalance, String>,)> = ic_cdk::call(
-            self.canister_id,
-            "get_crypto_balance",
-            (user_id.to_string(),),
-        ).await;
-
-        match result {
-            Ok((Ok(balance),)) => Ok((balance.ckbtc, balance.ckusdc)),
-            Ok((Err(e),)) => Err(e),
-            Err((code, msg)) => Err(format!("Call failed: {:?} - {}", code, msg)),
-        }
+        let response = Call::unbounded_wait(self.canister_id, "get_crypto_balance")
+            .with_arg((user_id.to_string(),))
+            .await
+            .map_err(|e| format!("Call failed: {:?}", e))?;
+        
+        let (result,): (Result<CryptoBalance, String>,) = response
+            .candid_tuple()
+            .map_err(|e| format!("Decode failed: {}", e))?;
+        
+        let balance = result?;
+        Ok((balance.ckbtc, balance.ckusdc))
     }
 }
 

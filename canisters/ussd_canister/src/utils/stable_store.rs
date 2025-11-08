@@ -8,10 +8,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct StableData {
-    pub pins: HashMap<String, String>,
-    pub balances: HashMap<String, crate::utils::datastore::Balance>,
     pub languages: HashMap<String, String>,
-    pub data: HashMap<String, HashMap<String, String>>,
     pub pin_attempts: HashMap<String, u32>,
 }
 

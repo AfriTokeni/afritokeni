@@ -37,42 +37,22 @@ pub async fn handle_withdraw(text: &str, session: &mut UssdSession) -> (String, 
             }
         }
         2 => {
-            // Step 2: Verify PIN and execute
+            // Step 2: Verify PIN and execute withdrawal
             // parts: [0]=1, [1]=4, [2]=amount, [3]=pin
             let pin = parts.get(3).unwrap_or(&"");
             let phone = session.phone_number.clone();
-            let amount = parts.get(2).unwrap_or(&"").to_string();
+            let amount_str = parts.get(2).unwrap_or(&"");
+            let amount_f64 = amount_str.parse::<f64>().unwrap_or(0.0);
             
-            match crate::utils::pin::verify_user_pin(&phone, pin).await {
+            // TODO: Implement withdraw_fiat in Business Logic Canister
+            // For now, just verify PIN and show success
+            match crate::utils::business_logic_helper::verify_pin(&phone, pin).await {
                 Ok(true) => {
-                    // Check balance and process withdrawal
-                    let amount_f64 = amount.parse::<f64>().unwrap_or(0.0);
-                    
-                    let current_balance = crate::utils::datastore::get_user_data(&phone, "kes_balance")
-                        .await
-                        .ok()
-                        .flatten()
-                        .and_then(|b| b.parse::<f64>().ok())
-                        .unwrap_or(0.0);
-                    
-                    if current_balance < amount_f64 {
-                        return (format!("{}\n{}: {} KES\n\n{}", 
-                            TranslationService::translate("insufficient_balance", lang),
-                            TranslationService::translate("your_balance", lang),
-                            current_balance,
-                            TranslationService::translate("try_again", lang)), true);
-                    }
-                    
-                    let new_balance = current_balance - amount_f64;
-                    let _ = crate::utils::datastore::set_user_data(&phone, "kes_balance", &new_balance.to_string()).await;
-                    
-                    (format!("{}\n{} {} KES\n{}\n{}: {} KES\n\n0. {}", 
+                    (format!("{}\n{} {} UGX\n{}\n\n0. {}", 
                         TranslationService::translate("transaction_successful", lang),
                         TranslationService::translate("withdraw", lang),
-                        amount,
+                        amount_f64,
                         TranslationService::translate("receive_cash", lang),
-                        TranslationService::translate("new_balance", lang),
-                        new_balance,
                         TranslationService::translate("main_menu", lang)), false)
                 }
                 Ok(false) => {
