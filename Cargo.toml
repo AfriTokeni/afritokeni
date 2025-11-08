@@ -1,10 +1,12 @@
 [workspace]
 members = [
-    "canisters/ussd_canister",
+    "src/satellite",
+    "canisters/business_logic_canister",
+    "canisters/data_canister",
     "canisters/deposit_canister",
-    "canisters/withdrawal_canister",
     "canisters/exchange_canister",
-    "canisters/mock_juno",
+    "canisters/ussd_canister",
+    "canisters/withdrawal_canister",
 ]
 exclude = ["tests", "src/satellite"]
 resolver = "2"

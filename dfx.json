@@ -52,6 +52,16 @@
       "package": "withdrawal_canister",
       "candid": "canisters/withdrawal_canister/withdrawal_canister.did"
     },
+    "data_canister": {
+      "type": "rust",
+      "package": "data_canister",
+      "candid": "canisters/data_canister/data_canister.did"
+    },
+    "business_logic_canister": {
+      "type": "rust",
+      "package": "business_logic_canister",
+      "candid": "canisters/business_logic_canister/business_logic_canister.did"
+    },
     "ussd_canister": {
       "type": "rust",
       "package": "ussd_canister",
@@ -62,11 +72,6 @@
       "candid": "src/satellite/satellite.did",
       "build": "cd src/satellite && cargo build --target wasm32-unknown-unknown --release",
       "wasm": "src/satellite/target/wasm32-unknown-unknown/release/satellite.wasm"
-    },
-    "mock_juno": {
-      "type": "rust",
-      "package": "mock_juno",
-      "candid": "canisters/mock_juno/mock_juno.did"
     }
   },
   "networks": {

@@ -1,0 +1,537 @@
+use ic_cdk_macros::{query, update, init, pre_upgrade, post_upgrade};
+use candid::{CandidType, Deserialize, Principal};
+use std::collections::HashMap;
+use std::cell::RefCell;
+
+mod models;
+mod operations;
+mod security;
+
+use models::*;
+
+// ============================================================================
+// State Management
+// ============================================================================
+
+thread_local! {
+    static STATE: RefCell<DataCanisterState> = RefCell::new(DataCanisterState::new());
+    static AUTHORIZED_CANISTERS: RefCell<Vec<Principal>> = RefCell::new(Vec::new());
+}
+
+#[derive(CandidType, Deserialize, Default)]
+pub struct DataCanisterState {
+    users: HashMap<String, User>,
+    fiat_balances: HashMap<String, FiatBalance>,  // key: "user_id:currency"
+    crypto_balances: HashMap<String, CryptoBalance>,  // key: user_id
+    transactions: HashMap<String, Transaction>,
+    user_pins: HashMap<String, UserPin>,
+    audit_log: Vec<AuditEntry>,
+}
+
+impl DataCanisterState {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn log_audit(&mut self, entry: AuditEntry) {
+        self.audit_log.push(entry);
+        if self.audit_log.len() > 10000 {
+            self.audit_log.remove(0);
+        }
+    }
+}
+
+// ============================================================================
+// Access Control - NON-CUSTODIAL
+// ============================================================================
+
+#[derive(Debug)]
+enum AccessLevel {
+    Controller,           // Platform admin
+    AuthorizedCanister,   // USSD/Web canister
+    #[allow(dead_code)]
+    UserSelf(String),     // User accessing their own data
+    Unauthorized,
+}
+
+/// Check caller's access level
+fn get_access_level(user_id: Option<&str>) -> AccessLevel {
+    let caller = ic_cdk::caller();
+    
+    // 1. Check if controller (admin)
+    if ic_cdk::api::is_controller(&caller) {
+        return AccessLevel::Controller;
+    }
+    
+    // 2. Check if authorized canister (USSD/Web)
+    let is_authorized_canister = AUTHORIZED_CANISTERS.with(|canisters| {
+        canisters.borrow().contains(&caller)
+    });
+    
+    if is_authorized_canister {
+        return AccessLevel::AuthorizedCanister;
+    }
+    
+    // 3. Check if user accessing their own data
+    if let Some(uid) = user_id {
+        let caller_text = caller.to_text();
+        let is_own_data = STATE.with(|state| {
+            state.borrow().users.get(uid)
+                .and_then(|u| u.principal_id.as_ref())
+                .map(|pid| pid == &caller_text)
+                .unwrap_or(false)
+        });
+        
+        if is_own_data {
+            return AccessLevel::UserSelf(uid.to_string());
+        }
+    }
+    
+    AccessLevel::Unauthorized
+}
+
+/// Verify caller can access user's data
+fn verify_user_access(user_id: &str) -> Result<(), String> {
+    match get_access_level(Some(user_id)) {
+        AccessLevel::Controller => Ok(()),
+        AccessLevel::AuthorizedCanister => Ok(()),
+        AccessLevel::UserSelf(_) => Ok(()),
+        AccessLevel::Unauthorized => {
+            Err(format!("Unauthorized: Cannot access user {}", user_id))
+        }
+    }
+}
+
+/// Verify caller can perform admin operations
+fn verify_admin_access() -> Result<(), String> {
+    match get_access_level(None) {
+        AccessLevel::Controller => Ok(()),
+        _ => Err("Unauthorized: Admin access required".to_string())
+    }
+}
+
+/// Verify caller can perform canister operations
+fn verify_canister_access() -> Result<(), String> {
+    match get_access_level(None) {
+        AccessLevel::Controller => Ok(()),
+        AccessLevel::AuthorizedCanister => Ok(()),
+        _ => Err("Unauthorized: Only authorized canisters can call this".to_string())
+    }
+}
+
+// ============================================================================
+// Initialization & Lifecycle
+// ============================================================================
+
+#[init]
+fn init(ussd_canister_id: Option<String>, web_canister_id: Option<String>) {
+    let mut authorized = Vec::new();
+    
+    if let Some(ussd_id) = ussd_canister_id {
+        if let Ok(principal) = Principal::from_text(&ussd_id) {
+            authorized.push(principal);
+            ic_cdk::println!("✅ Authorized USSD canister: {}", ussd_id);
+        }
+    }
+    
+    if let Some(web_id) = web_canister_id {
+        if let Ok(principal) = Principal::from_text(&web_id) {
+            authorized.push(principal);
+            ic_cdk::println!("✅ Authorized Web canister: {}", web_id);
+        }
+    }
+    
+    AUTHORIZED_CANISTERS.with(|canisters| {
+        *canisters.borrow_mut() = authorized;
+    });
+    
+    ic_cdk::println!("🔐 Data canister initialized - NON-CUSTODIAL mode");
+}
+
+#[pre_upgrade]
+fn pre_upgrade() {
+    ic_cdk::println!("🔄 Pre-upgrade: State will be preserved");
+}
+
+#[post_upgrade]
+fn post_upgrade(ussd_canister_id: Option<String>, web_canister_id: Option<String>) {
+    init(ussd_canister_id, web_canister_id);
+    ic_cdk::println!("✅ Post-upgrade: Canister restored");
+}
+
+// ============================================================================
+// Admin Functions (Controller only)
+// ============================================================================
+
+#[update]
+fn add_authorized_canister(canister_id: String) -> Result<(), String> {
+    verify_admin_access()?;
+    
+    let principal = Principal::from_text(&canister_id)
+        .map_err(|_| "Invalid principal ID".to_string())?;
+    
+    AUTHORIZED_CANISTERS.with(|canisters| {
+        let mut list = canisters.borrow_mut();
+        if !list.contains(&principal) {
+            list.push(principal);
+            ic_cdk::println!("✅ Added authorized canister: {}", canister_id);
+        }
+    });
+    
+    Ok(())
+}
+
+#[update]
+fn remove_authorized_canister(canister_id: String) -> Result<(), String> {
+    verify_admin_access()?;
+    
+    let principal = Principal::from_text(&canister_id)
+        .map_err(|_| "Invalid principal ID".to_string())?;
+    
+    AUTHORIZED_CANISTERS.with(|canisters| {
+        let mut list = canisters.borrow_mut();
+        list.retain(|p| p != &principal);
+        ic_cdk::println!("❌ Removed authorized canister: {}", canister_id);
+    });
+    
+    Ok(())
+}
+
+#[query]
+fn list_authorized_canisters() -> Result<Vec<String>, String> {
+    verify_admin_access()?;
+    
+    AUTHORIZED_CANISTERS.with(|canisters| {
+        Ok(canisters.borrow().iter().map(|p| p.to_text()).collect())
+    })
+}
+
+// ============================================================================
+// User Management
+// ============================================================================
+
+/// Create user (canister only - called during registration)
+#[update]
+async fn create_user(user_data: CreateUserData) -> Result<User, String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        let mut s = state.borrow_mut();
+        operations::user_ops::create_user(&mut s, user_data)
+    })
+}
+
+// Removed link_principal_to_user - principal is stored directly in User struct
+
+/// Get user data (user can access their own, canisters can access any)
+#[query]
+async fn get_user(user_id: String) -> Result<Option<User>, String> {
+    verify_user_access(&user_id)?;
+    
+    STATE.with(|state| {
+        Ok(state.borrow().users.get(&user_id).cloned())
+    })
+}
+
+/// Get user by phone (canister only)
+#[query]
+async fn get_user_by_phone(phone_number: String) -> Result<Option<User>, String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        Ok(state.borrow().users.values()
+            .find(|u| u.phone_number.as_ref() == Some(&phone_number))
+            .cloned())
+    })
+}
+
+/// Get user by principal (user accessing their own data)
+#[query]
+async fn get_my_user_data() -> Result<Option<User>, String> {
+    let caller_text = ic_cdk::caller().to_text();
+    
+    STATE.with(|state| {
+        Ok(state.borrow().users.values()
+            .find(|u| u.principal_id.as_ref() == Some(&caller_text))
+            .cloned())
+    })
+}
+
+// ============================================================================
+// Balance Operations
+// ============================================================================
+
+/// Get fiat balance (user can access their own, canisters can access any)
+#[query]
+async fn get_fiat_balance(user_id: String, currency: FiatCurrency) -> Result<u64, String> {
+    verify_user_access(&user_id)?;
+    
+    STATE.with(|state| {
+        let s = state.borrow();
+        let balance_key = format!("{}:{}", user_id, currency.code());
+        Ok(s.fiat_balances.get(&balance_key).map(|b| b.balance).unwrap_or(0))
+    })
+}
+
+/// Get crypto balance (user can access their own, canisters can access any)
+#[query]
+async fn get_crypto_balance(user_id: String) -> Result<CryptoBalance, String> {
+    verify_user_access(&user_id)?;
+    
+    STATE.with(|state| {
+        let s = state.borrow();
+        Ok(s.crypto_balances.get(&user_id).cloned().unwrap_or(CryptoBalance {
+            user_id: user_id.clone(),
+            ckbtc: 0,
+            ckusdc: 0,
+            updated_at: ic_cdk::api::time() / 1_000_000_000,
+        }))
+    })
+}
+
+/// Get my balances (user accessing their own data)
+#[query]
+async fn get_my_balances() -> Result<(Vec<FiatBalance>, CryptoBalance), String> {
+    let caller_text = ic_cdk::caller().to_text();
+    
+    // Find user by principal
+    let user_id = STATE.with(|state| {
+        state.borrow().users.values()
+            .find(|u| u.principal_id.as_ref() == Some(&caller_text))
+            .map(|u| u.id.clone())
+    }).ok_or("User not found for this principal".to_string())?;
+    
+    STATE.with(|state| {
+        let s = state.borrow();
+        
+        // Get all fiat balances for this user
+        let fiat_balances: Vec<FiatBalance> = s.fiat_balances.values()
+            .filter(|b| b.user_id == user_id)
+            .cloned()
+            .collect();
+        
+        // Get crypto balance
+        let crypto_balance = s.crypto_balances.get(&user_id).cloned().unwrap_or(CryptoBalance {
+            user_id: user_id.clone(),
+            ckbtc: 0,
+            ckusdc: 0,
+            updated_at: ic_cdk::api::time() / 1_000_000_000,
+        });
+        
+        Ok((fiat_balances, crypto_balance))
+    })
+}
+
+/// Set fiat balance (canister only - pure CRUD, no validation)
+#[update]
+async fn set_fiat_balance(
+    user_id: String,
+    currency: String,
+    amount: u64,
+) -> Result<(), String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        let mut s = state.borrow_mut();
+        let balance_key = format!("{}:{}", user_id, currency);
+        
+        let currency_enum = FiatCurrency::from_code(&currency)
+            .ok_or(format!("Invalid currency code: {}", currency))?;
+        
+        let balance = FiatBalance {
+            user_id: user_id.clone(),
+            currency: currency_enum,
+            balance: amount,
+            updated_at: ic_cdk::api::time() / 1_000_000_000,
+        };
+        
+        s.fiat_balances.insert(balance_key, balance);
+        Ok(())
+    })
+}
+
+/// Deposit fiat (canister only - called by USSD/Web after agent confirms)
+#[update]
+async fn deposit_fiat(
+    user_id: String,
+    amount: u64,
+    currency: FiatCurrency,
+    description: Option<String>
+) -> Result<Transaction, String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        let mut s = state.borrow_mut();
+        operations::balance_ops::deposit_fiat(&mut s, user_id, amount, currency, description)
+    })
+}
+
+/// Transfer fiat (canister only - called by USSD/Web after PIN verification)
+#[update]
+async fn transfer_fiat(
+    from_user: String,
+    to_user: String,
+    amount: u64,
+    currency: FiatCurrency,
+    description: Option<String>
+) -> Result<Transaction, String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        let mut s = state.borrow_mut();
+        operations::balance_ops::transfer_fiat(&mut s, from_user, to_user, amount, currency, description)
+    })
+}
+
+// ============================================================================
+// PIN Security
+// ============================================================================
+
+/// Setup PIN (canister only - called during registration)
+#[update]
+async fn setup_user_pin(user_id: String, pin: String, salt: String) -> Result<(), String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        let mut s = state.borrow_mut();
+        security::pin_ops::setup_pin_with_salt(&mut s, user_id, &pin, salt)
+    })
+}
+
+/// Verify PIN (canister only - called during transactions)
+#[update]
+async fn verify_user_pin(user_id: String, pin: String) -> Result<bool, String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        let mut s = state.borrow_mut();
+        security::pin_ops::verify_pin(&mut s, user_id, &pin)
+    })
+}
+
+// ============================================================================
+// Crypto Balance Operations
+// ============================================================================
+
+/// Update crypto balance (canister only - called after ledger operations)
+#[update]
+async fn update_crypto_balance(
+    user_id: String,
+    ckbtc_delta: i64,
+    ckusdc_delta: i64,
+) -> Result<(), String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        let mut s = state.borrow_mut();
+        operations::balance_ops::update_crypto_balance(&mut s, user_id, ckbtc_delta, ckusdc_delta)
+    })
+}
+
+// ============================================================================
+// Transaction History
+// ============================================================================
+
+/// Store transaction (canister only - pure CRUD)
+#[update]
+async fn store_transaction(tx: Transaction) -> Result<(), String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        let mut s = state.borrow_mut();
+        s.transactions.insert(tx.id.clone(), tx);
+        Ok(())
+    })
+}
+
+/// Get user transactions (user can access their own, canisters can access any)
+#[query]
+async fn get_user_transactions(
+    user_id: String,
+    limit: Option<usize>,
+    offset: Option<usize>
+) -> Result<Vec<Transaction>, String> {
+    verify_user_access(&user_id)?;
+    
+    STATE.with(|state| {
+        let s = state.borrow();
+        let mut transactions: Vec<Transaction> = s.transactions.values()
+            .filter(|tx| tx.from_user.as_ref() == Some(&user_id) || tx.to_user.as_ref() == Some(&user_id))
+            .cloned()
+            .collect();
+        
+        transactions.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        
+        let offset = offset.unwrap_or(0);
+        let limit = limit.unwrap_or(50);
+        
+        Ok(transactions.into_iter().skip(offset).take(limit).collect())
+    })
+}
+
+/// Get my transactions (user accessing their own data)
+#[query]
+async fn get_my_transactions(
+    limit: Option<usize>,
+    offset: Option<usize>
+) -> Result<Vec<Transaction>, String> {
+    let caller_text = ic_cdk::caller().to_text();
+    
+    // Find user by principal
+    let user_id = STATE.with(|state| {
+        state.borrow().users.values()
+            .find(|u| u.principal_id.as_ref() == Some(&caller_text))
+            .map(|u| u.id.clone())
+    }).ok_or("User not found for this principal".to_string())?;
+    
+    get_user_transactions(user_id, limit, offset).await
+}
+
+// ============================================================================
+// System Stats
+// ============================================================================
+
+#[query]
+async fn get_system_stats() -> Result<SystemStats, String> {
+    verify_admin_access()?;
+    
+    STATE.with(|state| {
+        let s = state.borrow();
+        Ok(SystemStats {
+            total_users: s.users.len(),
+            total_transactions: s.transactions.len(),
+            total_fiat_balances: s.fiat_balances.len(),
+            total_crypto_balances: s.crypto_balances.len(),
+        })
+    })
+}
+
+// ============================================================================
+// Audit Log Queries
+// ============================================================================
+
+/// Get audit log (only admin/controller can access)
+#[query]
+async fn get_audit_log(limit: Option<usize>, offset: Option<usize>) -> Result<Vec<AuditEntry>, String> {
+    verify_admin_access()?;
+    
+    STATE.with(|state| {
+        let s = state.borrow();
+        let start = offset.unwrap_or(0);
+        let end = start + limit.unwrap_or(100).min(1000);
+        Ok(s.audit_log.iter().skip(start).take(end - start).cloned().collect())
+    })
+}
+
+/// Get audit log count
+#[query]
+async fn get_audit_log_count() -> Result<usize, String> {
+    verify_admin_access()?;
+    
+    STATE.with(|state| {
+        Ok(state.borrow().audit_log.len())
+    })
+}
+
+// Export Candid interface
+ic_cdk::export_candid!();

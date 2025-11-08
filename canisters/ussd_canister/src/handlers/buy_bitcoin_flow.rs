@@ -2,6 +2,8 @@
 use crate::models::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 use crate::utils::validation;
+use candid::Principal;
+use ic_cdk::api::call::CallResult;
 
 /// Handle buy Bitcoin flow
 /// Steps: 1. Enter KES amount → 2. Enter PIN → 3. Execute
@@ -26,16 +28,11 @@ pub async fn handle_buy_bitcoin(text: &str, session: &mut UssdSession) -> (Strin
             
             match validation::parse_amount(amount_str) {
                 Ok(amount) => {
-                    // TODO: Get actual BTC rate
-                    let btc_rate = 50_000_000.0; // 50M KES per BTC (example)
-                    let btc_amount = amount / btc_rate;
-                    
-                    (format!("{}\n{}: {} KES\n{}: {:.8} ckBTC\n\n{}", 
+                    // Business Logic will handle exchange rates
+                    (format!("{}\n{}: {} UGX\n\n{}", 
                         TranslationService::translate("confirm_transaction", lang),
                         TranslationService::translate("you_pay", lang),
                         amount,
-                        TranslationService::translate("you_receive", lang),
-                        btc_amount,
                         TranslationService::translate("enter_pin_confirm", lang)), true)
                 }
                 Err(e) => {
@@ -44,54 +41,65 @@ pub async fn handle_buy_bitcoin(text: &str, session: &mut UssdSession) -> (Strin
             }
         }
         2 => {
-            // Step 2: Verify PIN and execute
-            // parts: [0]=2, [1]=3, [2]=amount_kes, [3]=pin
+            // Step 2: Call Business Logic to buy crypto
+            // parts: [0]=2, [1]=3, [2]=amount_ugx, [3]=pin
             let pin = parts.get(3).unwrap_or(&"");
             let phone = session.phone_number.clone();
-            let amount_kes_str = parts.get(2).unwrap_or(&"");
+            let amount_str = parts.get(2).unwrap_or(&"");
             
-            let amount_kes = amount_kes_str.to_string();
-            let btc_rate = 50_000_000.0;
-            let amount_f64 = amount_kes_str.parse::<f64>().unwrap_or(0.0);
-            let btc_amount_f64 = amount_f64 / btc_rate;
-            let amount_btc = format!("{:.8}", btc_amount_f64);
+            // Parse amount
+            let amount_f64 = amount_str.parse::<f64>().unwrap_or(0.0);
+            let amount_cents = (amount_f64 * 100.0) as u64;
             
-            match crate::utils::pin::verify_user_pin(&phone, pin).await {
-                Ok(true) => {
-                    // Execute BTC purchase
-                    let kes_f64 = amount_kes.parse::<f64>().unwrap_or(0.0);
-                    let btc_f64 = amount_btc.parse::<f64>().unwrap_or(0.0);
+            // Get Business Logic Canister ID
+            let bl_canister_id = match std::env::var("BUSINESS_LOGIC_CANISTER_ID")
+                .ok()
+                .and_then(|id| Principal::from_text(&id).ok()) 
+            {
+                Some(id) => id,
+                None => return (format!("System error\n\n0. {}", TranslationService::translate("main_menu", lang)), false),
+            };
+            
+            // Call Business Logic: buy_crypto
+            #[derive(candid::CandidType, candid::Deserialize)]
+            enum CryptoType { CkBTC, CkUSDC }
+            
+            #[derive(candid::CandidType, candid::Deserialize)]
+            struct TransactionResult {
+                transaction_id: String,
+                amount: u64,
+                new_balance: u64,
+            }
+            
+            let result: CallResult<(Result<TransactionResult, String>,)> = ic_cdk::call(
+                bl_canister_id,
+                "buy_crypto",
+                (phone.clone(), amount_cents, "UGX".to_string(), CryptoType::CkBTC, pin.to_string()),
+            ).await;
+            
+            match result {
+                Ok((Ok(tx_result),)) => {
+                    let btc_amount = (tx_result.amount as f64) / 100_000_000.0; // satoshis to BTC
+                    let new_balance = (tx_result.new_balance as f64) / 100.0;
                     
-                    let kes_balance = crate::utils::datastore::get_user_data(&phone, "kes_balance")
-                        .await.ok().flatten().and_then(|b| b.parse::<f64>().ok()).unwrap_or(0.0);
-                    
-                    if kes_balance < kes_f64 {
-                        return (format!("{}\n{}: {} KES\n\n{}", 
-                            TranslationService::translate("insufficient_balance", lang),
-                            TranslationService::translate("your_balance", lang),
-                            kes_balance,
-                            TranslationService::translate("try_again", lang)), true);
-                    }
-                    
-                    let _ = crate::utils::datastore::set_user_data(&phone, "kes_balance", &(kes_balance - kes_f64).to_string()).await;
-                    
-                    let btc_balance = crate::utils::datastore::get_user_data(&phone, "ckbtc_balance")
-                        .await.ok().flatten().and_then(|b| b.parse::<f64>().ok()).unwrap_or(0.0);
-                    let _ = crate::utils::datastore::set_user_data(&phone, "ckbtc_balance", &(btc_balance + btc_f64).to_string()).await;
-                    
-                    (format!("{}\nBought {} ckBTC for {} KES\n\n0. {}", 
+                    (format!("{}\n{} {} UGX {} {:.8} BTC\n{}: {} UGX\n\n0. {}", 
                         TranslationService::translate("transaction_successful", lang),
-                        amount_btc,
-                        amount_kes,
+                        TranslationService::translate("bought", lang),
+                        amount_f64,
+                        TranslationService::translate("worth_of", lang),
+                        btc_amount,
+                        TranslationService::translate("new_balance", lang),
+                        new_balance,
                         TranslationService::translate("main_menu", lang)), false)
                 }
-                Ok(false) => {
-                    (format!("{}\n{}", 
-                        TranslationService::translate("incorrect_pin", lang),
-                        TranslationService::translate("try_again", lang)), true)
+                Ok((Err(e),)) => {
+                    (format!("{}: {}\n\n0. {}", 
+                        TranslationService::translate("transaction_failed", lang),
+                        e,
+                        TranslationService::translate("main_menu", lang)), false)
                 }
-                Err(e) => {
-                    (format!("{}\n\n0. {}", e, TranslationService::translate("main_menu", lang)), false)
+                Err((code, msg)) => {
+                    (format!("System error: {:?} - {}\n\n0. {}", code, msg, TranslationService::translate("main_menu", lang)), false)
                 }
             }
         }

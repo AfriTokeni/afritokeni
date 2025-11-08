@@ -2,6 +2,8 @@
 use crate::models::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 use crate::utils::validation;
+use candid::Principal;
+use ic_cdk::api::call::CallResult;
 
 /// Handle buy USDC flow
 /// Steps: 1. Enter KES amount → 2. Enter PIN → 3. Execute
@@ -26,17 +28,11 @@ pub async fn handle_buy_usdc(text: &str, session: &mut UssdSession) -> (String, 
             
             match validation::parse_amount(amount_str) {
                 Ok(amount) => {
-                    // TODO: Get actual USDC rate
-                    let usdc_rate = 150.0; // 150 KES per USDC (example)
-                    let usdc_amount = amount / usdc_rate;
-                    
-                    
-                    (format!("{}\n{}: {} KES\n{}: {:.2} ckUSDC\n\n{}", 
+                    // Business Logic will handle exchange rates
+                    (format!("{}\n{}: {} UGX\n\n{}", 
                         TranslationService::translate("confirm_transaction", lang),
                         TranslationService::translate("you_pay", lang),
                         amount,
-                        TranslationService::translate("you_receive", lang),
-                        usdc_amount,
                         TranslationService::translate("enter_pin_confirm", lang)), true)
                 }
                 Err(e) => {

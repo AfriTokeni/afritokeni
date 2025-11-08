@@ -2,6 +2,8 @@
 use crate::models::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 use crate::utils::validation;
+use candid::Principal;
+use ic_cdk::api::call::CallResult;
 
 /// Handle send money flow
 /// Steps: 1. Enter recipient → 2. Enter amount → 3. Enter PIN → 4. Confirm
@@ -53,68 +55,60 @@ pub async fn handle_send_money(text: &str, session: &mut UssdSession) -> (String
             }
         }
         3 => {
-            // Step 3: Verify PIN and execute transaction
+            // Step 3: Call Business Logic Canister directly
             // parts: [0]=1, [1]=2, [2]=phone, [3]=amount, [4]=pin
             let pin = parts.get(4).unwrap_or(&"");
             let phone = session.phone_number.clone();
-            let recipient = parts.get(2).unwrap_or(&"").to_string();
-            let amount = parts.get(3).unwrap_or(&"").to_string();
+            let recipient_phone = parts.get(2).unwrap_or(&"").to_string();
+            let amount_str = parts.get(3).unwrap_or(&"").to_string();
             
-            // Verify PIN
-            match crate::utils::pin::verify_user_pin(&phone, pin).await {
-                Ok(true) => {
-                    // PIN correct - check balance and execute transaction
-                    let amount_f64 = amount.parse::<f64>().unwrap_or(0.0);
-                    
-                    // Get current balance
-                    let current_balance = crate::utils::datastore::get_user_data(&phone, "kes_balance")
-                        .await
-                        .ok()
-                        .flatten()
-                        .and_then(|b| b.parse::<f64>().ok())
-                        .unwrap_or(0.0);
-                    
-                    // Check sufficient balance
-                    if current_balance < amount_f64 {
-                        return (format!("{}\n{}: {} KES\n\n{}", 
-                            TranslationService::translate("insufficient_balance", lang),
-                            TranslationService::translate("your_balance", lang),
-                            current_balance,
-                            TranslationService::translate("try_again", lang)), true);
-                    }
-                    
-                    // Deduct from sender
-                    let new_balance = current_balance - amount_f64;
-                    let _ = crate::utils::datastore::set_user_data(&phone, "kes_balance", &new_balance.to_string()).await;
-                    
-                    // Add to recipient (in real system, this would be inter-canister call)
-                    let recipient_balance = crate::utils::datastore::get_user_data(&recipient, "kes_balance")
-                        .await
-                        .ok()
-                        .flatten()
-                        .and_then(|b| b.parse::<f64>().ok())
-                        .unwrap_or(0.0);
-                    let _ = crate::utils::datastore::set_user_data(&recipient, "kes_balance", &(recipient_balance + amount_f64).to_string()).await;
-                    
-                    (format!("{}\n{} {} KES {} {}\n{}: {} KES\n\n0. {}", 
+            // Parse amount
+            let amount_f64 = amount_str.parse::<f64>().unwrap_or(0.0);
+            let amount_cents = (amount_f64 * 100.0) as u64;
+            
+            // Get Business Logic Canister ID
+            let bl_canister_id = match std::env::var("BUSINESS_LOGIC_CANISTER_ID")
+                .ok()
+                .and_then(|id| Principal::from_text(&id).ok()) 
+            {
+                Some(id) => id,
+                None => return (format!("System error\n\n0. {}", TranslationService::translate("main_menu", lang)), false),
+            };
+            
+            // Call Business Logic: send_money_to_phone
+            #[derive(candid::CandidType, candid::Deserialize)]
+            struct TransactionResult {
+                transaction_id: String,
+                new_balance: u64,
+            }
+            
+            let result: CallResult<(Result<TransactionResult, String>,)> = ic_cdk::call(
+                bl_canister_id,
+                "send_money_to_phone",
+                (phone.clone(), recipient_phone.clone(), amount_cents, "UGX".to_string(), pin.to_string()),
+            ).await;
+            
+            match result {
+                Ok((Ok(tx_result),)) => {
+                    let new_balance = (tx_result.new_balance as f64) / 100.0;
+                    (format!("{}\n{} {} UGX {} {}\n{}: {} UGX\n\n0. {}", 
                         TranslationService::translate("transaction_successful", lang),
                         TranslationService::translate("sent", lang),
-                        amount,
+                        amount_f64,
                         TranslationService::translate("to", lang),
-                        recipient,
+                        recipient_phone,
                         TranslationService::translate("new_balance", lang),
                         new_balance,
                         TranslationService::translate("main_menu", lang)), false)
                 }
-                Ok(false) => {
-                    // PIN incorrect
-                    (format!("{}\n{}", 
-                        TranslationService::translate("incorrect_pin", lang),
-                        TranslationService::translate("try_again", lang)), true)
+                Ok((Err(e),)) => {
+                    (format!("{}: {}\n\n0. {}", 
+                        TranslationService::translate("transaction_failed", lang),
+                        e,
+                        TranslationService::translate("main_menu", lang)), false)
                 }
-                Err(e) => {
-                    // Locked out or error
-                    (format!("{}\n\n0. {}", e, TranslationService::translate("main_menu", lang)), false)
+                Err((code, msg)) => {
+                    (format!("System error: {:?} - {}\n\n0. {}", code, msg, TranslationService::translate("main_menu", lang)), false)
                 }
             }
         }
