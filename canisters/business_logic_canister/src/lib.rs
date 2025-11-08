@@ -184,6 +184,78 @@ async fn transfer_money(
     result
 }
 
+/// Withdraw fiat (USSD cash withdrawal via agent)
+#[update]
+async fn withdraw_fiat(
+    phone_number: String,
+    amount: u64,
+    currency: String,
+    agent_id: String,
+    pin: String,
+) -> Result<TransactionResult, String> {
+    verify_authorized_caller()?;
+    
+    // Get user
+    let user = services::data_client::get_user_by_phone(&phone_number).await?
+        .ok_or_else(|| format!("User not found: {}", phone_number))?;
+    
+    // Verify PIN
+    if !services::data_client::verify_pin(&user.id, &pin).await? {
+        log_audit(
+            "withdraw_fiat",
+            Some(phone_number.clone()),
+            "PIN verification failed",
+            false
+        );
+        return Err("Incorrect PIN".to_string());
+    }
+    
+    // Reset PIN attempts on success
+    let _ = services::data_client::reset_pin_attempts(&user.id).await;
+    
+    // Check balance
+    let balance = services::data_client::get_fiat_balance(&user.id, &currency).await?;
+    if balance < amount {
+        return Err(format!("Insufficient balance. Have: {}, Need: {}", balance, amount));
+    }
+    
+    // Fraud check
+    let fraud_check = services::fraud_detection::check_transaction(&user.id, amount, &currency)?;
+    if fraud_check.should_block {
+        return Err(format!("Transaction blocked: {:?}", fraud_check.warnings));
+    }
+    
+    // Process withdrawal via Data Canister
+    let tx = services::data_client::withdraw_fiat(
+        &user.id,
+        amount,
+        &currency,
+        Some(format!("Cash withdrawal via agent {}", agent_id))
+    ).await?;
+    
+    // Update last active
+    let _ = services::data_client::update_last_active(&user.id).await;
+    
+    // Audit log
+    log_audit(
+        "withdraw_fiat",
+        Some(phone_number),
+        &format!("Withdrew {} {} via agent {}", amount, currency, agent_id),
+        true
+    );
+    
+    // Return result
+    Ok(TransactionResult {
+        transaction_id: tx.id,
+        from_user: user.id.clone(),
+        to_user: agent_id,
+        amount,
+        currency,
+        new_balance: balance - amount,
+        timestamp: tx.timestamp,
+    })
+}
+
 /// Send money to phone number (convenience method for USSD)
 #[update]
 async fn send_money_to_phone(
@@ -348,6 +420,23 @@ async fn check_crypto_balance(
 // ============================================================================
 // User Management
 // ============================================================================
+
+/// Check if user exists (for USSD registration detection)
+#[query]
+async fn user_exists(user_identifier: String) -> Result<bool, String> {
+    verify_authorized_caller()?;
+    
+    // Check by phone or principal
+    let exists = if let Some(_) = services::data_client::get_user_by_phone(&user_identifier).await? {
+        true
+    } else if let Some(_) = services::data_client::get_user(&user_identifier).await? {
+        true
+    } else {
+        false
+    };
+    
+    Ok(exists)
+}
 
 /// Register new user (USSD or Web)
 #[update]
