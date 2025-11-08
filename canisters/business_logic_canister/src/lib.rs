@@ -139,6 +139,35 @@ fn init(data_canister_id: String) {
 }
 
 // ============================================================================
+// Configuration Management
+// ============================================================================
+
+/// Set maximum transaction amount (admin only)
+#[update]
+fn set_max_transaction_amount(amount: u64) -> Result<(), String> {
+    // TODO: Add admin-only check
+    services::config::set_max_transaction_amount(amount);
+    Ok(())
+}
+
+/// Set suspicious amount threshold (admin only)
+#[update]
+fn set_suspicious_amount_threshold(amount: u64) -> Result<(), String> {
+    // TODO: Add admin-only check
+    services::config::set_suspicious_amount_threshold(amount);
+    Ok(())
+}
+
+/// Get current fraud detection limits
+#[query]
+fn get_fraud_detection_limits() -> (u64, u64) {
+    (
+        services::config::get_max_transaction_amount(),
+        services::config::get_suspicious_amount_threshold()
+    )
+}
+
+// ============================================================================
 // Money Transfer Operations
 // ============================================================================
 

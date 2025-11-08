@@ -2,12 +2,14 @@
 // Fraud Detection Service - Business Logic Layer
 // ============================================================================
 
-const MAX_TRANSACTION_AMOUNT: u64 = 10_000_000; // 10M in smallest unit (e.g., 100,000 UGX)
-const SUSPICIOUS_AMOUNT_THRESHOLD: u64 = 5_000_000; // 5M in smallest unit
+use super::config;
 
 pub struct FraudCheckResult {
+    #[allow(dead_code)] // Used in security logging
     pub is_suspicious: bool,
+    #[allow(dead_code)] // Used in security logging
     pub risk_score: u8, // 0-100
+    #[allow(dead_code)] // Used in security logging
     pub requires_manual_review: bool,
     pub should_block: bool,
     pub warnings: Vec<String>,
@@ -25,22 +27,27 @@ pub fn check_transaction(
     let mut risk_score: u8 = 0;
     let mut requires_manual_review = false;
     
-    // Check 1: Amount too large - BLOCK
-    if amount > MAX_TRANSACTION_AMOUNT {
+    // Get configurable limits
+    let max_amount = config::get_max_transaction_amount();
+    let suspicious_threshold = config::get_suspicious_amount_threshold();
+    
+    // Check 1: Amount too large - BLOCK (also suspicious)
+    if amount > max_amount {
         should_block = true;
+        is_suspicious = true; // Blocked transactions are always suspicious
         risk_score = 100;
         requires_manual_review = true;
         warnings.push(format!("Amount {} exceeds maximum limit", amount));
     }
     // Check 2: Suspicious amount - FLAG for review
-    else if amount > SUSPICIOUS_AMOUNT_THRESHOLD {
+    else if amount > suspicious_threshold {
         is_suspicious = true;
         risk_score = 70;
         requires_manual_review = true;
         warnings.push(format!("Large transaction: {}", amount));
     }
     // Check 3: Medium amount - Just track
-    else if amount > SUSPICIOUS_AMOUNT_THRESHOLD / 2 {
+    else if amount > suspicious_threshold / 2 {
         risk_score = 30;
         warnings.push(format!("Medium transaction: {}", amount));
     }
@@ -68,6 +75,12 @@ pub fn check_rate_limit(_user_id: &str) -> Result<bool, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    
+    // Setup function to initialize config with default values for tests
+    fn setup_test_config() {
+        config::set_max_transaction_amount(10_000_000);
+        config::set_suspicious_amount_threshold(5_000_000);
+    }
 
     // ============================================================================
     // Normal Cases
@@ -75,6 +88,7 @@ mod tests {
 
     #[test]
     fn test_fraud_check_normal_amount() {
+        setup_test_config();
         let result = check_transaction("user123", 1_000_000, "UGX").unwrap();
         assert!(!result.should_block);
         assert!(!result.is_suspicious);

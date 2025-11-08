@@ -84,39 +84,25 @@ async function callUssdCanister(sessionId: string, phoneNumber: string, text: st
   
   const network = process.env.DFX_NETWORK || 'local';
   
-  // Prepare HTTP request body (form-urlencoded format)
-  const requestBody = `sessionId=${encodeURIComponent(sessionId)}&phoneNumber=${encodeURIComponent(phoneNumber)}&text=${encodeURIComponent(text)}`;
-  
-  // Create HTTP request record for the canister
-  const httpRequest = {
-    method: "POST",
-    url: "/api/ussd",
-    headers: [
-      ["Content-Type", "application/x-www-form-urlencoded"]
-    ],
-    body: Array.from(new TextEncoder().encode(requestBody))
-  };
-  
-  // Call http_request_update endpoint with proper HTTP request
-  const dfxCommand = `dfx canister call ussd_canister http_request_update '(record { method = "POST"; url = "/api/ussd"; headers = vec { record { "Content-Type"; "application/x-www-form-urlencoded" } }; body = blob "${Buffer.from(requestBody).toString('hex')}" })' --network ${network}`;
+  // Call test_ussd_direct endpoint (test helper that bypasses HTTP layer)
+  const dfxCommand = `dfx canister call ussd_canister test_ussd_direct '("${sessionId}", "${phoneNumber}", "${text}")' --network ${network}`;
   
   try {
     const { stdout } = await execAsync(dfxCommand);
     
-    // Parse the HTTP response from candid output
-    // The response is a record with status_code, headers, and body
-    const bodyMatch = stdout.match(/body\s*=\s*blob\s+"([^"]+)"/);
-    if (bodyMatch) {
-      const bodyHex = bodyMatch[1];
-      const bodyBytes = Buffer.from(bodyHex, 'hex');
-      const bodyText = bodyBytes.toString('utf-8');
-      
-      // Remove CON/END prefix if present
-      return bodyText.replace(/^(CON|END)\s+/, '');
+    // Parse candid tuple response: (text, continues)
+    // Format: ("response text", true/false)
+    const match = stdout.match(/\(\s*"([^"]*)"\s*,\s*(true|false)\s*\)/);
+    if (match) {
+      const responseText = match[1]
+        .replace(/\\n/g, '\n')
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, '\\');
+      return responseText;
     }
     
     // Fallback: try to extract any text from stdout
-    console.warn('Could not parse HTTP response body, raw output:', stdout);
+    console.warn('Could not parse candid response, raw output:', stdout);
     return stdout.trim();
   } catch (error: any) {
     console.error('USSD canister call failed:', error.message);
