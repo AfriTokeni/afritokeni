@@ -149,8 +149,10 @@ Given('I have set up a PIN {string}', async function (pin: string) {
     console.log(`ℹ️  User may already exist: ${world.phoneNumber}`);
   }
   
-  // Set up PIN
-  const pinArgs = `("${world.phoneNumber}", "${pin}")`;
+  // Set up PIN (needs user_id, pin, salt)
+  // Generate a simple salt for testing
+  const salt = `test-salt-${Date.now()}`;
+  const pinArgs = `("${world.phoneNumber}", "${pin}", "${salt}")`;
   await callDataCanister('setup_user_pin', pinArgs);
   console.log(`✅ PIN set up for ${world.phoneNumber}`);
   

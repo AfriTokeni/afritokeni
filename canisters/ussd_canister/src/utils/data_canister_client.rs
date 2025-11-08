@@ -1,5 +1,5 @@
 use candid::{CandidType, Deserialize, Principal};
-use ic_cdk::api::call::CallResult;
+use ic_cdk::call::Call;
 
 // ============================================================================
 // Data Canister Types (matching data_canister/src/models.rs)

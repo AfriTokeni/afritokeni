@@ -1,6 +1,6 @@
 use candid::Principal;
 use ic_cdk_macros::{init, query, update};
-use ic_cdk::api::caller as msg_caller;
+use ic_cdk::api::msg_caller;
 use std::cell::RefCell;
 
 // ============================================================================

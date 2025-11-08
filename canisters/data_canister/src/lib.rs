@@ -1,6 +1,6 @@
 use ic_cdk_macros::{init, update, query, pre_upgrade, post_upgrade};
 use candid::{CandidType, Deserialize, Principal};
-use ic_cdk::api::caller as msg_caller;
+use ic_cdk::api::msg_caller;
 use std::collections::HashMap;
 use std::cell::RefCell;
 

@@ -1,4 +1,4 @@
-use ic_cdk_macros::{query, update};
+use ic_cdk_macros::{init, post_upgrade, pre_upgrade, query, update};
 
 // Organized module structure
 mod config_loader;
