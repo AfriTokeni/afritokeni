@@ -67,8 +67,14 @@ pub fn check_transaction(
 
 /// Check if user should be rate-limited
 pub fn check_rate_limit(_user_id: &str) -> Result<bool, String> {
-    // TODO: Implement rate limiting based on transaction history
-    // For now, allow all
+    // Skip rate limiting in test mode
+    #[cfg(test)]
+    {
+        return Ok(true);
+    }
+    
+    // TODO: Implement proper rate limiting based on transaction history
+    // Track requests per user per time window
     Ok(true)
 }
 

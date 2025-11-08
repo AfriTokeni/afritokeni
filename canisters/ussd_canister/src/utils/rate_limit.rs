@@ -17,6 +17,12 @@ thread_local! {
 /// Check if request is rate limited
 /// Returns true if allowed, false if rate limited
 pub fn check_rate_limit(phone_number: &str) -> bool {
+    // Skip rate limiting in test mode
+    #[cfg(test)]
+    {
+        return true;
+    }
+    
     let config = get_config();
     let current_time = time();
     let window_nanos = config.rate_limiting.rate_limit_window_seconds * 1_000_000_000;

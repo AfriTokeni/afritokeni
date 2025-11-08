@@ -1,10 +1,52 @@
-use ic_cdk_macros::{query, update};
+use ic_cdk_macros::{init, query, update};
+use candid::Principal;
+use std::cell::RefCell;
 
 // Organized module structure
 mod config_loader;
 mod handlers;
 mod models;
 mod utils;
+
+// Store Business Logic Canister ID
+thread_local! {
+    static BUSINESS_LOGIC_CANISTER_ID: RefCell<Option<Principal>> = RefCell::new(None);
+}
+
+/// Initialize USSD canister with Business Logic canister ID
+#[init]
+fn init(business_logic_canister_id: String) {
+    ic_cdk::println!("🔧 USSD init called with: {}", business_logic_canister_id);
+    if let Ok(principal) = Principal::from_text(&business_logic_canister_id) {
+        BUSINESS_LOGIC_CANISTER_ID.with(|id| {
+            *id.borrow_mut() = Some(principal);
+        });
+        ic_cdk::println!("✅ USSD canister initialized with Business Logic ID: {}", business_logic_canister_id);
+    } else {
+        ic_cdk::println!("⚠️ Invalid Business Logic canister ID: {}", business_logic_canister_id);
+    }
+}
+
+/// Set Business Logic Canister ID (for manual configuration)
+#[update]
+fn set_business_logic_canister_id(canister_id: String) -> Result<(), String> {
+    let principal = Principal::from_text(&canister_id)
+        .map_err(|e| format!("Invalid principal: {:?}", e))?;
+    
+    BUSINESS_LOGIC_CANISTER_ID.with(|id| {
+        *id.borrow_mut() = Some(principal);
+    });
+    
+    ic_cdk::println!("✅ Business Logic Canister ID set to: {}", canister_id);
+    Ok(())
+}
+
+/// Get Business Logic Canister ID
+pub fn get_business_logic_canister_id() -> Result<Principal, String> {
+    BUSINESS_LOGIC_CANISTER_ID.with(|id| {
+        id.borrow().ok_or("Business Logic Canister ID not set".to_string())
+    })
+}
 
 /// Test helper for integration tests (bypasses HTTP layer)
 /// Returns (response_text, continue_session)

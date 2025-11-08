@@ -4,13 +4,9 @@
 use candid::Principal;
 use ic_cdk::call::Call;
 
-/// Get Business Logic Canister ID from environment
+/// Get Business Logic Canister ID
 fn get_business_logic_canister_id() -> Result<Principal, String> {
-    // TODO: Set this during deployment
-    std::env::var("BUSINESS_LOGIC_CANISTER_ID")
-        .ok()
-        .and_then(|id| Principal::from_text(&id).ok())
-        .ok_or_else(|| "BUSINESS_LOGIC_CANISTER_ID not set".to_string())
+    crate::get_business_logic_canister_id()
 }
 
 /// Verify user PIN

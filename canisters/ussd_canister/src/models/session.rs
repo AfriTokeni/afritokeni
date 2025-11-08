@@ -38,6 +38,10 @@ impl UssdSession {
     pub fn update_activity(&mut self) {
         self.last_activity = time();
     }
+    
+    pub fn clear_data(&mut self) {
+        self.data.clear();
+    }
 }
 
 // Thread-local storage for sessions
