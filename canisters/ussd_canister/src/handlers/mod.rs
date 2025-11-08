@@ -8,4 +8,3 @@ pub mod ussd_handlers;
 pub mod send_money_flow;
 pub mod withdraw_flow;
 pub mod send_bitcoin_flow;
-pub mod admin;
