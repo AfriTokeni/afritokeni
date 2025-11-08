@@ -2,8 +2,6 @@
 use crate::models::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 use crate::utils::validation;
-use candid::Principal;
-use ic_cdk::api::call::CallResult;
 
 /// Handle send money flow
 /// Steps: 1. Enter recipient → 2. Enter amount → 3. Enter PIN → 4. Confirm
@@ -66,30 +64,15 @@ pub async fn handle_send_money(text: &str, session: &mut UssdSession) -> (String
             let amount_f64 = amount_str.parse::<f64>().unwrap_or(0.0);
             let amount_cents = (amount_f64 * 100.0) as u64;
             
-            // Get Business Logic Canister ID
-            let bl_canister_id = match std::env::var("BUSINESS_LOGIC_CANISTER_ID")
-                .ok()
-                .and_then(|id| Principal::from_text(&id).ok()) 
-            {
-                Some(id) => id,
-                None => return (format!("System error\n\n0. {}", TranslationService::translate("main_menu", lang)), false),
-            };
-            
-            // Call Business Logic: send_money_to_phone
-            #[derive(candid::CandidType, candid::Deserialize)]
-            struct TransactionResult {
-                transaction_id: String,
-                new_balance: u64,
-            }
-            
-            let result: CallResult<(Result<TransactionResult, String>,)> = ic_cdk::call(
-                bl_canister_id,
-                "send_money_to_phone",
-                (phone.clone(), recipient_phone.clone(), amount_cents, "UGX".to_string(), pin.to_string()),
-            ).await;
-            
-            match result {
-                Ok((Ok(tx_result),)) => {
+            // Call Business Logic to send money
+            match crate::utils::business_logic_helper::send_money(
+                &phone,
+                &recipient_phone,
+                amount_cents,
+                "KES",
+                pin
+            ).await {
+                Ok(tx_result) => {
                     let new_balance = (tx_result.new_balance as f64) / 100.0;
                     (format!("{}\n{} {} UGX {} {}\n{}: {} UGX\n\n0. {}", 
                         TranslationService::translate("transaction_successful", lang),
@@ -101,14 +84,11 @@ pub async fn handle_send_money(text: &str, session: &mut UssdSession) -> (String
                         new_balance,
                         TranslationService::translate("main_menu", lang)), false)
                 }
-                Ok((Err(e),)) => {
+                Err(e) => {
                     (format!("{}: {}\n\n0. {}", 
                         TranslationService::translate("transaction_failed", lang),
                         e,
                         TranslationService::translate("main_menu", lang)), false)
-                }
-                Err((code, msg)) => {
-                    (format!("System error: {:?} - {}\n\n0. {}", code, msg, TranslationService::translate("main_menu", lang)), false)
                 }
             }
         }
