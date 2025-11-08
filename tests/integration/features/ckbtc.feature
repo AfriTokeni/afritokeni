@@ -1,4 +1,4 @@
-@integration
+@integration @crypto
 Feature: ckBTC Integration
   As a user of AfriTokeni
   I want to interact with real ckBTC ledger on ICP

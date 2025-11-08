@@ -1,4 +1,4 @@
-@integration
+@integration @ussd
 Feature: USSD USDC Menu
   As a user
   I want to manage my USDC (ckUSDC) via USSD

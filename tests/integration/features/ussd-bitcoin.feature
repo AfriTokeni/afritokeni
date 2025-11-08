@@ -1,4 +1,4 @@
-@integration
+@integration @ussd
 Feature: USSD Bitcoin Menu
   As a user
   I want to manage my Bitcoin (ckBTC) via USSD

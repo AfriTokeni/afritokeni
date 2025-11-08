@@ -1,4 +1,4 @@
-@integration
+@integration @ussd
 Feature: USSD Local Currency Menu
   As a user
   I want to manage my local currency (KES) via USSD

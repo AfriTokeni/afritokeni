@@ -6,5 +6,6 @@ module.exports = {
     formatOptions: { snippetInterface: 'async-await' },
     paths: ['tests/e2e/features/**/*.feature'],
     publishQuiet: true,
+    parallel: 4, // Run 4 scenarios in parallel
   }
 };

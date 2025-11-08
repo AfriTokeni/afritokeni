@@ -1,4 +1,4 @@
-@integration
+@integration @ussd
 Feature: USSD Language Selection
   As a user
   I want to change my language preference via USSD

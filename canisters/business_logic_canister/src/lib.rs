@@ -456,7 +456,7 @@ async fn check_crypto_balance(
 // ============================================================================
 
 /// Check if user exists (for USSD registration detection)
-#[query]
+#[update]
 async fn user_exists(user_identifier: String) -> Result<bool, String> {
     verify_authorized_caller()?;
     

@@ -1,4 +1,4 @@
-@integration
+@integration @crypto
 Feature: ckUSDC Integration
   As a user of AfriTokeni
   I want to interact with real ckUSDC ledger on ICP

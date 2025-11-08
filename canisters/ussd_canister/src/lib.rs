@@ -13,18 +13,10 @@ thread_local! {
     static BUSINESS_LOGIC_CANISTER_ID: RefCell<Option<Principal>> = RefCell::new(None);
 }
 
-/// Initialize USSD canister with Business Logic canister ID
+/// Initialize USSD canister (no arguments needed - use set_business_logic_canister_id after deployment)
 #[init]
-fn init(business_logic_canister_id: String) {
-    ic_cdk::println!("🔧 USSD init called with: {}", business_logic_canister_id);
-    if let Ok(principal) = Principal::from_text(&business_logic_canister_id) {
-        BUSINESS_LOGIC_CANISTER_ID.with(|id| {
-            *id.borrow_mut() = Some(principal);
-        });
-        ic_cdk::println!("✅ USSD canister initialized with Business Logic ID: {}", business_logic_canister_id);
-    } else {
-        ic_cdk::println!("⚠️ Invalid Business Logic canister ID: {}", business_logic_canister_id);
-    }
+fn init() {
+    ic_cdk::println!("🔧 USSD canister initialized - use set_business_logic_canister_id to configure");
 }
 
 /// Set Business Logic Canister ID (for manual configuration)
