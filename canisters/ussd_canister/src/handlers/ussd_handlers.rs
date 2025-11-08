@@ -20,20 +20,24 @@ pub async fn handle_registration(session: &mut UssdSession, pin: &str) -> (Strin
             TranslationService::translate("back", lang)), true);
     }
     
+    // Detect currency from phone number (simple detection based on country code)
+    let currency = detect_currency_from_phone(&session.phone_number);
+    
     // Register user via Business Logic Canister
     match crate::utils::business_logic_helper::register_user(
         &session.phone_number,
         "USSD", // first_name (user can update via web)
         "User", // last_name
         "",     // email (optional)
-        pin
+        pin,
+        &currency
     ).await {
         Ok(_user_id) => {
             ic_cdk::println!("✅ User registered: {}", session.phone_number);
             session.current_menu = "main".to_string();
-            (format!("{}\n0. {}", 
-                TranslationService::translate("pin_set_success", lang),
-                TranslationService::translate("main_menu", lang)), true)
+            (format!("{}\n\n{}", 
+                TranslationService::translate("registration_success", lang),
+                TranslationService::translate("main_menu_prompt", lang)), false)
         }
         Err(e) => {
             ic_cdk::println!("❌ Registration failed: {}", e);
@@ -42,6 +46,21 @@ pub async fn handle_registration(session: &mut UssdSession, pin: &str) -> (Strin
                 TranslationService::translate("back", lang)), true)
         }
     }
+}
+
+/// Detect currency from phone number (simple country code detection)
+fn detect_currency_from_phone(phone: &str) -> String {
+    let phone = phone.trim_start_matches('+');
+    
+    // African country codes and their currencies
+    if phone.starts_with("256") { "UGX".to_string() } // Uganda
+    else if phone.starts_with("254") { "KES".to_string() } // Kenya
+    else if phone.starts_with("255") { "TZS".to_string() } // Tanzania
+    else if phone.starts_with("250") { "RWF".to_string() } // Rwanda
+    else if phone.starts_with("234") { "NGN".to_string() } // Nigeria
+    else if phone.starts_with("233") { "GHS".to_string() } // Ghana
+    else if phone.starts_with("27") { "ZAR".to_string() } // South Africa
+    else { "UGX".to_string() } // Default to UGX
 }
 
 /// Handle local currency menu

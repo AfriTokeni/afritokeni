@@ -129,6 +129,22 @@ pub async fn send_crypto(
     result
 }
 
+/// Check if user exists
+pub async fn user_exists(phone_number: &str) -> Result<bool, String> {
+    let canister_id = get_business_logic_canister_id()?;
+    
+    let response = Call::unbounded_wait(canister_id, "user_exists")
+        .with_arg((phone_number.to_string(),))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<bool, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
 /// Register new user
 pub async fn register_user(
     phone_number: &str,
@@ -136,6 +152,7 @@ pub async fn register_user(
     last_name: &str,
     email: &str,
     pin: &str,
+    preferred_currency: &str,
 ) -> Result<String, String> {
     let canister_id = get_business_logic_canister_id()?;
     
@@ -146,6 +163,7 @@ pub async fn register_user(
             first_name.to_string(),
             last_name.to_string(),
             email.to_string(),
+            preferred_currency.to_string(),
             pin.to_string(),
         ))
         .await

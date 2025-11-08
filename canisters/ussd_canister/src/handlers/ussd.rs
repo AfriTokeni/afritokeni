@@ -96,16 +96,45 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
             Ok(mut session) => {
                 ic_cdk::println!("🔍 Session state: menu='{}', step={}", session.current_menu, session.step);
                 
-                // Route based on text parsing (stateless)
-                let parts: Vec<&str> = text.split('*').collect();
-                ic_cdk::println!("🔍 Routing: text='{}', parts={:?}", text, parts);
+                // CRITICAL: Check if user is registered (first-time user detection)
+                let user_registered = match crate::utils::business_logic_helper::user_exists(&phone_number).await {
+                    Ok(exists) => exists,
+                    Err(e) => {
+                        ic_cdk::println!("❌ Error checking user existence: {}", e);
+                        false // Assume not registered on error
+                    }
+                };
                 
-                let (response_text, continue_session) = if text.is_empty() || parts.len() == 1 {
-                    // Main menu or first selection
-                    crate::handlers::ussd_handlers::handle_main_menu(&text, &mut session).await
+                // Route based on user registration status
+                let (response_text, continue_session) = if !user_registered && session.current_menu != "registration" {
+                    // New user - start registration
+                    ic_cdk::println!("🆕 New user detected: {}, starting registration", phone_number);
+                    session.current_menu = "registration".to_string();
+                    session.step = 0;
+                    
+                    let lang = crate::utils::translations::Language::from_code(&session.language);
+                    let welcome_msg = format!(
+                        "Welcome to AfriTokeni!\n\nTo get started, please set your 4-digit PIN:\n\n{}",
+                        crate::utils::translations::TranslationService::translate("enter_pin", lang)
+                    );
+                    
+                    // If they entered a PIN, process registration
+                    if !text.is_empty() && text.len() == 4 && text.chars().all(|c| c.is_numeric()) {
+                        crate::handlers::ussd_handlers::handle_registration(&mut session, &text).await
+                    } else {
+                        (welcome_msg, true)
+                    }
                 } else {
-                    // Route based on first part
-                    match parts.get(0) {
+                    // User is registered, route normally
+                    let parts: Vec<&str> = text.split('*').collect();
+                    ic_cdk::println!("🔍 Routing: text='{}', parts={:?}", text, parts);
+                    
+                    if text.is_empty() || parts.len() == 1 {
+                        // Main menu or first selection
+                        crate::handlers::ussd_handlers::handle_main_menu(&text, &mut session).await
+                    } else {
+                        // Route based on first part
+                        match parts.get(0) {
                         Some(&"1") => {
                             // Local currency menu
                             ic_cdk::println!("✅ Routing to local_currency");
@@ -127,9 +156,10 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                             // Language menu
                             crate::handlers::ussd_handlers::handle_language_menu(&text, &mut session).await
                         }
-                        _ => {
-                            // Unknown, show main menu
-                            crate::handlers::ussd_handlers::handle_main_menu(&text, &mut session).await
+                            _ => {
+                                // Unknown, show main menu
+                                crate::handlers::ussd_handlers::handle_main_menu(&text, &mut session).await
+                            }
                         }
                     }
                 };
