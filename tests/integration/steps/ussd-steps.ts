@@ -84,33 +84,45 @@ async function callUssdCanister(sessionId: string, phoneNumber: string, text: st
   
   const network = process.env.DFX_NETWORK || 'local';
   
-  // Call test_ussd endpoint
-  const dfxCommand = `dfx canister call ussd_canister test_ussd '("${sessionId}", "${phoneNumber}", "${text}")' --network ${network}`;
+  // Prepare HTTP request body (form-urlencoded format)
+  const requestBody = `sessionId=${encodeURIComponent(sessionId)}&phoneNumber=${encodeURIComponent(phoneNumber)}&text=${encodeURIComponent(text)}`;
+  
+  // Create HTTP request record for the canister
+  const httpRequest = {
+    method: "POST",
+    url: "/api/ussd",
+    headers: [
+      ["Content-Type", "application/x-www-form-urlencoded"]
+    ],
+    body: Array.from(new TextEncoder().encode(requestBody))
+  };
+  
+  // Call http_request_update endpoint with proper HTTP request
+  const dfxCommand = `dfx canister call ussd_canister http_request_update '(record { method = "POST"; url = "/api/ussd"; headers = vec { record { "Content-Type"; "application/x-www-form-urlencoded" } }; body = blob "${Buffer.from(requestBody).toString('hex')}" })' --network ${network}`;
   
   try {
     const { stdout } = await execAsync(dfxCommand);
     
-    // Parse candid string response - extract the string between first "( and last )"
-    const match = stdout.match(/\(\s*"(.*)"\s*,?\s*\)/s);
-    if (match) {
-      // Unescape the JSON string
-      const jsonStr = match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+    // Parse the HTTP response from candid output
+    // The response is a record with status_code, headers, and body
+    const bodyMatch = stdout.match(/body\s*=\s*blob\s+"([^"]+)"/);
+    if (bodyMatch) {
+      const bodyHex = bodyMatch[1];
+      const bodyBytes = Buffer.from(bodyHex, 'hex');
+      const bodyText = bodyBytes.toString('utf-8');
       
-      // Try to parse as JSON (new format)
-      try {
-        const json = JSON.parse(jsonStr);
-        if (json.response) {
-          return json.response;
-        }
-      } catch {
-        // Not JSON, return as-is and remove CON/END prefix
-        return jsonStr.replace(/^(CON|END)\s+/, '');
-      }
+      // Remove CON/END prefix if present
+      return bodyText.replace(/^(CON|END)\s+/, '');
     }
     
+    // Fallback: try to extract any text from stdout
+    console.warn('Could not parse HTTP response body, raw output:', stdout);
     return stdout.trim();
   } catch (error: any) {
     console.error('USSD canister call failed:', error.message);
+    if (error.stderr) {
+      console.error('stderr:', error.stderr);
+    }
     throw error;
   }
 }
