@@ -12,7 +12,7 @@ fn http_request(req: handlers::http_handlers::HttpRequest) {
     ic_cdk::println!("📥 http_request (query): {} {}", req.method, req.url);
     let response = handlers::http_handlers::route_request(req);
     let bytes = candid::encode_one(&response).expect("Failed to encode response");
-    ic_cdk::api::call::reply_raw(&bytes);
+    ic_cdk::api::msg_reply(&bytes);
 }
 
 /// HTTP request handler for POST requests (IC HTTP gateway)
@@ -24,7 +24,7 @@ async fn http_request_update(req: handlers::http_handlers::HttpRequest) {
     ic_cdk::println!("📥 http_request_update (update): {} {}", req.method, req.url);
     let response = handlers::http_handlers::route_request_async(req).await;
     let bytes = candid::encode_one(&response).expect("Failed to encode response");
-    ic_cdk::api::call::reply_raw(&bytes);
+    ic_cdk::api::msg_reply(&bytes);
 }
 
 // Export Candid interface
