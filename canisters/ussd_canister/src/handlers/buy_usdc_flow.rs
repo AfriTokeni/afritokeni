@@ -2,8 +2,6 @@
 use crate::models::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 use crate::utils::validation;
-use candid::Principal;
-use ic_cdk::api::call::CallResult;
 
 /// Handle buy USDC flow
 /// Steps: 1. Enter KES amount → 2. Enter PIN → 3. Execute

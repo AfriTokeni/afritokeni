@@ -160,6 +160,7 @@ pub struct TransactionResult {
 }
 
 #[derive(CandidType, Deserialize, Clone, Copy, Debug)]
+#[allow(non_camel_case_types)]
 pub enum CryptoType {
     ckBTC,
     ckUSDC,
