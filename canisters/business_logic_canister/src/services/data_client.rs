@@ -167,6 +167,86 @@ pub async fn setup_pin(user_id: &str, pin: &str) -> Result<(), String> {
     result
 }
 
+/// Check if PIN is locked
+pub async fn is_pin_locked(user_id: &str) -> Result<bool, String> {
+    let canister_id = config::get_data_canister_id()?;
+    
+    let response = Call::unbounded_wait(canister_id, "is_pin_locked")
+        .with_arg((user_id.to_string(),))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<bool, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+/// Get failed PIN attempts
+pub async fn get_failed_attempts(user_id: &str) -> Result<u32, String> {
+    let canister_id = config::get_data_canister_id()?;
+    
+    let response = Call::unbounded_wait(canister_id, "get_failed_attempts")
+        .with_arg((user_id.to_string(),))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<u32, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+/// Reset PIN attempts (after successful verification)
+pub async fn reset_pin_attempts(user_id: &str) -> Result<(), String> {
+    let canister_id = config::get_data_canister_id()?;
+    
+    let response = Call::unbounded_wait(canister_id, "reset_pin_attempts")
+        .with_arg((user_id.to_string(),))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<(), String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+/// Check for account takeover
+pub async fn check_account_takeover(user_id: &str) -> Result<bool, String> {
+    let canister_id = config::get_data_canister_id()?;
+    
+    let response = Call::unbounded_wait(canister_id, "check_account_takeover")
+        .with_arg((user_id.to_string(),))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<bool, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+/// Update last active timestamp
+pub async fn update_last_active(user_id: &str) -> Result<(), String> {
+    let canister_id = config::get_data_canister_id()?;
+    
+    let response = Call::unbounded_wait(canister_id, "update_last_active")
+        .with_arg((user_id.to_string(),))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<(), String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
 // ============================================================================
 // Types (matching data canister)
 // ============================================================================

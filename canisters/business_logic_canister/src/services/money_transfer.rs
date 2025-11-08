@@ -31,6 +31,13 @@ pub async fn transfer_money(
     
     // 4. Fraud detection (business logic: check for suspicious activity)
     let fraud_check = fraud_detection::check_transaction(&from_user.id, amount, &currency)?;
+    
+    // Log suspicious transactions even if not blocked (for monitoring)
+    if fraud_check.is_suspicious {
+        ic_cdk::println!("⚠️ SUSPICIOUS TRANSACTION: user={}, amount={}, currency={}, warnings={:?}", 
+            from_user.id, amount, currency, fraud_check.warnings);
+    }
+    
     if fraud_check.should_block {
         return Err(format!("Transaction blocked: {:?}", fraud_check.warnings));
     }
@@ -58,7 +65,11 @@ pub async fn transfer_money(
     
     data_client::store_transaction(&tx_record).await?;
     
-    // 7. Return result
+    // 7. Update last active for both users (for security monitoring)
+    let _ = data_client::update_last_active(&from_user.id).await;
+    let _ = data_client::update_last_active(&to_user.id).await;
+    
+    // 8. Return result
     Ok(TransactionResult {
         transaction_id: tx_id,
         from_user: from_user.id,

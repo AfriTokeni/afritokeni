@@ -246,6 +246,16 @@ async fn get_user_by_phone(phone_number: String) -> Result<Option<User>, String>
     })
 }
 
+/// Update last active timestamp (canister only - called on every transaction)
+#[update]
+async fn update_last_active(user_id: String) -> Result<(), String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        operations::user_ops::update_last_active(&mut state.borrow_mut(), &user_id)
+    })
+}
+
 /// Get user by principal (user accessing their own data)
 #[query]
 async fn get_my_user_data() -> Result<Option<User>, String> {
@@ -407,6 +417,46 @@ async fn verify_user_pin(user_id: String, pin: String) -> Result<bool, String> {
     STATE.with(|state| {
         let mut s = state.borrow_mut();
         security::pin_ops::verify_pin(&mut s, user_id, &pin)
+    })
+}
+
+/// Check if PIN is locked (canister only)
+#[query]
+async fn is_pin_locked(user_id: String) -> Result<bool, String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        security::pin_ops::is_pin_locked(&state.borrow(), user_id)
+    })
+}
+
+/// Get failed PIN attempts (canister only)
+#[query]
+async fn get_failed_attempts(user_id: String) -> Result<u32, String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        security::pin_ops::get_failed_attempts(&state.borrow(), user_id)
+    })
+}
+
+/// Reset PIN attempts (canister only - called after successful verification)
+#[update]
+async fn reset_pin_attempts(user_id: String) -> Result<(), String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        security::pin_ops::reset_attempts(&mut state.borrow_mut(), user_id)
+    })
+}
+
+/// Check for account takeover (canister only - security check)
+#[query]
+async fn check_account_takeover(user_id: String) -> Result<bool, String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        security::fraud_detection::check_account_takeover(&state.borrow(), &user_id)
     })
 }
 

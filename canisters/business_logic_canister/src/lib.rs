@@ -423,12 +423,38 @@ async fn verify_pin(
         return Err(format!("User not found: {}", user_identifier));
     };
     
+    // SECURITY: Check if PIN is locked (too many failed attempts)
+    if services::data_client::is_pin_locked(&user.id).await? {
+        let attempts = services::data_client::get_failed_attempts(&user.id).await.unwrap_or(0);
+        log_audit(
+            "verify_pin",
+            Some(user_identifier),
+            &format!("PIN locked - {} failed attempts", attempts),
+            false
+        );
+        return Err("Account locked due to too many failed PIN attempts. Please contact support.".to_string());
+    }
+    
+    // SECURITY: Check for account takeover patterns
+    if services::data_client::check_account_takeover(&user.id).await? {
+        log_audit(
+            "verify_pin",
+            Some(user_identifier.clone()),
+            "Possible account takeover detected",
+            false
+        );
+        return Err("Suspicious activity detected. Please contact support.".to_string());
+    }
+    
     // Verify PIN via data canister
     let result = services::data_client::verify_pin(&user.id, &pin).await;
     
-    // Audit log
+    // Handle result and audit log
     match &result {
         Ok(true) => {
+            // SECURITY: Reset failed attempts on successful verification
+            let _ = services::data_client::reset_pin_attempts(&user.id).await;
+            
             log_audit(
                 "verify_pin",
                 Some(user_identifier.clone()),
@@ -437,10 +463,11 @@ async fn verify_pin(
             );
         }
         Ok(false) => {
+            let attempts = services::data_client::get_failed_attempts(&user.id).await.unwrap_or(0);
             log_audit(
                 "verify_pin",
                 Some(user_identifier.clone()),
-                "PIN verification failed - incorrect PIN",
+                &format!("PIN verification failed - incorrect PIN ({} attempts)", attempts),
                 false
             );
         }

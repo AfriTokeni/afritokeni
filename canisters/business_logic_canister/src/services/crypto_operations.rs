@@ -30,6 +30,13 @@ pub async fn buy_crypto(
     
     // 4. Fraud check
     let fraud_check = fraud_detection::check_transaction(&user.id, fiat_amount, &fiat_currency)?;
+    
+    // Log suspicious transactions even if not blocked (for monitoring)
+    if fraud_check.is_suspicious {
+        ic_cdk::println!("⚠️ SUSPICIOUS CRYPTO PURCHASE: user={}, amount={}, currency={}, crypto={:?}, warnings={:?}", 
+            user.id, fiat_amount, fiat_currency, crypto_type, fraud_check.warnings);
+    }
+    
     if fraud_check.should_block {
         return Err(format!("Transaction blocked: {:?}", fraud_check.warnings));
     }
@@ -63,7 +70,10 @@ pub async fn buy_crypto(
     };
     data_client::store_transaction(&tx_record).await?;
     
-    // 9. TODO: Call actual ckBTC/ckUSDC ledger to mint/transfer
+    // 9. Update last active (for security monitoring)
+    let _ = data_client::update_last_active(&user.id).await;
+    
+    // 10. TODO: Call actual ckBTC/ckUSDC ledger to mint/transfer
     
     Ok(TransactionResult {
         transaction_id: tx_id,
