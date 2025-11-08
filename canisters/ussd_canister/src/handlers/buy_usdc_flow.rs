@@ -44,7 +44,6 @@ pub async fn handle_buy_usdc(text: &str, session: &mut UssdSession) -> (String, 
             let phone = session.phone_number.clone();
             let amount_kes_str = parts.get(2).unwrap_or(&"");
             
-            let amount_kes = amount_kes_str.to_string();
             // Call Business Logic to buy USDC
             let amount_cents = (amount_kes_str.parse::<f64>().unwrap_or(0.0) * 100.0) as u64;
             

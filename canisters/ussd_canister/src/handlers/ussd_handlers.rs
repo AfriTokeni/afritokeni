@@ -20,14 +20,28 @@ pub async fn handle_registration(session: &mut UssdSession, pin: &str) -> (Strin
             TranslationService::translate("back", lang)), true);
     }
     
-    // TODO: Store PIN via Business Logic Canister
-    // For now, just acknowledge
-    ic_cdk::println!("✅ PIN setup requested for {}", session.phone_number);
-    
-    session.current_menu = "main".to_string();
-    (format!("{}\n0. {}", 
-        TranslationService::translate("pin_set_success", lang),
-        TranslationService::translate("main_menu", lang)), true)
+    // Register user via Business Logic Canister
+    match crate::utils::business_logic_helper::register_user(
+        &session.phone_number,
+        "USSD", // first_name (user can update via web)
+        "User", // last_name
+        "",     // email (optional)
+        pin
+    ).await {
+        Ok(_user_id) => {
+            ic_cdk::println!("✅ User registered: {}", session.phone_number);
+            session.current_menu = "main".to_string();
+            (format!("{}\n0. {}", 
+                TranslationService::translate("pin_set_success", lang),
+                TranslationService::translate("main_menu", lang)), true)
+        }
+        Err(e) => {
+            ic_cdk::println!("❌ Registration failed: {}", e);
+            (format!("Registration failed: {}\n0. {}", 
+                e,
+                TranslationService::translate("back", lang)), true)
+        }
+    }
 }
 
 /// Handle local currency menu

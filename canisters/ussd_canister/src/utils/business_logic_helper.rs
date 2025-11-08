@@ -129,6 +129,35 @@ pub async fn send_crypto(
     result
 }
 
+/// Register new user
+pub async fn register_user(
+    phone_number: &str,
+    first_name: &str,
+    last_name: &str,
+    email: &str,
+    pin: &str,
+) -> Result<String, String> {
+    let canister_id = get_business_logic_canister_id()?;
+    
+    let response = Call::unbounded_wait(canister_id, "register_user")
+        .with_arg((
+            Some(phone_number.to_string()),
+            None::<String>, // principal_id
+            first_name.to_string(),
+            last_name.to_string(),
+            email.to_string(),
+            pin.to_string(),
+        ))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<String, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
 // ============================================================================
 // Types (matching Business Logic Canister)
 // ============================================================================
