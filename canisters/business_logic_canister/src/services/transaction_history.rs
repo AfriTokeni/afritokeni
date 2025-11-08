@@ -5,7 +5,7 @@ use super::data_client;
 // Transaction History Service - Business Logic
 // ============================================================================
 
-/// Get transaction history for user
+/// Get user transaction history
 pub async fn get_history(
     user_identifier: String,
     limit: Option<usize>,
@@ -14,21 +14,31 @@ pub async fn get_history(
     // Get user
     let user = get_user_by_identifier(&user_identifier).await?;
     
-    // TODO: Call data canister to get transactions
-    // For now, return empty list
-    Ok(vec![])
+    // Query transactions from data canister with limit and offset
+    let transactions = data_client::get_user_transactions(
+        &user.id,
+        limit,
+        offset
+    ).await?;
+    
+    Ok(transactions)
 }
 
 // ============================================================================
 // Helper Functions
 // ============================================================================
 
-async fn get_user_by_identifier(identifier: &str) -> Result<data_client::User, String> {
+/// Helper to get user by identifier (phone or principal)
+async fn get_user_by_identifier(identifier: &str) -> Result<crate::services::data_client::User, String> {
+    // Try as phone first
     if let Some(user) = data_client::get_user_by_phone(identifier).await? {
         return Ok(user);
     }
+    
+    // Try as user ID
     if let Some(user) = data_client::get_user(identifier).await? {
         return Ok(user);
     }
+    
     Err(format!("User not found: {}", identifier))
 }

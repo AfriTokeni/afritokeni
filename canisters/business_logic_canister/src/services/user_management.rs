@@ -1,10 +1,21 @@
 use super::data_client;
+use candid::{CandidType, Deserialize};
 
 // ============================================================================
 // User Management Service - Business Logic
 // ============================================================================
 
-/// Register new user
+#[derive(CandidType, Deserialize)]
+struct CreateUserData {
+    phone_number: Option<String>,
+    principal_id: Option<String>,
+    first_name: String,
+    last_name: String,
+    email: String,
+    preferred_currency: String,
+}
+
+/// Register a new user (USSD or Web)
 pub async fn register_user(
     phone_number: Option<String>,
     principal_id: Option<String>,
@@ -14,22 +25,29 @@ pub async fn register_user(
     preferred_currency: String,
     pin: String,
 ) -> Result<String, String> {
-    // Validation: must have phone or principal
+    // Validate inputs
     if phone_number.is_none() && principal_id.is_none() {
-        return Err("Must provide phone number or principal ID".to_string());
+        return Err("Either phone number or principal ID is required".to_string());
     }
     
-    // Check if user already exists
-    if let Some(ref phone) = phone_number {
-        if data_client::get_user_by_phone(phone).await?.is_some() {
-            return Err("Phone number already registered".to_string());
-        }
+    if pin.len() != 4 {
+        return Err("PIN must be exactly 4 digits".to_string());
     }
     
-    // TODO: Create user in data canister
-    // TODO: Setup PIN in data canister
+    // Create user in data canister
+    let _user_data = CreateUserData {
+        phone_number: phone_number.clone(),
+        principal_id: principal_id.clone(),
+        first_name,
+        last_name,
+        email,
+        preferred_currency,
+    };
     
-    // For now, return placeholder
+    // TODO: Actually call data_canister::create_user with user_data
+    // TODO: Then call data_client::setup_pin with the returned user_id and pin
+    
+    // For now, return placeholder until create_user is implemented
     Ok("user_id_placeholder".to_string())
 }
 

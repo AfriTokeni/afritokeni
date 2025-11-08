@@ -311,9 +311,4 @@ pub struct SystemStats {
 // ============================================================================
 // Helper Implementations
 // ============================================================================
-
-impl User {
-    pub fn full_name(&self) -> String {
-        format!("{} {}", self.first_name, self.last_name)
-    }
-}
+// User helper methods will be added here when needed

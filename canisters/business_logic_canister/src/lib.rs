@@ -1,5 +1,6 @@
-use ic_cdk_macros::{init, update, query};
-use candid::{CandidType, Deserialize, Principal};
+use candid::Principal;
+use ic_cdk_macros::{init, query, update};
+use ic_cdk::api::caller as msg_caller;
 use std::cell::RefCell;
 
 // ============================================================================
@@ -25,7 +26,7 @@ fn log_audit(action: &str, user_id: Option<String>, details: &str, success: bool
     let entry = AuditEntry {
         timestamp: ic_cdk::api::time() / 1_000_000_000,
         action: action.to_string(),
-        caller: ic_cdk::caller().to_text(),
+        caller: msg_caller().to_text(),
         user_id,
         details: details.to_string(),
         success,
@@ -43,7 +44,7 @@ fn log_audit(action: &str, user_id: Option<String>, details: &str, success: bool
 
 /// Verify caller is an authorized canister (USSD or Web)
 fn verify_authorized_caller() -> Result<(), String> {
-    let caller = ic_cdk::caller();
+    let caller = msg_caller();
     
     // Allow controller
     if ic_cdk::api::is_controller(&caller) {
@@ -63,7 +64,7 @@ fn verify_authorized_caller() -> Result<(), String> {
 /// Add authorized canister (only controller can call)
 #[update]
 fn add_authorized_canister(canister_id: String) -> Result<(), String> {
-    let caller = ic_cdk::caller();
+    let caller = msg_caller();
     if !ic_cdk::api::is_controller(&caller) {
         return Err("Only controller can add authorized canisters".to_string());
     }
@@ -92,7 +93,7 @@ fn add_authorized_canister(canister_id: String) -> Result<(), String> {
 /// Remove authorized canister (only controller can call)
 #[update]
 fn remove_authorized_canister(canister_id: String) -> Result<(), String> {
-    let caller = ic_cdk::caller();
+    let caller = msg_caller();
     if !ic_cdk::api::is_controller(&caller) {
         return Err("Only controller can remove authorized canisters".to_string());
     }
@@ -118,7 +119,7 @@ fn remove_authorized_canister(canister_id: String) -> Result<(), String> {
 /// List authorized canisters (only controller can call)
 #[query]
 fn list_authorized_canisters() -> Result<Vec<String>, String> {
-    let caller = ic_cdk::caller();
+    let caller = msg_caller();
     if !ic_cdk::api::is_controller(&caller) {
         return Err("Only controller can list authorized canisters".to_string());
     }
@@ -162,7 +163,7 @@ async fn transfer_money(
     
     // Audit log
     match &result {
-        Ok(tx) => {
+        Ok(_tx_result) => {
             log_audit(
                 "transfer_money",
                 Some(from_phone_or_principal.clone()),
@@ -250,7 +251,7 @@ async fn buy_crypto(
     
     // Audit log
     match &result {
-        Ok(tx) => {
+        Ok(_tx_result) => {
             log_audit(
                 "buy_crypto",
                 Some(user_identifier.clone()),
@@ -459,7 +460,7 @@ async fn get_transaction_history(
 /// Get audit log (only controller can access)
 #[query]
 fn get_audit_log(limit: Option<usize>, offset: Option<usize>) -> Result<Vec<AuditEntry>, String> {
-    let caller = ic_cdk::caller();
+    let caller = msg_caller();
     if !ic_cdk::api::is_controller(&caller) {
         return Err("Only controller can access audit log".to_string());
     }
@@ -475,7 +476,7 @@ fn get_audit_log(limit: Option<usize>, offset: Option<usize>) -> Result<Vec<Audi
 /// Get audit log count
 #[query]
 fn get_audit_log_count() -> Result<usize, String> {
-    let caller = ic_cdk::caller();
+    let caller = msg_caller();
     if !ic_cdk::api::is_controller(&caller) {
         return Err("Only controller can access audit log".to_string());
     }

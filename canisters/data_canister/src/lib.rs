@@ -1,5 +1,6 @@
-use ic_cdk_macros::{query, update, init, pre_upgrade, post_upgrade};
+use ic_cdk_macros::{init, update, query, pre_upgrade, post_upgrade};
 use candid::{CandidType, Deserialize, Principal};
+use ic_cdk::api::caller as msg_caller;
 use std::collections::HashMap;
 use std::cell::RefCell;
 
@@ -56,7 +57,7 @@ enum AccessLevel {
 
 /// Check caller's access level
 fn get_access_level(user_id: Option<&str>) -> AccessLevel {
-    let caller = ic_cdk::caller();
+    let caller = msg_caller();
     
     // 1. Check if controller (admin)
     if ic_cdk::api::is_controller(&caller) {
@@ -248,7 +249,7 @@ async fn get_user_by_phone(phone_number: String) -> Result<Option<User>, String>
 /// Get user by principal (user accessing their own data)
 #[query]
 async fn get_my_user_data() -> Result<Option<User>, String> {
-    let caller_text = ic_cdk::caller().to_text();
+    let caller_text = msg_caller().to_text();
     
     STATE.with(|state| {
         Ok(state.borrow().users.values()
@@ -292,7 +293,7 @@ async fn get_crypto_balance(user_id: String) -> Result<CryptoBalance, String> {
 /// Get my balances (user accessing their own data)
 #[query]
 async fn get_my_balances() -> Result<(Vec<FiatBalance>, CryptoBalance), String> {
-    let caller_text = ic_cdk::caller().to_text();
+    let caller_text = msg_caller().to_text();
     
     // Find user by principal
     let user_id = STATE.with(|state| {
@@ -475,7 +476,7 @@ async fn get_my_transactions(
     limit: Option<usize>,
     offset: Option<usize>
 ) -> Result<Vec<Transaction>, String> {
-    let caller_text = ic_cdk::caller().to_text();
+    let caller_text = msg_caller().to_text();
     
     // Find user by principal
     let user_id = STATE.with(|state| {

@@ -45,7 +45,7 @@ pub fn check_transaction(
 }
 
 /// Check if user should be rate-limited
-pub fn check_rate_limit(user_id: &str) -> Result<bool, String> {
+pub fn check_rate_limit(_user_id: &str) -> Result<bool, String> {
     // TODO: Implement rate limiting based on transaction history
     // For now, allow all
     Ok(true)
