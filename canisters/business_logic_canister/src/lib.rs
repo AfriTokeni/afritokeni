@@ -485,3 +485,45 @@ fn get_audit_log_count() -> Result<usize, String> {
 
 // Export Candid interface
 ic_cdk::export_candid!();
+
+// ============================================================================
+// Unit Tests
+// ============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_audit_entry_creation() {
+        let entry = AuditEntry {
+            timestamp: 1699459200,
+            action: "test_action".to_string(),
+            caller: "test_caller".to_string(),
+            user_id: Some("user123".to_string()),
+            details: "test details".to_string(),
+            success: true,
+        };
+        
+        assert_eq!(entry.action, "test_action");
+        assert_eq!(entry.success, true);
+        assert!(entry.user_id.is_some());
+    }
+    
+    #[test]
+    fn test_transaction_result_creation() {
+        let result = TransactionResult {
+            transaction_id: "tx_123".to_string(),
+            from_user: "alice".to_string(),
+            to_user: "bob".to_string(),
+            amount: 10000,
+            currency: "UGX".to_string(),
+            new_balance: 90000,
+            timestamp: 1699459200,
+        };
+        
+        assert_eq!(result.amount, 10000);
+        assert_eq!(result.currency, "UGX");
+        assert_eq!(result.new_balance, 90000);
+    }
+}

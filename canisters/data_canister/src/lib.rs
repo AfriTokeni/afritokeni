@@ -535,3 +535,237 @@ async fn get_audit_log_count() -> Result<usize, String> {
 
 // Export Candid interface
 ic_cdk::export_candid!();
+
+// ============================================================================
+// Unit Tests
+// ============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use models::*;
+
+    // ============================================================================
+    // Fiat Currency Tests - Normal Cases
+    // ============================================================================
+
+    #[test]
+    fn test_fiat_currency_code() {
+        assert_eq!(FiatCurrency::UGX.code(), "UGX");
+        assert_eq!(FiatCurrency::KES.code(), "KES");
+        assert_eq!(FiatCurrency::NGN.code(), "NGN");
+        assert_eq!(FiatCurrency::ZAR.code(), "ZAR");
+    }
+
+    #[test]
+    fn test_fiat_currency_from_code_valid() {
+        assert!(FiatCurrency::from_code("UGX").is_some());
+        assert!(FiatCurrency::from_code("KES").is_some());
+        assert!(FiatCurrency::from_code("NGN").is_some());
+        assert_eq!(FiatCurrency::from_code("UGX").unwrap(), FiatCurrency::UGX);
+    }
+
+    // ============================================================================
+    // Fiat Currency Tests - Edge Cases
+    // ============================================================================
+
+    #[test]
+    fn test_fiat_currency_from_code_invalid() {
+        assert!(FiatCurrency::from_code("INVALID").is_none());
+        assert!(FiatCurrency::from_code("USD").is_none()); // Not African currency
+        assert!(FiatCurrency::from_code("EUR").is_none());
+    }
+
+    #[test]
+    fn test_fiat_currency_from_code_empty() {
+        assert!(FiatCurrency::from_code("").is_none());
+    }
+
+    #[test]
+    fn test_fiat_currency_from_code_lowercase() {
+        assert!(FiatCurrency::from_code("ugx").is_none()); // Case sensitive
+        assert!(FiatCurrency::from_code("kes").is_none());
+    }
+
+    #[test]
+    fn test_fiat_currency_from_code_with_spaces() {
+        assert!(FiatCurrency::from_code(" UGX").is_none());
+        assert!(FiatCurrency::from_code("UGX ").is_none());
+        assert!(FiatCurrency::from_code("U GX").is_none());
+    }
+
+    #[test]
+    fn test_all_39_african_currencies() {
+        // Test all 39 currencies are accessible
+        let currencies = vec![
+            "UGX", "KES", "TZS", "RWF", "BIF", "NGN", "GHS", "XOF", "GMD", "SLL",
+            "LRD", "ZAR", "BWP", "LSL", "SZL", "NAD", "ZMW", "MWK", "EGP", "MAD",
+            "TND", "DZD", "LYD", "XAF", "CDF", "AOA", "ETB", "SOS", "SDG", "SSP",
+            "DJF", "ERN", "MUR", "SCR", "MGA", "KMF", "CVE", "STN", "MRU"
+        ];
+        
+        for code in currencies {
+            assert!(FiatCurrency::from_code(code).is_some(), "Currency {} should be valid", code);
+        }
+    }
+
+    // ============================================================================
+    // User Type Tests
+    // ============================================================================
+
+    #[test]
+    fn test_user_type_variants() {
+        let user = UserType::User;
+        let agent = UserType::Agent;
+        let admin = UserType::Admin;
+        
+        assert!(matches!(user, UserType::User));
+        assert!(matches!(agent, UserType::Agent));
+        assert!(matches!(admin, UserType::Admin));
+    }
+
+    #[test]
+    fn test_user_type_equality() {
+        assert_eq!(UserType::User, UserType::User);
+        assert_ne!(UserType::User, UserType::Agent);
+        assert_ne!(UserType::Agent, UserType::Admin);
+    }
+
+    // ============================================================================
+    // KYC Status Tests
+    // ============================================================================
+
+    #[test]
+    fn test_kyc_status_variants() {
+        let not_started = KYCStatus::NotStarted;
+        let pending = KYCStatus::Pending;
+        let approved = KYCStatus::Approved;
+        let rejected = KYCStatus::Rejected;
+        
+        assert!(matches!(not_started, KYCStatus::NotStarted));
+        assert!(matches!(pending, KYCStatus::Pending));
+        assert!(matches!(approved, KYCStatus::Approved));
+        assert!(matches!(rejected, KYCStatus::Rejected));
+    }
+
+    #[test]
+    fn test_kyc_status_equality() {
+        assert_eq!(KYCStatus::Pending, KYCStatus::Pending);
+        assert_ne!(KYCStatus::Pending, KYCStatus::Approved);
+        assert_ne!(KYCStatus::Approved, KYCStatus::Rejected);
+    }
+
+    // ============================================================================
+    // Audit Entry Tests
+    // ============================================================================
+
+    #[test]
+    fn test_audit_entry_creation_with_user() {
+        let entry = AuditEntry {
+            timestamp: 1699459200,
+            action: "test_action".to_string(),
+            user_id: Some("user123".to_string()),
+            details: "test details".to_string(),
+        };
+        
+        assert_eq!(entry.action, "test_action");
+        assert_eq!(entry.timestamp, 1699459200);
+        assert!(entry.user_id.is_some());
+        assert_eq!(entry.user_id.unwrap(), "user123");
+        assert_eq!(entry.details, "test details");
+    }
+
+    #[test]
+    fn test_audit_entry_creation_without_user() {
+        let entry = AuditEntry {
+            timestamp: 1699459200,
+            action: "system_action".to_string(),
+            user_id: None,
+            details: "automated task".to_string(),
+        };
+        
+        assert_eq!(entry.action, "system_action");
+        assert!(entry.user_id.is_none());
+    }
+
+    #[test]
+    fn test_audit_entry_with_empty_details() {
+        let entry = AuditEntry {
+            timestamp: 0,
+            action: "action".to_string(),
+            user_id: None,
+            details: "".to_string(),
+        };
+        
+        assert_eq!(entry.details, "");
+    }
+
+    #[test]
+    fn test_audit_entry_with_large_details() {
+        let large_details = "x".repeat(10000);
+        let entry = AuditEntry {
+            timestamp: 1699459200,
+            action: "large_action".to_string(),
+            user_id: Some("user123".to_string()),
+            details: large_details.clone(),
+        };
+        
+        assert_eq!(entry.details.len(), 10000);
+    }
+
+    #[test]
+    fn test_audit_entry_timestamp_boundaries() {
+        let entry_min = AuditEntry {
+            timestamp: 0,
+            action: "min".to_string(),
+            user_id: None,
+            details: "".to_string(),
+        };
+        
+        let entry_max = AuditEntry {
+            timestamp: u64::MAX,
+            action: "max".to_string(),
+            user_id: None,
+            details: "".to_string(),
+        };
+        
+        assert_eq!(entry_min.timestamp, 0);
+        assert_eq!(entry_max.timestamp, u64::MAX);
+    }
+
+    // ============================================================================
+    // Data Canister State Tests
+    // ============================================================================
+
+    #[test]
+    fn test_data_canister_state_initialization() {
+        let state = DataCanisterState::new();
+        assert_eq!(state.users.len(), 0);
+        assert_eq!(state.fiat_balances.len(), 0);
+        assert_eq!(state.crypto_balances.len(), 0);
+        assert_eq!(state.transactions.len(), 0);
+        assert_eq!(state.user_pins.len(), 0);
+        assert_eq!(state.audit_log.len(), 0);
+    }
+
+    #[test]
+    fn test_audit_log_retention_limit() {
+        let mut state = DataCanisterState::new();
+        
+        // Add 10,001 entries
+        for i in 0..10_001 {
+            let entry = AuditEntry {
+                timestamp: i as u64,
+                action: format!("action_{}", i),
+                user_id: Some(format!("user_{}", i)),
+                details: format!("details_{}", i),
+            };
+            state.log_audit(entry);
+        }
+        
+        // Should only keep last 10,000
+        assert_eq!(state.audit_log.len(), 10_000);
+        // First entry should be removed
+        assert_eq!(state.audit_log[0].action, "action_1");
+    }
+}
