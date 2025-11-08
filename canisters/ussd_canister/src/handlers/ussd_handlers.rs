@@ -192,10 +192,6 @@ pub async fn handle_bitcoin_menu(text: &str, session: &mut UssdSession) -> (Stri
                 }
             }
         }
-        "2" => {
-            // Buy Bitcoin - start the flow (when text is "2*2")
-            crate::handlers::buy_bitcoin_flow::handle_buy_bitcoin(text, session).await
-        }
         "4" => {
             // Send Bitcoin - start the flow (when text is "2*4")
             crate::handlers::send_bitcoin_flow::handle_send_bitcoin(text, session).await

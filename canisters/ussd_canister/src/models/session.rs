@@ -80,7 +80,7 @@ pub async fn get_or_create_session(session_id: &str, phone_number: &str) -> Resu
         None
     });
     
-    if let Some(mut session) = existing_session {
+    if let Some(session) = existing_session {
         // Update the session in storage
         SESSIONS.with(|sessions| {
             sessions.borrow_mut().insert(session_id.to_string(), session.clone());
