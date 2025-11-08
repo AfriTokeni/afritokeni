@@ -29,7 +29,12 @@ pub async fn transfer_money(
         return Err(format!("Insufficient balance. Have: {}, Need: {}", from_balance, amount));
     }
     
-    // 4. Fraud detection (business logic: check for suspicious activity)
+    // 4. Rate limiting (prevent abuse)
+    if !fraud_detection::check_rate_limit(&from_user.id)? {
+        return Err("Too many transactions. Please wait before trying again.".to_string());
+    }
+    
+    // 5. Fraud detection (business logic: check for suspicious activity)
     let fraud_check = fraud_detection::check_transaction(&from_user.id, amount, &currency)?;
     
     // Log suspicious transactions even if not blocked (for monitoring)

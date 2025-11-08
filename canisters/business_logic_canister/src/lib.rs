@@ -219,6 +219,11 @@ async fn withdraw_fiat(
         return Err(format!("Insufficient balance. Have: {}, Need: {}", balance, amount));
     }
     
+    // Rate limiting
+    if !services::fraud_detection::check_rate_limit(&user.id)? {
+        return Err("Too many transactions. Please wait before trying again.".to_string());
+    }
+    
     // Fraud check
     let fraud_check = services::fraud_detection::check_transaction(&user.id, amount, &currency)?;
     if fraud_check.should_block {

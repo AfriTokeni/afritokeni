@@ -28,7 +28,12 @@ pub async fn buy_crypto(
         return Err(format!("Insufficient fiat balance. Have: {}, Need: {}", fiat_balance, fiat_amount));
     }
     
-    // 4. Fraud check
+    // 4. Rate limiting (prevent abuse)
+    if !fraud_detection::check_rate_limit(&user.id)? {
+        return Err("Too many transactions. Please wait before trying again.".to_string());
+    }
+    
+    // 5. Fraud check
     let fraud_check = fraud_detection::check_transaction(&user.id, fiat_amount, &fiat_currency)?;
     
     // Log suspicious transactions even if not blocked (for monitoring)
