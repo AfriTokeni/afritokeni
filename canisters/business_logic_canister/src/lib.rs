@@ -426,13 +426,20 @@ async fn verify_pin(
     // SECURITY: Check if PIN is locked (too many failed attempts)
     if services::data_client::is_pin_locked(&user.id).await? {
         let attempts = services::data_client::get_failed_attempts(&user.id).await.unwrap_or(0);
+        let remaining_seconds = services::data_client::get_remaining_lockout_time(&user.id).await.unwrap_or(0);
+        let remaining_minutes = (remaining_seconds + 59) / 60; // Round up
+        
         log_audit(
             "verify_pin",
-            Some(user_identifier),
-            &format!("PIN locked - {} failed attempts", attempts),
+            Some(user_identifier.clone()),
+            &format!("PIN locked - {} failed attempts, {} seconds remaining", attempts, remaining_seconds),
             false
         );
-        return Err("Account locked due to too many failed PIN attempts. Please contact support.".to_string());
+        
+        return Err(format!(
+            "Account locked due to {} failed PIN attempts. Please try again in {} minutes.",
+            attempts, remaining_minutes
+        ));
     }
     
     // SECURITY: Check for account takeover patterns
@@ -476,6 +483,58 @@ async fn verify_pin(
                 "verify_pin",
                 Some(user_identifier),
                 &format!("PIN verification error: {}", e),
+                false
+            );
+        }
+    }
+    
+    result
+}
+
+/// Change PIN (for USSD and Web)
+#[update]
+async fn change_pin(
+    user_identifier: String,
+    old_pin: String,
+    new_pin: String,
+) -> Result<(), String> {
+    verify_authorized_caller()?;
+    
+    // Get user by phone or principal
+    let user = if let Some(u) = services::data_client::get_user_by_phone(&user_identifier).await? {
+        u
+    } else if let Some(u) = services::data_client::get_user(&user_identifier).await? {
+        u
+    } else {
+        return Err(format!("User not found: {}", user_identifier));
+    };
+    
+    // Validate new PIN format (4 digits)
+    if new_pin.len() != 4 || !new_pin.chars().all(|c| c.is_numeric()) {
+        return Err("Invalid PIN format. PIN must be exactly 4 digits.".to_string());
+    }
+    
+    // Generate new salt for security
+    let new_salt = format!("salt_{}", ic_cdk::api::time());
+    
+    // Change PIN via data canister (it will verify old PIN)
+    let result = services::data_client::change_pin(&user.id, &old_pin, &new_pin, &new_salt).await;
+    
+    // Audit log
+    match &result {
+        Ok(()) => {
+            log_audit(
+                "change_pin",
+                Some(user_identifier),
+                "PIN changed successfully",
+                true
+            );
+        }
+        Err(e) => {
+            log_audit(
+                "change_pin",
+                Some(user_identifier),
+                &format!("PIN change failed: {}", e),
                 false
             );
         }

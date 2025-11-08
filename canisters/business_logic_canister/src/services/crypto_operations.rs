@@ -33,8 +33,14 @@ pub async fn buy_crypto(
     
     // Log suspicious transactions even if not blocked (for monitoring)
     if fraud_check.is_suspicious {
-        ic_cdk::println!("⚠️ SUSPICIOUS CRYPTO PURCHASE: user={}, amount={}, currency={}, crypto={:?}, warnings={:?}", 
-            user.id, fiat_amount, fiat_currency, crypto_type, fraud_check.warnings);
+        ic_cdk::println!("⚠️ SUSPICIOUS CRYPTO PURCHASE: user={}, amount={}, currency={}, crypto={:?}, risk_score={}, requires_review={}, warnings={:?}", 
+            user.id, fiat_amount, fiat_currency, crypto_type, fraud_check.risk_score, fraud_check.requires_manual_review, fraud_check.warnings);
+    }
+    
+    // Log high-risk transactions that require manual review
+    if fraud_check.requires_manual_review {
+        ic_cdk::println!("🚨 HIGH-RISK CRYPTO PURCHASE REQUIRES MANUAL REVIEW: user={}, amount={}, risk_score={}", 
+            user.id, fiat_amount, fraud_check.risk_score);
     }
     
     if fraud_check.should_block {

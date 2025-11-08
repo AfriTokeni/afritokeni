@@ -38,6 +38,22 @@ pub async fn get_user_by_phone(phone: &str) -> Result<Option<User>, String> {
     result
 }
 
+/// Create user
+pub async fn create_user(user_data: super::user_management::CreateUserData) -> Result<User, String> {
+    let canister_id = config::get_data_canister_id()?;
+    
+    let response = Call::unbounded_wait(canister_id, "create_user")
+        .with_arg((user_data,))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<User, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
 /// Get fiat balance
 pub async fn get_fiat_balance(user_id: &str, currency: &str) -> Result<u64, String> {
     let canister_id = config::get_data_canister_id()?;
@@ -48,6 +64,22 @@ pub async fn get_fiat_balance(user_id: &str, currency: &str) -> Result<u64, Stri
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
     let (result,): (Result<u64, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+/// Withdraw fiat (reduces balance)
+pub async fn withdraw_fiat(user_id: &str, amount: u64, currency: &str, description: Option<String>) -> Result<Transaction, String> {
+    let canister_id = config::get_data_canister_id()?;
+    
+    let response = Call::unbounded_wait(canister_id, "withdraw_fiat")
+        .with_arg((user_id.to_string(), amount, currency.to_string(), description))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<Transaction, String>,) = response
         .candid_tuple()
         .map_err(|e| format!("Decode failed: {}", e))?;
     
@@ -152,11 +184,11 @@ pub async fn get_user_transactions(user_id: &str, limit: Option<usize>, offset: 
 }
 
 /// Setup PIN for user
-pub async fn setup_pin(user_id: &str, pin: &str) -> Result<(), String> {
+pub async fn setup_pin(user_id: &str, pin: &str, salt: &str) -> Result<(), String> {
     let canister_id = config::get_data_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "setup_user_pin")
-        .with_arg((user_id, pin))
+        .with_arg((user_id.to_string(), pin.to_string(), salt.to_string()))
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -193,6 +225,22 @@ pub async fn get_failed_attempts(user_id: &str) -> Result<u32, String> {
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
     let (result,): (Result<u32, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+/// Get remaining lockout time in seconds
+pub async fn get_remaining_lockout_time(user_id: &str) -> Result<u64, String> {
+    let canister_id = config::get_data_canister_id()?;
+    
+    let response = Call::unbounded_wait(canister_id, "get_remaining_lockout_time")
+        .with_arg((user_id.to_string(),))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<u64, String>,) = response
         .candid_tuple()
         .map_err(|e| format!("Decode failed: {}", e))?;
     
@@ -247,6 +295,22 @@ pub async fn update_last_active(user_id: &str) -> Result<(), String> {
     result
 }
 
+/// Change PIN (requires old PIN verification)
+pub async fn change_pin(user_id: &str, old_pin: &str, new_pin: &str, new_salt: &str) -> Result<(), String> {
+    let canister_id = config::get_data_canister_id()?;
+    
+    let response = Call::unbounded_wait(canister_id, "change_pin")
+        .with_arg((user_id.to_string(), old_pin.to_string(), new_pin.to_string(), new_salt.to_string()))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<(), String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
 // ============================================================================
 // Types (matching data canister)
 // ============================================================================
@@ -278,4 +342,17 @@ pub struct TransactionRecord {
     pub currency: String,
     pub timestamp: u64,
     pub status: String,
+}
+
+#[derive(CandidType, Deserialize, Clone)]
+pub struct Transaction {
+    pub id: String,
+    pub transaction_type: String,
+    pub from_user: Option<String>,
+    pub to_user: Option<String>,
+    pub amount: u64,
+    pub currency: String,
+    pub timestamp: u64,
+    pub status: String,
+    pub description: Option<String>,
 }

@@ -7,6 +7,8 @@ const SUSPICIOUS_AMOUNT_THRESHOLD: u64 = 5_000_000; // 5M in smallest unit
 
 pub struct FraudCheckResult {
     pub is_suspicious: bool,
+    pub risk_score: u8, // 0-100
+    pub requires_manual_review: bool,
     pub should_block: bool,
     pub warnings: Vec<String>,
 }
@@ -20,25 +22,37 @@ pub fn check_transaction(
     let mut warnings = Vec::new();
     let mut is_suspicious = false;
     let mut should_block = false;
+    let mut risk_score: u8 = 0;
+    let mut requires_manual_review = false;
     
-    // Check 1: Amount too large
+    // Check 1: Amount too large - BLOCK
     if amount > MAX_TRANSACTION_AMOUNT {
         should_block = true;
+        risk_score = 100;
+        requires_manual_review = true;
         warnings.push(format!("Amount {} exceeds maximum limit", amount));
     }
-    
-    // Check 2: Suspicious amount
-    if amount > SUSPICIOUS_AMOUNT_THRESHOLD {
+    // Check 2: Suspicious amount - FLAG for review
+    else if amount > SUSPICIOUS_AMOUNT_THRESHOLD {
         is_suspicious = true;
+        risk_score = 70;
+        requires_manual_review = true;
         warnings.push(format!("Large transaction: {}", amount));
+    }
+    // Check 3: Medium amount - Just track
+    else if amount > SUSPICIOUS_AMOUNT_THRESHOLD / 2 {
+        risk_score = 30;
+        warnings.push(format!("Medium transaction: {}", amount));
     }
     
     // Log for audit
-    ic_cdk::println!("🔍 Fraud check for user {}: amount={}, currency={}, suspicious={}, blocked={}", 
-        user_id, amount, currency, is_suspicious, should_block);
+    ic_cdk::println!("🔍 Fraud check for user {}: amount={}, currency={}, risk_score={}, suspicious={}, review={}, blocked={}", 
+        user_id, amount, currency, risk_score, is_suspicious, requires_manual_review, should_block);
     
     Ok(FraudCheckResult {
         is_suspicious,
+        risk_score,
+        requires_manual_review,
         should_block,
         warnings,
     })

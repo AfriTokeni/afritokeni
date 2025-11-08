@@ -377,6 +377,22 @@ async fn deposit_fiat(
     })
 }
 
+/// Withdraw fiat (canister only - called by USSD after PIN verification and agent booking)
+#[update]
+async fn withdraw_fiat(
+    user_id: String,
+    amount: u64,
+    currency: FiatCurrency,
+    description: Option<String>
+) -> Result<Transaction, String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        let mut s = state.borrow_mut();
+        operations::balance_ops::withdraw_fiat(&mut s, user_id, amount, currency, description)
+    })
+}
+
 /// Transfer fiat (canister only - called by USSD/Web after PIN verification)
 #[update]
 async fn transfer_fiat(
@@ -440,6 +456,16 @@ async fn get_failed_attempts(user_id: String) -> Result<u32, String> {
     })
 }
 
+/// Get remaining lockout time in seconds (canister only - for UX)
+#[query]
+async fn get_remaining_lockout_time(user_id: String) -> Result<u64, String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        security::pin_ops::get_remaining_lockout_time(&state.borrow(), user_id)
+    })
+}
+
 /// Reset PIN attempts (canister only - called after successful verification)
 #[update]
 async fn reset_pin_attempts(user_id: String) -> Result<(), String> {
@@ -447,6 +473,16 @@ async fn reset_pin_attempts(user_id: String) -> Result<(), String> {
     
     STATE.with(|state| {
         security::pin_ops::reset_attempts(&mut state.borrow_mut(), user_id)
+    })
+}
+
+/// Change PIN (canister only - requires old PIN verification)
+#[update]
+async fn change_pin(user_id: String, old_pin: String, new_pin: String, new_salt: String) -> Result<(), String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        security::pin_ops::change_pin(&mut state.borrow_mut(), user_id, &old_pin, &new_pin, new_salt)
     })
 }
 

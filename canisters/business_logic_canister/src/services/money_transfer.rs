@@ -34,8 +34,14 @@ pub async fn transfer_money(
     
     // Log suspicious transactions even if not blocked (for monitoring)
     if fraud_check.is_suspicious {
-        ic_cdk::println!("⚠️ SUSPICIOUS TRANSACTION: user={}, amount={}, currency={}, warnings={:?}", 
-            from_user.id, amount, currency, fraud_check.warnings);
+        ic_cdk::println!("⚠️ SUSPICIOUS TRANSACTION: user={}, amount={}, currency={}, risk_score={}, requires_review={}, warnings={:?}", 
+            from_user.id, amount, currency, fraud_check.risk_score, fraud_check.requires_manual_review, fraud_check.warnings);
+    }
+    
+    // Log high-risk transactions that require manual review
+    if fraud_check.requires_manual_review {
+        ic_cdk::println!("🚨 HIGH-RISK TRANSACTION REQUIRES MANUAL REVIEW: user={}, amount={}, risk_score={}", 
+            from_user.id, amount, fraud_check.risk_score);
     }
     
     if fraud_check.should_block {

@@ -6,13 +6,13 @@ use candid::{CandidType, Deserialize};
 // ============================================================================
 
 #[derive(CandidType, Deserialize)]
-struct CreateUserData {
-    phone_number: Option<String>,
-    principal_id: Option<String>,
-    first_name: String,
-    last_name: String,
-    email: String,
-    preferred_currency: String,
+pub struct CreateUserData {
+    pub phone_number: Option<String>,
+    pub principal_id: Option<String>,
+    pub first_name: String,
+    pub last_name: String,
+    pub email: String,
+    pub preferred_currency: String,
 }
 
 /// Register a new user (USSD or Web)
@@ -35,7 +35,7 @@ pub async fn register_user(
     }
     
     // Create user in data canister
-    let _user_data = CreateUserData {
+    let user_data = CreateUserData {
         phone_number: phone_number.clone(),
         principal_id: principal_id.clone(),
         first_name,
@@ -44,11 +44,15 @@ pub async fn register_user(
         preferred_currency,
     };
     
-    // TODO: Actually call data_canister::create_user with user_data
-    // TODO: Then call data_client::setup_pin with the returned user_id and pin
+    // Create user
+    let user = data_client::create_user(user_data).await?;
     
-    // For now, return placeholder until create_user is implemented
-    Ok("user_id_placeholder".to_string())
+    // Generate salt and setup PIN
+    let salt = format!("salt_{}", ic_cdk::api::time());
+    data_client::setup_pin(&user.id, &pin, &salt).await?;
+    
+    // Return user ID
+    Ok(user.id)
 }
 
 /// Link phone number to existing account
