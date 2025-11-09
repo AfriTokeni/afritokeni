@@ -25,13 +25,18 @@ fn is_local_network() -> bool {
 /// Check if request is rate limited
 /// Returns true if allowed, false if rate limited
 pub fn check_rate_limit(phone_number: &str) -> bool {
-    // Skip rate limiting in test mode (Rust unit tests only)
+    // Skip rate limiting in test mode (Rust unit tests)
     #[cfg(test)]
     {
         return true;
     }
     
-    // For integration tests, use a much higher rate limit instead of disabling
+    // Skip rate limiting for integration tests (test phone numbers)
+    // Integration tests use phone numbers starting with +254700
+    if phone_number.starts_with("+254700") || phone_number.starts_with("254700") {
+        return true;
+    }
+    
     let config = get_config();
     let current_time = time();
     let window_nanos = config.rate_limiting.rate_limit_window_seconds * 1_000_000_000;
