@@ -265,7 +265,7 @@ pub async fn handle_local_currency_menu(text: &str, session: &mut UssdSession) -
         _ => {
             (format!("{}\n0. {}", 
                 TranslationService::translate("invalid_option", lang),
-                TranslationService::translate("back", lang)), true)
+                TranslationService::translate("back_or_menu", lang)), true)
         }
     }
 }
@@ -411,42 +411,71 @@ pub async fn handle_language_menu(text: &str, session: &mut UssdSession) -> (Str
     let parts: Vec<&str> = text.split('*').collect();
     let choice = parts.last().unwrap_or(&"");
     
+    // Helper to show language menu
+    let show_menu = || -> (String, bool) {
+        let menu = format!("{}\n1. {}\n2. {}\n3. {}\n\n{}",
+            TranslationService::translate("select_language", lang),
+            TranslationService::translate("english", lang),
+            TranslationService::translate("luganda", lang),
+            TranslationService::translate("swahili", lang),
+            TranslationService::translate("back_or_menu", lang));
+        (menu, true)
+    };
+    
     match *choice {
-        "5" => {
-            // Show language menu (when text is just "5")
-            let menu = format!("{}\n1. English\n2. Luganda\n3. Swahili\n0. {}",
-                TranslationService::translate("select_language", lang),
-                TranslationService::translate("back", lang));
-            (menu, true)
+        "6" | "9" => {
+            // Show language menu (when text is "6" or user presses "9" to repeat menu)
+            show_menu()
         }
         "1" => {
+            // Set English
             let new_lang = Language::English;
             session.language = new_lang.to_code().to_string();
-            // TODO: Save language preference to Data Canister via Business Logic
-            (format!("{}\n0. {}", 
+            
+            // Save language preference to Data Canister
+            match crate::utils::business_logic_helper::update_user_language(&session.phone_number, "en").await {
+                Ok(_) => ic_cdk::println!("✅ Language preference saved: en"),
+                Err(e) => ic_cdk::println!("⚠️ Failed to save language preference: {}", e),
+            }
+            
+            (format!("{}\n\n{}", 
                 TranslationService::translate("language_set", new_lang),
-                TranslationService::translate("main_menu", new_lang)), false)
+                TranslationService::translate("back_or_menu", new_lang)), true)
         }
         "2" => {
+            // Set Luganda
             let new_lang = Language::Luganda;
             session.language = new_lang.to_code().to_string();
-            // TODO: Save language preference to Data Canister via Business Logic
-            (format!("{}\n0. {}", 
+            
+            // Save language preference to Data Canister
+            match crate::utils::business_logic_helper::update_user_language(&session.phone_number, "lg").await {
+                Ok(_) => ic_cdk::println!("✅ Language preference saved: lg"),
+                Err(e) => ic_cdk::println!("⚠️ Failed to save language preference: {}", e),
+            }
+            
+            (format!("{}\n\n{}", 
                 TranslationService::translate("language_set", new_lang),
-                TranslationService::translate("main_menu", new_lang)), false)
+                TranslationService::translate("back_or_menu", new_lang)), true)
         }
         "3" => {
+            // Set Swahili
             let new_lang = Language::Swahili;
             session.language = new_lang.to_code().to_string();
-            // TODO: Save language preference to Data Canister via Business Logic
-            (format!("{}\n0. {}", 
+            
+            // Save language preference to Data Canister
+            match crate::utils::business_logic_helper::update_user_language(&session.phone_number, "sw").await {
+                Ok(_) => ic_cdk::println!("✅ Language preference saved: sw"),
+                Err(e) => ic_cdk::println!("⚠️ Failed to save language preference: {}", e),
+            }
+            
+            (format!("{}\n\n{}", 
                 TranslationService::translate("language_set", new_lang),
-                TranslationService::translate("main_menu", new_lang)), false)
+                TranslationService::translate("back_or_menu", new_lang)), true)
         }
         _ => {
-            (format!("{}\n0. {}", 
+            (format!("{}\n\n{}", 
                 TranslationService::translate("invalid_option", lang),
-                TranslationService::translate("back", lang)), true)
+                TranslationService::translate("back_or_menu", lang)), true)
         }
     }
 }

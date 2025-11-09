@@ -12,6 +12,7 @@
   let sessionId = `playground_session_${Date.now()}`;
   let inputCommand = $state("");
   let isInitialized = $state(false);
+  let ussdHistory = $state(""); // Track USSD input history like Africa's Talking
   let messages = $state<Message[]>([
     {
       type: "received",
@@ -38,12 +39,24 @@
     }
 
     // Handle USSD dial code or menu navigation
-    const ussdText = trimmedCmd;
+    // Append to history like Africa's Talking does (stateless USSD)
+    let ussdText: string;
+    if (trimmedCmd === "*384*22948#") {
+      // Reset on dial code - new session
+      ussdHistory = "";
+      ussdText = "";
+    } else if (ussdHistory === "") {
+      ussdHistory = trimmedCmd;
+      ussdText = trimmedCmd;
+    } else {
+      ussdHistory = ussdHistory + "*" + trimmedCmd;
+      ussdText = ussdHistory;
+    }
 
     try {
       // Call USSD canister directly using agent (bypasses HTTP certification issues)
       console.log(
-        `📱 USSD Playground: sessionId="${sessionId}", text="${ussdText}"`,
+        `📱 USSD Playground: sessionId="${sessionId}", text="${ussdText}" (input="${trimmedCmd}")`,
       );
 
       const { Actor, HttpAgent } = await import("@dfinity/agent");

@@ -195,6 +195,24 @@ pub async fn register_user(
     result
 }
 
+/// Update user's language preference
+pub async fn update_user_language(phone_number: &str, language_code: &str) -> Result<(), String> {
+    let canister_id = get_business_logic_canister_id()?;
+    
+    ic_cdk::println!("📤 Calling update_user_language: phone={}, lang={}", phone_number, language_code);
+    
+    let response = Call::unbounded_wait(canister_id, "update_user_language")
+        .with_args(&(phone_number, language_code))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<(), String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
 // ============================================================================
 // Types (matching Business Logic Canister)
 // ============================================================================

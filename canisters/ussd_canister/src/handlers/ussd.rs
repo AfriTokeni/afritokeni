@@ -153,8 +153,8 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                     
                     // Check for universal navigation commands (last input)
                     let last_input = parts.last().unwrap_or(&"");
-                    if *last_input == "9" {
-                        // 9 = Main Menu
+                    if *last_input == "9" && parts.len() == 1 {
+                        // 9 = Main Menu (only from top-level, not submenus)
                         ic_cdk::println!("🏠 Returning to main menu");
                         session.current_menu = "main".to_string();
                         session.step = 0;

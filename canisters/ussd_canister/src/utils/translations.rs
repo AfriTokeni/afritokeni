@@ -225,9 +225,9 @@ impl TranslationService {
             ("language_selection", Language::Luganda) => "Olulimi",
             ("language_selection", Language::Swahili) => "Lugha",
 
-            ("select_language", Language::English) => "Select language:\n1. English\n2. Luganda\n3. Swahili",
-            ("select_language", Language::Luganda) => "Londa olulimi:\n1. English\n2. Luganda\n3. Swahili",
-            ("select_language", Language::Swahili) => "Chagua lugha:\n1. English\n2. Luganda\n3. Swahili",
+            ("select_language", Language::English) => "Select language:",
+            ("select_language", Language::Luganda) => "Londa olulimi:",
+            ("select_language", Language::Swahili) => "Chagua lugha:",
 
             ("language_set", Language::English) => "Language set to English",
             ("language_set", Language::Luganda) => "Olulimi lutegekeddwa ku Luganda",
@@ -240,6 +240,18 @@ impl TranslationService {
             ("back_or_menu", Language::English) => "0. Back | 9. Menu",
             ("back_or_menu", Language::Luganda) => "0. Ddayo | 9. Menu",
             ("back_or_menu", Language::Swahili) => "0. Rudi | 9. Menyu",
+
+            ("english", Language::English) => "English",
+            ("english", Language::Luganda) => "English",
+            ("english", Language::Swahili) => "English",
+
+            ("luganda", Language::English) => "Luganda",
+            ("luganda", Language::Luganda) => "Luganda",
+            ("luganda", Language::Swahili) => "Luganda",
+
+            ("swahili", Language::English) => "Swahili",
+            ("swahili", Language::Luganda) => "Swahili",
+            ("swahili", Language::Swahili) => "Kiswahili",
 
             ("enter_amount", Language::English) => "Enter amount",
             ("enter_amount", Language::Luganda) => "Yingiza omuwendo",
@@ -1080,6 +1092,7 @@ impl TranslationService {
             ("thank_you_using_afritokeni", Language::English) => "Thank you for using AfriTokeni!",
             ("thank_you_using_afritokeni", Language::Luganda) => "Webale okukozesa AfriTokeni!",
             ("thank_you_using_afritokeni", Language::Swahili) => "Asante kwa kutumia AfriTokeni!",
+            
             // Default fallback - return empty string for unknown keys
             _ => "",
         }
