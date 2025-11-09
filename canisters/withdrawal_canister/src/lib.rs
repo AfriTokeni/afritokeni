@@ -306,14 +306,4 @@ fn get_company_wallet_principal() -> Result<Principal, String> {
     get_company_wallet()
 }
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-// Moved to logic.rs module for testability
-
-// Tests module
-#[cfg(test)]
-mod tests;
-
-// Export Candid interface
 ic_cdk::export_candid!();
