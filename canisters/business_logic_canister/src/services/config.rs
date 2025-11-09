@@ -58,9 +58,9 @@ pub fn set_data_canister_id(canister_id: String) {
     });
 }
 
-pub fn get_data_canister_id() -> Principal {
+pub fn get_data_canister_id() -> Result<Principal, String> {
     DATA_CANISTER_ID.with(|id| {
-        id.borrow().expect("Data canister ID not set")
+        id.borrow().ok_or_else(|| "Data canister ID not set".to_string())
     })
 }
 
