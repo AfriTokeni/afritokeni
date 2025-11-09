@@ -587,6 +587,7 @@ mod tests {
             current_menu: "".to_string(),
             step: 0,
             language: "en".to_string(),
+            data: std::collections::HashMap::new(),
             last_activity: 0,
         };
         
@@ -604,6 +605,7 @@ mod tests {
             current_menu: "register".to_string(),
             step: 0,
             language: "en".to_string(),
+            data: std::collections::HashMap::new(),
             last_activity: 0,
         };
         

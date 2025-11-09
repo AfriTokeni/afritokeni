@@ -25,8 +25,11 @@ pub fn check_rate_limit(phone_number: &str) -> bool {
     
     // Skip rate limiting for integration tests (test phone numbers)
     // Integration tests use phone numbers starting with +254700
-    if phone_number.starts_with("+254700") || phone_number.starts_with("254700") {
-        return true;
+    #[cfg(not(test))]
+    {
+        if phone_number.starts_with("+254700") || phone_number.starts_with("254700") {
+            return true;
+        }
     }
     
     let config = get_config();
