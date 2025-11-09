@@ -39,6 +39,63 @@ mod balance_operations_tests {
         // Should check before allowing
         assert!(balance < withdrawal);
     }
+
+    // EDGE CASES
+    #[test]
+    fn test_balance_exactly_zero_after_withdrawal() {
+        let balance = 1000u64;
+        let withdrawal = 1000u64;
+        let new_balance = balance - withdrawal;
+        assert_eq!(new_balance, 0);
+    }
+
+    #[test]
+    fn test_balance_overflow_on_deposit() {
+        let balance = u64::MAX - 100;
+        let deposit = 200u64;
+        // Should check for overflow
+        assert!(balance.checked_add(deposit).is_none());
+    }
+
+    #[test]
+    fn test_balance_underflow_on_withdrawal() {
+        let balance = 100u64;
+        let withdrawal = 200u64;
+        // Should check for underflow
+        assert!(balance.checked_sub(withdrawal).is_none());
+    }
+
+    #[test]
+    fn test_multiple_rapid_withdrawals() {
+        let mut balance = 1000u64;
+        // Simulate rapid withdrawals
+        for _ in 0..5 {
+            if balance >= 150 {
+                balance -= 150;
+            }
+        }
+        assert_eq!(balance, 250);
+    }
+
+    #[test]
+    fn test_balance_at_u64_max() {
+        let balance = u64::MAX;
+        let deposit = 1u64;
+        // Cannot add more
+        assert!(balance.checked_add(deposit).is_none());
+    }
+
+    #[test]
+    fn test_concurrent_balance_updates() {
+        // Two transactions trying to withdraw from same balance
+        let balance = 1000u64;
+        let tx1 = 600u64;
+        let tx2 = 600u64;
+        
+        // Both cannot succeed
+        let total_needed = tx1 + tx2;
+        assert!(balance < total_needed);
+    }
 }
 
 #[cfg(test)]

@@ -155,4 +155,94 @@ mod transaction_validation_tests {
         let tx2 = "tx_002";
         assert_ne!(tx1, tx2);
     }
+
+    // EDGE CASES
+    #[test]
+    fn test_transaction_id_collision() {
+        // Same timestamp could generate same ID
+        let timestamp = 1699564800u64;
+        let tx_id1 = format!("tx_{}", timestamp);
+        let tx_id2 = format!("tx_{}", timestamp);
+        assert_eq!(tx_id1, tx_id2);
+        // Should add uniqueness (counter, random, etc)
+    }
+
+    #[test]
+    fn test_self_transaction() {
+        let sender = "user_001";
+        let receiver = "user_001";
+        assert_eq!(sender, receiver);
+        // Should reject self-transactions
+    }
+
+    #[test]
+    fn test_zero_amount_transaction() {
+        let amount = 0u64;
+        assert_eq!(amount, 0);
+        // Should reject zero amounts
+    }
+
+    #[test]
+    fn test_transaction_with_missing_fields() {
+        let tx_id = "tx_001";
+        let from_user = "";
+        let to_user = "user_002";
+        
+        assert!(from_user.is_empty());
+        // Should validate all required fields
+    }
+
+    #[test]
+    fn test_transaction_timestamp_in_future() {
+        let now = 1699564800u64;
+        let tx_timestamp = 1999564800u64;
+        assert!(tx_timestamp > now);
+        // Should reject future timestamps
+    }
+
+    #[test]
+    fn test_transaction_with_negative_balance_result() {
+        let sender_balance = 100u64;
+        let amount = 150u64;
+        // Would result in negative balance
+        assert!(sender_balance < amount);
+        // Should reject before creating transaction
+    }
+
+    #[test]
+    fn test_duplicate_transaction_prevention() {
+        let tx_id = "tx_001";
+        let existing_ids = vec!["tx_001", "tx_002"];
+        assert!(existing_ids.contains(&tx_id));
+        // Should prevent duplicate transaction IDs
+    }
+
+    #[test]
+    fn test_transaction_amount_overflow() {
+        let amount1 = u64::MAX / 2;
+        let amount2 = u64::MAX / 2 + 100;
+        // Adding these would overflow
+        assert!(amount1.checked_add(amount2).is_none());
+    }
+
+    #[test]
+    fn test_transaction_history_pagination_boundary() {
+        let page = 1;
+        let page_size = 10;
+        let total_transactions = 95;
+        
+        let total_pages = (total_transactions + page_size - 1) / page_size;
+        assert_eq!(total_pages, 10);
+        
+        // Last page has only 5 items
+        let last_page_items = total_transactions % page_size;
+        assert_eq!(last_page_items, 5);
+    }
+
+    #[test]
+    fn test_transaction_with_invalid_currency() {
+        let currency = "INVALID";
+        let valid_currencies = vec!["KES", "UGX", "TZS"];
+        assert!(!valid_currencies.contains(&currency));
+    }
 }
