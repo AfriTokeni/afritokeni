@@ -83,7 +83,7 @@ mod fraud_detection_tests {
         // Total withdrawn in short period
         let withdrawals = vec![5000u64, 5000u64, 5000u64, 5000u64];
         let total: u64 = withdrawals.iter().sum();
-        let time_period = 3600u64; // 1 hour
+        let _time_period = 3600u64; // 1 hour
         
         assert_eq!(total, 20000);
         // High velocity - should flag

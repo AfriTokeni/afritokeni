@@ -175,7 +175,7 @@ mod withdrawal_confirmation_logic {
 
 #[cfg(test)]
 mod agent_earnings_logic {
-    use candid::Principal;
+    
 
     struct AgentEarnings {
         total_withdrawals_processed: u64,
@@ -248,7 +248,7 @@ mod agent_earnings_logic {
 
     #[test]
     fn test_earnings_overflow_protection() {
-        let mut earnings = AgentEarnings {
+        let earnings = AgentEarnings {
             total_withdrawals_processed: u64::MAX - 100,
             total_fees_earned: 0,
             total_fees_withdrawn: 0,
