@@ -8,20 +8,13 @@ mod handlers;
 mod models;
 mod utils;
 
-// Store Business Logic Canister ID
-thread_local! {
-    static BUSINESS_LOGIC_CANISTER_ID: RefCell<Option<Principal>> = RefCell::new(None);
-}
-
 /// Initialize USSD canister with Business Logic Canister ID
 #[init]
 fn init(business_logic_canister_id: Option<String>) {
     if let Some(canister_id) = business_logic_canister_id {
         match Principal::from_text(&canister_id) {
             Ok(principal) => {
-                BUSINESS_LOGIC_CANISTER_ID.with(|id| {
-                    *id.borrow_mut() = Some(principal);
-                });
+                utils::business_logic::set_business_logic_canister_id(principal);
                 ic_cdk::println!("🔧 USSD canister initialized with Business Logic Canister: {}", canister_id);
             }
             Err(e) => {
@@ -39,19 +32,15 @@ fn set_business_logic_canister_id(canister_id: String) -> Result<(), String> {
     let principal = Principal::from_text(&canister_id)
         .map_err(|e| format!("Invalid principal: {:?}", e))?;
     
-    BUSINESS_LOGIC_CANISTER_ID.with(|id| {
-        *id.borrow_mut() = Some(principal);
-    });
+    utils::business_logic::set_business_logic_canister_id(principal);
     
     ic_cdk::println!("✅ Business Logic Canister ID set to: {}", canister_id);
     Ok(())
 }
 
-/// Get Business Logic Canister ID
+/// Get Business Logic Canister ID (delegates to business_logic module)
 pub fn get_business_logic_canister_id() -> Result<Principal, String> {
-    BUSINESS_LOGIC_CANISTER_ID.with(|id| {
-        id.borrow().ok_or("Business Logic Canister ID not set".to_string())
-    })
+    utils::business_logic::get_business_logic_canister_id()
 }
 
 /// Test helper for integration tests (bypasses HTTP layer)
