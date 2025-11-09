@@ -1,42 +1,67 @@
-// Unit tests for Withdrawal Canister LOGIC with mocked state
+use candid::Principal;
+use withdrawal_canister::logic::*;
+use withdrawal_canister::TransactionStatus;
 
 #[cfg(test)]
-mod withdrawal_creation_logic {
-    use candid::Principal;
+mod logic_function_tests {
+    use super::*;
 
-    // Mock the fee calculation logic
-    fn calculate_platform_fee(amount: u64, basis_points: u64) -> u64 {
-        (amount * basis_points) / 10000
-    }
-
-    fn calculate_agent_fee(amount: u64, basis_points: u64) -> u64 {
-        (amount * basis_points) / 10000
-    }
-
-    fn validate_withdrawal_amount(amount: u64) -> Result<(), String> {
-        if amount == 0 {
-            return Err("Amount must be greater than 0".to_string());
-        }
-        Ok(())
-    }
-
-    fn validate_caller_is_user(caller: Principal, user: Principal) -> Result<(), String> {
-        if caller != user {
-            return Err("Caller must be the user".to_string());
-        }
-        Ok(())
+    #[test]
+    fn test_validate_caller_is_user_success() {
+        let principal = Principal::from_text("aaaaa-aa").unwrap();
+        assert!(validate_caller_is_user(principal, principal).is_ok());
     }
 
     #[test]
+    fn test_validate_amount_positive_success() {
+        assert!(validate_amount_positive(100).is_ok());
+    }
+
+    #[test]
+    fn test_validate_amount_zero_fails() {
+        assert!(validate_amount_positive(0).is_err());
+    }
+
+    #[test]
+    fn test_calculate_platform_fee() {
+        let fee = calculate_platform_fee(10000, 50).unwrap();
+        assert_eq!(fee, 50);
+    }
+
+    #[test]
+    fn test_calculate_fee_overflow_protection() {
+        let result = calculate_platform_fee(u64::MAX, 10000);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_generate_withdrawal_code() {
+        let code = generate_withdrawal_code(123);
+        assert_eq!(code, "WTH000123");
+    }
+
+    #[test]
+    fn test_validate_code_format() {
+        assert!(validate_withdrawal_code_format("WTH123456"));
+        assert!(!validate_withdrawal_code_format("DEP123456"));
+        assert!(!validate_withdrawal_code_format("WTH12"));
+    }
+}
+
+#[cfg(test)]
+mod withdrawal_creation_logic {
+    use super::*;
+
+    #[test]
     fn test_validate_zero_amount_fails() {
-        let result = validate_withdrawal_amount(0);
+        let result = validate_amount_positive(0);
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), "Amount must be greater than 0");
     }
 
     #[test]
     fn test_validate_positive_amount_succeeds() {
-        let result = validate_withdrawal_amount(1000);
+        let result = validate_amount_positive(1000);
         assert!(result.is_ok());
     }
 
@@ -57,85 +82,46 @@ mod withdrawal_creation_logic {
     }
 
     #[test]
-    fn test_calculate_platform_fee() {
-        // 50 basis points = 0.5%
+    fn test_calculate_platform_fee_basic() {
         let amount = 10000u64;
         let basis_points = 50u64;
-        let fee = calculate_platform_fee(amount, basis_points);
-        assert_eq!(fee, 50); // 0.5% of 10000
+        let fee = calculate_platform_fee(amount, basis_points).unwrap();
+        assert_eq!(fee, 50);
     }
 
     #[test]
-    fn test_calculate_agent_fee() {
-        // 200 basis points = 2%
+    fn test_calculate_agent_fee_basic() {
         let amount = 10000u64;
         let basis_points = 200u64;
-        let fee = calculate_agent_fee(amount, basis_points);
-        assert_eq!(fee, 200); // 2% of 10000
+        let fee = calculate_agent_fee(amount, basis_points).unwrap();
+        assert_eq!(fee, 200);
     }
 
     #[test]
     fn test_fee_calculation_with_small_amount() {
         let amount = 100u64;
-        let basis_points = 50u64; // 0.5%
-        let fee = calculate_platform_fee(amount, basis_points);
-        assert_eq!(fee, 0); // Rounds down to 0
-    }
-
-    #[test]
-    fn test_fee_calculation_overflow_protection() {
-        let amount = u64::MAX;
         let basis_points = 50u64;
-        // Should use checked arithmetic in real code
-        let result = amount.checked_mul(basis_points);
-        assert!(result.is_none()); // Would overflow
+        let fee = calculate_platform_fee(amount, basis_points).unwrap();
+        assert_eq!(fee, 0);
     }
 
     #[test]
     fn test_fee_calculation_at_boundary() {
         let amount = 10000u64;
-        let basis_points = 10000u64; // 100%
-        let fee = calculate_platform_fee(amount, basis_points);
-        assert_eq!(fee, 10000); // 100% of amount
+        let basis_points = 10000u64;
+        let fee = calculate_platform_fee(amount, basis_points).unwrap();
+        assert_eq!(fee, 10000);
     }
 }
 
 #[cfg(test)]
 mod withdrawal_confirmation_logic {
-    use candid::Principal;
-
-    #[derive(Clone, PartialEq, Debug)]
-    enum TransactionStatus {
-        Pending,
-        Confirmed,
-        Cancelled,
-    }
-
-    fn validate_agent_is_caller(caller: Principal, agent: Principal) -> Result<(), String> {
-        if caller != agent {
-            return Err("Only the assigned agent can confirm".to_string());
-        }
-        Ok(())
-    }
-
-    fn validate_withdrawal_is_pending(status: &TransactionStatus) -> Result<(), String> {
-        if *status != TransactionStatus::Pending {
-            return Err("Withdrawal already processed".to_string());
-        }
-        Ok(())
-    }
-
-    fn validate_agent_matches(withdrawal_agent: Principal, request_agent: Principal) -> Result<(), String> {
-        if withdrawal_agent != request_agent {
-            return Err("Wrong agent".to_string());
-        }
-        Ok(())
-    }
+    use super::*;
 
     #[test]
     fn test_validate_agent_is_caller_succeeds() {
         let principal = Principal::from_text("aaaaa-aa").unwrap();
-        let result = validate_agent_is_caller(principal, principal);
+        let result = validate_caller_is_agent(principal, principal);
         assert!(result.is_ok());
     }
 
@@ -143,7 +129,7 @@ mod withdrawal_confirmation_logic {
     fn test_validate_agent_is_not_caller_fails() {
         let agent = Principal::from_text("aaaaa-aa").unwrap();
         let caller = Principal::from_text("2vxsx-fae").unwrap();
-        let result = validate_agent_is_caller(caller, agent);
+        let result = validate_caller_is_agent(caller, agent);
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), "Only the assigned agent can confirm");
     }
@@ -151,14 +137,14 @@ mod withdrawal_confirmation_logic {
     #[test]
     fn test_validate_pending_status_succeeds() {
         let status = TransactionStatus::Pending;
-        let result = validate_withdrawal_is_pending(&status);
+        let result = validate_status_is_pending(&status);
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_validate_confirmed_status_fails() {
         let status = TransactionStatus::Confirmed;
-        let result = validate_withdrawal_is_pending(&status);
+        let result = validate_status_is_pending(&status);
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), "Withdrawal already processed");
     }
@@ -166,7 +152,7 @@ mod withdrawal_confirmation_logic {
     #[test]
     fn test_validate_cancelled_status_fails() {
         let status = TransactionStatus::Cancelled;
-        let result = validate_withdrawal_is_pending(&status);
+        let result = validate_status_is_pending(&status);
         assert!(result.is_err());
     }
 

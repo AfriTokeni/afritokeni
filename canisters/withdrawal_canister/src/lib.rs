@@ -4,7 +4,7 @@ use serde::{Serialize, Deserialize as SerdeDeserialize};
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-mod logic;
+pub mod logic;
 
 const CONFIG_TOML: &str = include_str!("../../revenue_config.toml");
 
@@ -46,7 +46,7 @@ pub struct WithdrawalTransaction {
     pub status: TransactionStatus,
 }
 
-#[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]
 pub enum TransactionStatus {
     Pending,
     Confirmed,
