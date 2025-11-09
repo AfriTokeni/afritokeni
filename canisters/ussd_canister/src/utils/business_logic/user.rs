@@ -44,7 +44,7 @@ pub async fn get_balances(phone_number: &str) -> Result<UserBalances, String> {
     let canister_id = get_business_logic_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "get_balances")
-        .with_arg((phone_number.to_string(),))
+        .with_args(&(phone_number.to_string(),))  // Single String argument
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
