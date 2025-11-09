@@ -1,5 +1,5 @@
 // Deposit flow - Find agent and deposit cash
-use crate::models::session::UssdSession;
+use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 
 /// Handle deposit flow

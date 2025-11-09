@@ -1,5 +1,5 @@
 // DAO Proposals viewing flow
-use crate::models::session::UssdSession;
+use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 
 /// Handle view proposals
@@ -9,7 +9,7 @@ pub async fn handle_view_proposals(_text: &str, session: &mut UssdSession) -> (S
     ic_cdk::println!("🗳️ Fetching DAO proposals");
     
     // Get active proposals from Business Logic Canister
-    match crate::utils::business_logic_helper::get_dao_proposals().await {
+    match crate::services::business_logic::get_dao_proposals().await {
         Ok(proposals) => {
             if proposals.is_empty() {
                 return (format!("{}\n\n{}\n\n{}", 

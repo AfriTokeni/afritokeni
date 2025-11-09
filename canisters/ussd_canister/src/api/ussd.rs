@@ -1,4 +1,4 @@
-use crate::handlers::http_handlers::{HttpRequest, HttpResponse};
+use crate::api::http::{HttpRequest, HttpResponse};
 use std::str;
 
 /// Helper to create error response
@@ -92,12 +92,12 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
     // Process USSD request and get response
     let (response_text, continue_session) = {
         // Get or create session
-        match crate::models::session::get_or_create_session(&session_id, &phone_number).await {
+        match crate::core::session::get_or_create_session(&session_id, &phone_number).await {
             Ok(mut session) => {
                 ic_cdk::println!("🔍 Session state: menu='{}', step={}", session.current_menu, session.step);
                 
                 // CRITICAL: Check if user is registered (first-time user detection)
-                let mut user_registered = match crate::utils::business_logic_helper::user_exists(&phone_number).await {
+                let mut user_registered = match crate::services::business_logic::user_exists(&phone_number).await {
                     Ok(exists) => exists,
                     Err(e) => {
                         ic_cdk::println!("❌ Error checking user existence: {}", e);
@@ -108,7 +108,7 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                 // PLAYGROUND MODE: Auto-register playground users with demo PIN (1234)
                 if !user_registered && session_id.starts_with("playground_") {
                     ic_cdk::println!("🎮 Playground mode detected - auto-registering demo user");
-                    match crate::utils::business_logic_helper::register_user(
+                    match crate::services::business_logic::register_user(
                         &phone_number,
                         "Demo",
                         "User",
@@ -150,7 +150,7 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                     } else {
                         // Already in registration - continue with current step
                         ic_cdk::println!("📝 Continuing registration: step={}", session.step);
-                        crate::handlers::ussd_handlers::handle_registration(&mut session, &text).await
+                        crate::core::routing::handle_registration(&mut session, &text).await
                     }
                 } else {
                     // User is registered, route normally
@@ -164,13 +164,13 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                         ic_cdk::println!("🏠 Returning to main menu");
                         session.current_menu = "main".to_string();
                         session.step = 0;
-                        crate::handlers::ussd_handlers::handle_main_menu("", &mut session).await
+                        crate::core::routing::handle_main_menu("", &mut session).await
                     } else if *last_input == "0" && parts.len() > 1 {
                         // 0 = Back (go to parent menu - for now just go to main menu)
                         ic_cdk::println!("⬅️ Going back to main menu");
                         session.current_menu = "main".to_string();
                         session.step = 0;
-                        crate::handlers::ussd_handlers::handle_main_menu("", &mut session).await
+                        crate::core::routing::handle_main_menu("", &mut session).await
                     } else if text.is_empty() {
                         // Show main menu when no input - with welcome message for first visit
                         let welcome_prefix = if session_id.starts_with("playground_") {
@@ -178,7 +178,7 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                         } else {
                             "Welcome back!\n\n"
                         };
-                        let (menu_text, continues) = crate::handlers::ussd_handlers::handle_main_menu(&text, &mut session).await;
+                        let (menu_text, continues) = crate::core::routing::handle_main_menu(&text, &mut session).await;
                         (format!("{}{}", welcome_prefix, menu_text), continues)
                     } else {
                         // Find the last "0" in the chain to determine context
@@ -201,22 +201,22 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                         Some(&"1") => {
                             // Local currency menu
                             ic_cdk::println!("✅ Routing to local_currency");
-                            crate::handlers::ussd_handlers::handle_local_currency_menu(&clean_text, &mut session).await
+                            crate::core::routing::handle_local_currency_menu(&clean_text, &mut session).await
                         }
                         Some(&"2") => {
                             // Bitcoin menu
                             ic_cdk::println!("✅ Routing to bitcoin");
-                            crate::handlers::ussd_handlers::handle_bitcoin_menu(&clean_text, &mut session).await
+                            crate::core::routing::handle_bitcoin_menu(&clean_text, &mut session).await
                         }
                         Some(&"3") => {
                             // USDC menu
                             ic_cdk::println!("✅ Routing to usdc");
-                            crate::handlers::ussd_handlers::handle_usdc_menu(&clean_text, &mut session).await
+                            crate::core::routing::handle_usdc_menu(&clean_text, &mut session).await
                         }
                         Some(&"4") => {
                             // DAO menu
                             ic_cdk::println!("✅ Routing to dao");
-                            crate::handlers::ussd_handlers::handle_dao_menu(&clean_text, &mut session).await
+                            crate::core::routing::handle_dao_menu(&clean_text, &mut session).await
                         }
                         Some(&"5") => {
                             // Help
@@ -231,12 +231,12 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                         Some(&"6") => {
                             // Language menu
                             ic_cdk::println!("✅ Routing to language");
-                            crate::handlers::ussd_handlers::handle_language_menu(&clean_text, &mut session).await
+                            crate::core::routing::handle_language_menu(&clean_text, &mut session).await
                         }
                         _ => {
                             // Unknown, show main menu
                             ic_cdk::println!("❓ Unknown input, showing main menu");
-                            crate::handlers::ussd_handlers::handle_main_menu(&clean_text, &mut session).await
+                            crate::core::routing::handle_main_menu(&clean_text, &mut session).await
                         }
                         }
                     }
@@ -244,12 +244,12 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                 
                 if continue_session {
                     // Save session for next interaction
-                    if let Err(e) = crate::models::session::save_session(&session).await {
+                    if let Err(e) = crate::core::session::save_session(&session).await {
                         ic_cdk::println!("❌ Failed to save session: {}", e);
                     }
                 } else {
                     // Session ended, delete it
-                    if let Err(e) = crate::models::session::delete_session(&session_id).await {
+                    if let Err(e) = crate::core::session::delete_session(&session_id).await {
                         ic_cdk::println!("❌ Failed to delete session: {}", e);
                     }
                 }

@@ -1,5 +1,5 @@
 // Withdraw flow with PIN verification
-use crate::models::session::UssdSession;
+use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 use crate::utils::validation;
 
@@ -47,7 +47,7 @@ pub async fn handle_withdraw(text: &str, session: &mut UssdSession) -> (String, 
             let currency = session.get_data("currency").unwrap_or_else(|| "UGX".to_string());
             
             // Execute withdrawal via Business Logic Canister
-            match crate::utils::business_logic_helper::withdraw_fiat(&phone, amount_cents, &currency, pin).await {
+            match crate::services::business_logic::withdraw_fiat(&phone, amount_cents, &currency, pin).await {
                 Ok(_result) => {
                     (format!("{}\n{} {} {}\n{}\n\n0. {}", 
                         TranslationService::translate("transaction_successful", lang),

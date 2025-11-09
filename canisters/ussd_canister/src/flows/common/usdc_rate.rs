@@ -1,5 +1,5 @@
 // USDC rate check flow
-use crate::models::session::UssdSession;
+use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 
 /// Handle USDC rate check
@@ -10,7 +10,7 @@ pub async fn handle_usdc_rate(_text: &str, session: &mut UssdSession) -> (String
     ic_cdk::println!("💱 Fetching USDC rate for: {}", currency);
     
     // Get USDC rate from Business Logic Canister
-    match crate::utils::business_logic_helper::get_usdc_rate(&currency).await {
+    match crate::services::business_logic::get_usdc_rate(&currency).await {
         Ok(rate) => {
             (format!("{}\n\n1 USDC = {} {}\n1 {} = {:.4} USDC\n\n{}", 
                 TranslationService::translate("usdc_rate", lang),

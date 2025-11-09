@@ -1,5 +1,5 @@
 // Sell USDC flow
-use crate::models::session::UssdSession;
+use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 use crate::utils::validation;
 
@@ -34,7 +34,7 @@ pub async fn handle_sell_usdc(text: &str, session: &mut UssdSession) -> (String,
             };
             
             // Check USDC balance
-            match crate::utils::business_logic_helper::get_balances(&session.phone_number).await {
+            match crate::services::business_logic::get_balances(&session.phone_number).await {
                 Ok(balances) => {
                     let usdc_balance = balances.ckusdc_balance as f64 / 1_000_000.0;
                     
@@ -49,7 +49,7 @@ pub async fn handle_sell_usdc(text: &str, session: &mut UssdSession) -> (String,
                     }
                     
                     // Get current rate
-                    match crate::utils::business_logic_helper::get_usdc_rate(&currency).await {
+                    match crate::services::business_logic::get_usdc_rate(&currency).await {
                         Ok(rate) => {
                             let fiat_amount = amount_usdc * rate.rate_to_fiat;
                             (format!("{}\n{}: {:.2} USDC\n{}: {} {:.2}\n\n{}", 
@@ -86,7 +86,7 @@ pub async fn handle_sell_usdc(text: &str, session: &mut UssdSession) -> (String,
             
             ic_cdk::println!("💵 Executing sell_usdc: amount={} e6", amount_e6);
             
-            match crate::utils::business_logic_helper::sell_usdc(
+            match crate::services::business_logic::sell_usdc(
                 &session.phone_number,
                 amount_e6,
                 &currency,

@@ -1,5 +1,5 @@
 // Transactions history flow
-use crate::models::session::UssdSession;
+use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 
 /// Handle transactions history
@@ -9,7 +9,7 @@ pub async fn handle_transactions(_text: &str, session: &mut UssdSession) -> (Str
     ic_cdk::println!("📜 Fetching transaction history for: {}", session.phone_number);
     
     // Get transaction history from Business Logic Canister
-    match crate::utils::business_logic_helper::get_transaction_history(&session.phone_number, 5).await {
+    match crate::services::business_logic::get_transaction_history(&session.phone_number, 5).await {
         Ok(transactions) => {
             if transactions.is_empty() {
                 return (format!("{}\n\n{}\n\n{}", 

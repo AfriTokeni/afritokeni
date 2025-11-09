@@ -1,5 +1,5 @@
 // Send USDC flow
-use crate::models::session::UssdSession;
+use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 use crate::utils::validation;
 
@@ -49,7 +49,7 @@ pub async fn handle_send_usdc(text: &str, session: &mut UssdSession) -> (String,
             };
             
             // Check USDC balance
-            match crate::utils::business_logic_helper::get_balances(&session.phone_number).await {
+            match crate::services::business_logic::get_balances(&session.phone_number).await {
                 Ok(balances) => {
                     let usdc_balance = balances.ckusdc_balance as f64 / 1_000_000.0;
                     
@@ -90,7 +90,7 @@ pub async fn handle_send_usdc(text: &str, session: &mut UssdSession) -> (String,
             
             ic_cdk::println!("💵 Executing send_usdc: to={}, amount={} e6", recipient, amount_e6);
             
-            match crate::utils::business_logic_helper::send_usdc(
+            match crate::services::business_logic::send_usdc(
                 &session.phone_number,
                 &recipient,
                 amount_e6,

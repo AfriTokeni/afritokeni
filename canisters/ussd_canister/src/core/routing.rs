@@ -1,5 +1,5 @@
 // Minimal USSD handlers - to be expanded
-use crate::models::session::UssdSession;
+use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 
 /// Handle main menu - just show the menu, routing is handled in ussd.rs
@@ -70,7 +70,7 @@ pub async fn handle_registration(session: &mut UssdSession, input: &str) -> (Str
             let last_name = session.get_data("last_name").unwrap_or_default();
             
             // Register user (USSD users don't have email, Business Logic will handle)
-            match crate::utils::business_logic_helper::register_user(
+            match crate::services::business_logic::register_user(
                 &session.phone_number,
                 &first_name,
                 &last_name,
@@ -131,7 +131,7 @@ pub async fn handle_registration(session: &mut UssdSession, input: &str) -> (Str
             let last_name = session.get_data("last_name").unwrap_or_default();
             
             // Register user (USSD users don't have email, Business Logic will handle)
-            match crate::utils::business_logic_helper::register_user(
+            match crate::services::business_logic::register_user(
                 &session.phone_number,
                 &first_name,
                 &last_name,
@@ -210,12 +210,12 @@ pub async fn handle_local_currency_menu(text: &str, session: &mut UssdSession) -
                 // Send money flow
                 ic_cdk::println!("✅ Routing to send_money flow");
                 session.current_menu = "send_money".to_string();
-                return crate::handlers::send_money_flow::handle_send_money(text, session).await;
+                return crate::flows::local_currency::send_money::handle_send_money(text, session).await;
             }
             Some(&"4") => {
                 // Withdraw flow
                 session.current_menu = "withdraw".to_string();
-                return crate::handlers::withdraw_flow::handle_withdraw(text, session).await;
+                return crate::flows::local_currency::withdraw::handle_withdraw(text, session).await;
             }
             _ => {}
         }
@@ -242,7 +242,7 @@ pub async fn handle_local_currency_menu(text: &str, session: &mut UssdSession) -
         }
         "2" if parts.len() == 2 => {
             // Check balance (when text is "1*2")
-            match crate::utils::business_logic_helper::get_balances(&session.phone_number).await {
+            match crate::services::business_logic::get_balances(&session.phone_number).await {
                 Ok(balances) => {
                     let fiat_amount = match balances.fiat_balances.iter()
                         .find(|b| b.currency == currency) {
@@ -276,27 +276,27 @@ pub async fn handle_local_currency_menu(text: &str, session: &mut UssdSession) -
             // Send money - start the flow (when text is "1*1")
             session.step = 0;
             session.current_menu = "send_money".to_string();
-            crate::handlers::send_money_flow::handle_send_money(text, session).await
+            crate::flows::local_currency::send_money::handle_send_money(text, session).await
         }
         "3" if parts.len() == 2 => {
             // Deposit - start the flow (when text is "1*3")
             session.step = 0;
             session.current_menu = "deposit".to_string();
-            crate::handlers::deposit_flow::handle_deposit(text, session).await
+            crate::flows::local_currency::deposit::handle_deposit(text, session).await
         }
         "4" if parts.len() == 2 => {
             // Withdraw - start the flow (when text is "1*4")
             session.step = 0;
             session.current_menu = "withdraw".to_string();
-            crate::handlers::withdraw_flow::handle_withdraw(text, session).await
+            crate::flows::local_currency::withdraw::handle_withdraw(text, session).await
         }
         "5" if parts.len() == 2 => {
             // Transactions history (when text is "1*5")
-            crate::handlers::transactions_flow::handle_transactions(text, session).await
+            crate::flows::common::transactions::handle_transactions(text, session).await
         }
         "6" if parts.len() == 2 => {
             // Find agent (when text is "1*6")
-            crate::handlers::find_agent_flow::handle_find_agent(text, session).await
+            crate::flows::common::find_agent::handle_find_agent(text, session).await
         }
         _ => {
             (format!("{}\n0. {}", 
@@ -317,11 +317,11 @@ pub async fn handle_bitcoin_menu(text: &str, session: &mut UssdSession) -> (Stri
         match parts.get(1) {
             Some(&"3") => {
                 // Buy Bitcoin flow
-                return crate::handlers::buy_bitcoin_flow::handle_buy_bitcoin(text, session).await;
+                return crate::flows::bitcoin::buy::handle_buy_bitcoin(text, session).await;
             }
             Some(&"5") => {
                 // Send Bitcoin flow
-                return crate::handlers::send_bitcoin_flow::handle_send_bitcoin(text, session).await;
+                return crate::flows::bitcoin::send::handle_send_bitcoin(text, session).await;
             }
             _ => {}
         }
@@ -345,7 +345,7 @@ pub async fn handle_bitcoin_menu(text: &str, session: &mut UssdSession) -> (Stri
         }
         "1" if parts.len() == 2 => {
             // Check balance (when text is "2*1")
-            match crate::utils::business_logic_helper::get_balances(&session.phone_number).await {
+            match crate::services::business_logic::get_balances(&session.phone_number).await {
                 Ok(balances) => {
                     let ckbtc = balances.ckbtc_balance as f64 / 100_000_000.0;
                     (format!("{}:\nckBTC: {:.8}\n\n{}", 
@@ -362,25 +362,25 @@ pub async fn handle_bitcoin_menu(text: &str, session: &mut UssdSession) -> (Stri
         }
         "2" if parts.len() == 2 => {
             // Bitcoin rate (when text is "2*2")
-            crate::handlers::bitcoin_rate_flow::handle_bitcoin_rate(text, session).await
+            crate::flows::common::bitcoin_rate::handle_bitcoin_rate(text, session).await
         }
         "3" if parts.len() == 2 => {
             // Buy Bitcoin - start the flow (when text is "2*3")
             session.step = 0;
             session.current_menu = "buy_bitcoin".to_string();
-            crate::handlers::buy_bitcoin_flow::handle_buy_bitcoin(text, session).await
+            crate::flows::bitcoin::buy::handle_buy_bitcoin(text, session).await
         }
         "4" if parts.len() == 2 => {
             // Sell Bitcoin (when text is "2*4")
             session.step = 0;
             session.current_menu = "sell_bitcoin".to_string();
-            crate::handlers::sell_bitcoin_flow::handle_sell_bitcoin(text, session).await
+            crate::flows::bitcoin::sell::handle_sell_bitcoin(text, session).await
         }
         "5" if parts.len() == 2 => {
             // Send Bitcoin - start the flow (when text is "2*5")
             session.step = 0;
             session.current_menu = "send_bitcoin".to_string();
-            crate::handlers::send_bitcoin_flow::handle_send_bitcoin(text, session).await
+            crate::flows::bitcoin::send::handle_send_bitcoin(text, session).await
         }
         _ => {
             (format!("{}\n\n{}", 
@@ -400,7 +400,7 @@ pub async fn handle_usdc_menu(text: &str, session: &mut UssdSession) -> (String,
     // If we have more than 2 parts, we're in buy flow
     if parts.len() > 2 {
         if let Some(&"2") = parts.get(1) {
-            return crate::handlers::buy_usdc_flow::handle_buy_usdc(text, session).await;
+            return crate::flows::usdc::buy::handle_buy_usdc(text, session).await;
         }
     }
     
@@ -420,7 +420,7 @@ pub async fn handle_usdc_menu(text: &str, session: &mut UssdSession) -> (String,
         }
         "1" if parts.len() == 2 => {
             // Check balance (when text is "3*1")
-            match crate::utils::business_logic_helper::get_balances(&session.phone_number).await {
+            match crate::services::business_logic::get_balances(&session.phone_number).await {
                 Ok(balances) => {
                     let ckusdc = balances.ckusdc_balance as f64 / 1_000_000.0;
                     (format!("{}:\nckUSDC: {:.2}\n\n{}", 
@@ -437,25 +437,25 @@ pub async fn handle_usdc_menu(text: &str, session: &mut UssdSession) -> (String,
         }
         "2" if parts.len() == 2 => {
             // USDC rate (when text is "3*2")
-            crate::handlers::usdc_rate_flow::handle_usdc_rate(text, session).await
+            crate::flows::common::usdc_rate::handle_usdc_rate(text, session).await
         }
         "3" if parts.len() == 2 => {
             // Buy USDC - start the flow (when text is "3*3")
             session.step = 0;
             session.current_menu = "buy_usdc".to_string();
-            crate::handlers::buy_usdc_flow::handle_buy_usdc(text, session).await
+            crate::flows::usdc::buy::handle_buy_usdc(text, session).await
         }
         "4" if parts.len() == 2 => {
             // Sell USDC (when text is "3*4")
             session.step = 0;
             session.current_menu = "sell_usdc".to_string();
-            crate::handlers::sell_usdc_flow::handle_sell_usdc(text, session).await
+            crate::flows::usdc::sell::handle_sell_usdc(text, session).await
         }
         "5" if parts.len() == 2 => {
             // Send USDC (when text is "3*5")
             session.step = 0;
             session.current_menu = "send_usdc".to_string();
-            crate::handlers::send_usdc_flow::handle_send_usdc(text, session).await
+            crate::flows::usdc::send::handle_send_usdc(text, session).await
         }
         _ => {
             (format!("{}\n\n{}", 
@@ -485,11 +485,11 @@ pub async fn handle_dao_menu(text: &str, session: &mut UssdSession) -> (String, 
         }
         "1" if parts.len() == 2 => {
             // View proposals (when text is "4*1")
-            crate::handlers::dao_proposals_flow::handle_view_proposals(text, session).await
+            crate::flows::dao::proposals::handle_view_proposals(text, session).await
         }
         "2" if parts.len() == 2 => {
             // Vote on proposals (when text is "4*2")
-            crate::handlers::dao_vote_flow::handle_vote(text, session).await
+            crate::flows::dao::vote::handle_vote(text, session).await
         }
         _ => {
             (format!("{}\n\n{}", 
@@ -528,7 +528,7 @@ pub async fn handle_language_menu(text: &str, session: &mut UssdSession) -> (Str
             session.language = new_lang.to_code().to_string();
             
             // Save language preference to Data Canister
-            match crate::utils::business_logic_helper::update_user_language(&session.phone_number, "en").await {
+            match crate::services::business_logic::update_user_language(&session.phone_number, "en").await {
                 Ok(_) => ic_cdk::println!("✅ Language preference saved: en"),
                 Err(e) => ic_cdk::println!("⚠️ Failed to save language preference: {}", e),
             }
@@ -543,7 +543,7 @@ pub async fn handle_language_menu(text: &str, session: &mut UssdSession) -> (Str
             session.language = new_lang.to_code().to_string();
             
             // Save language preference to Data Canister
-            match crate::utils::business_logic_helper::update_user_language(&session.phone_number, "lg").await {
+            match crate::services::business_logic::update_user_language(&session.phone_number, "lg").await {
                 Ok(_) => ic_cdk::println!("✅ Language preference saved: lg"),
                 Err(e) => ic_cdk::println!("⚠️ Failed to save language preference: {}", e),
             }
@@ -558,7 +558,7 @@ pub async fn handle_language_menu(text: &str, session: &mut UssdSession) -> (Str
             session.language = new_lang.to_code().to_string();
             
             // Save language preference to Data Canister
-            match crate::utils::business_logic_helper::update_user_language(&session.phone_number, "sw").await {
+            match crate::services::business_logic::update_user_language(&session.phone_number, "sw").await {
                 Ok(_) => ic_cdk::println!("✅ Language preference saved: sw"),
                 Err(e) => ic_cdk::println!("⚠️ Failed to save language preference: {}", e),
             }

@@ -1,5 +1,5 @@
 // Bitcoin rate check flow
-use crate::models::session::UssdSession;
+use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 
 /// Handle Bitcoin rate check
@@ -10,7 +10,7 @@ pub async fn handle_bitcoin_rate(_text: &str, session: &mut UssdSession) -> (Str
     ic_cdk::println!("💱 Fetching Bitcoin rate for: {}", currency);
     
     // Get Bitcoin rate from Business Logic Canister
-    match crate::utils::business_logic_helper::get_bitcoin_rate(&currency).await {
+    match crate::services::business_logic::get_bitcoin_rate(&currency).await {
         Ok(rate) => {
             (format!("{}\n\n1 BTC = {} {}\n1 {} = {:.8} BTC\n\n{}", 
                 TranslationService::translate("bitcoin_rate", lang),

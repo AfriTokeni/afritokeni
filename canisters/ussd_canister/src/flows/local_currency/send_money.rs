@@ -1,5 +1,5 @@
 // Send Money flow with PIN verification
-use crate::models::session::UssdSession;
+use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 use crate::utils::validation;
 
@@ -58,7 +58,7 @@ pub async fn handle_send_money(text: &str, session: &mut UssdSession) -> (String
             };
             
             // Get fee from Business Logic Canister config
-            let fee_config = match crate::utils::business_logic_helper::get_transfer_fee(&currency).await {
+            let fee_config = match crate::services::business_logic::get_transfer_fee(&currency).await {
                 Ok(config) => config,
                 Err(e) => {
                     return (format!("{}: {}\n\n{}", 
@@ -72,7 +72,7 @@ pub async fn handle_send_money(text: &str, session: &mut UssdSession) -> (String
             let total_required = amount_f64 + fee;
             
             // Check user balance
-            match crate::utils::business_logic_helper::get_balances(&session.phone_number).await {
+            match crate::services::business_logic::get_balances(&session.phone_number).await {
                 Ok(balances) => {
                     let fiat_balance = match balances.fiat_balances.iter()
                         .find(|b| b.currency == currency) {
@@ -142,7 +142,7 @@ pub async fn handle_send_money(text: &str, session: &mut UssdSession) -> (String
                 phone, recipient_phone, amount_cents, currency);
             
             // Call Business Logic to send money
-            match crate::utils::business_logic_helper::send_money(
+            match crate::services::business_logic::send_money(
                 &phone,
                 &recipient_phone,
                 amount_cents,

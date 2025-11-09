@@ -117,7 +117,7 @@ fn error_response(status_code: u16, message: &str) -> HttpResponse {
 /// Handle USSD webhook from Africa's Talking
 async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
     // Delegate to ussd module
-    crate::handlers::ussd::handle_ussd_webhook(req).await
+    crate::api::ussd::handle_ussd_webhook(req).await
 }
 
 #[cfg(test)]

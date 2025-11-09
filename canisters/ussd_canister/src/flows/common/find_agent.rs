@@ -1,5 +1,5 @@
 // Find Agent flow
-use crate::models::session::UssdSession;
+use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 
 /// Handle find agent
@@ -11,7 +11,7 @@ pub async fn handle_find_agent(_text: &str, session: &mut UssdSession) -> (Strin
     
     // Get user's location from their profile, then find nearby agents
     // Business Logic Canister will use the user's registered location
-    match crate::utils::business_logic_helper::get_nearby_agents(&session.phone_number, &currency).await {
+    match crate::services::business_logic::get_nearby_agents(&session.phone_number, &currency).await {
         Ok(agents) => {
             if agents.is_empty() {
                 return (format!("{}\n\n{}\n\n{}", 

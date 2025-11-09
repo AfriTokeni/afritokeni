@@ -1,5 +1,5 @@
 // DAO Voting flow
-use crate::models::session::UssdSession;
+use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 
 /// Handle DAO voting
@@ -15,7 +15,7 @@ pub async fn handle_vote(text: &str, session: &mut UssdSession) -> (String, bool
     match step {
         0 => {
             // Step 0: Show active proposals
-            match crate::utils::business_logic_helper::get_dao_proposals().await {
+            match crate::services::business_logic::get_dao_proposals().await {
                 Ok(proposals) => {
                     if proposals.is_empty() {
                         return (format!("{}\n\n{}\n\n{}", 
@@ -47,7 +47,7 @@ pub async fn handle_vote(text: &str, session: &mut UssdSession) -> (String, bool
             // Step 1: Show selected proposal and ask for vote
             let proposal_idx = parts.get(2).and_then(|s| s.parse::<usize>().ok()).unwrap_or(0);
             
-            match crate::utils::business_logic_helper::get_dao_proposals().await {
+            match crate::services::business_logic::get_dao_proposals().await {
                 Ok(proposals) => {
                     if proposal_idx == 0 || proposal_idx > proposals.len() {
                         return (format!("{}\n\n{}", 
@@ -94,7 +94,7 @@ pub async fn handle_vote(text: &str, session: &mut UssdSession) -> (String, bool
             
             ic_cdk::println!("🗳️ Executing vote: proposal={}, vote={}", proposal_idx, vote_yes);
             
-            match crate::utils::business_logic_helper::cast_dao_vote(
+            match crate::services::business_logic::cast_dao_vote(
                 &session.phone_number,
                 proposal_idx as u64,
                 vote_yes,

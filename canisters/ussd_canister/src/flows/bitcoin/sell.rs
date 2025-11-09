@@ -1,5 +1,5 @@
 // Sell Bitcoin flow
-use crate::models::session::UssdSession;
+use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 use crate::utils::validation;
 
@@ -34,7 +34,7 @@ pub async fn handle_sell_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
             };
             
             // Check BTC balance
-            match crate::utils::business_logic_helper::get_balances(&session.phone_number).await {
+            match crate::services::business_logic::get_balances(&session.phone_number).await {
                 Ok(balances) => {
                     let btc_balance = balances.ckbtc_balance as f64 / 100_000_000.0;
                     
@@ -49,7 +49,7 @@ pub async fn handle_sell_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
                     }
                     
                     // Get current rate
-                    match crate::utils::business_logic_helper::get_bitcoin_rate(&currency).await {
+                    match crate::services::business_logic::get_bitcoin_rate(&currency).await {
                         Ok(rate) => {
                             let fiat_amount = amount_btc * rate.rate_to_fiat;
                             (format!("{}\n{}: {:.8} BTC\n{}: {} {:.2}\n\n{}", 
@@ -86,7 +86,7 @@ pub async fn handle_sell_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
             
             ic_cdk::println!("💰 Executing sell_bitcoin: amount={} sats", amount_sats);
             
-            match crate::utils::business_logic_helper::sell_bitcoin(
+            match crate::services::business_logic::sell_bitcoin(
                 &session.phone_number,
                 amount_sats,
                 &currency,

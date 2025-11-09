@@ -1,5 +1,5 @@
 // Send Bitcoin flow with PIN verification
-use crate::models::session::UssdSession;
+use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 use crate::utils::validation;
 
@@ -63,11 +63,11 @@ pub async fn handle_send_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
             let amount_sats = (amount_btc * 100_000_000.0) as u64;
             
             // Call Business Logic to send Bitcoin
-            match crate::utils::business_logic_helper::send_crypto(
+            match crate::services::business_logic::send_crypto(
                 &phone,
                 &btc_address,
                 amount_sats,
-                crate::utils::business_logic_helper::CryptoType::ckBTC,
+                crate::services::business_logic::CryptoType::ckBTC,
                 pin
             ).await {
                 Ok(result) => {

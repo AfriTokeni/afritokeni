@@ -1,11 +1,11 @@
-// Buy Bitcoin flow with PIN verification
-use crate::models::session::UssdSession;
+// Buy USDC flow with PIN verification
+use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 use crate::utils::validation;
 
-/// Handle buy Bitcoin flow
+/// Handle buy USDC flow
 /// Steps: 1. Enter KES amount → 2. Enter PIN → 3. Execute
-pub async fn handle_buy_bitcoin(text: &str, session: &mut UssdSession) -> (String, bool) {
+pub async fn handle_buy_usdc(text: &str, session: &mut UssdSession) -> (String, bool) {
     let lang = Language::from_code(&session.language);
     let parts: Vec<&str> = text.split('*').collect();
     
@@ -14,14 +14,14 @@ pub async fn handle_buy_bitcoin(text: &str, session: &mut UssdSession) -> (Strin
     match step {
         0 => {
             // Step 0: Ask for KES amount
-            (format!("{}\n{} (KES) {} ckBTC:", 
-                TranslationService::translate("buy_bitcoin", lang),
+            (format!("{}\n{} (KES) {} ckUSDC:", 
+                TranslationService::translate("buy_usdc", lang),
                 TranslationService::translate("enter_amount", lang),
                 TranslationService::translate("to", lang)), true)
         }
         1 => {
             // Step 1: Validate amount (parts[2])
-            // Text: "2*3*amount" -> parts[0]=2, parts[1]=3, parts[2]=amount
+            // Text: "3*2*amount" -> parts[0]=3, parts[1]=2, parts[2]=amount
             let amount_str = parts.get(2).unwrap_or(&"");
             
             match validation::parse_amount(amount_str) {
@@ -39,43 +39,38 @@ pub async fn handle_buy_bitcoin(text: &str, session: &mut UssdSession) -> (Strin
             }
         }
         2 => {
-            // Step 2: Call Business Logic to buy crypto
-            // parts: [0]=2, [1]=3, [2]=amount_ugx, [3]=pin
+            // Step 2: Verify PIN and execute
             let pin = parts.get(3).unwrap_or(&"");
             let phone = session.phone_number.clone();
-            let amount_str = parts.get(2).unwrap_or(&"");
+            let amount_kes_str = parts.get(2).unwrap_or(&"");
             
-            // Parse amount
-            let amount_f64 = amount_str.parse::<f64>().unwrap_or(0.0);
-            let amount_cents = (amount_f64 * 100.0) as u64;
+            // Call Business Logic to buy USDC
+            let amount_cents = (amount_kes_str.parse::<f64>().unwrap_or(0.0) * 100.0) as u64;
             
-            // Call Business Logic to buy Bitcoin
-            match crate::utils::business_logic_helper::buy_crypto(
+            match crate::services::business_logic::buy_crypto(
                 &phone,
                 amount_cents,
                 "UGX",
-                crate::utils::business_logic_helper::CryptoType::ckBTC,
+                crate::services::business_logic::CryptoType::ckUSDC,
                 pin
             ).await {
-                Ok(tx_result) => {
-                    let btc_amount = (tx_result.amount as f64) / 100_000_000.0; // satoshis to BTC
-                    let new_balance = (tx_result.new_balance as f64) / 100.0;
+                Ok(result) => {
+                    let usdc_amount = result.amount as f64 / 1_000_000.0;
+                    let fiat_amount = amount_cents as f64 / 100.0;
                     
-                    (format!("{}\n{} {} UGX {} {:.8} BTC\n{}: {} UGX\n\n0. {}", 
+                    (format!("{}\nBought {:.2} ckUSDC for {:.2} UGX\n\n0. {}", 
                         TranslationService::translate("transaction_successful", lang),
-                        TranslationService::translate("bought", lang),
-                        amount_f64,
-                        TranslationService::translate("worth_of", lang),
-                        btc_amount,
-                        TranslationService::translate("new_balance", lang),
-                        new_balance,
+                        usdc_amount,
+                        fiat_amount,
                         TranslationService::translate("main_menu", lang)), false)
                 }
+                Err(e) if e.contains("Insufficient") => {
+                    (format!("{}\n{}", 
+                        TranslationService::translate("incorrect_pin", lang),
+                        TranslationService::translate("try_again", lang)), true)
+                }
                 Err(e) => {
-                    (format!("{}: {}\n\n0. {}", 
-                        TranslationService::translate("transaction_failed", lang),
-                        e,
-                        TranslationService::translate("main_menu", lang)), false)
+                    (format!("{}\n\n0. {}", e, TranslationService::translate("main_menu", lang)), false)
                 }
             }
         }
