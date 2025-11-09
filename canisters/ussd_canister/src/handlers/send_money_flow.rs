@@ -74,10 +74,17 @@ pub async fn handle_send_money(text: &str, session: &mut UssdSession) -> (String
             // Check user balance
             match crate::utils::business_logic_helper::get_balances(&session.phone_number).await {
                 Ok(balances) => {
-                    let fiat_balance = balances.fiat_balances.iter()
-                        .find(|b| b.currency == currency)
-                        .map(|b| b.amount as f64 / 100.0)
-                        .unwrap_or(0.0);
+                    let fiat_balance = match balances.fiat_balances.iter()
+                        .find(|b| b.currency == currency) {
+                        Some(balance) => balance.amount as f64 / 100.0,
+                        None => {
+                            return (format!("{}: {} {}\n\n{}", 
+                                TranslationService::translate("error", lang),
+                                TranslationService::translate("currency_not_found", lang),
+                                currency,
+                                TranslationService::translate("thank_you", lang)), false);
+                        }
+                    };
                     
                     if fiat_balance < total_required {
                         return (format!("{}!\n{}: {} {:.2}\n{}: {} {:.2} ({}: {:.2} + {}: {:.2})\n\n{}", 

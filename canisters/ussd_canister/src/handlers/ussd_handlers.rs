@@ -244,23 +244,30 @@ pub async fn handle_local_currency_menu(text: &str, session: &mut UssdSession) -
             // Check balance (when text is "1*2")
             match crate::utils::business_logic_helper::get_balances(&session.phone_number).await {
                 Ok(balances) => {
-                    let ugx = balances.fiat_balances.iter()
-                        .find(|b| b.currency == "UGX")
-                        .map(|b| b.amount as f64 / 100.0)
-                        .unwrap_or(0.0);
+                    let fiat_amount = match balances.fiat_balances.iter()
+                        .find(|b| b.currency == currency) {
+                        Some(balance) => balance.amount as f64 / 100.0,
+                        None => {
+                            return (format!("{}: {} {}\n\n{}", 
+                                TranslationService::translate("error", lang),
+                                TranslationService::translate("currency_not_found", lang),
+                                currency,
+                                TranslationService::translate("back_or_menu", lang)), true);
+                        }
+                    };
                     let ckbtc = balances.ckbtc_balance as f64 / 100_000_000.0;
                     let ckusdc = balances.ckusdc_balance as f64 / 1_000_000.0;
                     
                     (format!("{}:\n{}: {:.2}\nckBTC: {:.8}\nckUSDC: {:.2}\n\n{}", 
                         TranslationService::translate("your_balance", lang),
                         currency,
-                        ugx, ckbtc, ckusdc,
+                        fiat_amount, ckbtc, ckusdc,
                         TranslationService::translate("back_or_menu", lang)), true)
                 }
-                Err(_) => {
-                    (format!("{}:\n{}: 0.00\nckBTC: 0.00000000\nckUSDC: 0.00\n\n{}", 
-                        TranslationService::translate("your_balance", lang),
-                        currency,
+                Err(e) => {
+                    (format!("{}: {}\n\n{}", 
+                        TranslationService::translate("error", lang),
+                        e,
                         TranslationService::translate("back_or_menu", lang)), true)
                 }
             }
