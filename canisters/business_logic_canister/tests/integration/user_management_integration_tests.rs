@@ -17,25 +17,32 @@ struct User {
 fn setup() -> (PocketIc, Principal, Principal) {
     let pic = PocketIc::new();
     
-    let canister_id = pic.create_canister();
-    pic.add_cycles(canister_id, 2_000_000_000_000);
-    let wasm = std::fs::read(WASM_PATH)
-        .expect("Failed to read business logic WASM");
-    pic.install_canister(canister_id, wasm, vec![], None);
-    
+    // Install data canister FIRST
     let data_canister_id = pic.create_canister();
     pic.add_cycles(data_canister_id, 2_000_000_000_000);
     let data_wasm = std::fs::read(DATA_WASM)
         .expect("Failed to read data canister WASM");
-    pic.install_canister(data_canister_id, data_wasm, vec![], None);
     
+    // Data canister init expects (Option<String>, Option<String>) for ussd_canister_id and web_canister_id
+    let data_init_args = encode_args((None::<String>, None::<String>)).unwrap();
+    pic.install_canister(data_canister_id, data_wasm, data_init_args, None);
+    
+    // Install business logic canister with data_canister_id as init arg
+    let canister_id = pic.create_canister();
+    pic.add_cycles(canister_id, 2_000_000_000_000);
+    let wasm = std::fs::read(WASM_PATH)
+        .expect("Failed to read business logic WASM");
+    let init_args = encode_args((data_canister_id.to_text(),)).unwrap();
+    pic.install_canister(canister_id, wasm, init_args, None);
+    
+    // Authorize business logic canister to call data canister
     let result = pic.update_call(
-        canister_id,
+        data_canister_id,
         Principal::anonymous(),
-        "set_data_canister_id",
-        encode_args((data_canister_id.to_text(),)).unwrap(),
+        "add_authorized_canister",
+        encode_args((canister_id.to_text(),)).unwrap(),
     );
-    assert!(result.is_ok(), "Failed to set data canister ID");
+    assert!(result.is_ok(), "Failed to authorize business logic canister");
     
     (pic, canister_id, data_canister_id)
 }
@@ -44,7 +51,7 @@ fn setup() -> (PocketIc, Principal, Principal) {
 fn test_register_user_with_phone() {
     let (pic, canister_id, data_canister) = setup();
     
-    let user_principal = Principal::from_text("aaaaa-aa").unwrap();
+    let user_principal = Principal::anonymous();
     let phone = "+256700123456";
     let pin = "1234";
     let name = "John Doe";
@@ -55,22 +62,22 @@ fn test_register_user_with_phone() {
         "register_user",
         encode_args((
             Some(phone.to_string()),
-            Some(user_principal),
+            Some(user_principal.to_text()),
             name.to_string(),
+            "Doe".to_string(),
+            "test@example.com".to_string(),
+            "UGX".to_string(),
             pin.to_string(),
         )).unwrap(),
     );
     
     assert!(result.is_ok(), "Register user call failed");
-    let response: Result<User, String> = decode_one(&result.unwrap()).unwrap();
+    let response: Result<String, String> = decode_one(&result.unwrap()).unwrap();
     
     assert!(response.is_ok(), "User registration should succeed: {:?}", response);
-    let user = response.unwrap();
+    let user_id = response.unwrap();
     
-    assert_eq!(user.phone, Some(phone.to_string()));
-    assert_eq!(user.principal, Some(user_principal));
-    assert_eq!(user.name, name);
-    assert!(!user.id.is_empty());
+    assert!(!user_id.is_empty(), "User ID should not be empty");
     
     // Verify user exists in data canister
     let get_result = pic.query_call(
@@ -88,7 +95,7 @@ fn test_register_user_with_phone() {
 fn test_register_user_fails_with_invalid_phone() {
     let (pic, canister_id, _data_canister) = setup();
     
-    let user_principal = Principal::from_text("aaaaa-aa").unwrap();
+    let user_principal = Principal::anonymous();
     
     // Phone without + prefix
     let result = pic.update_call(
@@ -97,14 +104,17 @@ fn test_register_user_fails_with_invalid_phone() {
         "register_user",
         encode_args((
             Some("256700123456".to_string()), // Missing +
-            Some(user_principal),
-            "John Doe".to_string(),
+            Some(user_principal.to_text()),
+            "John".to_string(),
+            "Doe".to_string(),
+            "test@example.com".to_string(),
+            "UGX".to_string(),
             "1234".to_string(),
         )).unwrap(),
     );
     
     assert!(result.is_ok());
-    let response: Result<User, String> = decode_one(&result.unwrap()).unwrap();
+    let response: Result<String, String> = decode_one(&result.unwrap()).unwrap();
     
     assert!(response.is_err(), "Should fail with invalid phone format");
     let error = response.unwrap_err();
@@ -116,7 +126,7 @@ fn test_register_user_fails_with_invalid_phone() {
 fn test_register_user_fails_with_invalid_pin() {
     let (pic, canister_id, _data_canister) = setup();
     
-    let user_principal = Principal::from_text("aaaaa-aa").unwrap();
+    let user_principal = Principal::anonymous();
     
     // PIN with only 3 digits
     let result = pic.update_call(
@@ -125,14 +135,17 @@ fn test_register_user_fails_with_invalid_pin() {
         "register_user",
         encode_args((
             Some("+256700123456".to_string()),
-            Some(user_principal),
-            "John Doe".to_string(),
+            Some(user_principal.to_text()),
+            "John".to_string(),
+            "Doe".to_string(),
+            "test@example.com".to_string(),
+            "UGX".to_string(),
             "123".to_string(), // Too short
         )).unwrap(),
     );
     
     assert!(result.is_ok());
-    let response: Result<User, String> = decode_one(&result.unwrap()).unwrap();
+    let response: Result<String, String> = decode_one(&result.unwrap()).unwrap();
     
     assert!(response.is_err(), "Should fail with invalid PIN");
     let error = response.unwrap_err();
@@ -146,32 +159,37 @@ fn test_verify_pin_success() {
     
     let phone = "+256700987654";
     let pin = "5678";
-    let user_id = format!("user_{}", phone);
     
-    // Create user manually
-    let user = User {
-        id: user_id.clone(),
-        phone: Some(phone.to_string()),
-        principal: None,
-        name: "Test User".to_string(),
-        created_at: 0,
-        last_active: 0,
+    // Create user
+    use shared_types::{CreateUserData, UserType, FiatCurrency, User};
+    
+    let user_data = CreateUserData {
+        user_type: UserType::User,
+        preferred_currency: FiatCurrency::UGX,
+        email: "test@example.com".to_string(),
+        first_name: "Test".to_string(),
+        last_name: "User".to_string(),
+        principal_id: None,
+        phone_number: Some(phone.to_string()),
     };
     
     let result = pic.update_call(
         data_canister,
         Principal::anonymous(),
-        "set_user",
-        encode_args((user,)).unwrap(),
+        "create_user",
+        encode_args((user_data,)).unwrap(),
     );
     assert!(result.is_ok());
+    let user_result: Result<User, String> = decode_one(&result.unwrap()).unwrap();
+    let user = user_result.unwrap();
+    let user_id = user.id;
     
-    // Store PIN hash
+    // Setup PIN
     let result = pic.update_call(
         data_canister,
         Principal::anonymous(),
-        "store_pin_hash",
-        encode_args((user_id.clone(), pin.to_string())).unwrap(),
+        "setup_user_pin",
+        encode_args((user_id.clone(), pin.to_string(), "test_salt".to_string())).unwrap(),
     );
     assert!(result.is_ok());
     
@@ -197,32 +215,37 @@ fn test_verify_pin_fails_with_wrong_pin() {
     let phone = "+256700111222";
     let correct_pin = "1234";
     let wrong_pin = "9999";
-    let user_id = format!("user_{}", phone);
     
     // Create user
-    let user = User {
-        id: user_id.clone(),
-        phone: Some(phone.to_string()),
-        principal: None,
-        name: "Test User".to_string(),
-        created_at: 0,
-        last_active: 0,
+    use shared_types::{CreateUserData, UserType, FiatCurrency, User};
+    
+    let user_data = CreateUserData {
+        user_type: UserType::User,
+        preferred_currency: FiatCurrency::UGX,
+        email: "test@example.com".to_string(),
+        first_name: "Test".to_string(),
+        last_name: "User".to_string(),
+        principal_id: None,
+        phone_number: Some(phone.to_string()),
     };
     
     let result = pic.update_call(
         data_canister,
         Principal::anonymous(),
-        "set_user",
-        encode_args((user,)).unwrap(),
+        "create_user",
+        encode_args((user_data,)).unwrap(),
     );
     assert!(result.is_ok());
+    let user_result: Result<User, String> = decode_one(&result.unwrap()).unwrap();
+    let user = user_result.unwrap();
+    let user_id = user.id;
     
-    // Store correct PIN
+    // Setup PIN
     let result = pic.update_call(
         data_canister,
         Principal::anonymous(),
-        "store_pin_hash",
-        encode_args((user_id.clone(), correct_pin.to_string())).unwrap(),
+        "setup_user_pin",
+        encode_args((user_id.clone(), correct_pin.to_string(), "test_salt".to_string())).unwrap(),
     );
     assert!(result.is_ok());
     
@@ -246,37 +269,49 @@ fn test_link_phone_to_existing_user() {
     let (pic, canister_id, data_canister) = setup();
     
     // Create user without phone
-    let user_id = "user_test_123";
-    let user = User {
-        id: user_id.to_string(),
-        phone: None,
-        principal: Some(Principal::from_text("aaaaa-aa").unwrap()),
-        name: "Test User".to_string(),
-        created_at: 0,
-        last_active: 0,
+    use shared_types::{CreateUserData, UserType, FiatCurrency, User};
+    
+    let user_data = CreateUserData {
+        user_type: UserType::User,
+        preferred_currency: FiatCurrency::UGX,
+        email: "test@example.com".to_string(),
+        first_name: "Test".to_string(),
+        last_name: "User".to_string(),
+        principal_id: Some("aaaaa-aa".to_string()),
+        phone_number: None,
     };
     
     let result = pic.update_call(
         data_canister,
         Principal::anonymous(),
-        "set_user",
-        encode_args((user,)).unwrap(),
+        "create_user",
+        encode_args((user_data,)).unwrap(),
+    );
+    assert!(result.is_ok());
+    let user_result: Result<User, String> = decode_one(&result.unwrap()).unwrap();
+    let user = user_result.unwrap();
+    let user_id = user.id;
+    
+    // Link phone (need to setup PIN first)
+    let pin = "1234";
+    let result = pic.update_call(
+        data_canister,
+        Principal::anonymous(),
+        "setup_user_pin",
+        encode_args((user_id.to_string(), pin.to_string(), "test_salt".to_string())).unwrap(),
     );
     assert!(result.is_ok());
     
-    // Link phone
     let new_phone = "+256700555666";
     let result = pic.update_call(
         canister_id,
         Principal::anonymous(),
-        "link_phone",
-        encode_args((user_id.to_string(), new_phone.to_string())).unwrap(),
+        "link_phone_to_account",
+        encode_args(("aaaaa-aa".to_string(), new_phone.to_string(), pin.to_string())).unwrap(),
     );
     
     assert!(result.is_ok());
-    let response: Result<User, String> = decode_one(&result.unwrap()).unwrap();
+    let response: Result<(), String> = decode_one(&result.unwrap()).unwrap();
     
     assert!(response.is_ok(), "Phone linking should succeed: {:?}", response);
-    let updated_user = response.unwrap();
-    assert_eq!(updated_user.phone, Some(new_phone.to_string()));
 }

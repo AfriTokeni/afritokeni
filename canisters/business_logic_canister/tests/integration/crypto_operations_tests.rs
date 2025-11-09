@@ -34,29 +34,35 @@ struct User {
 fn setup_with_mock_data_canister() -> (PocketIc, Principal, Principal) {
     let pic = PocketIc::new();
     
-    // Install business logic canister
-    let canister_id = pic.create_canister();
-    pic.add_cycles(canister_id, 2_000_000_000_000);
-    let wasm = std::fs::read(WASM_PATH)
-        .expect("Failed to read business logic WASM. Run: cargo build --target wasm32-unknown-unknown --release --package business_logic_canister");
-    pic.install_canister(canister_id, wasm, vec![], None);
-    
-    // Install REAL data canister
+    // Install REAL data canister FIRST
     let data_canister_id = pic.create_canister();
     pic.add_cycles(data_canister_id, 2_000_000_000_000);
     
     let data_wasm = std::fs::read(MOCK_DATA_WASM)
         .expect("Failed to read data canister WASM. Run: cargo build --target wasm32-unknown-unknown --release --package data_canister");
-    pic.install_canister(data_canister_id, data_wasm, vec![], None);
     
-    // Set data canister ID in business logic canister
+    // Data canister init expects (Option<String>, Option<String>) for ussd_canister_id and web_canister_id
+    let data_init_args = encode_args((None::<String>, None::<String>)).unwrap();
+    pic.install_canister(data_canister_id, data_wasm, data_init_args, None);
+    
+    // Install business logic canister with data_canister_id as init arg
+    let canister_id = pic.create_canister();
+    pic.add_cycles(canister_id, 2_000_000_000_000);
+    let wasm = std::fs::read(WASM_PATH)
+        .expect("Failed to read business logic WASM. Run: cargo build --target wasm32-unknown-unknown --release --package business_logic_canister");
+    
+    // Pass data_canister_id as init argument
+    let init_args = encode_args((data_canister_id.to_text(),)).unwrap();
+    pic.install_canister(canister_id, wasm, init_args, None);
+    
+    // Authorize business logic canister to call data canister
     let result = pic.update_call(
-        canister_id,
+        data_canister_id,
         Principal::anonymous(),
-        "set_data_canister_id",
-        encode_args((data_canister_id.to_text(),)).unwrap(),
+        "add_authorized_canister",
+        encode_args((canister_id.to_text(),)).unwrap(),
     );
-    assert!(result.is_ok(), "Failed to set data canister ID");
+    assert!(result.is_ok(), "Failed to authorize business logic canister");
     
     (pic, canister_id, data_canister_id)
 }
@@ -70,7 +76,7 @@ fn setup() -> (PocketIc, Principal) {
 fn test_get_crypto_value_estimate_ckbtc() {
     let (pic, canister_id) = setup();
     
-    let result = pic.query_call(
+    let result = pic.update_call(
         canister_id,
         Principal::anonymous(),
         "get_crypto_value_estimate",
@@ -86,7 +92,7 @@ fn test_get_crypto_value_estimate_ckbtc() {
 fn test_get_crypto_value_estimate_ckusdc() {
     let (pic, canister_id) = setup();
     
-    let result = pic.query_call(
+    let result = pic.update_call(
         canister_id,
         Principal::anonymous(),
         "get_crypto_value_estimate",
@@ -99,7 +105,7 @@ fn test_get_crypto_value_estimate_ckusdc() {
 #[test]
 fn test_sell_crypto_to_agent_endpoint_exists() {
     let (pic, canister_id) = setup();
-    let user = Principal::from_text("aaaaa-aa").unwrap();
+    let user = Principal::anonymous();
     
     let result = pic.update_call(
         canister_id,
@@ -120,7 +126,7 @@ fn test_sell_crypto_to_agent_endpoint_exists() {
 #[test]
 fn test_buy_crypto_validates_zero_amount() {
     let (pic, canister_id) = setup();
-    let user = Principal::from_text("aaaaa-aa").unwrap();
+    let user = Principal::anonymous();
     
     let result = pic.update_call(
         canister_id,
@@ -143,7 +149,7 @@ fn test_buy_crypto_validates_zero_amount() {
 #[test]
 fn test_send_crypto_validates_empty_address() {
     let (pic, canister_id) = setup();
-    let user = Principal::from_text("aaaaa-aa").unwrap();
+    let user = Principal::anonymous();
     
     let result = pic.update_call(
         canister_id,
@@ -175,10 +181,10 @@ fn test_fraud_detection_limits_from_config() {
     );
     
     assert!(result.is_ok());
-    let response: (u64, u64) = decode_one(&result.unwrap()).unwrap();
+    let (max_amount, suspicious_threshold): (u64, u64) = candid::decode_args(&result.unwrap()).unwrap();
     
-    assert_eq!(response.0, 10_000_000);
-    assert_eq!(response.1, 5_000_000);
+    assert_eq!(max_amount, 10_000_000);
+    assert_eq!(suspicious_threshold, 5_000_000);
 }
 
 // ============================================================================
@@ -188,7 +194,7 @@ fn test_fraud_detection_limits_from_config() {
 #[test]
 fn test_buy_crypto_with_invalid_currency_code() {
     let (pic, canister_id) = setup();
-    let user = Principal::from_text("aaaaa-aa").unwrap();
+    let user = Principal::anonymous();
     
     let result = pic.update_call(
         canister_id,
@@ -214,7 +220,7 @@ fn test_buy_crypto_with_invalid_currency_code() {
 #[test]
 fn test_buy_crypto_with_max_u64_amount() {
     let (pic, canister_id) = setup();
-    let user = Principal::from_text("aaaaa-aa").unwrap();
+    let user = Principal::anonymous();
     
     let result = pic.update_call(
         canister_id,
@@ -240,7 +246,7 @@ fn test_buy_crypto_with_max_u64_amount() {
 #[test]
 fn test_send_crypto_with_invalid_address_format() {
     let (pic, canister_id) = setup();
-    let user = Principal::from_text("aaaaa-aa").unwrap();
+    let user = Principal::anonymous();
     
     let result = pic.update_call(
         canister_id,
@@ -266,7 +272,7 @@ fn test_send_crypto_with_invalid_address_format() {
 #[test]
 fn test_sell_crypto_to_agent_with_zero_amount() {
     let (pic, canister_id) = setup();
-    let user = Principal::from_text("aaaaa-aa").unwrap();
+    let user = Principal::anonymous();
     
     let result = pic.update_call(
         canister_id,
@@ -292,7 +298,7 @@ fn test_sell_crypto_to_agent_with_zero_amount() {
 #[test]
 fn test_sell_crypto_to_agent_with_empty_agent_id() {
     let (pic, canister_id) = setup();
-    let user = Principal::from_text("aaaaa-aa").unwrap();
+    let user = Principal::anonymous();
     
     let result = pic.update_call(
         canister_id,
@@ -352,7 +358,7 @@ fn test_config_values_loaded_correctly() {
     );
     
     assert!(result.is_ok());
-    let (max, suspicious): (u64, u64) = decode_one(&result.unwrap()).unwrap();
+    let (max, suspicious): (u64, u64) = candid::decode_args(&result.unwrap()).unwrap();
     
     // Values from business_logic_config.toml
     assert_eq!(max, 10_000_000, "Max transaction amount should be 10M");
@@ -365,32 +371,36 @@ fn test_config_values_loaded_correctly() {
 // ============================================================================
 
 fn create_crypto_test_user(pic: &PocketIc, data_canister: Principal, phone: &str, pin_hash: &str, fiat_balance: u64, ckbtc: u64, ckusdc: u64) -> String {
-    let user_id = format!("user_{}", phone);
+    use shared_types::{CreateUserData, UserType, FiatCurrency, User};
     
-    let user = User {
-        id: user_id.clone(),
-        phone: Some(phone.to_string()),
-        principal: None,
-        name: "Test User".to_string(),
-        created_at: 0,
-        last_active: 0,
+    let user_data = CreateUserData {
+        user_type: UserType::User,
+        preferred_currency: FiatCurrency::UGX,
+        email: "test@example.com".to_string(),
+        first_name: "Test".to_string(),
+        last_name: "User".to_string(),
+        principal_id: None,
+        phone_number: Some(phone.to_string()),
     };
     
     let result = pic.update_call(
         data_canister,
         Principal::anonymous(),
-        "set_user",
-        encode_args((user,)).unwrap(),
+        "create_user",
+        encode_args((user_data,)).unwrap(),
     );
     assert!(result.is_ok(), "Failed to create user");
+    let user_result: Result<User, String> = decode_one(&result.unwrap()).unwrap();
+    let user = user_result.unwrap();
+    let user_id = user.id;
     
     let result = pic.update_call(
         data_canister,
         Principal::anonymous(),
-        "store_pin_hash",
-        encode_args((user_id.clone(), pin_hash.to_string())).unwrap(),
+        "setup_user_pin",
+        encode_args((user_id.clone(), pin_hash.to_string(), "test_salt".to_string())).unwrap(),
     );
-    assert!(result.is_ok(), "Failed to store PIN hash");
+    assert!(result.is_ok(), "Failed to setup PIN");
     
     let result = pic.update_call(
         data_canister,
@@ -403,7 +413,7 @@ fn create_crypto_test_user(pic: &PocketIc, data_canister: Principal, phone: &str
     let result = pic.update_call(
         data_canister,
         Principal::anonymous(),
-        "set_crypto_balance",
+        "update_crypto_balance",
         encode_args((user_id.clone(), ckbtc as i64, ckusdc as i64)).unwrap(),
     );
     assert!(result.is_ok(), "Failed to set crypto balance");
@@ -419,7 +429,7 @@ fn test_full_buy_crypto_flow() {
     let user_phone = "+256700111111";
     create_crypto_test_user(&pic, data_canister, user_phone, "1234", 1_000_000, 0, 0);
     
-    let user = Principal::from_text("aaaaa-aa").unwrap();
+    let user = Principal::anonymous();
     
     // Buy ckBTC with 100,000 UGX
     let result = pic.update_call(
@@ -472,7 +482,7 @@ fn test_sell_crypto_to_agent_creates_escrow() {
     let user_phone = "+256700222222";
     create_crypto_test_user(&pic, data_canister, user_phone, "1234", 0, 1_000_000, 0);
     
-    let user = Principal::from_text("aaaaa-aa").unwrap();
+    let user = Principal::anonymous();
     
     // Sell 500k satoshis to agent
     let result = pic.update_call(
@@ -523,7 +533,7 @@ fn test_send_crypto_between_users() {
     // Create recipient with 0 crypto
     let recipient_address = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"; // Valid BTC address
     
-    let user = Principal::from_text("aaaaa-aa").unwrap();
+    let user = Principal::anonymous();
     
     // Send 300k satoshis
     let result = pic.update_call(
@@ -569,7 +579,7 @@ fn test_crypto_transfer_fails_insufficient_balance() {
     let user_phone = "+256700444444";
     create_crypto_test_user(&pic, data_canister, user_phone, "1234", 0, 100_000, 0);
     
-    let user = Principal::from_text("aaaaa-aa").unwrap();
+    let user = Principal::anonymous();
     
     // Try to send 500k satoshis (more than balance)
     let result = pic.update_call(

@@ -180,13 +180,10 @@ pub async fn approve_spending(
 }
 
 fn get_ledger_principal(token: CryptoToken) -> Result<Principal, String> {
-    let canister_id = match token {
+    Ok(match token {
         CryptoToken::CkBTC => config::get_ckbtc_ledger_id(),
         CryptoToken::CkUSDC => config::get_ckusdc_ledger_id(),
-    };
-    
-    Principal::from_text(&canister_id)
-        .map_err(|e| format!("Invalid ledger canister ID: {}", e))
+    })
 }
 
 #[cfg(test)]
@@ -196,12 +193,12 @@ mod tests {
     #[test]
     fn test_get_ledger_principal_ckbtc() {
         let principal = get_ledger_principal(CryptoToken::CkBTC).unwrap();
-        assert_eq!(principal.to_text(), config::get_ckbtc_ledger_id());
+        assert_eq!(principal, config::get_ckbtc_ledger_id());
     }
 
     #[test]
     fn test_get_ledger_principal_ckusdc() {
         let principal = get_ledger_principal(CryptoToken::CkUSDC).unwrap();
-        assert_eq!(principal.to_text(), config::get_ckusdc_ledger_id());
+        assert_eq!(principal, config::get_ckusdc_ledger_id());
     }
 }

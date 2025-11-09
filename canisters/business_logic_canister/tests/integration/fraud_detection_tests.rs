@@ -28,56 +28,67 @@ struct User {
 fn setup() -> (PocketIc, Principal, Principal) {
     let pic = PocketIc::new();
     
-    let canister_id = pic.create_canister();
-    pic.add_cycles(canister_id, 2_000_000_000_000);
-    let wasm = std::fs::read(WASM_PATH)
-        .expect("Failed to read business logic WASM");
-    pic.install_canister(canister_id, wasm, vec![], None);
-    
+    // Install data canister FIRST
     let data_canister_id = pic.create_canister();
     pic.add_cycles(data_canister_id, 2_000_000_000_000);
     let data_wasm = std::fs::read(DATA_WASM)
         .expect("Failed to read data canister WASM");
-    pic.install_canister(data_canister_id, data_wasm, vec![], None);
     
+    // Data canister init expects (Option<String>, Option<String>) for ussd_canister_id and web_canister_id
+    let data_init_args = encode_args((None::<String>, None::<String>)).unwrap();
+    pic.install_canister(data_canister_id, data_wasm, data_init_args, None);
+    
+    // Install business logic canister with data_canister_id as init arg
+    let canister_id = pic.create_canister();
+    pic.add_cycles(canister_id, 2_000_000_000_000);
+    let wasm = std::fs::read(WASM_PATH)
+        .expect("Failed to read business logic WASM");
+    let init_args = encode_args((data_canister_id.to_text(),)).unwrap();
+    pic.install_canister(canister_id, wasm, init_args, None);
+    
+    // Authorize business logic canister to call data canister
     let result = pic.update_call(
-        canister_id,
+        data_canister_id,
         Principal::anonymous(),
-        "set_data_canister_id",
-        encode_args((data_canister_id.to_text(),)).unwrap(),
+        "add_authorized_canister",
+        encode_args((canister_id.to_text(),)).unwrap(),
     );
-    assert!(result.is_ok(), "Failed to set data canister ID");
+    assert!(result.is_ok(), "Failed to authorize business logic canister");
     
     (pic, canister_id, data_canister_id)
 }
 
 fn create_test_user(pic: &PocketIc, data_canister: Principal, phone: &str, pin_hash: &str, initial_balance: u64) -> String {
-    let user_id = format!("user_{}", phone);
+    use shared_types::{CreateUserData, UserType, FiatCurrency, User};
     
-    let user = User {
-        id: user_id.clone(),
-        phone: Some(phone.to_string()),
-        principal: None,
-        name: "Test User".to_string(),
-        created_at: 0,
-        last_active: 0,
+    let user_data = CreateUserData {
+        user_type: UserType::User,
+        preferred_currency: FiatCurrency::UGX,
+        email: "test@example.com".to_string(),
+        first_name: "Test".to_string(),
+        last_name: "User".to_string(),
+        principal_id: None,
+        phone_number: Some(phone.to_string()),
     };
     
     let result = pic.update_call(
         data_canister,
         Principal::anonymous(),
-        "set_user",
-        encode_args((user,)).unwrap(),
+        "create_user",
+        encode_args((user_data,)).unwrap(),
     );
     assert!(result.is_ok(), "Failed to create user");
+    let user_result: Result<User, String> = decode_one(&result.unwrap()).unwrap();
+    let user = user_result.unwrap();
+    let user_id = user.id;
     
     let result = pic.update_call(
         data_canister,
         Principal::anonymous(),
-        "store_pin_hash",
-        encode_args((user_id.clone(), pin_hash.to_string())).unwrap(),
+        "setup_user_pin",
+        encode_args((user_id.clone(), pin_hash.to_string(), "test_salt".to_string())).unwrap(),
     );
-    assert!(result.is_ok(), "Failed to store PIN hash");
+    assert!(result.is_ok(), "Failed to setup PIN");
     
     let result = pic.update_call(
         data_canister,
@@ -102,7 +113,7 @@ fn test_fraud_detection_limits_loaded_from_config() {
     );
     
     assert!(result.is_ok());
-    let (max_amount, suspicious_threshold): (u64, u64) = decode_one(&result.unwrap()).unwrap();
+    let (max_amount, suspicious_threshold): (u64, u64) = candid::decode_args(&result.unwrap()).unwrap();
     
     assert_eq!(max_amount, 10_000_000);
     assert_eq!(suspicious_threshold, 5_000_000);
@@ -119,7 +130,7 @@ fn test_fraud_blocks_transfer_exceeding_max_limit() {
     let recipient_phone = "+256700222222";
     create_test_user(&pic, data_canister, recipient_phone, "5678", 0);
     
-    let user = Principal::from_text("aaaaa-aa").unwrap();
+    let user = Principal::anonymous();
     
     // Try to transfer 11M UGX (exceeds 10M limit)
     let result = pic.update_call(
@@ -155,7 +166,7 @@ fn test_fraud_allows_transfer_at_max_limit() {
     let recipient_phone = "+256700444444";
     create_test_user(&pic, data_canister, recipient_phone, "5678", 0);
     
-    let user = Principal::from_text("aaaaa-aa").unwrap();
+    let user = Principal::anonymous();
     
     // Transfer exactly 10M UGX (at limit, should succeed)
     let result = pic.update_call(
@@ -188,7 +199,7 @@ fn test_fraud_flags_suspicious_amount() {
     let recipient_phone = "+256700666666";
     create_test_user(&pic, data_canister, recipient_phone, "5678", 0);
     
-    let user = Principal::from_text("aaaaa-aa").unwrap();
+    let user = Principal::anonymous();
     
     // Transfer 6M UGX (above 5M suspicious threshold but below 10M max)
     let result = pic.update_call(
@@ -224,7 +235,7 @@ fn test_rate_limiting_blocks_excessive_transfers() {
     let recipient_phone = "+256700888888";
     create_test_user(&pic, data_canister, recipient_phone, "5678", 0);
     
-    let user = Principal::from_text("aaaaa-aa").unwrap();
+    let user = Principal::anonymous();
     
     // Make 10 transfers (should all succeed - within rate limit)
     for i in 0..10 {

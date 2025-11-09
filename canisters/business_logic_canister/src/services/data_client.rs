@@ -11,7 +11,7 @@ pub async fn get_user(user_id: &str) -> Result<Option<User>, String> {
     let canister_id = config::get_data_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "get_user")
-        .with_arg(user_id.to_string())
+        .with_arg((user_id.to_string(),))
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -27,7 +27,7 @@ pub async fn get_user_by_phone(phone: &str) -> Result<Option<User>, String> {
     let canister_id = config::get_data_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "get_user_by_phone")
-        .with_arg(phone.to_string())
+        .with_arg((phone.to_string(),))
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -52,7 +52,7 @@ pub async fn create_user(user_data: shared_types::CreateUserData) -> Result<User
     ic_cdk::println!("  phone_number: {:?}", user_data.phone_number);
     
     let response = Call::unbounded_wait(canister_id, "create_user")
-        .with_arg(user_data)
+        .with_arg((user_data,))
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -132,7 +132,7 @@ pub async fn store_transaction(tx: &TransactionRecord) -> Result<(), String> {
     let canister_id = config::get_data_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "store_transaction")
-        .with_arg(tx.clone())
+        .with_arg((tx.clone(),))
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -148,7 +148,7 @@ pub async fn get_crypto_balance(user_id: &str) -> Result<(u64, u64), String> {
     let canister_id = config::get_data_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "get_crypto_balance")
-        .with_arg(user_id.to_string())
+        .with_arg((user_id.to_string(),))
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -216,7 +216,7 @@ pub async fn is_pin_locked(user_id: &str) -> Result<bool, String> {
     let canister_id = config::get_data_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "is_pin_locked")
-        .with_arg(user_id.to_string())
+        .with_arg((user_id.to_string(),))
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -232,7 +232,7 @@ pub async fn get_failed_attempts(user_id: &str) -> Result<u32, String> {
     let canister_id = config::get_data_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "get_failed_attempts")
-        .with_arg(user_id.to_string())
+        .with_arg((user_id.to_string(),))
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -248,7 +248,7 @@ pub async fn get_remaining_lockout_time(user_id: &str) -> Result<u64, String> {
     let canister_id = config::get_data_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "get_remaining_lockout_time")
-        .with_arg(user_id.to_string())
+        .with_arg((user_id.to_string(),))
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -264,7 +264,7 @@ pub async fn reset_pin_attempts(user_id: &str) -> Result<(), String> {
     let canister_id = config::get_data_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "reset_pin_attempts")
-        .with_arg(user_id.to_string())
+        .with_arg((user_id.to_string(),))
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -280,7 +280,7 @@ pub async fn check_account_takeover(user_id: &str) -> Result<bool, String> {
     let canister_id = config::get_data_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "check_account_takeover")
-        .with_arg(user_id.to_string())
+        .with_arg((user_id.to_string(),))
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -296,7 +296,7 @@ pub async fn update_last_active(user_id: &str) -> Result<(), String> {
     let canister_id = config::get_data_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "update_last_active")
-        .with_arg(user_id.to_string())
+        .with_arg((user_id.to_string(),))
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
