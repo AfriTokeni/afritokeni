@@ -213,6 +213,168 @@ pub async fn update_user_language(phone_number: &str, language_code: &str) -> Re
     result
 }
 
+/// Get transaction history
+pub async fn get_transaction_history(phone_number: &str, limit: u32) -> Result<Vec<Transaction>, String> {
+    let canister_id = get_business_logic_canister_id()?;
+    
+    ic_cdk::println!("📤 Calling get_transaction_history: phone={}, limit={}", phone_number, limit);
+    
+    let response = Call::unbounded_wait(canister_id, "get_transaction_history")
+        .with_args(&(phone_number, limit))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<Vec<Transaction>, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+/// Get nearby agents
+pub async fn get_nearby_agents(phone_number: &str, currency: &str) -> Result<Vec<Agent>, String> {
+    let canister_id = get_business_logic_canister_id()?;
+    
+    ic_cdk::println!("📤 Calling get_nearby_agents: phone={}, currency={}", phone_number, currency);
+    
+    let response = Call::unbounded_wait(canister_id, "get_nearby_agents")
+        .with_args(&(phone_number, currency))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<Vec<Agent>, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+/// Get Bitcoin rate
+pub async fn get_bitcoin_rate(currency: &str) -> Result<ExchangeRate, String> {
+    let canister_id = get_business_logic_canister_id()?;
+    
+    ic_cdk::println!("📤 Calling get_bitcoin_rate: currency={}", currency);
+    
+    let response = Call::unbounded_wait(canister_id, "get_bitcoin_rate")
+        .with_args(&(currency,))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<ExchangeRate, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+/// Get USDC rate
+pub async fn get_usdc_rate(currency: &str) -> Result<ExchangeRate, String> {
+    let canister_id = get_business_logic_canister_id()?;
+    
+    ic_cdk::println!("📤 Calling get_usdc_rate: currency={}", currency);
+    
+    let response = Call::unbounded_wait(canister_id, "get_usdc_rate")
+        .with_args(&(currency,))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<ExchangeRate, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+/// Sell Bitcoin
+pub async fn sell_bitcoin(phone_number: &str, amount_sats: u64, currency: &str, pin: &str) -> Result<TransactionResult, String> {
+    let canister_id = get_business_logic_canister_id()?;
+    
+    ic_cdk::println!("📤 Calling sell_bitcoin: phone={}, amount={} sats", phone_number, amount_sats);
+    
+    let response = Call::unbounded_wait(canister_id, "sell_bitcoin")
+        .with_args(&(phone_number, amount_sats, currency, pin))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<TransactionResult, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+/// Sell USDC
+pub async fn sell_usdc(phone_number: &str, amount_e6: u64, currency: &str, pin: &str) -> Result<TransactionResult, String> {
+    let canister_id = get_business_logic_canister_id()?;
+    
+    ic_cdk::println!("📤 Calling sell_usdc: phone={}, amount={} e6", phone_number, amount_e6);
+    
+    let response = Call::unbounded_wait(canister_id, "sell_usdc")
+        .with_args(&(phone_number, amount_e6, currency, pin))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<TransactionResult, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+/// Send USDC
+pub async fn send_usdc(phone_number: &str, recipient: &str, amount_e6: u64, pin: &str) -> Result<TransactionResult, String> {
+    let canister_id = get_business_logic_canister_id()?;
+    
+    ic_cdk::println!("📤 Calling send_usdc: from={}, to={}, amount={} e6", phone_number, recipient, amount_e6);
+    
+    let response = Call::unbounded_wait(canister_id, "send_usdc")
+        .with_args(&(phone_number, recipient, amount_e6, pin))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<TransactionResult, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+/// Get DAO proposals
+pub async fn get_dao_proposals() -> Result<Vec<DaoProposal>, String> {
+    let canister_id = get_business_logic_canister_id()?;
+    
+    ic_cdk::println!("📤 Calling get_dao_proposals");
+    
+    let response = Call::unbounded_wait(canister_id, "get_dao_proposals")
+        .with_args(&())
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<Vec<DaoProposal>, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+/// Cast DAO vote
+pub async fn cast_dao_vote(phone_number: &str, proposal_id: u64, vote_yes: bool, pin: &str) -> Result<(), String> {
+    let canister_id = get_business_logic_canister_id()?;
+    
+    ic_cdk::println!("📤 Calling cast_dao_vote: phone={}, proposal={}, vote={}", phone_number, proposal_id, vote_yes);
+    
+    let response = Call::unbounded_wait(canister_id, "cast_dao_vote")
+        .with_args(&(phone_number, proposal_id, vote_yes, pin))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<(), String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
 // ============================================================================
 // Types (matching Business Logic Canister)
 // ============================================================================
@@ -248,4 +410,32 @@ pub struct TransactionResult {
 pub enum CryptoType {
     ckBTC,
     ckUSDC,
+}
+
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct Transaction {
+    pub tx_type: String,
+    pub amount: u64,
+    pub timestamp: String,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct Agent {
+    pub name: String,
+    pub phone: String,
+    pub location: String,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct ExchangeRate {
+    pub rate_to_fiat: f64,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct DaoProposal {
+    pub title: String,
+    pub status: String,
+    pub yes_votes: u64,
+    pub total_votes: u64,
 }

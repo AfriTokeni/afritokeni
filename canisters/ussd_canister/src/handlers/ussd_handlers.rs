@@ -272,11 +272,10 @@ pub async fn handle_local_currency_menu(text: &str, session: &mut UssdSession) -
             crate::handlers::send_money_flow::handle_send_money(text, session).await
         }
         "3" if parts.len() == 2 => {
-            // Deposit - coming soon
-            (format!("{}\n\n{}\n\n{}", 
-                TranslationService::translate("deposit", lang),
-                TranslationService::translate("coming_soon", lang),
-                TranslationService::translate("back_or_menu", lang)), true)
+            // Deposit - start the flow (when text is "1*3")
+            session.step = 0;
+            session.current_menu = "deposit".to_string();
+            crate::handlers::deposit_flow::handle_deposit(text, session).await
         }
         "4" if parts.len() == 2 => {
             // Withdraw - start the flow (when text is "1*4")
@@ -285,18 +284,12 @@ pub async fn handle_local_currency_menu(text: &str, session: &mut UssdSession) -
             crate::handlers::withdraw_flow::handle_withdraw(text, session).await
         }
         "5" if parts.len() == 2 => {
-            // Transactions - coming soon
-            (format!("{}\n\n{}\n\n{}", 
-                TranslationService::translate("transactions", lang),
-                TranslationService::translate("coming_soon", lang),
-                TranslationService::translate("back_or_menu", lang)), true)
+            // Transactions history (when text is "1*5")
+            crate::handlers::transactions_flow::handle_transactions(text, session).await
         }
         "6" if parts.len() == 2 => {
-            // Find agent - coming soon
-            (format!("{}\n\n{}\n\n{}", 
-                TranslationService::translate("find_agent", lang),
-                TranslationService::translate("coming_soon", lang),
-                TranslationService::translate("back_or_menu", lang)), true)
+            // Find agent (when text is "1*6")
+            crate::handlers::find_agent_flow::handle_find_agent(text, session).await
         }
         _ => {
             (format!("{}\n0. {}", 
@@ -361,11 +354,8 @@ pub async fn handle_bitcoin_menu(text: &str, session: &mut UssdSession) -> (Stri
             }
         }
         "2" if parts.len() == 2 => {
-            // Bitcoin rate - coming soon
-            (format!("{}\n\n{}\n\n{}", 
-                TranslationService::translate("bitcoin_rate", lang),
-                TranslationService::translate("coming_soon", lang),
-                TranslationService::translate("back_or_menu", lang)), true)
+            // Bitcoin rate (when text is "2*2")
+            crate::handlers::bitcoin_rate_flow::handle_bitcoin_rate(text, session).await
         }
         "3" if parts.len() == 2 => {
             // Buy Bitcoin - start the flow (when text is "2*3")
@@ -374,11 +364,10 @@ pub async fn handle_bitcoin_menu(text: &str, session: &mut UssdSession) -> (Stri
             crate::handlers::buy_bitcoin_flow::handle_buy_bitcoin(text, session).await
         }
         "4" if parts.len() == 2 => {
-            // Sell Bitcoin - coming soon
-            (format!("{}\n\n{}\n\n{}", 
-                TranslationService::translate("sell_bitcoin", lang),
-                TranslationService::translate("coming_soon", lang),
-                TranslationService::translate("back_or_menu", lang)), true)
+            // Sell Bitcoin (when text is "2*4")
+            session.step = 0;
+            session.current_menu = "sell_bitcoin".to_string();
+            crate::handlers::sell_bitcoin_flow::handle_sell_bitcoin(text, session).await
         }
         "5" if parts.len() == 2 => {
             // Send Bitcoin - start the flow (when text is "2*5")
@@ -440,11 +429,8 @@ pub async fn handle_usdc_menu(text: &str, session: &mut UssdSession) -> (String,
             }
         }
         "2" if parts.len() == 2 => {
-            // USDC rate - coming soon
-            (format!("{}\n\n{}\n\n{}", 
-                TranslationService::translate("usdc_rate", lang),
-                TranslationService::translate("coming_soon", lang),
-                TranslationService::translate("back_or_menu", lang)), true)
+            // USDC rate (when text is "3*2")
+            crate::handlers::usdc_rate_flow::handle_usdc_rate(text, session).await
         }
         "3" if parts.len() == 2 => {
             // Buy USDC - start the flow (when text is "3*3")
@@ -453,18 +439,16 @@ pub async fn handle_usdc_menu(text: &str, session: &mut UssdSession) -> (String,
             crate::handlers::buy_usdc_flow::handle_buy_usdc(text, session).await
         }
         "4" if parts.len() == 2 => {
-            // Sell USDC - coming soon
-            (format!("{}\n\n{}\n\n{}", 
-                TranslationService::translate("sell_usdc", lang),
-                TranslationService::translate("coming_soon", lang),
-                TranslationService::translate("back_or_menu", lang)), true)
+            // Sell USDC (when text is "3*4")
+            session.step = 0;
+            session.current_menu = "sell_usdc".to_string();
+            crate::handlers::sell_usdc_flow::handle_sell_usdc(text, session).await
         }
         "5" if parts.len() == 2 => {
-            // Send USDC - coming soon
-            (format!("{}\n\n{}\n\n{}", 
-                TranslationService::translate("send_usdc", lang),
-                TranslationService::translate("coming_soon", lang),
-                TranslationService::translate("back_or_menu", lang)), true)
+            // Send USDC (when text is "3*5")
+            session.step = 0;
+            session.current_menu = "send_usdc".to_string();
+            crate::handlers::send_usdc_flow::handle_send_usdc(text, session).await
         }
         _ => {
             (format!("{}\n\n{}", 
@@ -492,11 +476,17 @@ pub async fn handle_dao_menu(text: &str, session: &mut UssdSession) -> (String, 
                 TranslationService::translate("back_or_menu", lang));
             (menu, true)
         }
+        "1" if parts.len() == 2 => {
+            // View proposals (when text is "4*1")
+            crate::handlers::dao_proposals_flow::handle_view_proposals(text, session).await
+        }
+        "2" if parts.len() == 2 => {
+            // Vote on proposals (when text is "4*2")
+            crate::handlers::dao_vote_flow::handle_vote(text, session).await
+        }
         _ => {
-            // All DAO options coming soon
-            (format!("{}\n\n{}\n\n{}", 
-                TranslationService::translate("dao_governance", lang),
-                TranslationService::translate("coming_soon", lang),
+            (format!("{}\n\n{}", 
+                TranslationService::translate("invalid_option", lang),
                 TranslationService::translate("back_or_menu", lang)), true)
         }
     }
