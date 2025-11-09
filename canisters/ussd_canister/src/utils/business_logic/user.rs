@@ -2,7 +2,7 @@
 use super::{get_business_logic_canister_id, UserBalances};
 use ic_cdk::call::Call;
 
-/// Register a new user
+/// Register a new user (USSD - phone number based)
 pub async fn register_user(
     phone_number: &str,
     first_name: &str,
@@ -15,8 +15,17 @@ pub async fn register_user(
     
     ic_cdk::println!("📤 Calling register_user: phone={}", phone_number);
     
+    // Business Logic expects: (Option<phone>, Option<principal>, first, last, email, currency, pin)
     let response = Call::unbounded_wait(canister_id, "register_user")
-        .with_args(&(phone_number, first_name, last_name, email, pin, currency))
+        .with_args(&(
+            Some(phone_number.to_string()),  // phone_number: Option<String>
+            None::<String>,                    // principal_id: Option<String> (None for USSD)
+            first_name.to_string(),           // first_name: String
+            last_name.to_string(),            // last_name: String
+            email.to_string(),                // email: String
+            currency.to_string(),             // preferred_currency: String
+            pin.to_string(),                  // pin: String
+        ))
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
