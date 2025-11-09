@@ -52,11 +52,13 @@
       ussdHistory = ussdHistory + "*" + trimmedCmd;
       ussdText = ussdHistory;
     }
+    
+    console.log(`🔗 USSD Chain: "${ussdText}" (previous="${ussdHistory.split('*').slice(0, -1).join('*')}", new input="${trimmedCmd}")`);
 
     try {
       // Call USSD canister directly using agent (bypasses HTTP certification issues)
       console.log(
-        `📱 USSD Playground: sessionId="${sessionId}", text="${ussdText}" (input="${trimmedCmd}")`,
+        `📱 USSD Playground: sessionId="${sessionId}", text="${ussdText}"`,
       );
 
       const { Actor, HttpAgent } = await import("@dfinity/agent");
@@ -93,7 +95,15 @@
 
       const [response, continues] = result;
 
-      console.log(`✅ Response: ${response.substring(0, 100)}...`);
+      console.log(`✅ Response: ${response.substring(0, 100)}...`, `continues=${continues}`);
+      
+      // Reset history if session ended (terminal response)
+      if (!continues) {
+        console.log("🔚 Session ended - resetting USSD history");
+        ussdHistory = "";
+        sessionId = `playground_session_${Date.now()}`; // New session for next interaction
+      }
+      
       return response;
     } catch (error: any) {
       console.error("❌ Failed to process USSD command:", error);

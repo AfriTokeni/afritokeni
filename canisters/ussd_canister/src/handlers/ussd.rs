@@ -169,8 +169,19 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                         // Show main menu when no input
                         crate::handlers::ussd_handlers::handle_main_menu(&text, &mut session).await
                     } else {
-                        // Route based on first part
-                        match parts.get(0) {
+                        // Find the last "0" in the chain to determine context
+                        // After "0" (back), we're back at main menu level
+                        let last_zero_pos = parts.iter().rposition(|&p| p == "0");
+                        let routing_parts = if let Some(pos) = last_zero_pos {
+                            // Route based on parts AFTER the last "0"
+                            &parts[pos+1..]
+                        } else {
+                            // No "0" in chain, route normally
+                            &parts[..]
+                        };
+                        
+                        // Route based on first part of routing context
+                        match routing_parts.get(0) {
                         Some(&"1") => {
                             // Local currency menu
                             ic_cdk::println!("✅ Routing to local_currency");
