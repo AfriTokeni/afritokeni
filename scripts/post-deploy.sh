@@ -1,5 +1,6 @@
 #!/bin/bash
 # Post-deployment script to configure canister dependencies
+# This should be run AFTER dfx deploy
 
 set -e
 
@@ -15,7 +16,7 @@ echo "📋 Canister IDs:"
 echo "  Business Logic: $BUSINESS_LOGIC_ID"
 echo "  Data Canister: $DATA_CANISTER_ID"
 
-# Configure USSD Canister
+# Configure USSD Canister (in case it wasn't set during init)
 echo "⚙️  Configuring USSD Canister..."
 dfx canister call ussd_canister set_business_logic_canister_id "(\"$BUSINESS_LOGIC_ID\")" --network $NETWORK
 
@@ -24,3 +25,6 @@ echo "⚙️  Configuring Business Logic Canister..."
 dfx canister call business_logic_canister set_data_canister_id "(\"$DATA_CANISTER_ID\")" --network $NETWORK
 
 echo "✅ Configuration complete!"
+echo ""
+echo "💡 TIP: For future deployments, use 'dfx deploy --mode upgrade' to preserve canister state"
+echo "   Or set init args in dfx.json to auto-configure on deployment"
