@@ -192,57 +192,52 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                             &parts[..]
                         };
                         
+                        // Build clean text for handlers (without the "0" and everything before it)
+                        let clean_text = routing_parts.join("*");
+                        ic_cdk::println!("🔍 Clean routing text: '{}' (from parts: {:?})", clean_text, routing_parts);
+                        
                         // Route based on first part of routing context
                         match routing_parts.get(0) {
                         Some(&"1") => {
                             // Local currency menu
                             ic_cdk::println!("✅ Routing to local_currency");
-                            crate::handlers::ussd_handlers::handle_local_currency_menu(&text, &mut session).await
+                            crate::handlers::ussd_handlers::handle_local_currency_menu(&clean_text, &mut session).await
                         }
                         Some(&"2") => {
                             // Bitcoin menu
                             ic_cdk::println!("✅ Routing to bitcoin");
-                            crate::handlers::ussd_handlers::handle_bitcoin_menu(&text, &mut session).await
+                            crate::handlers::ussd_handlers::handle_bitcoin_menu(&clean_text, &mut session).await
                         }
                         Some(&"3") => {
                             // USDC menu
                             ic_cdk::println!("✅ Routing to usdc");
-                            crate::handlers::ussd_handlers::handle_usdc_menu(&text, &mut session).await
+                            crate::handlers::ussd_handlers::handle_usdc_menu(&clean_text, &mut session).await
                         }
                         Some(&"4") => {
                             // DAO menu
                             ic_cdk::println!("✅ Routing to dao");
-                            crate::handlers::ussd_handlers::handle_dao_menu(&text, &mut session).await
+                            crate::handlers::ussd_handlers::handle_dao_menu(&clean_text, &mut session).await
                         }
                         Some(&"5") => {
-                            // Help - show help message
-                            ic_cdk::println!("✅ Routing to help");
+                            // Help
+                            ic_cdk::println!("ℹ️ Showing help");
                             let lang = crate::utils::translations::Language::from_code(&session.language);
-                            (format!("{}\n\n{}: {}, {}\n{}: {}, {}\n{}: {}\n\n{}: {} +256-XXX-XXXX\n{}: {}", 
-                                crate::utils::translations::TranslationService::translate("help", lang),
-                                crate::utils::translations::TranslationService::translate("local_currency", lang),
-                                crate::utils::translations::TranslationService::translate("send_money", lang),
-                                crate::utils::translations::TranslationService::translate("withdraw", lang),
-                                crate::utils::translations::TranslationService::translate("bitcoin", lang),
-                                crate::utils::translations::TranslationService::translate("buy_bitcoin", lang),
-                                crate::utils::translations::TranslationService::translate("sell_bitcoin", lang),
-                                crate::utils::translations::TranslationService::translate("dao_governance", lang),
-                                crate::utils::translations::TranslationService::translate("vote_on_proposals", lang),
+                            (format!("{}\n\n{}: +256-XXX-XXXX\n{}: afritokeni.com\n\n{}",
                                 crate::utils::translations::TranslationService::translate("for_support", lang),
                                 crate::utils::translations::TranslationService::translate("call", lang),
                                 crate::utils::translations::TranslationService::translate("visit", lang),
-                                "afritokeni.com"), true)
+                                crate::utils::translations::TranslationService::translate("back_or_menu", lang)), true)
                         }
                         Some(&"6") => {
                             // Language menu
                             ic_cdk::println!("✅ Routing to language");
-                            crate::handlers::ussd_handlers::handle_language_menu(&text, &mut session).await
+                            crate::handlers::ussd_handlers::handle_language_menu(&clean_text, &mut session).await
                         }
-                            _ => {
-                                // Unknown, show main menu
-                                ic_cdk::println!("❓ Unknown input, showing main menu");
-                                crate::handlers::ussd_handlers::handle_main_menu(&text, &mut session).await
-                            }
+                        _ => {
+                            // Unknown, show main menu
+                            ic_cdk::println!("❓ Unknown input, showing main menu");
+                            crate::handlers::ussd_handlers::handle_main_menu(&clean_text, &mut session).await
+                        }
                         }
                     }
                 };
