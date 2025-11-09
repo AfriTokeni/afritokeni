@@ -15,7 +15,7 @@
   let messages = $state<Message[]>([
     {
       type: "received",
-      text: "🌍 USSD Demo Mode\n\nWelcome to AfriTokeni!\n\nDial *384*22948# to start",
+      text: "🌍 USSD Demo Mode\n\nWelcome to AfriTokeni!\n\nDial *384*22948# to start\n\n🔐 Demo PIN: 1234",
       timestamp: new Date().toLocaleTimeString("en-US", {
         hour: "2-digit",
         minute: "2-digit",
@@ -288,7 +288,7 @@
               <!-- Quick Start Button -->
               <button
                 onclick={quickDial}
-                class="mb-2 flex w-full items-center justify-center gap-2 rounded-xl bg-green-500 py-2.5 text-sm font-bold text-white transition-colors hover:bg-green-600 sm:mb-3 sm:py-3 sm:text-base"
+                class="mb-3 flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-700 sm:px-6 sm:py-4 sm:text-base"
               >
                 <Smartphone class="h-4 w-4 sm:h-5 sm:w-5" />
                 Dial *384*22948#

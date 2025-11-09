@@ -97,13 +97,34 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                 ic_cdk::println!("🔍 Session state: menu='{}', step={}", session.current_menu, session.step);
                 
                 // CRITICAL: Check if user is registered (first-time user detection)
-                let user_registered = match crate::utils::business_logic_helper::user_exists(&phone_number).await {
+                let mut user_registered = match crate::utils::business_logic_helper::user_exists(&phone_number).await {
                     Ok(exists) => exists,
                     Err(e) => {
                         ic_cdk::println!("❌ Error checking user existence: {}", e);
                         false // Assume not registered on error
                     }
                 };
+                
+                // PLAYGROUND MODE: Auto-register playground users with demo PIN (1234)
+                if !user_registered && session_id.starts_with("playground_") {
+                    ic_cdk::println!("🎮 Playground mode detected - auto-registering demo user");
+                    match crate::utils::business_logic_helper::register_user(
+                        &phone_number,
+                        "Demo",
+                        "User",
+                        "ussd@afritokeni.com",
+                        "1234",
+                        "UGX"
+                    ).await {
+                        Ok(user_id) => {
+                            ic_cdk::println!("✅ Playground user auto-registered: {}", user_id);
+                            user_registered = true;
+                        }
+                        Err(e) => {
+                            ic_cdk::println!("❌ Failed to auto-register playground user: {}", e);
+                        }
+                    }
+                }
                 
                 // Route based on user registration status
                 let (response_text, continue_session) = if !user_registered {
@@ -130,8 +151,22 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                     let parts: Vec<&str> = text.split('*').collect();
                     ic_cdk::println!("🔍 Routing: text='{}', parts={:?}", text, parts);
                     
-                    if text.is_empty() || parts.len() == 1 {
-                        // Main menu or first selection
+                    // Check for universal navigation commands (last input)
+                    let last_input = parts.last().unwrap_or(&"");
+                    if *last_input == "9" {
+                        // 9 = Main Menu
+                        ic_cdk::println!("🏠 Returning to main menu");
+                        session.current_menu = "main".to_string();
+                        session.step = 0;
+                        crate::handlers::ussd_handlers::handle_main_menu("", &mut session).await
+                    } else if *last_input == "0" && parts.len() > 1 {
+                        // 0 = Back (go to parent menu - for now just go to main menu)
+                        ic_cdk::println!("⬅️ Going back to main menu");
+                        session.current_menu = "main".to_string();
+                        session.step = 0;
+                        crate::handlers::ussd_handlers::handle_main_menu("", &mut session).await
+                    } else if text.is_empty() {
+                        // Show main menu when no input
                         crate::handlers::ussd_handlers::handle_main_menu(&text, &mut session).await
                     } else {
                         // Route based on first part
@@ -143,22 +178,46 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                         }
                         Some(&"2") => {
                             // Bitcoin menu
+                            ic_cdk::println!("✅ Routing to bitcoin");
                             crate::handlers::ussd_handlers::handle_bitcoin_menu(&text, &mut session).await
                         }
                         Some(&"3") => {
                             // USDC menu
+                            ic_cdk::println!("✅ Routing to usdc");
                             crate::handlers::ussd_handlers::handle_usdc_menu(&text, &mut session).await
                         }
                         Some(&"4") => {
                             // DAO menu
+                            ic_cdk::println!("✅ Routing to dao");
                             crate::handlers::ussd_handlers::handle_dao_menu(&text, &mut session).await
                         }
                         Some(&"5") => {
+                            // Help - show help message
+                            ic_cdk::println!("✅ Routing to help");
+                            let lang = crate::utils::translations::Language::from_code(&session.language);
+                            (format!("{}\n\n{}: {}, {}\n{}: {}, {}\n{}: {}\n\n{}: {} +256-XXX-XXXX\n{}: {}", 
+                                crate::utils::translations::TranslationService::translate("help", lang),
+                                crate::utils::translations::TranslationService::translate("local_currency", lang),
+                                crate::utils::translations::TranslationService::translate("send_money", lang),
+                                crate::utils::translations::TranslationService::translate("withdraw", lang),
+                                crate::utils::translations::TranslationService::translate("bitcoin", lang),
+                                crate::utils::translations::TranslationService::translate("buy_bitcoin", lang),
+                                crate::utils::translations::TranslationService::translate("sell_bitcoin", lang),
+                                crate::utils::translations::TranslationService::translate("dao_governance", lang),
+                                crate::utils::translations::TranslationService::translate("vote_on_proposals", lang),
+                                crate::utils::translations::TranslationService::translate("for_support", lang),
+                                crate::utils::translations::TranslationService::translate("call", lang),
+                                crate::utils::translations::TranslationService::translate("visit", lang),
+                                "afritokeni.com"), true)
+                        }
+                        Some(&"6") => {
                             // Language menu
+                            ic_cdk::println!("✅ Routing to language");
                             crate::handlers::ussd_handlers::handle_language_menu(&text, &mut session).await
                         }
                             _ => {
                                 // Unknown, show main menu
+                                ic_cdk::println!("❓ Unknown input, showing main menu");
                                 crate::handlers::ussd_handlers::handle_main_menu(&text, &mut session).await
                             }
                         }
