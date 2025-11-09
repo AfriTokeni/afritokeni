@@ -130,7 +130,7 @@ pub async fn user_exists(phone_number: &str) -> Result<bool, String> {
     let canister_id = get_business_logic_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "user_exists")
-        .with_arg((phone_number.to_string(),))
+        .with_arg(phone_number.to_string())
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -152,15 +152,38 @@ pub async fn register_user(
 ) -> Result<String, String> {
     let canister_id = get_business_logic_canister_id()?;
     
+    // Generate Principal ID from phone number (deterministic, self-authenticating)
+    use candid::Principal;
+    use sha2::{Sha256, Digest};
+    
+    // Use phone number as seed for deterministic principal generation
+    let mut hasher = Sha256::new();
+    hasher.update(phone_number.as_bytes());
+    let hash_result = hasher.finalize();
+    let hash: [u8; 32] = hash_result.into();
+    
+    // Create self-authenticating principal from hash
+    let principal = Principal::self_authenticating(&hash);
+    let principal_id = principal.to_text();
+    
+    ic_cdk::println!("📤 Calling register_user with:");
+    ic_cdk::println!("  phone_number: {:?}", Some(phone_number));
+    ic_cdk::println!("  principal_id: {:?}", Some(&principal_id));
+    ic_cdk::println!("  first_name: {:?}", first_name);
+    ic_cdk::println!("  last_name: {:?}", last_name);
+    ic_cdk::println!("  email: {:?}", email);
+    ic_cdk::println!("  preferred_currency: {:?}", preferred_currency);
+    ic_cdk::println!("  pin: {:?}", pin);
+    
     let response = Call::unbounded_wait(canister_id, "register_user")
-        .with_arg((
-            Some(phone_number.to_string()),
-            None::<String>, // principal_id
-            first_name.to_string(),
-            last_name.to_string(),
-            email.to_string(),
-            preferred_currency.to_string(),
-            pin.to_string(),
+        .with_args(&(
+            Some(phone_number.to_string()), // phone_number: Option<String>
+            Some(principal_id),              // principal_id: Option<String>
+            first_name.to_string(),          // first_name: String
+            last_name.to_string(),           // last_name: String
+            email.to_string(),               // email: String
+            preferred_currency.to_string(),  // preferred_currency: String
+            pin.to_string(),                 // pin: String
         ))
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;

@@ -133,9 +133,24 @@ fn list_authorized_canisters() -> Result<Vec<String>, String> {
 // Initialization
 // ============================================================================
 
+/// Initialize Business Logic canister with Data canister ID
 #[init]
 fn init(data_canister_id: String) {
-    services::config::set_data_canister_id(data_canister_id);
+    services::config::set_data_canister_id(data_canister_id.clone());
+    ic_cdk::println!("✅ Business Logic canister initialized with Data canister: {}", data_canister_id);
+}
+
+/// Manually set data canister ID (for flexibility)
+#[update]
+fn set_data_canister_id(canister_id: String) -> Result<(), String> {
+    let caller = msg_caller();
+    if !ic_cdk::api::is_controller(&caller) {
+        return Err("Only controller can set data canister ID".to_string());
+    }
+    
+    services::config::set_data_canister_id(canister_id.clone());
+    ic_cdk::println!("✅ Data canister ID set to: {}", canister_id);
+    Ok(())
 }
 
 // ============================================================================
@@ -484,6 +499,15 @@ async fn register_user(
     pin: String,
 ) -> Result<String, String> {
     verify_authorized_caller()?;
+    
+    ic_cdk::println!("📥 Business Logic received register_user:");
+    ic_cdk::println!("  phone_number: {:?}", phone_number);
+    ic_cdk::println!("  principal_id: {:?}", principal_id);
+    ic_cdk::println!("  first_name: {:?}", first_name);
+    ic_cdk::println!("  last_name: {:?}", last_name);
+    ic_cdk::println!("  email: {:?}", email);
+    ic_cdk::println!("  preferred_currency: {:?}", preferred_currency);
+    ic_cdk::println!("  pin: {:?}", pin);
     
     let result = services::user_management::register_user(
         phone_number.clone(),

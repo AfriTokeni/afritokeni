@@ -2,48 +2,178 @@
 use crate::models::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 
-/// Handle main menu
+/// Handle main menu - just show the menu, routing is handled in ussd.rs
 pub async fn handle_main_menu(_text: &str, session: &mut UssdSession) -> (String, bool) {
     let lang = Language::from_code(&session.language);
-    let menu = TranslationService::get_main_menu(lang);
+    // Default to UGX if no currency set
+    let currency = session.get_data("currency").unwrap_or_else(|| "UGX".to_string());
+    let menu = TranslationService::get_main_menu(lang, &currency);
     (menu, true)
 }
 
-/// Handle registration
-pub async fn handle_registration(session: &mut UssdSession, pin: &str) -> (String, bool) {
+/// Handle multi-step registration
+/// Step 0: PIN, Step 1: First name, Step 2: Last name, Step 3: Currency
+pub async fn handle_registration(session: &mut UssdSession, input: &str) -> (String, bool) {
     let lang = Language::from_code(&session.language);
     
-    // Validate PIN format (4 digits)
-    if pin.len() != 4 || !pin.chars().all(|c| c.is_numeric()) {
-        return (format!("{}\n0. {}", 
-            TranslationService::translate("invalid_pin_format", lang),
-            TranslationService::translate("back", lang)), true);
-    }
-    
-    // Detect currency from phone number (simple detection based on country code)
-    let currency = detect_currency_from_phone(&session.phone_number);
-    
-    // Register user via Business Logic Canister
-    match crate::utils::business_logic_helper::register_user(
-        &session.phone_number,
-        "USSD", // first_name (user can update via web)
-        "User", // last_name
-        "",     // email (optional)
-        pin,
-        &currency
-    ).await {
-        Ok(_user_id) => {
-            ic_cdk::println!("✅ User registered: {}", session.phone_number);
-            session.current_menu = "main".to_string();
-            (format!("{}\n\n{}", 
-                TranslationService::translate("registration_success", lang),
-                TranslationService::translate("main_menu_prompt", lang)), false)
+    match session.step {
+        0 => {
+            // Step 0: Collect PIN
+            if input.len() != 4 || !input.chars().all(|c| c.is_numeric()) {
+                return (format!("{}\n\n{}", 
+                    TranslationService::translate("invalid_pin_format", lang),
+                    "Enter 4-digit PIN:"), true);
+            }
+            session.set_data("pin", input);
+            session.step = 1;
+            (String::from("Enter your first name:"), true)
         }
-        Err(e) => {
-            ic_cdk::println!("❌ Registration failed: {}", e);
-            (format!("Registration failed: {}\n0. {}", 
-                e,
-                TranslationService::translate("back", lang)), true)
+        1 => {
+            // Step 1: Collect first name
+            if input.trim().is_empty() {
+                return (String::from("First name cannot be empty.\n\nEnter your first name:"), true);
+            }
+            session.set_data("first_name", input.trim());
+            session.step = 2;
+            (String::from("Enter your last name:"), true)
+        }
+        2 => {
+            // Step 2: Collect last name and auto-detect currency
+            if input.trim().is_empty() {
+                return (String::from("Last name cannot be empty.\n\nEnter your last name:"), true);
+            }
+            session.set_data("last_name", input.trim());
+            
+            // Auto-detect currency from phone number
+            let detected_currency = detect_currency_from_phone(&session.phone_number);
+            session.set_data("currency", &detected_currency);
+            session.step = 3;
+            
+            (format!("Detected currency: {}\n\n1. Confirm\n2. Change currency", detected_currency), true)
+        }
+        3 => {
+            // Step 3: Confirm or change currency
+            let currency = if input == "1" {
+                // Confirm detected currency
+                session.get_data("currency").unwrap_or_else(|| "KES".to_string())
+            } else if input == "2" {
+                // Show currency selection
+                session.step = 4; // Go to currency selection step
+                return (String::from("Select your currency:\n1. KES (Kenya)\n2. UGX (Uganda)\n3. TZS (Tanzania)\n4. RWF (Rwanda)\n5. NGN (Nigeria)\n6. GHS (Ghana)\n7. ZAR (South Africa)"), true);
+            } else {
+                return (String::from("Invalid choice.\n\n1. Confirm\n2. Change currency"), true);
+            };
+            
+            // Get collected data
+            let pin = session.get_data("pin").unwrap_or_default();
+            let first_name = session.get_data("first_name").unwrap_or_default();
+            let last_name = session.get_data("last_name").unwrap_or_default();
+            
+            // Register user (use placeholder email for USSD users)
+            match crate::utils::business_logic_helper::register_user(
+                &session.phone_number,
+                &first_name,
+                &last_name,
+                "ussd@afritokeni.com",
+                &pin,
+                &currency
+            ).await {
+                Ok(_user_id) => {
+                    ic_cdk::println!("✅ User registered: {} {} ({})", first_name, last_name, session.phone_number);
+                    session.current_menu = "main".to_string();
+                    session.step = 0;
+                    session.clear_data();
+                    
+                    // Show main menu with proper translations
+                    let menu = format!("✅ Registration successful!\n\nWelcome {} {}!\n\n{}", 
+                        first_name, last_name,
+                        TranslationService::get_main_menu(lang, &currency));
+                    (menu, true)
+                }
+                Err(e) => {
+                    // Log detailed error for debugging and monitoring
+                    ic_cdk::println!("❌ CRITICAL: Registration failed for {} - Error: {}", session.phone_number, e);
+                    ic_cdk::println!("   Details: name={} {}, currency={}", first_name, last_name, currency);
+                    
+                    session.clear_data();
+                    
+                    // User-friendly error message (hide technical details)
+                    let user_message = if e.contains("already registered") {
+                        "This phone number is already registered.\n\nPlease contact support if you need help.".to_string()
+                    } else {
+                        "We're sorry, registration failed due to a technical issue.\n\nPlease try again later or contact support.".to_string()
+                    };
+                    
+                    (user_message, true)
+                }
+            }
+        }
+        4 => {
+            // Step 4: Manual currency selection (if user chose to change)
+            let currency = match input {
+                "1" => "KES",
+                "2" => "UGX",
+                "3" => "TZS",
+                "4" => "RWF",
+                "5" => "NGN",
+                "6" => "GHS",
+                "7" => "ZAR",
+                _ => {
+                    return (String::from("Invalid choice.\n\nSelect your currency:\n1. KES\n2. UGX\n3. TZS\n4. RWF\n5. NGN\n6. GHS\n7. ZAR"), true);
+                }
+            };
+            
+            session.set_data("currency", currency);
+            
+            // Get collected data
+            let pin = session.get_data("pin").unwrap_or_default();
+            let first_name = session.get_data("first_name").unwrap_or_default();
+            let last_name = session.get_data("last_name").unwrap_or_default();
+            
+            // Register user (use placeholder email for USSD users)
+            match crate::utils::business_logic_helper::register_user(
+                &session.phone_number,
+                &first_name,
+                &last_name,
+                "ussd@afritokeni.com",
+                &pin,
+                &currency
+            ).await {
+                Ok(_user_id) => {
+                    ic_cdk::println!("✅ User registered: {} {} ({})", first_name, last_name, session.phone_number);
+                    session.current_menu = "main".to_string();
+                    session.step = 0;
+                    session.clear_data();
+                    
+                    // Show main menu with proper translations
+                    let menu = format!("✅ Registration successful!\n\nWelcome {} {}!\n\n{}", 
+                        first_name, last_name,
+                        TranslationService::get_main_menu(lang, &currency));
+                    (menu, true)
+                }
+                Err(e) => {
+                    // Log detailed error for debugging and monitoring
+                    ic_cdk::println!("❌ CRITICAL: Registration failed for {} - Error: {}", session.phone_number, e);
+                    ic_cdk::println!("   Details: name={} {}, currency={}", first_name, last_name, currency);
+                    
+                    session.clear_data();
+                    
+                    // User-friendly error message (hide technical details)
+                    let user_message = if e.contains("already registered") {
+                        "This phone number is already registered.\n\nPlease contact support if you need help.".to_string()
+                    } else {
+                        "We're sorry, registration failed due to a technical issue.\n\nPlease try again later or contact support.".to_string()
+                    };
+                    
+                    (user_message, true)
+                }
+            }
+        }
+        _ => {
+            // Reset if in invalid state
+            session.step = 0;
+            session.clear_data();
+            (String::from("Welcome to AfriTokeni!\n\nTo get started, please set your 4-digit PIN:\n\nEnter PIN"), true)
         }
     }
 }

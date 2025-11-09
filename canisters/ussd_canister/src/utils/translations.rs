@@ -1085,17 +1085,17 @@ impl TranslationService {
         }
     }
     
-    pub fn get_main_menu(lang: Language) -> String {
+    pub fn get_main_menu(lang: Language, currency: &str) -> String {
         format!(
-            "{}\n1. {} (KES)\n2. {} (ckBTC)\n3. {} (ckUSDC)\n4. {}\n5. {}\n6. {}\n0. {}",
+            "{}\n1. {} ({})\n2. {} (ckBTC)\n3. {} (ckUSDC)\n4. {}\n5. {}\n6. {}",
             Self::translate("welcome", lang),
             Self::translate("local_currency", lang),
+            currency,
             Self::translate("bitcoin", lang),
             Self::translate("usdc", lang),
             Self::translate("dao_governance", lang),
             Self::translate("help", lang),
-            Self::translate("language_selection", lang),
-            Self::translate("exit", lang)
+            Self::translate("language_selection", lang)
         )
     }
 }

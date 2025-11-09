@@ -106,23 +106,24 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                 };
                 
                 // Route based on user registration status
-                let (response_text, continue_session) = if !user_registered && session.current_menu != "registration" {
-                    // New user - start registration
-                    ic_cdk::println!("🆕 New user detected: {}, starting registration", phone_number);
-                    session.current_menu = "registration".to_string();
-                    session.step = 0;
-                    
-                    let lang = crate::utils::translations::Language::from_code(&session.language);
-                    let welcome_msg = format!(
-                        "Welcome to AfriTokeni!\n\nTo get started, please set your 4-digit PIN:\n\n{}",
-                        crate::utils::translations::TranslationService::translate("enter_pin", lang)
-                    );
-                    
-                    // If they entered a PIN, process registration
-                    if !text.is_empty() && text.len() == 4 && text.chars().all(|c| c.is_numeric()) {
-                        crate::handlers::ussd_handlers::handle_registration(&mut session, &text).await
-                    } else {
+                let (response_text, continue_session) = if !user_registered {
+                    // New user - handle registration flow
+                    if session.current_menu != "registration" {
+                        // First time - initialize registration
+                        ic_cdk::println!("🆕 New user detected: {}, starting registration", phone_number);
+                        session.current_menu = "registration".to_string();
+                        session.step = 0;
+                        
+                        let lang = crate::utils::translations::Language::from_code(&session.language);
+                        let welcome_msg = format!(
+                            "Welcome to AfriTokeni!\n\nTo get started, please set your 4-digit PIN:\n\n{}",
+                            crate::utils::translations::TranslationService::translate("enter_pin", lang)
+                        );
                         (welcome_msg, true)
+                    } else {
+                        // Already in registration - continue with current step
+                        ic_cdk::println!("📝 Continuing registration: step={}", session.step);
+                        crate::handlers::ussd_handlers::handle_registration(&mut session, &text).await
                     }
                 } else {
                     // User is registered, route normally

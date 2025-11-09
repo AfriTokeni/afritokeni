@@ -156,50 +156,10 @@ pub enum CryptoCurrency {
 }
 
 // ============================================================================
-// User Models
+// User Models - Using shared types
 // ============================================================================
 
-#[derive(CandidType, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
-pub enum UserType {
-    User,
-    Agent,
-    Admin,
-}
-
-#[derive(CandidType, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
-pub enum KYCStatus {
-    NotStarted,
-    Pending,
-    Approved,
-    Rejected,
-}
-
-#[derive(CandidType, Deserialize, Clone)]
-pub struct User {
-    pub id: String,                          // UUID
-    pub phone_number: Option<String>,        // For USSD users
-    pub principal_id: Option<String>,        // For Web users (Internet Identity)
-    pub first_name: String,
-    pub last_name: String,
-    pub email: String,
-    pub user_type: UserType,
-    pub preferred_currency: FiatCurrency,    // User's local currency
-    pub kyc_status: KYCStatus,
-    pub is_verified: bool,
-    pub created_at: u64,
-    pub last_active: u64,
-}
-
-#[derive(CandidType, Deserialize)]
-pub struct CreateUserData {
-    pub phone_number: Option<String>,
-    pub principal_id: Option<String>,
-    pub first_name: String,
-    pub last_name: String,
-    pub email: String,
-    pub user_type: UserType,
-    pub preferred_currency: FiatCurrency,
-}
+pub use shared_types::{UserType, KYCStatus, User, CreateUserData};
 
 // ============================================================================
 // Balance Models

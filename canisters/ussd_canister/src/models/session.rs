@@ -42,6 +42,14 @@ impl UssdSession {
     pub fn clear_data(&mut self) {
         self.data.clear();
     }
+    
+    pub fn set_data(&mut self, key: &str, value: &str) {
+        self.data.insert(key.to_string(), value.to_string());
+    }
+    
+    pub fn get_data(&self, key: &str) -> Option<String> {
+        self.data.get(key).cloned()
+    }
 }
 
 // Thread-local storage for sessions

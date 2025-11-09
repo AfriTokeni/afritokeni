@@ -14,10 +14,11 @@ pub async fn get_balances(user_identifier: String) -> Result<UserBalances, Strin
     let (ckbtc, ckusdc) = data_client::get_crypto_balance(&user.id).await?;
     
     // Get fiat balance for preferred currency
-    let fiat_balance = data_client::get_fiat_balance(&user.id, &user.preferred_currency).await?;
+    let currency_str = user.preferred_currency.to_string();
+    let fiat_balance = data_client::get_fiat_balance(&user.id, &currency_str).await?;
     
     let fiat_balances = vec![FiatBalance {
-        currency: user.preferred_currency,
+        currency: currency_str,
         balance: fiat_balance,
     }];
     

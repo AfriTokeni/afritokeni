@@ -197,10 +197,12 @@ name = "business_logic_canister"
 version = "0.1.0"
 dependencies = [
  "candid",
+ "hex",
  "ic-cdk",
  "ic-cdk-macros",
  "serde",
  "serde_json",
+ "shared_types",
 ]
 
 [[package]]
@@ -531,6 +533,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "shared_types",
  "tokio",
 ]
 
@@ -2001,6 +2004,14 @@ dependencies = [
  "cfg-if",
  "cpufeatures",
  "digest",
+]
+
+[[package]]
+name = "shared_types"
+version = "0.1.0"
+dependencies = [
+ "candid",
+ "serde",
 ]
 
 [[package]]

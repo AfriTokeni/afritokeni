@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "src/satellite",
+    "canisters/shared_types",
     "canisters/business_logic_canister",
     "canisters/data_canister",
     "canisters/deposit_canister",

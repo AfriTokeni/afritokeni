@@ -91,21 +91,22 @@ async function callUssdCanister(sessionId: string, phoneNumber: string, text: st
     const { stdout } = await execAsync(dfxCommand);
     
     // Parse candid tuple response: (text, continues)
-    // Format: ("response text", true/false)
-    const match = stdout.match(/\(\s*"([^"]*)"\s*,\s*(true|false)\s*\)/);
+    // Format: ("response text", true/false) - can be multiline
+    const match = stdout.match(/\(\s*"([^"]*)"\s*,\s*(true|false)\s*\)/s);
     if (match) {
       const responseText = match[1]
         .replace(/\\n/g, '\n')
         .replace(/\\"/g, '"')
         .replace(/\\\\/g, '\\');
+      console.log(`📞 USSD call (${text}): ${responseText.substring(0, 50)}...`);
       return responseText;
     }
     
     // Fallback: try to extract any text from stdout
-    console.warn('Could not parse candid response, raw output:', stdout);
+    console.warn('⚠️  Could not parse candid response, raw output:', stdout.substring(0, 200));
     return stdout.trim();
   } catch (error: any) {
-    console.error('USSD canister call failed:', error.message);
+    console.error('❌ USSD canister call failed:', error.message);
     if (error.stderr) {
       console.error('stderr:', error.stderr);
     }
@@ -212,7 +213,7 @@ Given('I have set my language to Swahili', async function () {
 When('I dial USSD code {string}', async function (code: string) {
   const response = await callUssdCanister(world.sessionId, world.phoneNumber, '');
   world.lastResponse = response;
-  world.currentFlow = []; // Reset flow
+  world.currentFlow = []; // Reset flow - this is the initial dial
   world.lastText = '';
   console.log(`📱 Dialed ${code}, response: ${response.substring(0, 50)}...`);
 });
@@ -225,25 +226,28 @@ When('I dial USSD code {string} in a new session', async function (code: string)
 });
 
 When('I select option {string} for Local Currency', async function (option: string) {
-  const response = await callUssdCanister(world.sessionId, world.phoneNumber, option);
+  world.currentFlow.push(option);
+  const text = world.currentFlow.join('*');
+  const response = await callUssdCanister(world.sessionId, world.phoneNumber, text);
   world.lastResponse = response;
-  world.currentFlow = [option]; // Start new flow
-  world.lastText = option;
-  console.log(`➡️ Selected option ${option}`);
+  world.lastText = text;
+  console.log(`➡️ Selected option ${option}, full text: ${text}`);
 });
 
 When('I select option {string} for Bitcoin', async function (option: string) {
-  const response = await callUssdCanister(world.sessionId, world.phoneNumber, option);
+  world.currentFlow.push(option);
+  const text = world.currentFlow.join('*');
+  const response = await callUssdCanister(world.sessionId, world.phoneNumber, text);
   world.lastResponse = response;
-  world.currentFlow = [option]; // Start new flow
-  world.lastText = option;
+  world.lastText = text;
 });
 
 When('I select option {string} for USDC', async function (option: string) {
-  const response = await callUssdCanister(world.sessionId, world.phoneNumber, option);
+  world.currentFlow.push(option);
+  const text = world.currentFlow.join('*');
+  const response = await callUssdCanister(world.sessionId, world.phoneNumber, text);
   world.lastResponse = response;
-  world.currentFlow = [option]; // Start new flow
-  world.lastText = option;
+  world.lastText = text;
 });
 
 When('I select option {string} for Language', async function (option: string) {

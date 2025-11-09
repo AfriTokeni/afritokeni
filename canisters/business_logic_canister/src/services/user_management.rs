@@ -1,19 +1,9 @@
 use super::data_client;
-use candid::{CandidType, Deserialize};
+use shared_types::{CreateUserData, FiatCurrency, UserType};
 
 // ============================================================================
 // User Management Service - Business Logic
 // ============================================================================
-
-#[derive(CandidType, Deserialize)]
-pub struct CreateUserData {
-    pub phone_number: Option<String>,
-    pub principal_id: Option<String>,
-    pub first_name: String,
-    pub last_name: String,
-    pub email: String,
-    pub preferred_currency: String,
-}
 
 /// Register a new user (USSD or Web)
 pub async fn register_user(
@@ -34,21 +24,28 @@ pub async fn register_user(
         return Err("PIN must be exactly 4 digits".to_string());
     }
     
-    // Create user in data canister
+    // Convert currency string to enum
+    let currency_enum = FiatCurrency::from_string(&preferred_currency)?;
+    
+    // Create user in data canister (order MUST match Data Canister's CreateUserData)
     let user_data = CreateUserData {
-        phone_number: phone_number.clone(),
-        principal_id: principal_id.clone(),
+        user_type: UserType::User,
+        preferred_currency: currency_enum,
+        email,
         first_name,
         last_name,
-        email,
-        preferred_currency,
+        principal_id: principal_id.clone(),
+        phone_number: phone_number.clone(),
     };
     
     // Create user
     let user = data_client::create_user(user_data).await?;
     
-    // Generate salt and setup PIN
-    let salt = format!("salt_{}", ic_cdk::api::time());
+    // Generate random 32-byte salt as hex string
+    let time = ic_cdk::api::time();
+    let salt_bytes: Vec<u8> = (0..32).map(|i| ((time >> (i % 8)) ^ i) as u8).collect();
+    let salt = hex::encode(salt_bytes);
+    
     data_client::setup_pin(&user.id, &pin, &salt).await?;
     
     // Return user ID

@@ -11,7 +11,7 @@ pub async fn get_user(user_id: &str) -> Result<Option<User>, String> {
     let canister_id = config::get_data_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "get_user")
-        .with_arg((user_id.to_string(),))
+        .with_arg(user_id.to_string())
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -27,7 +27,7 @@ pub async fn get_user_by_phone(phone: &str) -> Result<Option<User>, String> {
     let canister_id = config::get_data_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "get_user_by_phone")
-        .with_arg((phone.to_string(),))
+        .with_arg(phone.to_string())
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -39,11 +39,20 @@ pub async fn get_user_by_phone(phone: &str) -> Result<Option<User>, String> {
 }
 
 /// Create user
-pub async fn create_user(user_data: super::user_management::CreateUserData) -> Result<User, String> {
+pub async fn create_user(user_data: shared_types::CreateUserData) -> Result<User, String> {
     let canister_id = config::get_data_canister_id()?;
     
+    ic_cdk::println!("📤 Calling create_user with CreateUserData:");
+    ic_cdk::println!("  user_type: {:?}", user_data.user_type);
+    ic_cdk::println!("  preferred_currency: {:?}", user_data.preferred_currency);
+    ic_cdk::println!("  email: {:?}", user_data.email);
+    ic_cdk::println!("  first_name: {:?}", user_data.first_name);
+    ic_cdk::println!("  last_name: {:?}", user_data.last_name);
+    ic_cdk::println!("  principal_id: {:?}", user_data.principal_id);
+    ic_cdk::println!("  phone_number: {:?}", user_data.phone_number);
+    
     let response = Call::unbounded_wait(canister_id, "create_user")
-        .with_arg((user_data,))
+        .with_arg(user_data)
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -123,7 +132,7 @@ pub async fn store_transaction(tx: &TransactionRecord) -> Result<(), String> {
     let canister_id = config::get_data_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "store_transaction")
-        .with_arg((tx.clone(),))
+        .with_arg(tx.clone())
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -139,7 +148,7 @@ pub async fn get_crypto_balance(user_id: &str) -> Result<(u64, u64), String> {
     let canister_id = config::get_data_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "get_crypto_balance")
-        .with_arg((user_id.to_string(),))
+        .with_arg(user_id.to_string())
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -183,12 +192,15 @@ pub async fn get_user_transactions(user_id: &str, limit: Option<usize>, offset: 
     result
 }
 
-/// Setup PIN for user
+/// Setup PIN for user  
 pub async fn setup_pin(user_id: &str, pin: &str, salt: &str) -> Result<(), String> {
     let canister_id = config::get_data_canister_id()?;
     
+    ic_cdk::println!("📤 Calling setup_user_pin with: user_id={}, pin={}, salt={}", user_id, pin, salt);
+    
+    // Use with_args() for multiple CandidType values (requires reference to tuple)
     let response = Call::unbounded_wait(canister_id, "setup_user_pin")
-        .with_arg((user_id.to_string(), pin.to_string(), salt.to_string()))
+        .with_args(&(user_id, pin, salt))
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -204,7 +216,7 @@ pub async fn is_pin_locked(user_id: &str) -> Result<bool, String> {
     let canister_id = config::get_data_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "is_pin_locked")
-        .with_arg((user_id.to_string(),))
+        .with_arg(user_id.to_string())
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -220,7 +232,7 @@ pub async fn get_failed_attempts(user_id: &str) -> Result<u32, String> {
     let canister_id = config::get_data_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "get_failed_attempts")
-        .with_arg((user_id.to_string(),))
+        .with_arg(user_id.to_string())
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -236,7 +248,7 @@ pub async fn get_remaining_lockout_time(user_id: &str) -> Result<u64, String> {
     let canister_id = config::get_data_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "get_remaining_lockout_time")
-        .with_arg((user_id.to_string(),))
+        .with_arg(user_id.to_string())
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -252,7 +264,7 @@ pub async fn reset_pin_attempts(user_id: &str) -> Result<(), String> {
     let canister_id = config::get_data_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "reset_pin_attempts")
-        .with_arg((user_id.to_string(),))
+        .with_arg(user_id.to_string())
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -268,7 +280,7 @@ pub async fn check_account_takeover(user_id: &str) -> Result<bool, String> {
     let canister_id = config::get_data_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "check_account_takeover")
-        .with_arg((user_id.to_string(),))
+        .with_arg(user_id.to_string())
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -284,7 +296,7 @@ pub async fn update_last_active(user_id: &str) -> Result<(), String> {
     let canister_id = config::get_data_canister_id()?;
     
     let response = Call::unbounded_wait(canister_id, "update_last_active")
-        .with_arg((user_id.to_string(),))
+        .with_arg(user_id.to_string())
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
@@ -312,19 +324,10 @@ pub async fn change_pin(user_id: &str, old_pin: &str, new_pin: &str, new_salt: &
 }
 
 // ============================================================================
-// Types (matching data canister)
+// Data Types
 // ============================================================================
 
-#[derive(CandidType, Deserialize, Clone)]
-pub struct User {
-    pub id: String,
-    pub phone_number: Option<String>,
-    pub principal_id: Option<String>,
-    pub first_name: String,
-    pub last_name: String,
-    pub email: String,
-    pub preferred_currency: String,
-}
+pub use shared_types::{User, KYCStatus};
 
 #[derive(CandidType, Deserialize, Clone)]
 pub struct CryptoBalance {

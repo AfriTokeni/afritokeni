@@ -15,7 +15,7 @@
   let messages = $state<Message[]>([
     {
       type: "received",
-      text: "🌍 USSD Demo Mode\n\nWelcome to AfriTokeni!\n\nDial *384*22948# to start\n\n🔐 Demo PIN: 1234",
+      text: "🌍 USSD Demo Mode\n\nWelcome to AfriTokeni!\n\nDial *384*22948# to start",
       timestamp: new Date().toLocaleTimeString("en-US", {
         hour: "2-digit",
         minute: "2-digit",
@@ -26,7 +26,7 @@
   let messagesContainer: HTMLDivElement | undefined;
 
   onMount(() => {
-    console.log("🎭 Playground: Using in-memory mock data (no backend calls)");
+    console.log("🎭 Playground: Ready for first-time user experience");
     isInitialized = true;
   });
 
@@ -41,39 +41,56 @@
     const ussdText = trimmedCmd;
 
     try {
-      // Call Juno satellite function (Rust backend)
+      // Call USSD canister directly using agent (bypasses HTTP certification issues)
       console.log(
         `📱 USSD Playground: sessionId="${sessionId}", text="${ussdText}"`,
       );
 
-      const satId = import.meta.env.VITE_SATELLITE_ID;
-      if (!satId) {
-        throw new Error("Satellite ID not configured");
+      const { Actor, HttpAgent } = await import("@dfinity/agent");
+      // @ts-ignore - Generated file
+      const { idlFactory } = await import(
+        "$lib/../declarations/ussd_canister/ussd_canister.did.js"
+      );
+
+      const canisterId = import.meta.env.VITE_USSD_CANISTER_ID;
+      const network = import.meta.env.VITE_DFX_NETWORK || "local";
+      const host =
+        network === "local" ? "http://127.0.0.1:4943" : "https://icp0.io";
+
+      if (!canisterId) {
+        throw new Error("USSD Canister ID not configured");
       }
 
-      const response = await fetch(`https://${satId}.icp0.io/api/ussd`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          sessionId,
-          phoneNumber,
-          text: ussdText,
-        }),
+      const agent = await HttpAgent.create({ host });
+
+      // Fetch root key for local development
+      await agent.fetchRootKey();
+
+      const actor = Actor.createActor(idlFactory, {
+        agent,
+        canisterId,
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      // Call test_ussd_direct method
+      const result: any = await actor.test_ussd_direct(
+        sessionId,
+        phoneNumber,
+        ussdText,
+      );
 
-      const result = await response.text();
+      const [response, continues] = result;
 
-      // Clean up response (remove CON/END prefixes)
-      return result.replace(/^(CON |END )/, "");
-    } catch (error) {
-      console.error("Failed to process USSD command:", error);
-      return "❌ Error processing command\n\nPlease try again or dial *384*22948# to restart";
+      console.log(`✅ Response: ${response.substring(0, 100)}...`);
+      return response;
+    } catch (error: any) {
+      console.error("❌ Failed to process USSD command:", error);
+      console.error("Error details:", {
+        message: error?.message,
+        stack: error?.stack,
+        name: error?.name,
+        cause: error?.cause,
+      });
+      return `❌ Error: ${error?.message || "Unknown error"}\n\nPlease try again or dial *384*22948# to restart`;
     }
   }
 
