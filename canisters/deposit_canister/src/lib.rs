@@ -4,7 +4,8 @@ use serde::{Serialize, Deserialize as SerdeDeserialize};
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-// Configuration loaded from shared TOML
+pub mod logic;
+
 const CONFIG_TOML: &str = include_str!("../../revenue_config.toml");
 
 #[derive(SerdeDeserialize, Clone)]
@@ -45,7 +46,7 @@ pub struct DepositTransaction {
     pub status: TransactionStatus,
 }
 
-#[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]
 pub enum TransactionStatus {
     Pending,
     Confirmed,
@@ -130,38 +131,32 @@ fn get_company_wallet() -> Result<Principal, String> {
 fn create_deposit_request(request: CreateDepositRequest) -> Result<DepositTransaction, String> {
     let caller = ic_cdk::api::msg_caller();
     
-    // Verify caller is the user
-    if caller != request.user_principal {
-        return Err("Caller must be the user".to_string());
-    }
+    logic::validate_caller_is_user(caller, request.user_principal)?;
+    logic::validate_amount_positive(request.amount_ugx)?;
     
-    if request.amount_ugx == 0 {
-        return Err("Amount must be greater than 0".to_string());
-    }
-    
-    // Generate unique deposit code
     let deposit_id = NEXT_DEPOSIT_ID.with(|id| {
         let current = *id.borrow();
         *id.borrow_mut() = current + 1;
         current
     });
     
-    let deposit_code = generate_deposit_code(deposit_id);
-    
-    // Calculate commission from config
+    let deposit_code = logic::generate_deposit_code(deposit_id);
     let config = get_config();
-    let commission = (request.amount_ugx * config.deposit.platform_fee_basis_points) / 10000;
     
-    let transaction = DepositTransaction {
-        id: deposit_id,
-        user_principal: request.user_principal,
-        agent_principal: request.agent_principal,
-        amount_ugx: request.amount_ugx,
-        commission_ugx: commission,
-        deposit_code: deposit_code.clone(),
-        timestamp: ic_cdk::api::time(),
-        status: TransactionStatus::Pending,
-    };
+    let commission = logic::calculate_commission(
+        request.amount_ugx,
+        config.deposit.platform_fee_basis_points
+    )?;
+    
+    let transaction = logic::create_deposit_transaction(
+        deposit_id,
+        request.user_principal,
+        request.agent_principal,
+        request.amount_ugx,
+        commission,
+        deposit_code,
+        ic_cdk::api::time(),
+    );
     
     DEPOSITS.with(|deposits| {
         deposits.borrow_mut().insert(deposit_id, transaction.clone());
@@ -174,12 +169,8 @@ fn create_deposit_request(request: CreateDepositRequest) -> Result<DepositTransa
 fn confirm_deposit(request: ConfirmDepositRequest) -> Result<DepositTransaction, String> {
     let caller = ic_cdk::api::msg_caller();
     
-    // Verify caller is the agent
-    if caller != request.agent_principal {
-        return Err("Only the assigned agent can confirm".to_string());
-    }
+    logic::validate_caller_is_agent(caller, request.agent_principal)?;
     
-    // Find deposit by code
     let deposit_id = DEPOSITS.with(|deposits| {
         deposits.borrow()
             .iter()
@@ -187,25 +178,18 @@ fn confirm_deposit(request: ConfirmDepositRequest) -> Result<DepositTransaction,
             .map(|(id, _)| *id)
     }).ok_or("Deposit code not found".to_string())?;
     
-    // Update deposit status
     let transaction = DEPOSITS.with(|deposits| {
         let mut deps = deposits.borrow_mut();
         let deposit = deps.get_mut(&deposit_id)
             .ok_or("Deposit not found".to_string())?;
         
-        if deposit.status != TransactionStatus::Pending {
-            return Err("Deposit already processed".to_string());
-        }
+        logic::validate_status_is_pending(&deposit.status)?;
+        logic::validate_agent_matches(deposit.agent_principal, request.agent_principal)?;
         
-        if deposit.agent_principal != request.agent_principal {
-            return Err("Wrong agent".to_string());
-        }
-        
-        deposit.status = TransactionStatus::Confirmed;
-        Ok(deposit.clone())
+        *deposit = logic::confirm_transaction_status(deposit.clone());
+        Ok::<DepositTransaction, String>(deposit.clone())
     })?;
     
-    // Update agent balance
     update_agent_balance(
         request.agent_principal,
         transaction.amount_ugx,
@@ -413,17 +397,5 @@ fn get_company_wallet_principal() -> Result<Principal, String> {
     get_company_wallet()
 }
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-// Helper: Generate deposit code
-fn generate_deposit_code(id: u64) -> String {
-    format!("DEP-{:08}", id)
-}
 
-// Tests module
-#[cfg(test)]
-mod tests;
-
-// Export Candid interface
 ic_cdk::export_candid!();

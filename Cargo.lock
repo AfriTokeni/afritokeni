@@ -604,6 +604,7 @@ dependencies = [
  "candid",
  "ic-cdk",
  "ic-cdk-macros",
+ "pocket-ic",
  "serde",
  "serde_bytes",
  "toml",
