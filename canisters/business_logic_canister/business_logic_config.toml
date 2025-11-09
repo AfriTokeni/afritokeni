@@ -1,0 +1,13 @@
+[fraud_detection]
+max_transaction_amount = 10000000
+suspicious_amount_threshold = 5000000
+rate_limit_window_seconds = 300
+max_transactions_per_window = 10
+
+[exchange_rates]
+coingecko_api_url = "https://api.coingecko.com/api/v3/simple/price"
+exchangerate_api_url = "https://api.exchangerate-api.com/v4/latest/USD"
+
+[ledger]
+ckbtc_ledger_id = "mxzaz-hqaaa-aaaar-qaada-cai"
+ckusdc_ledger_id = "xevnm-gaaaa-aaaar-qafnq-cai"

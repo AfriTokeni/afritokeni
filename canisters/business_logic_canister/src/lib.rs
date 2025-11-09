@@ -154,21 +154,8 @@ fn set_data_canister_id(canister_id: String) -> Result<(), String> {
 // Configuration Management
 // ============================================================================
 
-/// Set maximum transaction amount (admin only)
-#[update]
-fn set_max_transaction_amount(amount: u64) -> Result<(), String> {
-    // TODO: Add admin-only check
-    services::config::set_max_transaction_amount(amount);
-    Ok(())
-}
-
-/// Set suspicious amount threshold (admin only)
-#[update]
-fn set_suspicious_amount_threshold(amount: u64) -> Result<(), String> {
-    // TODO: Add admin-only check
-    services::config::set_suspicious_amount_threshold(amount);
-    Ok(())
-}
+// Configuration is now loaded from business_logic_config.toml
+// To change fraud detection limits, update the TOML file and redeploy
 
 /// Get current fraud detection limits
 #[query]
@@ -422,6 +409,62 @@ async fn send_crypto(
         Err(e) => {
             log_audit(
                 "send_crypto",
+                Some(user_identifier.clone()),
+                &format!("Failed to send crypto: {}", e),
+                false
+            );
+        }
+    }
+    
+    result
+}
+
+/// Get estimated fiat value for crypto (for display before selling)
+#[query]
+async fn get_crypto_value_estimate(
+    crypto_amount: u64,
+    crypto_type: CryptoType,
+    fiat_currency: String,
+) -> Result<u64, String> {
+    services::crypto_operations::get_crypto_value_estimate(
+        crypto_amount,
+        crypto_type,
+        fiat_currency,
+    ).await
+}
+
+/// Sell cryptocurrency to agent (creates escrow)
+#[update]
+async fn sell_crypto_to_agent(
+    user_identifier: String,
+    crypto_amount: u64,
+    crypto_type: CryptoType,
+    agent_id: String,
+    pin: String,
+) -> Result<TransactionResult, String> {
+    verify_authorized_caller()?;
+    
+    let result = services::crypto_operations::sell_crypto_to_agent(
+        user_identifier.clone(),
+        crypto_amount,
+        crypto_type,
+        agent_id.clone(),
+        pin,
+    ).await;
+    
+    // Audit log
+    match &result {
+        Ok(tx) => {
+            log_audit(
+                "sell_crypto_to_agent",
+                Some(user_identifier.clone()),
+                &format!("Created escrow: {} {:?} → Agent {}, Code: {}", crypto_amount, crypto_type, agent_id, tx.transaction_id),
+                true
+            );
+        }
+        Err(e) => {
+            log_audit(
+                "sell_crypto_to_agent",
                 Some(user_identifier),
                 &format!("Failed: {}", e),
                 false

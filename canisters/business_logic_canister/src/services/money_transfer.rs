@@ -1,4 +1,5 @@
 use crate::models::*;
+use crate::logic::transfer_logic;
 use super::{data_client, fraud_detection};
 
 // ============================================================================
@@ -13,6 +14,13 @@ pub async fn transfer_money(
     currency: String,
     pin: String,
 ) -> Result<TransactionResult, String> {
+    // Validate inputs using pure logic functions
+    transfer_logic::validate_identifier_not_empty(&from_identifier, "Sender identifier")?;
+    transfer_logic::validate_identifier_not_empty(&to_identifier, "Recipient identifier")?;
+    transfer_logic::validate_amount_positive(amount)?;
+    transfer_logic::validate_currency_code(&currency)?;
+    transfer_logic::validate_not_self_transfer(&from_identifier, &to_identifier)?;
+    
     // 1. Get users from data canister
     let from_user = get_user_by_identifier(&from_identifier).await?;
     let to_user = get_user_by_identifier(&to_identifier).await?;
@@ -25,9 +33,7 @@ pub async fn transfer_money(
     
     // 3. Check balance (business logic: must have sufficient funds)
     let from_balance = data_client::get_fiat_balance(&from_user.id, &currency).await?;
-    if from_balance < amount {
-        return Err(format!("Insufficient balance. Have: {}, Need: {}", from_balance, amount));
-    }
+    transfer_logic::validate_sufficient_balance(from_balance, amount)?;
     
     // 4. Rate limiting (prevent abuse)
     if !fraud_detection::check_rate_limit(&from_user.id)? {
@@ -54,15 +60,16 @@ pub async fn transfer_money(
     }
     
     // 5. Execute transfer (update both balances)
-    let new_from_balance = from_balance - amount;
+    let new_from_balance = transfer_logic::calculate_new_balance(from_balance, amount)?;
     data_client::set_fiat_balance(&from_user.id, &currency, new_from_balance).await?;
     
     let to_balance = data_client::get_fiat_balance(&to_user.id, &currency).await?;
-    let new_to_balance = to_balance + amount;
+    let new_to_balance = transfer_logic::calculate_balance_addition(to_balance, amount)?;
     data_client::set_fiat_balance(&to_user.id, &currency, new_to_balance).await?;
     
     // 6. Record transaction
-    let tx_id = generate_transaction_id();
+    let timestamp = ic_cdk::api::time();
+    let tx_id = transfer_logic::generate_transaction_id(timestamp);
     let tx_record = data_client::TransactionRecord {
         id: tx_id.clone(),
         transaction_type: "transfer_fiat".to_string(),
@@ -122,7 +129,3 @@ async fn get_user_by_identifier(identifier: &str) -> Result<data_client::User, S
     Err(format!("User not found: {}", identifier))
 }
 
-/// Generate unique transaction ID
-fn generate_transaction_id() -> String {
-    format!("tx_{}", ic_cdk::api::time())
-}

@@ -1,1 +1,5 @@
-mod logic_tests;
+mod user_logic_integration_tests;
+mod user_management_integration_tests;
+mod money_transfer_tests;
+mod crypto_operations_tests;
+mod fraud_detection_tests;

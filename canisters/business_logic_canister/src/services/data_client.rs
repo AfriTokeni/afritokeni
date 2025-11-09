@@ -323,11 +323,27 @@ pub async fn change_pin(user_id: &str, old_pin: &str, new_pin: &str, new_salt: &
     result
 }
 
+/// Update user phone number
+pub async fn update_user_phone(user_id: &str, phone_number: &str) -> Result<(), String> {
+    let canister_id = config::get_data_canister_id()?;
+    
+    let response = Call::unbounded_wait(canister_id, "update_user_phone")
+        .with_arg((user_id.to_string(), phone_number.to_string()))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<(), String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
 // ============================================================================
 // Data Types
 // ============================================================================
 
-pub use shared_types::{User, KYCStatus};
+pub use shared_types::User;
 
 #[derive(CandidType, Deserialize, Clone)]
 pub struct CryptoBalance {

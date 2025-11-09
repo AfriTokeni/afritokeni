@@ -1,4 +1,5 @@
 use super::data_client;
+use crate::logic::user_logic;
 use shared_types::{CreateUserData, FiatCurrency, UserType};
 
 // ============================================================================
@@ -15,13 +16,16 @@ pub async fn register_user(
     preferred_currency: String,
     pin: String,
 ) -> Result<String, String> {
-    // Validate inputs
-    if phone_number.is_none() && principal_id.is_none() {
-        return Err("Either phone number or principal ID is required".to_string());
-    }
+    // Validate inputs using pure logic functions
+    user_logic::validate_identifier_required(&phone_number, &principal_id)?;
+    user_logic::validate_pin_format(&pin)?;
+    user_logic::validate_name(&first_name, "First name")?;
+    user_logic::validate_name(&last_name, "Last name")?;
+    user_logic::validate_email_format(&email)?;
     
-    if pin.len() != 4 {
-        return Err("PIN must be exactly 4 digits".to_string());
+    // Validate phone number format if provided
+    if let Some(ref phone) = phone_number {
+        user_logic::validate_phone_number_format(phone)?;
     }
     
     // Convert currency string to enum
@@ -41,10 +45,9 @@ pub async fn register_user(
     // Create user
     let user = data_client::create_user(user_data).await?;
     
-    // Generate random 32-byte salt as hex string
+    // Generate salt using pure logic function
     let time = ic_cdk::api::time();
-    let salt_bytes: Vec<u8> = (0..32).map(|i| ((time >> (i % 8)) ^ i) as u8).collect();
-    let salt = hex::encode(salt_bytes);
+    let salt = user_logic::generate_salt_from_time(time);
     
     data_client::setup_pin(&user.id, &pin, &salt).await?;
     
@@ -58,6 +61,10 @@ pub async fn link_phone_to_account(
     phone_number: String,
     pin: String,
 ) -> Result<(), String> {
+    // Validate inputs using pure logic functions
+    user_logic::validate_phone_number_format(&phone_number)?;
+    user_logic::validate_pin_format(&pin)?;
+    
     // Get user by principal
     let user = data_client::get_user(&principal_id).await?
         .ok_or("User not found")?;
@@ -73,7 +80,10 @@ pub async fn link_phone_to_account(
         return Err("Phone number already in use".to_string());
     }
     
-    // TODO: Update user in data canister to add phone number
+    // Update user phone number in data canister
+    data_client::update_user_phone(&user.id, &phone_number).await?;
+    
+    ic_cdk::println!("✅ Phone {} linked to user {}", phone_number, user.id);
     
     Ok(())
 }

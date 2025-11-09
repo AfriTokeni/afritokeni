@@ -1,5 +1,7 @@
 use crate::models::*;
-use super::{data_client, fraud_detection};
+use crate::logic::{crypto_logic, transfer_logic};
+use super::{data_client, fraud_detection, exchange_rate, ledger_client};
+use candid::Principal;
 
 // ============================================================================
 // Crypto Operations Service - Business Logic
@@ -13,6 +15,11 @@ pub async fn buy_crypto(
     crypto_type: CryptoType,
     pin: String,
 ) -> Result<TransactionResult, String> {
+    // Validate inputs
+    transfer_logic::validate_identifier_not_empty(&user_identifier, "User identifier")?;
+    crypto_logic::validate_fiat_amount_for_crypto(fiat_amount)?;
+    transfer_logic::validate_currency_code(&fiat_currency)?;
+    
     // 1. Get user
     let user = get_user_by_identifier(&user_identifier).await?;
     
@@ -24,9 +31,7 @@ pub async fn buy_crypto(
     
     // 3. Check fiat balance
     let fiat_balance = data_client::get_fiat_balance(&user.id, &fiat_currency).await?;
-    if fiat_balance < fiat_amount {
-        return Err(format!("Insufficient fiat balance. Have: {}, Need: {}", fiat_balance, fiat_amount));
-    }
+    transfer_logic::validate_sufficient_balance(fiat_balance, fiat_amount)?;
     
     // 4. Rate limiting (prevent abuse)
     if !fraud_detection::check_rate_limit(&user.id)? {
@@ -52,12 +57,17 @@ pub async fn buy_crypto(
         return Err(format!("Transaction blocked: {:?}", fraud_check.warnings));
     }
     
-    // 5. Get exchange rate (TODO: call exchange rate service)
-    // For now, using placeholder - will integrate with exchange rate service
-    let crypto_amount = calculate_crypto_amount(fiat_amount, &fiat_currency, crypto_type)?;
+    // 5. Calculate crypto amount using real exchange rates
+    let crypto_type_str = format!("{:?}", crypto_type);
+    crypto_logic::validate_crypto_calculation_inputs(fiat_amount, &crypto_type_str)?;
+    let crypto_amount = exchange_rate::calculate_crypto_from_fiat(
+        fiat_amount,
+        &fiat_currency,
+        &crypto_type_str
+    ).await?;
     
     // 6. Deduct fiat
-    let new_fiat_balance = fiat_balance - fiat_amount;
+    let new_fiat_balance = transfer_logic::calculate_new_balance(fiat_balance, fiat_amount)?;
     data_client::set_fiat_balance(&user.id, &fiat_currency, new_fiat_balance).await?;
     
     // 7. Add crypto
@@ -68,7 +78,8 @@ pub async fn buy_crypto(
     data_client::update_crypto_balance(&user.id, ckbtc_delta, ckusdc_delta).await?;
     
     // 8. Record transaction
-    let tx_id = generate_transaction_id();
+    let timestamp = ic_cdk::api::time();
+    let tx_id = transfer_logic::generate_transaction_id(timestamp);
     let tx_record = data_client::TransactionRecord {
         id: tx_id.clone(),
         transaction_type: "buy_crypto".to_string(),
@@ -84,7 +95,22 @@ pub async fn buy_crypto(
     // 9. Update last active (for security monitoring)
     let _ = data_client::update_last_active(&user.id).await;
     
-    // 10. TODO: Call actual ckBTC/ckUSDC ledger to mint/transfer
+    // 10. Transfer crypto from this canister to user via ICRC-1
+    let user_principal = Principal::from_text(&user.principal_id.ok_or("User has no principal ID")?)
+        .map_err(|e| format!("Invalid user principal: {}", e))?;
+    
+    let ledger_token = match crypto_type {
+        CryptoType::CkBTC => ledger_client::CryptoToken::CkBTC,
+        CryptoType::CkUSDC => ledger_client::CryptoToken::CkUSDC,
+    };
+    
+    let block_index = ledger_client::transfer_crypto_to_user(
+        ledger_token,
+        user_principal,
+        crypto_amount
+    ).await?;
+    
+    ic_cdk::println!("✅ Crypto transferred to user. Block index: {}", block_index);
     
     Ok(TransactionResult {
         transaction_id: tx_id,
@@ -105,6 +131,12 @@ pub async fn send_crypto(
     crypto_type: CryptoType,
     pin: String,
 ) -> Result<TransactionResult, String> {
+    // Validate inputs
+    transfer_logic::validate_identifier_not_empty(&user_identifier, "User identifier")?;
+    crypto_logic::validate_crypto_amount_positive(amount)?;
+    let crypto_type_str = format!("{:?}", crypto_type);
+    crypto_logic::validate_crypto_address(&to_address, &crypto_type_str)?;
+    
     // 1. Get user
     let user = get_user_by_identifier(&user_identifier).await?;
     
@@ -121,9 +153,7 @@ pub async fn send_crypto(
         CryptoType::CkUSDC => ckusdc_balance,
     };
     
-    if current_balance < amount {
-        return Err(format!("Insufficient crypto balance. Have: {}, Need: {}", current_balance, amount));
-    }
+    crypto_logic::validate_sufficient_crypto_balance(current_balance, amount)?;
     
     // 4. Deduct crypto
     let (ckbtc_delta, ckusdc_delta) = match crypto_type {
@@ -133,7 +163,8 @@ pub async fn send_crypto(
     data_client::update_crypto_balance(&user.id, ckbtc_delta, ckusdc_delta).await?;
     
     // 5. Record transaction
-    let tx_id = generate_transaction_id();
+    let timestamp = ic_cdk::api::time();
+    let tx_id = transfer_logic::generate_transaction_id(timestamp);
     let tx_record = data_client::TransactionRecord {
         id: tx_id.clone(),
         transaction_type: "send_crypto".to_string(),
@@ -146,7 +177,22 @@ pub async fn send_crypto(
     };
     data_client::store_transaction(&tx_record).await?;
     
-    // 6. TODO: Call actual ckBTC/ckUSDC ledger to transfer
+    // 6. Transfer crypto to recipient address via ICRC-1
+    let recipient_principal = Principal::from_text(&to_address)
+        .map_err(|e| format!("Invalid recipient address: {}", e))?;
+    
+    let ledger_token = match crypto_type {
+        CryptoType::CkBTC => ledger_client::CryptoToken::CkBTC,
+        CryptoType::CkUSDC => ledger_client::CryptoToken::CkUSDC,
+    };
+    
+    let block_index = ledger_client::transfer_crypto_to_user(
+        ledger_token,
+        recipient_principal,
+        amount
+    ).await?;
+    
+    ic_cdk::println!("✅ Crypto sent to {}. Block index: {}", to_address, block_index);
     
     Ok(TransactionResult {
         transaction_id: tx_id,
@@ -157,6 +203,102 @@ pub async fn send_crypto(
         new_balance: current_balance - amount,
         timestamp: tx_record.timestamp,
     })
+}
+
+/// Sell cryptocurrency for fiat via agent (creates escrow)
+pub async fn sell_crypto_to_agent(
+    user_identifier: String,
+    crypto_amount: u64,
+    crypto_type: CryptoType,
+    agent_id: String,
+    pin: String,
+) -> Result<TransactionResult, String> {
+    // Validate inputs
+    transfer_logic::validate_identifier_not_empty(&user_identifier, "User identifier")?;
+    crypto_logic::validate_crypto_amount_positive(crypto_amount)?;
+    transfer_logic::validate_identifier_not_empty(&agent_id, "Agent ID")?;
+    
+    // 1. Get user
+    let user = get_user_by_identifier(&user_identifier).await?;
+    
+    // 2. Verify PIN
+    let verified = data_client::verify_pin(&user.id, &pin).await?;
+    if !verified {
+        return Err("Invalid PIN".to_string());
+    }
+    
+    // 3. Check crypto balance
+    let (ckbtc_balance, ckusdc_balance) = data_client::get_crypto_balance(&user.id).await?;
+    let current_balance = match crypto_type {
+        CryptoType::CkBTC => ckbtc_balance,
+        CryptoType::CkUSDC => ckusdc_balance,
+    };
+    
+    crypto_logic::validate_sufficient_crypto_balance(current_balance, crypto_amount)?;
+    
+    // 4. Rate limiting
+    if !fraud_detection::check_rate_limit(&user.id)? {
+        return Err("Too many transactions. Please wait before trying again.".to_string());
+    }
+    
+    // 5. Generate escrow code (6-digit)
+    let timestamp = ic_cdk::api::time();
+    let code_prefix = match crypto_type {
+        CryptoType::CkBTC => "BTC",
+        CryptoType::CkUSDC => "USD",
+    };
+    let escrow_code = format!("{}-{:06}", code_prefix, (timestamp % 1_000_000) as u32);
+    
+    // 6. Put crypto in escrow (deduct from user balance)
+    let (ckbtc_delta, ckusdc_delta) = match crypto_type {
+        CryptoType::CkBTC => (-(crypto_amount as i64), 0),
+        CryptoType::CkUSDC => (0, -(crypto_amount as i64)),
+    };
+    data_client::update_crypto_balance(&user.id, ckbtc_delta, ckusdc_delta).await?;
+    
+    // 7. Create escrow transaction record
+    let tx_id = transfer_logic::generate_transaction_id(timestamp);
+    let tx_record = data_client::TransactionRecord {
+        id: tx_id.clone(),
+        transaction_type: "crypto_sell_escrow".to_string(),
+        from_user: Some(user.id.clone()),
+        to_user: Some(agent_id.clone()),
+        amount: crypto_amount,
+        currency: format!("{:?}", crypto_type),
+        timestamp: ic_cdk::api::time() / 1_000_000_000,
+        status: "pending".to_string(), // Pending until agent confirms
+    };
+    data_client::store_transaction(&tx_record).await?;
+    
+    // 8. Update last active
+    let _ = data_client::update_last_active(&user.id).await;
+    
+    ic_cdk::println!("✅ Escrow created: {} {} → Agent {}, Code: {}", 
+        crypto_amount, format!("{:?}", crypto_type), agent_id, escrow_code);
+    
+    Ok(TransactionResult {
+        transaction_id: escrow_code, // Return escrow code as transaction ID
+        from_user: user.id.clone(),
+        to_user: agent_id,
+        amount: crypto_amount,
+        currency: format!("{:?}", crypto_type),
+        new_balance: current_balance - crypto_amount,
+        timestamp: tx_record.timestamp,
+    })
+}
+
+/// Get estimated fiat value for crypto amount (for display purposes)
+pub async fn get_crypto_value_estimate(
+    crypto_amount: u64,
+    crypto_type: CryptoType,
+    fiat_currency: String,
+) -> Result<u64, String> {
+    let crypto_type_str = format!("{:?}", crypto_type);
+    exchange_rate::calculate_fiat_from_crypto(
+        crypto_amount,
+        &crypto_type_str,
+        &fiat_currency
+    ).await
 }
 
 // ============================================================================
@@ -173,21 +315,3 @@ async fn get_user_by_identifier(identifier: &str) -> Result<data_client::User, S
     Err(format!("User not found: {}", identifier))
 }
 
-fn generate_transaction_id() -> String {
-    format!("tx_{}", ic_cdk::api::time())
-}
-
-fn calculate_crypto_amount(fiat_amount: u64, _currency: &str, crypto_type: CryptoType) -> Result<u64, String> {
-    // TODO: Integrate with exchange rate service
-    // Placeholder calculation
-    match crypto_type {
-        CryptoType::CkBTC => {
-            // Assume 1 BTC = 100M fiat units
-            Ok(fiat_amount / 100_000_000)
-        }
-        CryptoType::CkUSDC => {
-            // Assume 1 USDC = 3800 fiat units
-            Ok(fiat_amount / 3800)
-        }
-    }
-}

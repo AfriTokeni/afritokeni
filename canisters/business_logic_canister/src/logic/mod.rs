@@ -1,31 +1,13 @@
 use candid::Principal;
 
+pub mod user_logic;
+pub mod transfer_logic;
+pub mod crypto_logic;
+pub mod fraud_logic;
+
 pub fn validate_amount_positive(amount: u64) -> Result<(), String> {
     if amount == 0 {
         return Err("Amount must be greater than 0".to_string());
-    }
-    Ok(())
-}
-
-pub fn validate_phone_number_format(phone: &str) -> Result<(), String> {
-    if phone.is_empty() {
-        return Err("Phone number cannot be empty".to_string());
-    }
-    if !phone.starts_with('+') {
-        return Err("Phone number must start with +".to_string());
-    }
-    if phone.len() < 10 {
-        return Err("Phone number too short".to_string());
-    }
-    Ok(())
-}
-
-pub fn validate_pin_format(pin: &str) -> Result<(), String> {
-    if pin.len() != 4 {
-        return Err("PIN must be exactly 4 digits".to_string());
-    }
-    if !pin.chars().all(|c| c.is_ascii_digit()) {
-        return Err("PIN must contain only digits".to_string());
     }
     Ok(())
 }
@@ -71,7 +53,7 @@ pub fn validate_identifier_format(identifier: &str) -> Result<(), String> {
     }
     
     if identifier.starts_with('+') {
-        validate_phone_number_format(identifier)
+        user_logic::validate_phone_number_format(identifier)
     } else {
         Principal::from_text(identifier)
             .map(|_| ())

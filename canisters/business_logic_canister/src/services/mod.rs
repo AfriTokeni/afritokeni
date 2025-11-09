@@ -6,3 +6,5 @@ pub mod balance_queries;
 pub mod user_management;
 pub mod transaction_history;
 pub mod fraud_detection;
+pub mod exchange_rate;
+pub mod ledger_client;
