@@ -439,3 +439,48 @@ pub struct DaoProposal {
     pub yes_votes: u64,
     pub total_votes: u64,
 }
+
+
+/// Get transfer fee configuration
+pub async fn get_transfer_fee(currency: &str) -> Result<FeeConfig, String> {
+    let canister_id = get_business_logic_canister_id()?;
+    
+    ic_cdk::println!("📤 Calling get_transfer_fee: currency={}", currency);
+    
+    let response = Call::unbounded_wait(canister_id, "get_transfer_fee")
+        .with_args(&(currency,))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<FeeConfig, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+/// Withdraw fiat
+pub async fn withdraw_fiat(phone_number: &str, amount_cents: u64, currency: &str, pin: &str) -> Result<TransactionResult, String> {
+    let canister_id = get_business_logic_canister_id()?;
+    
+    ic_cdk::println!("📤 Calling withdraw_fiat: phone={}, amount={} cents", phone_number, amount_cents);
+    
+    let response = Call::unbounded_wait(canister_id, "withdraw_fiat")
+        .with_args(&(phone_number, amount_cents, currency, pin))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<TransactionResult, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct FeeConfig {
+    pub fee_percentage: f64,
+    pub min_fee: f64,
+    pub max_fee: f64,
+}

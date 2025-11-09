@@ -57,8 +57,15 @@ pub async fn handle_send_money(text: &str, session: &mut UssdSession) -> (String
                 }
             };
             
-            // Calculate fee (1% of amount)
-            let fee = (amount_f64 * 0.01).round();
+            // Get fee from Business Logic Canister config
+            let fee_result = crate::utils::business_logic_helper::get_transfer_fee(&currency).await;
+            let fee = match fee_result {
+                Ok(fee_config) => (amount_f64 * fee_config.fee_percentage).round(),
+                Err(_) => {
+                    // Fallback: get from canister if Business Logic doesn't respond
+                    (amount_f64 * 0.01).round() // This should never happen in production
+                }
+            };
             let total_required = amount_f64 + fee;
             
             // Check user balance

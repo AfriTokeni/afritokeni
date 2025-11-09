@@ -43,25 +43,25 @@ pub async fn handle_withdraw(text: &str, session: &mut UssdSession) -> (String, 
             let phone = session.phone_number.clone();
             let amount_str = parts.get(2).unwrap_or(&"");
             let amount_f64 = amount_str.parse::<f64>().unwrap_or(0.0);
+            let amount_cents = (amount_f64 * 100.0) as u64;
+            let currency = session.get_data("currency").unwrap_or_else(|| "UGX".to_string());
             
-            // TODO: Implement withdraw_fiat in Business Logic Canister
-            // For now, just verify PIN and show success
-            match crate::utils::business_logic_helper::verify_pin(&phone, pin).await {
-                Ok(true) => {
-                    (format!("{}\n{} {} UGX\n{}\n\n0. {}", 
+            // Execute withdrawal via Business Logic Canister
+            match crate::utils::business_logic_helper::withdraw_fiat(&phone, amount_cents, &currency, pin).await {
+                Ok(_result) => {
+                    (format!("{}\n{} {} {}\n{}\n\n0. {}", 
                         TranslationService::translate("transaction_successful", lang),
                         TranslationService::translate("withdraw", lang),
+                        currency,
                         amount_f64,
                         TranslationService::translate("receive_cash", lang),
                         TranslationService::translate("main_menu", lang)), false)
                 }
-                Ok(false) => {
-                    (format!("{}\n{}", 
-                        TranslationService::translate("incorrect_pin", lang),
-                        TranslationService::translate("try_again", lang)), true)
-                }
                 Err(e) => {
-                    (format!("{}\n\n0. {}", e, TranslationService::translate("main_menu", lang)), false)
+                    (format!("{}: {}\n\n0. {}", 
+                        TranslationService::translate("transaction_failed", lang),
+                        e,
+                        TranslationService::translate("main_menu", lang)), false)
                 }
             }
         }

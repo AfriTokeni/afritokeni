@@ -9,7 +9,8 @@ pub async fn handle_find_agent(_text: &str, session: &mut UssdSession) -> (Strin
     
     ic_cdk::println!("🔍 Finding agents for currency: {}", currency);
     
-    // Get nearby agents from Business Logic Canister
+    // Get user's location from their profile, then find nearby agents
+    // Business Logic Canister will use the user's registered location
     match crate::utils::business_logic_helper::get_nearby_agents(&session.phone_number, &currency).await {
         Ok(agents) => {
             if agents.is_empty() {

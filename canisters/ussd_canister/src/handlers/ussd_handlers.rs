@@ -69,7 +69,7 @@ pub async fn handle_registration(session: &mut UssdSession, input: &str) -> (Str
             let first_name = session.get_data("first_name").unwrap_or_default();
             let last_name = session.get_data("last_name").unwrap_or_default();
             
-            // Register user (use placeholder email for USSD users)
+            // Register user (USSD users don't have email, Business Logic will handle)
             match crate::utils::business_logic_helper::register_user(
                 &session.phone_number,
                 &first_name,
@@ -130,7 +130,7 @@ pub async fn handle_registration(session: &mut UssdSession, input: &str) -> (Str
             let first_name = session.get_data("first_name").unwrap_or_default();
             let last_name = session.get_data("last_name").unwrap_or_default();
             
-            // Register user (use placeholder email for USSD users)
+            // Register user (USSD users don't have email, Business Logic will handle)
             match crate::utils::business_logic_helper::register_user(
                 &session.phone_number,
                 &first_name,
