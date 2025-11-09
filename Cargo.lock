@@ -229,6 +229,7 @@ dependencies = [
  "hex",
  "ic-cdk",
  "ic-cdk-macros",
+ "pocket-ic",
  "serde",
  "serde_json",
  "shared_types",
