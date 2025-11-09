@@ -222,10 +222,26 @@ pub async fn handle_local_currency_menu(text: &str, session: &mut UssdSession) -
     }
     
     let last_input = parts.last().unwrap_or(&"");
+    let currency = session.get_data("currency").unwrap_or_else(|| "UGX".to_string());
     
     match *last_input {
-        "1" => {
-            // Check balance via Business Logic
+        "1" if parts.len() == 1 => {
+            // Show Local Currency menu (when text is just "1")
+            let menu = format!("{} ({})\n{}\n1. {}\n2. {}\n3. {}\n4. {}\n5. {}\n6. {}\n\n{}",
+                TranslationService::translate("local_currency_menu", lang),
+                currency,
+                TranslationService::translate("please_select_option", lang),
+                TranslationService::translate("send_money", lang),
+                TranslationService::translate("check_balance", lang),
+                TranslationService::translate("deposit", lang),
+                TranslationService::translate("withdraw", lang),
+                TranslationService::translate("transactions", lang),
+                TranslationService::translate("find_agent", lang),
+                TranslationService::translate("back_or_menu", lang));
+            (menu, true)
+        }
+        "2" if parts.len() == 2 => {
+            // Check balance (when text is "1*2")
             match crate::utils::business_logic_helper::get_balances(&session.phone_number).await {
                 Ok(balances) => {
                     let ugx = balances.fiat_balances.iter()
@@ -235,32 +251,52 @@ pub async fn handle_local_currency_menu(text: &str, session: &mut UssdSession) -
                     let ckbtc = balances.ckbtc_balance as f64 / 100_000_000.0;
                     let ckusdc = balances.ckusdc_balance as f64 / 1_000_000.0;
                     
-                    session.current_menu = String::new();
-                    (format!("{}:\nUGX: {:.2}\nckBTC: {:.8}\nckUSDC: {:.2}\n\n0. {}", 
+                    (format!("{}:\n{}: {:.2}\nckBTC: {:.8}\nckUSDC: {:.2}\n\n{}", 
                         TranslationService::translate("your_balance", lang),
+                        currency,
                         ugx, ckbtc, ckusdc,
-                        TranslationService::translate("main_menu", lang)), true)
+                        TranslationService::translate("back_or_menu", lang)), true)
                 }
                 Err(_) => {
-                    (format!("{}:\nUGX: 0.00\nckBTC: 0.00000000\nckUSDC: 0.00\n\n0. {}", 
+                    (format!("{}:\n{}: 0.00\nckBTC: 0.00000000\nckUSDC: 0.00\n\n{}", 
                         TranslationService::translate("your_balance", lang),
-                        TranslationService::translate("main_menu", lang)), true)
+                        currency,
+                        TranslationService::translate("back_or_menu", lang)), true)
                 }
             }
         }
-        "2" => {
-            // Send money - start the flow
+        "1" if parts.len() == 2 => {
+            // Send money - start the flow (when text is "1*1")
             session.step = 0;
+            session.current_menu = "send_money".to_string();
             crate::handlers::send_money_flow::handle_send_money(text, session).await
         }
-        "4" => {
-            // Withdraw - start the flow
+        "3" if parts.len() == 2 => {
+            // Deposit - coming soon
+            (format!("{}\n\n{}\n\n{}", 
+                TranslationService::translate("deposit", lang),
+                TranslationService::translate("coming_soon", lang),
+                TranslationService::translate("back_or_menu", lang)), true)
+        }
+        "4" if parts.len() == 2 => {
+            // Withdraw - start the flow (when text is "1*4")
             session.step = 0;
+            session.current_menu = "withdraw".to_string();
             crate::handlers::withdraw_flow::handle_withdraw(text, session).await
         }
-        "0" => {
-            session.current_menu = String::new();
-            handle_main_menu("", session).await
+        "5" if parts.len() == 2 => {
+            // Transactions - coming soon
+            (format!("{}\n\n{}\n\n{}", 
+                TranslationService::translate("transactions", lang),
+                TranslationService::translate("coming_soon", lang),
+                TranslationService::translate("back_or_menu", lang)), true)
+        }
+        "6" if parts.len() == 2 => {
+            // Find agent - coming soon
+            (format!("{}\n\n{}\n\n{}", 
+                TranslationService::translate("find_agent", lang),
+                TranslationService::translate("coming_soon", lang),
+                TranslationService::translate("back_or_menu", lang)), true)
         }
         _ => {
             (format!("{}\n0. {}", 
@@ -279,57 +315,81 @@ pub async fn handle_bitcoin_menu(text: &str, session: &mut UssdSession) -> (Stri
     // If we have more than 2 parts, we're in a flow
     if parts.len() > 2 {
         match parts.get(1) {
-            Some(&"2") => {
-                // Buy Bitcoin flow (option 2 in bitcoin menu)
+            Some(&"3") => {
+                // Buy Bitcoin flow
                 return crate::handlers::buy_bitcoin_flow::handle_buy_bitcoin(text, session).await;
             }
-            Some(&"4") => {
-                // Send Bitcoin flow (option 4 in bitcoin menu)
+            Some(&"5") => {
+                // Send Bitcoin flow
                 return crate::handlers::send_bitcoin_flow::handle_send_bitcoin(text, session).await;
             }
             _ => {}
         }
     }
     
-    let choice = parts.last().unwrap_or(&"");
+    let last_input = parts.last().unwrap_or(&"");
     
-    match *choice {
-        "2" => {
+    match *last_input {
+        "2" if parts.len() == 1 => {
             // Show Bitcoin menu (when text is just "2")
-            let menu = format!("{}\n1. {}\n2. {}\n3. {}\n4. {}\n0. {}",
-                TranslationService::translate("bitcoin_menu", lang),
+            let menu = format!("{}\n{}\n1. {}\n2. {}\n3. {}\n4. {}\n5. {}\n\n{}",
+                TranslationService::translate("bitcoin_menu_title", lang),
+                TranslationService::translate("please_select_option", lang),
                 TranslationService::translate("check_balance", lang),
+                TranslationService::translate("bitcoin_rate", lang),
                 TranslationService::translate("buy_bitcoin", lang),
                 TranslationService::translate("sell_bitcoin", lang),
                 TranslationService::translate("send_bitcoin", lang),
-                TranslationService::translate("back", lang));
+                TranslationService::translate("back_or_menu", lang));
             (menu, true)
         }
-        "1" => {
+        "1" if parts.len() == 2 => {
             // Check balance (when text is "2*1")
             match crate::utils::business_logic_helper::get_balances(&session.phone_number).await {
                 Ok(balances) => {
                     let ckbtc = balances.ckbtc_balance as f64 / 100_000_000.0;
-                    (format!("{}:\nckBTC: {:.8}\n\n0. {}", 
+                    (format!("{}:\nckBTC: {:.8}\n\n{}", 
                         TranslationService::translate("bitcoin_balance", lang),
                         ckbtc,
-                        TranslationService::translate("back", lang)), true)
+                        TranslationService::translate("back_or_menu", lang)), true)
                 }
                 Err(_) => {
-                    (format!("{}:\nckBTC: 0.00000000\n\n0. {}", 
+                    (format!("{}:\nckBTC: 0.00000000\n\n{}", 
                         TranslationService::translate("bitcoin_balance", lang),
-                        TranslationService::translate("back", lang)), true)
+                        TranslationService::translate("back_or_menu", lang)), true)
                 }
             }
         }
-        "4" => {
-            // Send Bitcoin - start the flow (when text is "2*4")
+        "2" if parts.len() == 2 => {
+            // Bitcoin rate - coming soon
+            (format!("{}\n\n{}\n\n{}", 
+                TranslationService::translate("bitcoin_rate", lang),
+                TranslationService::translate("coming_soon", lang),
+                TranslationService::translate("back_or_menu", lang)), true)
+        }
+        "3" if parts.len() == 2 => {
+            // Buy Bitcoin - start the flow (when text is "2*3")
+            session.step = 0;
+            session.current_menu = "buy_bitcoin".to_string();
+            crate::handlers::buy_bitcoin_flow::handle_buy_bitcoin(text, session).await
+        }
+        "4" if parts.len() == 2 => {
+            // Sell Bitcoin - coming soon
+            (format!("{}\n\n{}\n\n{}", 
+                TranslationService::translate("sell_bitcoin", lang),
+                TranslationService::translate("coming_soon", lang),
+                TranslationService::translate("back_or_menu", lang)), true)
+        }
+        "5" if parts.len() == 2 => {
+            // Send Bitcoin - start the flow (when text is "2*5")
+            session.step = 0;
+            session.current_menu = "send_bitcoin".to_string();
             crate::handlers::send_bitcoin_flow::handle_send_bitcoin(text, session).await
         }
         _ => {
-            (format!("{}\n0. {}", 
+            (format!("{}\n\n{}", 
                 TranslationService::translate("invalid_option", lang),
-                TranslationService::translate("back", lang)), true)
+                TranslationService::translate("back_or_menu", lang)), true)
         }
     }
 }
@@ -339,6 +399,7 @@ pub async fn handle_usdc_menu(text: &str, session: &mut UssdSession) -> (String,
     let lang = Language::from_code(&session.language);
     
     let parts: Vec<&str> = text.split('*').collect();
+    let last_input = parts.last().unwrap_or(&"");
     
     // If we have more than 2 parts, we're in buy flow
     if parts.len() > 2 {
@@ -347,61 +408,98 @@ pub async fn handle_usdc_menu(text: &str, session: &mut UssdSession) -> (String,
         }
     }
     
-    let choice = parts.last().unwrap_or(&"");
-    
-    match *choice {
-        "3" => {
+    match *last_input {
+        "3" if parts.len() == 1 => {
             // Show USDC menu (when text is just "3")
-            let menu = format!("{}\n1. {}\n2. {}\n3. {}\n0. {}",
-                TranslationService::translate("usdc_menu", lang),
+            let menu = format!("{}\n{}\n1. {}\n2. {}\n3. {}\n4. {}\n5. {}\n\n{}",
+                TranslationService::translate("usdc_menu_title", lang),
+                TranslationService::translate("please_select_option", lang),
                 TranslationService::translate("check_balance", lang),
+                TranslationService::translate("usdc_rate", lang),
                 TranslationService::translate("buy_usdc", lang),
+                TranslationService::translate("sell_usdc", lang),
                 TranslationService::translate("send_usdc", lang),
-                TranslationService::translate("back", lang));
+                TranslationService::translate("back_or_menu", lang));
             (menu, true)
         }
-        "1" => {
+        "1" if parts.len() == 2 => {
             // Check balance (when text is "3*1")
             match crate::utils::business_logic_helper::get_balances(&session.phone_number).await {
                 Ok(balances) => {
                     let ckusdc = balances.ckusdc_balance as f64 / 1_000_000.0;
-                    (format!("{}:\nckUSDC: {:.2}\n\n0. {}", 
+                    (format!("{}:\nckUSDC: {:.2}\n\n{}", 
                         TranslationService::translate("usdc_balance", lang),
                         ckusdc,
-                        TranslationService::translate("back", lang)), true)
+                        TranslationService::translate("back_or_menu", lang)), true)
                 }
                 Err(_) => {
-                    (format!("{}:\nckUSDC: 0.00\n\n0. {}", 
+                    (format!("{}:\nckUSDC: 0.00\n\n{}", 
                         TranslationService::translate("usdc_balance", lang),
-                        TranslationService::translate("back", lang)), true)
+                        TranslationService::translate("back_or_menu", lang)), true)
                 }
             }
         }
-        "2" => {
-            // Buy USDC - start the flow (when text is "3*2")
+        "2" if parts.len() == 2 => {
+            // USDC rate - coming soon
+            (format!("{}\n\n{}\n\n{}", 
+                TranslationService::translate("usdc_rate", lang),
+                TranslationService::translate("coming_soon", lang),
+                TranslationService::translate("back_or_menu", lang)), true)
+        }
+        "3" if parts.len() == 2 => {
+            // Buy USDC - start the flow (when text is "3*3")
+            session.step = 0;
+            session.current_menu = "buy_usdc".to_string();
             crate::handlers::buy_usdc_flow::handle_buy_usdc(text, session).await
         }
+        "4" if parts.len() == 2 => {
+            // Sell USDC - coming soon
+            (format!("{}\n\n{}\n\n{}", 
+                TranslationService::translate("sell_usdc", lang),
+                TranslationService::translate("coming_soon", lang),
+                TranslationService::translate("back_or_menu", lang)), true)
+        }
+        "5" if parts.len() == 2 => {
+            // Send USDC - coming soon
+            (format!("{}\n\n{}\n\n{}", 
+                TranslationService::translate("send_usdc", lang),
+                TranslationService::translate("coming_soon", lang),
+                TranslationService::translate("back_or_menu", lang)), true)
+        }
         _ => {
-            (format!("{}\n0. {}", 
+            (format!("{}\n\n{}", 
                 TranslationService::translate("invalid_option", lang),
-                TranslationService::translate("back", lang)), true)
+                TranslationService::translate("back_or_menu", lang)), true)
         }
     }
 }
 
 /// Handle DAO menu
-pub async fn handle_dao_menu(_text: &str, session: &mut UssdSession) -> (String, bool) {
+pub async fn handle_dao_menu(text: &str, session: &mut UssdSession) -> (String, bool) {
     let lang = Language::from_code(&session.language);
-    session.current_menu = "dao".to_string();
+    let parts: Vec<&str> = text.split('*').collect();
+    let last_input = parts.last().unwrap_or(&"");
     
-    let menu = format!("{}\n1. {}\n2. {}\n3. {}\n0. {}",
-        TranslationService::translate("dao_menu", lang),
-        TranslationService::translate("view_proposals", lang),
-        TranslationService::translate("vote", lang),
-        TranslationService::translate("create_proposal", lang),
-        TranslationService::translate("back", lang));
-    
-    (menu, true)
+    match *last_input {
+        "4" if parts.len() == 1 => {
+            // Show DAO menu (when text is just "4")
+            session.current_menu = "dao".to_string();
+            let menu = format!("{}\n{}\n1. {}\n2. {}\n\n{}",
+                TranslationService::translate("dao_governance", lang),
+                TranslationService::translate("please_select_option", lang),
+                TranslationService::translate("view_proposals", lang),
+                TranslationService::translate("vote_on_proposals", lang),
+                TranslationService::translate("back_or_menu", lang));
+            (menu, true)
+        }
+        _ => {
+            // All DAO options coming soon
+            (format!("{}\n\n{}\n\n{}", 
+                TranslationService::translate("dao_governance", lang),
+                TranslationService::translate("coming_soon", lang),
+                TranslationService::translate("back_or_menu", lang)), true)
+        }
+    }
 }
 
 /// Handle language menu

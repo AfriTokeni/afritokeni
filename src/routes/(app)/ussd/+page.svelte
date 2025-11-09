@@ -52,8 +52,10 @@
       ussdHistory = ussdHistory + "*" + trimmedCmd;
       ussdText = ussdHistory;
     }
-    
-    console.log(`🔗 USSD Chain: "${ussdText}" (previous="${ussdHistory.split('*').slice(0, -1).join('*')}", new input="${trimmedCmd}")`);
+
+    console.log(
+      `🔗 USSD Chain: "${ussdText}" (previous="${ussdHistory.split("*").slice(0, -1).join("*")}", new input="${trimmedCmd}")`,
+    );
 
     try {
       // Call USSD canister directly using agent (bypasses HTTP certification issues)
@@ -95,15 +97,18 @@
 
       const [response, continues] = result;
 
-      console.log(`✅ Response: ${response.substring(0, 100)}...`, `continues=${continues}`);
-      
+      console.log(
+        `✅ Response: ${response.substring(0, 100)}...`,
+        `continues=${continues}`,
+      );
+
       // Reset history if session ended (terminal response)
       if (!continues) {
         console.log("🔚 Session ended - resetting USSD history");
         ussdHistory = "";
         sessionId = `playground_session_${Date.now()}`; // New session for next interaction
       }
-      
+
       return response;
     } catch (error: any) {
       console.error("❌ Failed to process USSD command:", error);
