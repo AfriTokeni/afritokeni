@@ -1,18 +1,9 @@
 // Type definitions for Business Logic Canister API
+// Re-export shared types to avoid duplication
 use candid::{CandidType, Deserialize};
 
-#[derive(CandidType, Deserialize, Clone, Debug)]
-pub struct UserBalances {
-    pub fiat_balances: Vec<FiatBalance>,
-    pub ckbtc_balance: u64,
-    pub ckusdc_balance: u64,
-}
-
-#[derive(CandidType, Deserialize, Clone, Debug)]
-pub struct FiatBalance {
-    pub currency: String,
-    pub amount: u64,
-}
+// Use shared types - NO MORE DUPLICATION!
+pub use shared_types::UserBalances;
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct TransactionResult {

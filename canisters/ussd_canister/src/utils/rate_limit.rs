@@ -14,14 +14,6 @@ thread_local! {
     static RATE_LIMITS: RefCell<HashMap<String, RateLimitEntry>> = RefCell::new(HashMap::new());
 }
 
-/// Check if we're running on local network (development/testing)
-fn is_local_network() -> bool {
-    // In local development, canister IDs are in format: xxxxx-xxxxx-xxxxx-xxxxx-xxx
-    // In production (IC mainnet), they're different
-    // For now, we'll be conservative and only skip rate limiting in unit tests
-    false
-}
-
 /// Check if request is rate limited
 /// Returns true if allowed, false if rate limited
 pub fn check_rate_limit(phone_number: &str) -> bool {

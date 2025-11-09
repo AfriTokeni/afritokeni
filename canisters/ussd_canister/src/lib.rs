@@ -1,6 +1,5 @@
 use ic_cdk_macros::{init, query, update};
 use candid::Principal;
-use std::cell::RefCell;
 
 // Organized module structure
 mod config_loader;

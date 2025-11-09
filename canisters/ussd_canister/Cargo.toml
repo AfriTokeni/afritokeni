@@ -22,6 +22,7 @@ lazy_static = "1.4"
 hex = "0.4"
 sha2 = "0.10"
 num-bigint = "0.4"
+shared_types = { path = "../shared_types" }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

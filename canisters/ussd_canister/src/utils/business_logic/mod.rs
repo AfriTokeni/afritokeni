@@ -6,21 +6,20 @@ pub mod crypto;
 pub mod dao;
 pub mod config;
 
-use ic_cdk::call::Call;
-use ic_cdk::api::management_canister::main::CanisterId;
+use candid::Principal;
 use std::cell::RefCell;
 
 thread_local! {
-    static BUSINESS_LOGIC_CANISTER_ID: RefCell<Option<CanisterId>> = RefCell::new(None);
+    static BUSINESS_LOGIC_CANISTER_ID: RefCell<Option<Principal>> = RefCell::new(None);
 }
 
-pub fn set_business_logic_canister_id(canister_id: CanisterId) {
+pub fn set_business_logic_canister_id(canister_id: Principal) {
     BUSINESS_LOGIC_CANISTER_ID.with(|id| {
         *id.borrow_mut() = Some(canister_id);
     });
 }
 
-pub fn get_business_logic_canister_id() -> Result<CanisterId, String> {
+pub fn get_business_logic_canister_id() -> Result<Principal, String> {
     BUSINESS_LOGIC_CANISTER_ID.with(|id| {
         id.borrow()
             .ok_or_else(|| "Business Logic Canister ID not set".to_string())

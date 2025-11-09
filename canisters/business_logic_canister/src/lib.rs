@@ -487,26 +487,26 @@ async fn user_exists(user_identifier: String) -> Result<bool, String> {
     Ok(exists)
 }
 
-/// Register new user (USSD or Web)
+/// Register new user (USSD or Web) - Uses shared RegisterUserRequest type
 #[update]
-async fn register_user(
-    phone_number: Option<String>,
-    principal_id: Option<String>,
-    first_name: String,
-    last_name: String,
-    email: String,
-    preferred_currency: String,
-    pin: String,
-) -> Result<String, String> {
+async fn register_user(request: shared_types::RegisterUserRequest) -> Result<String, String> {
     verify_authorized_caller()?;
     
     ic_cdk::println!("📥 Business Logic received register_user:");
-    ic_cdk::println!("  phone_number: {:?}", phone_number);
-    ic_cdk::println!("  principal_id: {:?}", principal_id);
-    ic_cdk::println!("  first_name: {:?}", first_name);
-    ic_cdk::println!("  last_name: {:?}", last_name);
-    ic_cdk::println!("  email: {:?}", email);
-    ic_cdk::println!("  preferred_currency: {:?}", preferred_currency);
+    ic_cdk::println!("  phone_number: {:?}", request.phone_number);
+    ic_cdk::println!("  principal_id: {:?}", request.principal_id);
+    ic_cdk::println!("  first_name: {:?}", request.first_name);
+    ic_cdk::println!("  last_name: {:?}", request.last_name);
+    ic_cdk::println!("  email: {:?}", request.email);
+    ic_cdk::println!("  preferred_currency: {:?}", request.preferred_currency);
+    
+    let phone_number = request.phone_number;
+    let principal_id = request.principal_id;
+    let first_name = request.first_name;
+    let last_name = request.last_name;
+    let email = request.email;
+    let preferred_currency = request.preferred_currency;
+    let pin = request.pin;
     ic_cdk::println!("  pin: {:?}", pin);
     
     let result = services::user_management::register_user(

@@ -121,7 +121,13 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                             user_registered = true;
                         }
                         Err(e) => {
-                            ic_cdk::println!("❌ Failed to auto-register playground user: {}", e);
+                            // If registration fails because user already exists, that's OK
+                            if e.contains("already registered") {
+                                ic_cdk::println!("ℹ️ Playground user already registered");
+                                user_registered = true;
+                            } else {
+                                ic_cdk::println!("❌ Failed to auto-register playground user: {}", e);
+                            }
                         }
                     }
                 }
@@ -166,8 +172,14 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                         session.step = 0;
                         crate::handlers::ussd_handlers::handle_main_menu("", &mut session).await
                     } else if text.is_empty() {
-                        // Show main menu when no input
-                        crate::handlers::ussd_handlers::handle_main_menu(&text, &mut session).await
+                        // Show main menu when no input - with welcome message for first visit
+                        let welcome_prefix = if session_id.starts_with("playground_") {
+                            "Welcome back Demo User!\n\n"
+                        } else {
+                            "Welcome back!\n\n"
+                        };
+                        let (menu_text, continues) = crate::handlers::ussd_handlers::handle_main_menu(&text, &mut session).await;
+                        (format!("{}{}", welcome_prefix, menu_text), continues)
                     } else {
                         // Find the last "0" in the chain to determine context
                         // After "0" (back), we're back at main menu level

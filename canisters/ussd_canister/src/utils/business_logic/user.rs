@@ -3,6 +3,7 @@ use super::{get_business_logic_canister_id, UserBalances};
 use ic_cdk::call::Call;
 
 /// Register a new user (USSD - phone number based)
+/// Uses shared RegisterUserRequest type - GUARANTEED to match Business Logic!
 pub async fn register_user(
     phone_number: &str,
     first_name: &str,
@@ -15,17 +16,19 @@ pub async fn register_user(
     
     ic_cdk::println!("📤 Calling register_user: phone={}", phone_number);
     
-    // Business Logic expects: (Option<phone>, Option<principal>, first, last, email, currency, pin)
+    // Use shared type - NO MORE SIGNATURE MISMATCHES!
+    let request = shared_types::RegisterUserRequest {
+        phone_number: Some(phone_number.to_string()),
+        principal_id: None,
+        first_name: first_name.to_string(),
+        last_name: last_name.to_string(),
+        email: email.to_string(),
+        preferred_currency: currency.to_string(),
+        pin: pin.to_string(),
+    };
+    
     let response = Call::unbounded_wait(canister_id, "register_user")
-        .with_args(&(
-            Some(phone_number.to_string()),  // phone_number: Option<String>
-            None::<String>,                    // principal_id: Option<String> (None for USSD)
-            first_name.to_string(),           // first_name: String
-            last_name.to_string(),            // last_name: String
-            email.to_string(),                // email: String
-            currency.to_string(),             // preferred_currency: String
-            pin.to_string(),                  // pin: String
-        ))
+        .with_args(&(request,))
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
     

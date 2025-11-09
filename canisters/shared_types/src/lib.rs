@@ -107,3 +107,33 @@ pub struct User {
     pub created_at: u64,
     pub last_active: u64,
 }
+
+// ============================================================================
+// Business Logic API Types - Shared between USSD and Business Logic canisters
+// ============================================================================
+
+/// Register user request - SINGLE SOURCE OF TRUTH
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct RegisterUserRequest {
+    pub phone_number: Option<String>,
+    pub principal_id: Option<String>,
+    pub first_name: String,
+    pub last_name: String,
+    pub email: String,
+    pub preferred_currency: String,
+    pub pin: String,
+}
+
+/// User balances response
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct UserBalances {
+    pub fiat_balances: Vec<FiatBalance>,
+    pub ckbtc_balance: u64,
+    pub ckusdc_balance: u64,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct FiatBalance {
+    pub currency: String,
+    pub amount: u64,
+}
