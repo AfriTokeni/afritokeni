@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use ic_cdk::api::time;
 use crate::config_loader::get_config;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct RateLimitEntry {
     count: u32,
     window_start: u64,
@@ -14,15 +14,24 @@ thread_local! {
     static RATE_LIMITS: RefCell<HashMap<String, RateLimitEntry>> = RefCell::new(HashMap::new());
 }
 
+/// Check if we're running on local network (development/testing)
+fn is_local_network() -> bool {
+    // In local development, canister IDs are in format: xxxxx-xxxxx-xxxxx-xxxxx-xxx
+    // In production (IC mainnet), they're different
+    // For now, we'll be conservative and only skip rate limiting in unit tests
+    false
+}
+
 /// Check if request is rate limited
 /// Returns true if allowed, false if rate limited
 pub fn check_rate_limit(phone_number: &str) -> bool {
-    // Skip rate limiting in test mode
+    // Skip rate limiting in test mode (Rust unit tests only)
     #[cfg(test)]
     {
         return true;
     }
     
+    // For integration tests, use a much higher rate limit instead of disabling
     let config = get_config();
     let current_time = time();
     let window_nanos = config.rate_limiting.rate_limit_window_seconds * 1_000_000_000;

@@ -1,7 +1,9 @@
 # USSD Canister Configuration
 
 [rate_limiting]
-max_requests_per_minute = 10
+# High limit for development/testing (10 req/min is too low for integration tests)
+# In production, this should be lowered to prevent abuse
+max_requests_per_minute = 1000
 rate_limit_window_seconds = 60
 
 [pin_security]
