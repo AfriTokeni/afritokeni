@@ -4,7 +4,8 @@ use serde::{Serialize, Deserialize as SerdeDeserialize};
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-// Configuration loaded from shared TOML
+mod logic;
+
 const CONFIG_TOML: &str = include_str!("../../revenue_config.toml");
 
 #[derive(SerdeDeserialize, Clone)]
@@ -120,44 +121,38 @@ fn get_company_wallet() -> Result<Principal, String> {
 fn create_withdrawal_request(request: CreateWithdrawalRequest) -> Result<WithdrawalTransaction, String> {
     let caller = ic_cdk::api::msg_caller();
     
-    // Verify caller is the user
-    if caller != request.user_principal {
-        return Err("Caller must be the user".to_string());
-    }
+    logic::validate_caller_is_user(caller, request.user_principal)?;
+    logic::validate_amount_positive(request.amount_ugx)?;
     
-    if request.amount_ugx == 0 {
-        return Err("Amount must be greater than 0".to_string());
-    }
-    
-    // Generate unique withdrawal code
     let withdrawal_id = NEXT_WITHDRAWAL_ID.with(|id| {
         let current = *id.borrow();
         *id.borrow_mut() = current + 1;
         current
     });
     
-    let withdrawal_code = generate_withdrawal_code(withdrawal_id);
-    
-    // Calculate fees from config
+    let withdrawal_code = logic::generate_withdrawal_code(withdrawal_id);
     let config = get_config();
     
-    // Platform fee from config
-    let platform_fee = (request.amount_ugx * config.withdrawal.platform_fee_basis_points) / 10000;
+    let platform_fee = logic::calculate_platform_fee(
+        request.amount_ugx,
+        config.withdrawal.platform_fee_basis_points
+    )?;
     
-    // Agent fee from config
-    let agent_fee = (request.amount_ugx * config.withdrawal.agent_commission_basis_points) / 10000;
+    let agent_fee = logic::calculate_agent_fee(
+        request.amount_ugx,
+        config.withdrawal.agent_commission_basis_points
+    )?;
     
-    let transaction = WithdrawalTransaction {
-        id: withdrawal_id,
-        user_principal: request.user_principal,
-        agent_principal: request.agent_principal,
-        amount_ugx: request.amount_ugx,
-        platform_fee_ugx: platform_fee,
-        agent_fee_ugx: agent_fee,
-        withdrawal_code: withdrawal_code.clone(),
-        timestamp: ic_cdk::api::time(),
-        status: TransactionStatus::Pending,
-    };
+    let transaction = logic::create_withdrawal_transaction(
+        withdrawal_id,
+        request.user_principal,
+        request.agent_principal,
+        request.amount_ugx,
+        platform_fee,
+        agent_fee,
+        withdrawal_code,
+        ic_cdk::api::time(),
+    );
     
     WITHDRAWALS.with(|withdrawals| {
         withdrawals.borrow_mut().insert(withdrawal_id, transaction.clone());
@@ -170,12 +165,8 @@ fn create_withdrawal_request(request: CreateWithdrawalRequest) -> Result<Withdra
 fn confirm_withdrawal(request: ConfirmWithdrawalRequest) -> Result<WithdrawalTransaction, String> {
     let caller = ic_cdk::api::msg_caller();
     
-    // Verify caller is the agent
-    if caller != request.agent_principal {
-        return Err("Only the assigned agent can confirm".to_string());
-    }
+    logic::validate_caller_is_agent(caller, request.agent_principal)?;
     
-    // Find withdrawal by code
     let withdrawal_id = WITHDRAWALS.with(|withdrawals| {
         withdrawals.borrow()
             .iter()
@@ -183,25 +174,18 @@ fn confirm_withdrawal(request: ConfirmWithdrawalRequest) -> Result<WithdrawalTra
             .map(|(id, _)| *id)
     }).ok_or("Withdrawal code not found".to_string())?;
     
-    // Update withdrawal status
     let transaction = WITHDRAWALS.with(|withdrawals| {
         let mut wds = withdrawals.borrow_mut();
         let withdrawal = wds.get_mut(&withdrawal_id)
             .ok_or("Withdrawal not found".to_string())?;
         
-        if withdrawal.status != TransactionStatus::Pending {
-            return Err("Withdrawal already processed".to_string());
-        }
+        logic::validate_status_is_pending(&withdrawal.status)?;
+        logic::validate_agent_matches(withdrawal.agent_principal, request.agent_principal)?;
         
-        if withdrawal.agent_principal != request.agent_principal {
-            return Err("Wrong agent".to_string());
-        }
-        
-        withdrawal.status = TransactionStatus::Confirmed;
-        Ok(withdrawal.clone())
+        *withdrawal = logic::confirm_transaction_status(withdrawal.clone());
+        Ok::<WithdrawalTransaction, String>(withdrawal.clone())
     })?;
     
-    // Update agent earnings
     update_agent_earnings(
         request.agent_principal,
         transaction.amount_ugx,
@@ -325,10 +309,7 @@ fn get_company_wallet_principal() -> Result<Principal, String> {
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
-
-fn generate_withdrawal_code(id: u64) -> String {
-    format!("WTH-{:08}", id)
-}
+// Moved to logic.rs module for testability
 
 // Tests module
 #[cfg(test)]

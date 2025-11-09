@@ -1,4 +1,5 @@
 use super::*;
+use crate::logic::generate_withdrawal_code;
 
 // Test constants - match the config values
 const TEST_PLATFORM_FEE_BPS: u64 = 50; // 0.5% from revenue_config.toml
@@ -26,9 +27,9 @@ fn test_withdrawal_code_generation() {
     let code2 = generate_withdrawal_code(100);
     let code3 = generate_withdrawal_code(999999);
     
-    assert_eq!(code1, "WTH-00000001");
-    assert_eq!(code2, "WTH-00000100");
-    assert_eq!(code3, "WTH-00999999");
+    assert_eq!(code1, "WTH000001");
+    assert_eq!(code2, "WTH000100");
+    assert_eq!(code3, "WTH999999");
 }
 
 // ============================================================================
