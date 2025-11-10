@@ -5,6 +5,8 @@ use shared_types::*;
 pub mod user_registration_tests;
 pub mod money_transfer_tests;
 pub mod deposit_withdrawal_tests;
+pub mod balance_integrity_tests;
+pub mod pin_security_tests;
 
 // ============================================================================
 // Test Environment Setup

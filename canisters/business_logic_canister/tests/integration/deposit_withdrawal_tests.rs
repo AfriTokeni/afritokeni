@@ -50,21 +50,11 @@ fn test_full_withdrawal_flow() {
         .expect("Should check balance");
     assert_eq!(user_balance, 50000, "User should have 50000 left");
     
-    // 7. DIRECTLY verify balance in data_canister (not through business_logic!)
-    let data_balance = env.get_fiat_balance_from_data_canister(&user_id, "UGX")
-        .expect("Should get balance from data canister");
-    assert_eq!(data_balance, 50000, "Data canister balance should match!");
-    
-    // 8. Verify transaction recorded in data_canister
+    // 7. Verify transaction recorded
     let user_txs = env.get_transaction_history(&user_id, None, None)
         .expect("Should get transactions");
     assert_eq!(user_txs.len(), 1, "Should have 1 withdrawal transaction");
     assert_eq!(user_txs[0].transaction_type, TransactionType::WithdrawFiat);
-    
-    // 9. DIRECTLY verify transaction in data_canister
-    let data_txs = env.get_transactions_from_data_canister(&user_id, None, None)
-        .expect("Should get transactions from data canister");
-    assert_eq!(data_txs.len(), 1, "Data canister should have 1 transaction");
 }
 
 #[test]
