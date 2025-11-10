@@ -7,6 +7,7 @@ pub mod money_transfer_tests;
 pub mod deposit_withdrawal_tests;
 pub mod balance_integrity_tests;
 pub mod pin_security_tests;
+pub mod error_handling_tests;
 
 // ============================================================================
 // Test Environment Setup
