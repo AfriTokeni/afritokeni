@@ -288,6 +288,10 @@ async fn withdraw_fiat(
     let user = services::data_client::get_user_by_phone(&phone_number).await?
         .ok_or_else(|| format!("User not found: {}", phone_number))?;
     
+    // CRITICAL: Validate agent exists before processing withdrawal
+    let _agent = services::data_client::get_user(&agent_id).await?
+        .ok_or_else(|| format!("Agent not found: {}", agent_id))?;
+    
     // Verify PIN
     if !services::data_client::verify_pin(&user.id, &pin).await? {
         log_audit(
