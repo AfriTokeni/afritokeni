@@ -1,29 +1,9 @@
 use candid::{encode_args, decode_one, Principal};
 use pocket_ic::PocketIc;
+use shared_types::{TransactionResult, User};
 
 const WASM_PATH: &str = "../../target/wasm32-unknown-unknown/release/business_logic_canister.wasm";
 const DATA_WASM: &str = "../../target/wasm32-unknown-unknown/release/data_canister.wasm";
-
-#[derive(candid::CandidType, candid::Deserialize, Debug)]
-struct TransactionResult {
-    transaction_id: String,
-    from_user: String,
-    to_user: String,
-    amount: u64,
-    currency: String,
-    new_balance: u64,
-    timestamp: u64,
-}
-
-#[derive(candid::CandidType, candid::Deserialize, Clone)]
-struct User {
-    id: String,
-    phone: Option<String>,
-    principal: Option<Principal>,
-    name: String,
-    created_at: u64,
-    last_active: u64,
-}
 
 fn setup() -> (PocketIc, Principal, Principal) {
     let pic = PocketIc::new();

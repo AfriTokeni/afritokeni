@@ -137,3 +137,22 @@ pub struct FiatBalance {
     pub currency: String,
     pub amount: u64,
 }
+
+/// Transaction result returned from money transfer operations
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct TransactionResult {
+    pub transaction_id: String,
+    pub from_user: String,
+    pub to_user: String,
+    pub amount: u64,
+    pub currency: String,
+    pub new_balance: u64,
+    pub timestamp: u64,
+}
+
+/// Crypto currency types
+#[derive(CandidType, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CryptoType {
+    CkBTC,
+    CkUSDC,
+}

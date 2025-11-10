@@ -1,18 +1,9 @@
 use candid::{encode_args, decode_one, Principal};
 use pocket_ic::PocketIc;
+use shared_types::{RegisterUserRequest, User};
 
 const WASM_PATH: &str = "../../target/wasm32-unknown-unknown/release/business_logic_canister.wasm";
 const DATA_WASM: &str = "../../target/wasm32-unknown-unknown/release/data_canister.wasm";
-
-#[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
-struct User {
-    id: String,
-    phone: Option<String>,
-    principal: Option<Principal>,
-    name: String,
-    created_at: u64,
-    last_active: u64,
-}
 
 fn setup() -> (PocketIc, Principal, Principal) {
     let pic = PocketIc::new();
@@ -56,19 +47,21 @@ fn test_register_user_with_phone() {
     let pin = "1234";
     let name = "John Doe";
     
+    let request = RegisterUserRequest {
+        phone_number: Some(phone.to_string()),
+        principal_id: Some(user_principal.to_text()),
+        first_name: name.to_string(),
+        last_name: "Doe".to_string(),
+        email: "test@example.com".to_string(),
+        preferred_currency: "UGX".to_string(),
+        pin: pin.to_string(),
+    };
+    
     let result = pic.update_call(
         canister_id,
         user_principal,
         "register_user",
-        encode_args((
-            Some(phone.to_string()),
-            Some(user_principal.to_text()),
-            name.to_string(),
-            "Doe".to_string(),
-            "test@example.com".to_string(),
-            "UGX".to_string(),
-            pin.to_string(),
-        )).unwrap(),
+        encode_args((request,)).unwrap(),
     );
     
     assert!(result.is_ok(), "Register user call failed");
@@ -98,19 +91,21 @@ fn test_register_user_fails_with_invalid_phone() {
     let user_principal = Principal::anonymous();
     
     // Phone without + prefix
+    let request = RegisterUserRequest {
+        phone_number: Some("256700123456".to_string()), // Missing +
+        principal_id: Some(user_principal.to_text()),
+        first_name: "John".to_string(),
+        last_name: "Doe".to_string(),
+        email: "test@example.com".to_string(),
+        preferred_currency: "UGX".to_string(),
+        pin: "1234".to_string(),
+    };
+    
     let result = pic.update_call(
         canister_id,
         user_principal,
         "register_user",
-        encode_args((
-            Some("256700123456".to_string()), // Missing +
-            Some(user_principal.to_text()),
-            "John".to_string(),
-            "Doe".to_string(),
-            "test@example.com".to_string(),
-            "UGX".to_string(),
-            "1234".to_string(),
-        )).unwrap(),
+        encode_args((request,)).unwrap(),
     );
     
     assert!(result.is_ok());
@@ -129,19 +124,21 @@ fn test_register_user_fails_with_invalid_pin() {
     let user_principal = Principal::anonymous();
     
     // PIN with only 3 digits
+    let request = RegisterUserRequest {
+        phone_number: Some("+256700123456".to_string()),
+        principal_id: Some(user_principal.to_text()),
+        first_name: "John".to_string(),
+        last_name: "Doe".to_string(),
+        email: "test@example.com".to_string(),
+        preferred_currency: "UGX".to_string(),
+        pin: "123".to_string(), // Too short
+    };
+    
     let result = pic.update_call(
         canister_id,
         user_principal,
         "register_user",
-        encode_args((
-            Some("+256700123456".to_string()),
-            Some(user_principal.to_text()),
-            "John".to_string(),
-            "Doe".to_string(),
-            "test@example.com".to_string(),
-            "UGX".to_string(),
-            "123".to_string(), // Too short
-        )).unwrap(),
+        encode_args((request,)).unwrap(),
     );
     
     assert!(result.is_ok());
