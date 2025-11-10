@@ -80,17 +80,22 @@ pub async fn buy_crypto(
     // 8. Record transaction
     let timestamp = ic_cdk::api::time();
     let tx_id = transfer_logic::generate_transaction_id(timestamp);
-    let tx_record = data_client::TransactionRecord {
+    let currency_enum = shared_types::FiatCurrency::from_string(&fiat_currency)
+        .map_err(|e| format!("Invalid currency: {}", e))?;
+    
+    let tx = shared_types::Transaction {
         id: tx_id.clone(),
-        transaction_type: "buy_crypto".to_string(),
+        transaction_type: shared_types::TransactionType::BuyCrypto,
         from_user: Some(user.id.clone()),
         to_user: None,
         amount: fiat_amount,
-        currency: fiat_currency.clone(),
-        timestamp: ic_cdk::api::time() / 1_000_000_000,
-        status: "completed".to_string(),
+        currency_type: shared_types::CurrencyType::Fiat(currency_enum),
+        description: None,
+        created_at: ic_cdk::api::time(),
+        completed_at: Some(ic_cdk::api::time()),
+        status: shared_types::TransactionStatus::Completed,
     };
-    data_client::store_transaction(&tx_record).await?;
+    data_client::store_transaction(&tx).await?;
     
     // 9. Update last active (for security monitoring)
     let _ = data_client::update_last_active(&user.id).await;
@@ -119,7 +124,7 @@ pub async fn buy_crypto(
         amount: crypto_amount,
         currency: format!("{:?}", crypto_type),
         new_balance: new_fiat_balance,
-        timestamp: tx_record.timestamp,
+        timestamp: ic_cdk::api::time(),
     })
 }
 
@@ -165,17 +170,19 @@ pub async fn send_crypto(
     // 5. Record transaction
     let timestamp = ic_cdk::api::time();
     let tx_id = transfer_logic::generate_transaction_id(timestamp);
-    let tx_record = data_client::TransactionRecord {
+    let tx = shared_types::Transaction {
         id: tx_id.clone(),
-        transaction_type: "send_crypto".to_string(),
+        transaction_type: shared_types::TransactionType::TransferCrypto,
         from_user: Some(user.id.clone()),
         to_user: Some(to_address.clone()),
         amount,
-        currency: format!("{:?}", crypto_type),
-        timestamp: ic_cdk::api::time() / 1_000_000_000,
-        status: "completed".to_string(),
+        currency_type: shared_types::CurrencyType::Crypto(crypto_type),
+        description: None,
+        created_at: ic_cdk::api::time(),
+        completed_at: Some(ic_cdk::api::time()),
+        status: shared_types::TransactionStatus::Completed,
     };
-    data_client::store_transaction(&tx_record).await?;
+    data_client::store_transaction(&tx).await?;
     
     // 6. Transfer crypto to recipient address via ICRC-1
     let recipient_principal = Principal::from_text(&to_address)
@@ -201,7 +208,7 @@ pub async fn send_crypto(
         amount,
         currency: format!("{:?}", crypto_type),
         new_balance: current_balance - amount,
-        timestamp: tx_record.timestamp,
+        timestamp: ic_cdk::api::time(),
     })
 }
 
@@ -258,17 +265,19 @@ pub async fn sell_crypto_to_agent(
     
     // 7. Create escrow transaction record
     let tx_id = transfer_logic::generate_transaction_id(timestamp);
-    let tx_record = data_client::TransactionRecord {
+    let tx = shared_types::Transaction {
         id: tx_id.clone(),
-        transaction_type: "crypto_sell_escrow".to_string(),
+        transaction_type: shared_types::TransactionType::SellCrypto,
         from_user: Some(user.id.clone()),
         to_user: Some(agent_id.clone()),
         amount: crypto_amount,
-        currency: format!("{:?}", crypto_type),
-        timestamp: ic_cdk::api::time() / 1_000_000_000,
-        status: "pending".to_string(), // Pending until agent confirms
+        currency_type: shared_types::CurrencyType::Crypto(crypto_type),
+        description: Some("Escrow pending agent confirmation".to_string()),
+        created_at: ic_cdk::api::time(),
+        completed_at: None,
+        status: shared_types::TransactionStatus::Pending, // Pending until agent confirms
     };
-    data_client::store_transaction(&tx_record).await?;
+    data_client::store_transaction(&tx).await?;
     
     // 8. Update last active
     let _ = data_client::update_last_active(&user.id).await;
@@ -283,7 +292,7 @@ pub async fn sell_crypto_to_agent(
         amount: crypto_amount,
         currency: format!("{:?}", crypto_type),
         new_balance: current_balance - crypto_amount,
-        timestamp: tx_record.timestamp,
+        timestamp: ic_cdk::api::time(),
     })
 }
 

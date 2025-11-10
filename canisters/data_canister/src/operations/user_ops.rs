@@ -33,11 +33,11 @@ pub fn create_user(
     
     let user = User {
         id: user_id.clone(),
-        phone_number: user_data.phone_number,
-        principal_id: user_data.principal_id,
-        first_name: user_data.first_name,
-        last_name: user_data.last_name,
-        email: user_data.email,
+        phone_number: user_data.phone_number.clone(),
+        principal_id: user_data.principal_id.clone(),
+        first_name: user_data.first_name.clone(),
+        last_name: user_data.last_name.clone(),
+        email: user_data.email.clone(),
         user_type: user_data.user_type,
         preferred_currency: user_data.preferred_currency,
         kyc_status: KYCStatus::NotStarted,

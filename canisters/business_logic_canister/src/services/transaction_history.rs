@@ -10,7 +10,7 @@ pub async fn get_history(
     user_identifier: String,
     limit: Option<usize>,
     offset: Option<usize>,
-) -> Result<Vec<TransactionRecord>, String> {
+) -> Result<Vec<shared_types::Transaction>, String> {
     // Get user
     let user = get_user_by_identifier(&user_identifier).await?;
     

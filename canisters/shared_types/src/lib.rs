@@ -11,7 +11,7 @@ pub enum UserType {
     Agent,
 }
 
-#[derive(CandidType, Deserialize, Clone, Debug)]
+#[derive(CandidType, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum FiatCurrency {
     AOA, BIF, BWP, CDF, CVE, DJF, DZD, EGP, ERN, ETB,
     GHS, GMD, KES, KMF, LRD, LSL, LYD, MAD, MGA, MRU,
@@ -68,6 +68,54 @@ impl FiatCurrency {
     pub fn to_string(&self) -> String {
         format!("{:?}", self)
     }
+    
+    pub fn code(&self) -> &'static str {
+        match self {
+            FiatCurrency::AOA => "AOA",
+            FiatCurrency::BIF => "BIF",
+            FiatCurrency::BWP => "BWP",
+            FiatCurrency::CDF => "CDF",
+            FiatCurrency::CVE => "CVE",
+            FiatCurrency::DJF => "DJF",
+            FiatCurrency::DZD => "DZD",
+            FiatCurrency::EGP => "EGP",
+            FiatCurrency::ERN => "ERN",
+            FiatCurrency::ETB => "ETB",
+            FiatCurrency::GHS => "GHS",
+            FiatCurrency::GMD => "GMD",
+            FiatCurrency::KES => "KES",
+            FiatCurrency::KMF => "KMF",
+            FiatCurrency::LRD => "LRD",
+            FiatCurrency::LSL => "LSL",
+            FiatCurrency::LYD => "LYD",
+            FiatCurrency::MAD => "MAD",
+            FiatCurrency::MGA => "MGA",
+            FiatCurrency::MRU => "MRU",
+            FiatCurrency::MUR => "MUR",
+            FiatCurrency::MWK => "MWK",
+            FiatCurrency::NAD => "NAD",
+            FiatCurrency::NGN => "NGN",
+            FiatCurrency::RWF => "RWF",
+            FiatCurrency::SCR => "SCR",
+            FiatCurrency::SDG => "SDG",
+            FiatCurrency::SLL => "SLL",
+            FiatCurrency::SOS => "SOS",
+            FiatCurrency::SSP => "SSP",
+            FiatCurrency::STN => "STN",
+            FiatCurrency::SZL => "SZL",
+            FiatCurrency::TND => "TND",
+            FiatCurrency::TZS => "TZS",
+            FiatCurrency::UGX => "UGX",
+            FiatCurrency::XAF => "XAF",
+            FiatCurrency::XOF => "XOF",
+            FiatCurrency::ZAR => "ZAR",
+            FiatCurrency::ZMW => "ZMW",
+        }
+    }
+    
+    pub fn from_code(code: &str) -> Option<Self> {
+        Self::from_string(code).ok()
+    }
 }
 
 #[derive(CandidType, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
@@ -78,12 +126,19 @@ pub enum KYCStatus {
     Rejected,
 }
 
+/// Crypto currency types
+#[derive(CandidType, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CryptoType {
+    CkBTC,
+    CkUSDC,
+}
+
 /// CreateUserData - MUST match Data Canister's definition EXACTLY
 /// Field order is critical for Candid encoding!
-#[derive(CandidType, Deserialize)]
+#[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct CreateUserData {
     pub user_type: UserType,
-    pub preferred_currency: FiatCurrency,
+    pub preferred_currency: FiatCurrency, 
     pub email: String,
     pub first_name: String,
     pub last_name: String,
@@ -91,21 +146,32 @@ pub struct CreateUserData {
     pub phone_number: Option<String>,
 }
 
-/// User - MUST match Data Canister's definition EXACTLY
-#[derive(CandidType, Deserialize, Clone)]
+/// User - MUST match Data Canister's Candid definition EXACTLY (including field order!)
+#[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct User {
     pub id: String,
-    pub phone_number: Option<String>,
-    pub principal_id: Option<String>,
-    pub first_name: String,
-    pub last_name: String,
-    pub email: String,
-    pub preferred_currency: FiatCurrency,
     pub user_type: UserType,
-    pub kyc_status: KYCStatus,
-    pub is_verified: bool,
+    pub preferred_currency: FiatCurrency,
     pub created_at: u64,
     pub last_active: u64,
+    pub email: String,
+    pub is_verified: bool,
+    pub kyc_status: KYCStatus,
+    pub first_name: String,
+    pub last_name: String,
+    pub principal_id: Option<String>,
+    pub phone_number: Option<String>,
+}
+
+// Helper to deserialize numbers from strings (Candid JSON format)
+fn deserialize_number_from_string<'de, D>(deserializer: D) -> Result<u64, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::Error;
+    String::deserialize(deserializer)?
+        .parse()
+        .map_err(D::Error::custom)
 }
 
 // ============================================================================
@@ -120,7 +186,7 @@ pub struct RegisterUserRequest {
     pub first_name: String,
     pub last_name: String,
     pub email: String,
-    pub preferred_currency: String,
+    pub preferred_currency: String,  // String instead of enum to avoid Candid issues
     pub pin: String,
 }
 
@@ -130,12 +196,6 @@ pub struct UserBalances {
     pub fiat_balances: Vec<FiatBalance>,
     pub ckbtc_balance: u64,
     pub ckusdc_balance: u64,
-}
-
-#[derive(CandidType, Deserialize, Clone, Debug)]
-pub struct FiatBalance {
-    pub currency: String,
-    pub amount: u64,
 }
 
 /// Transaction result returned from money transfer operations
@@ -150,9 +210,193 @@ pub struct TransactionResult {
     pub timestamp: u64,
 }
 
-/// Crypto currency types
-#[derive(CandidType, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
-pub enum CryptoType {
-    CkBTC,
-    CkUSDC,
+// ============================================================================
+// Balance Models - SHARED BETWEEN ALL CANISTERS
+// ============================================================================
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct FiatBalance {
+    pub user_id: String,
+    pub currency: FiatCurrency,
+    pub balance: u64,
+    pub updated_at: u64,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct CryptoBalance {
+    pub user_id: String,
+    pub ckbtc: u64,
+    pub ckusdc: u64,
+    pub updated_at: u64,
+}
+
+// ============================================================================
+// Transaction Models - SHARED BETWEEN ALL CANISTERS
+// ============================================================================
+
+#[derive(CandidType, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum TransactionType {
+    DepositFiat,
+    WithdrawFiat,
+    TransferFiat,
+    BuyCrypto,
+    SellCrypto,
+    TransferCrypto,
+    AgentCommission,
+}
+
+#[derive(CandidType, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum TransactionStatus {
+    Pending,
+    Completed,
+    Failed,
+    Cancelled,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct Transaction {
+    pub id: String,
+    pub transaction_type: TransactionType,
+    pub from_user: Option<String>,
+    pub to_user: Option<String>,
+    pub amount: u64,
+    pub currency_type: CurrencyType,
+    pub status: TransactionStatus,
+    pub created_at: u64,
+    pub completed_at: Option<u64>,
+    pub description: Option<String>,
+}
+
+/// TransactionRecord - simplified version for business logic layer
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct TransactionRecord {
+    pub id: String,
+    pub transaction_type: String,
+    pub from_user: Option<String>,
+    pub to_user: Option<String>,
+    pub amount: u64,
+    pub currency: String,
+    pub timestamp: u64,
+    pub status: String,
+}
+
+#[derive(CandidType, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum CurrencyType {
+    Fiat(FiatCurrency),
+    Crypto(CryptoType),
+}
+
+// ============================================================================
+// PIN Security Models - SHARED BETWEEN ALL CANISTERS
+// ============================================================================
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct UserPin {
+    pub user_id: String,
+    pub pin_hash: String,
+    pub salt: String,
+    pub failed_attempts: u32,
+    pub locked_until: Option<u64>,
+    pub created_at: u64,
+    pub updated_at: u64,
+}
+
+// ============================================================================
+// Audit Models - SHARED BETWEEN ALL CANISTERS
+// ============================================================================
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct AuditEntry {
+    pub timestamp: u64,
+    pub action: String,
+    pub user_id: Option<String>,
+    pub details: String,
+}
+
+
+// ============================================================================
+// Data Canister Request Types - For proper non-deprecated API usage
+// ============================================================================
+
+/// Request to create a user (internal - string types for inter-canister calls)
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct CreateUserRequest {
+    pub user_type_str: String,
+    pub preferred_currency_str: String,
+    pub email: String,
+    pub first_name: String,
+    pub last_name: String,
+    pub principal_id: Option<String>,
+    pub phone_number: Option<String>,
+}
+
+/// Request to setup user PIN
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct SetupPinRequest {
+    pub user_id: String,
+    pub pin: String,
+    pub salt: String,
+}
+
+/// Request to get fiat balance
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct GetFiatBalanceRequest {
+    pub user_id: String,
+    pub currency: String,
+}
+
+/// Request to withdraw fiat
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct WithdrawFiatRequest {
+    pub user_id: String,
+    pub amount: u64,
+    pub currency: String,
+    pub description: Option<String>,
+}
+
+/// Request to set fiat balance
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct SetFiatBalanceRequest {
+    pub user_id: String,
+    pub currency: String,
+    pub amount: u64,
+}
+
+/// Request to verify PIN
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct VerifyPinRequest {
+    pub user_id: String,
+    pub pin: String,
+}
+
+/// Request to update crypto balance
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct UpdateCryptoBalanceRequest {
+    pub user_id: String,
+    pub ckbtc_delta: i64,
+    pub ckusdc_delta: i64,
+}
+
+/// Request to get user transactions
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct GetUserTransactionsRequest {
+    pub user_id: String,
+    pub limit: Option<usize>,
+    pub offset: Option<usize>,
+}
+
+/// Request to change PIN
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct ChangePinRequest {
+    pub user_id: String,
+    pub old_pin: String,
+    pub new_pin: String,
+    pub new_salt: String,
+}
+
+/// Request to update user phone
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct UpdateUserPhoneRequest {
+    pub user_id: String,
+    pub phone_number: String,
 }

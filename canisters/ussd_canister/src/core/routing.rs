@@ -245,8 +245,8 @@ pub async fn handle_local_currency_menu(text: &str, session: &mut UssdSession) -
             match crate::services::business_logic::get_balances(&session.phone_number).await {
                 Ok(balances) => {
                     let fiat_amount = match balances.fiat_balances.iter()
-                        .find(|b| b.currency == currency) {
-                        Some(balance) => balance.amount as f64 / 100.0,
+                        .find(|b| format!("{:?}", b.currency) == currency) {
+                        Some(balance) => balance.balance as f64 / 100.0,
                         None => {
                             return (format!("{}: {} {}\n\n{}", 
                                 TranslationService::translate("error", lang),

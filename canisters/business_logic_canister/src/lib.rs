@@ -2,7 +2,7 @@ use candid::Principal;
 use ic_cdk_macros::{init, query, update};
 use ic_cdk::api::msg_caller;
 use std::cell::RefCell;
-use serde::{Serialize, Deserialize as SerdeDeserialize};
+use serde::Deserialize as SerdeDeserialize;
 
 pub mod logic;
 mod models;
@@ -346,7 +346,7 @@ async fn withdraw_fiat(
         amount,
         currency,
         new_balance: balance - amount,
-        timestamp: tx.timestamp,
+        timestamp: ic_cdk::api::time(),
     })
 }
 
@@ -541,14 +541,16 @@ async fn sell_crypto_to_agent(
 // ============================================================================
 
 /// Get user balances (both fiat and crypto)
-#[query]
+/// NOTE: Changed to #[update] because it makes inter-canister calls (queries can't be async or make calls)
+#[update]
 async fn get_balances(user_identifier: String) -> Result<UserBalances, String> {
     verify_authorized_caller()?;
     services::balance_queries::get_balances(user_identifier).await
 }
 
 /// Check fiat balance for specific currency
-#[query]
+/// NOTE: Changed to #[update] because it makes inter-canister calls (queries can't be async or make calls)
+#[update]
 async fn check_fiat_balance(
     user_identifier: String,
     currency: String,
@@ -558,7 +560,8 @@ async fn check_fiat_balance(
 }
 
 /// Check crypto balance
-#[query]
+/// NOTE: Changed to #[update] because it makes inter-canister calls (queries can't be async or make calls)
+#[update]
 async fn check_crypto_balance(
     user_identifier: String,
     crypto_type: CryptoType,
@@ -616,7 +619,7 @@ async fn register_user(request: shared_types::RegisterUserRequest) -> Result<Str
         first_name.clone(),
         last_name.clone(),
         email.clone(),
-        preferred_currency.clone(),
+        preferred_currency,
         pin,
     ).await;
     
@@ -796,19 +799,15 @@ async fn change_pin(
 // ============================================================================
 
 /// Get transaction history
-#[query]
+/// NOTE: Changed to #[update] because it makes inter-canister calls (queries can't be async or make calls)
+#[update]
 async fn get_transaction_history(
     user_identifier: String,
     limit: Option<usize>,
     offset: Option<usize>,
-) -> Result<Vec<TransactionRecord>, String> {
+) -> Result<Vec<shared_types::Transaction>, String> {
     verify_authorized_caller()?;
-    
-    services::transaction_history::get_history(
-        user_identifier,
-        limit,
-        offset,
-    ).await
+    services::transaction_history::get_history(user_identifier, limit, offset).await
 }
 
 // ============================================================================

@@ -1,10 +1,7 @@
 use candid::{CandidType, Deserialize};
 
-#[derive(CandidType, Deserialize, Clone, Copy, Debug)]
-pub enum CryptoType {
-    CkBTC,
-    CkUSDC,
-}
+// Re-export CryptoType from shared_types instead of defining our own
+pub use shared_types::CryptoType;
 
 #[derive(CandidType, Deserialize, Clone)]
 pub struct AuditEntry {

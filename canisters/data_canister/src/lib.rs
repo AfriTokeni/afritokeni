@@ -223,8 +223,31 @@ fn list_authorized_canisters() -> Result<Vec<String>, String> {
 
 /// Create user (canister only - called during registration)
 #[update]
-async fn create_user(user_data: CreateUserData) -> Result<User, String> {
+fn create_user(request: shared_types::CreateUserRequest) -> Result<User, String> {
+    ic_cdk::println!("📥 Data canister received create_user request");
+    
     verify_canister_access()?;
+    
+    // Convert strings to enums
+    let user_type = match request.user_type_str.as_str() {
+        "User" => UserType::User,
+        "Admin" => UserType::Admin,
+        "Agent" => UserType::Agent,
+        _ => return Err(format!("Invalid user type: {}", request.user_type_str)),
+    };
+    
+    let preferred_currency = FiatCurrency::from_string(&request.preferred_currency_str)
+        .map_err(|e| format!("Invalid currency: {}", e))?;
+    
+    let user_data = CreateUserData {
+        user_type,
+        preferred_currency,
+        email: request.email,
+        first_name: request.first_name,
+        last_name: request.last_name,
+        principal_id: request.principal_id,
+        phone_number: request.phone_number,
+    };
     
     STATE.with(|state| {
         let mut s = state.borrow_mut();
@@ -426,12 +449,12 @@ async fn transfer_fiat(
 
 /// Setup PIN (canister only - called during registration)
 #[update]
-async fn setup_user_pin(user_id: String, pin: String, salt: String) -> Result<(), String> {
+async fn setup_user_pin(request: shared_types::SetupPinRequest) -> Result<(), String> {
     verify_canister_access()?;
     
     STATE.with(|state| {
         let mut s = state.borrow_mut();
-        security::pin_ops::setup_pin_with_salt(&mut s, user_id, &pin, salt)
+        security::pin_ops::setup_pin_with_salt(&mut s, request.user_id, &request.pin, request.salt)
     })
 }
 

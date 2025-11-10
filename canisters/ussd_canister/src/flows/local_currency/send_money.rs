@@ -75,8 +75,8 @@ pub async fn handle_send_money(text: &str, session: &mut UssdSession) -> (String
             match crate::services::business_logic::get_balances(&session.phone_number).await {
                 Ok(balances) => {
                     let fiat_balance = match balances.fiat_balances.iter()
-                        .find(|b| b.currency == currency) {
-                        Some(balance) => balance.amount as f64 / 100.0,
+                        .find(|b| format!("{:?}", b.currency) == currency) {
+                        Some(balance) => balance.balance as f64 / 100.0,
                         None => {
                             return (format!("{}: {} {}\n\n{}", 
                                 TranslationService::translate("error", lang),

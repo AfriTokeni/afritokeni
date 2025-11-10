@@ -1,0 +1,7 @@
+[build]
+target = "wasm32-unknown-unknown"
+
+[test]
+# Ignore all integration tests by default due to PocketIC bug
+# Run with: cargo test -- --ignored
+# Or manually test on local replica: npm run test:integration:replica

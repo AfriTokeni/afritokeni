@@ -70,18 +70,25 @@ pub async fn transfer_money(
     // 6. Record transaction
     let timestamp = ic_cdk::api::time();
     let tx_id = transfer_logic::generate_transaction_id(timestamp);
-    let tx_record = data_client::TransactionRecord {
+    
+    // Convert to proper Transaction type with enums
+    let currency_enum = shared_types::FiatCurrency::from_string(&currency)
+        .map_err(|e| format!("Invalid currency: {}", e))?;
+    
+    let tx = shared_types::Transaction {
         id: tx_id.clone(),
-        transaction_type: "transfer_fiat".to_string(),
+        transaction_type: shared_types::TransactionType::TransferFiat,
         from_user: Some(from_user.id.clone()),
         to_user: Some(to_user.id.clone()),
         amount,
-        currency: currency.clone(),
-        timestamp: ic_cdk::api::time() / 1_000_000_000,
-        status: "completed".to_string(),
+        currency_type: shared_types::CurrencyType::Fiat(currency_enum),
+        description: None,
+        created_at: ic_cdk::api::time(),
+        completed_at: Some(ic_cdk::api::time()),
+        status: shared_types::TransactionStatus::Completed,
     };
     
-    data_client::store_transaction(&tx_record).await?;
+    data_client::store_transaction(&tx).await?;
     
     // 7. Update last active for both users (for security monitoring)
     let _ = data_client::update_last_active(&from_user.id).await;
@@ -95,7 +102,7 @@ pub async fn transfer_money(
         amount,
         currency,
         new_balance: new_from_balance,
-        timestamp: tx_record.timestamp,
+        timestamp: ic_cdk::api::time(),
     })
 }
 

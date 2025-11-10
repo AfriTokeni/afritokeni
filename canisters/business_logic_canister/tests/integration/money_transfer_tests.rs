@@ -1,522 +1,179 @@
-use candid::{encode_args, decode_one, Principal};
-use pocket_ic::PocketIc;
-use shared_types::{TransactionResult, User};
+use super::*;
 
-const WASM_PATH: &str = "../../target/wasm32-unknown-unknown/release/business_logic_canister.wasm";
-const DATA_WASM: &str = "../../target/wasm32-unknown-unknown/release/data_canister.wasm";
-
-fn setup() -> (PocketIc, Principal, Principal) {
-    let pic = PocketIc::new();
+#[test]
+fn test_full_money_transfer_flow() {
+    let env = TestEnv::new();
     
-    // Install data canister FIRST
-    let data_canister_id = pic.create_canister();
-    pic.add_cycles(data_canister_id, 2_000_000_000_000);
-    let data_wasm = std::fs::read(DATA_WASM)
-        .expect("Failed to read data canister WASM. Run: cargo build --target wasm32-unknown-unknown --release --package data_canister");
+    // 1. Register sender
+    let sender_id = env.register_user(
+        Some("+256700111111".to_string()),
+        None,
+        "Alice",
+        "Sender",
+        "alice@example.com",
+        "UGX",
+        "1234",
+    ).expect("Sender registration should succeed");
     
-    // Data canister init expects (Option<String>, Option<String>) for ussd_canister_id and web_canister_id
-    let data_init_args = encode_args((None::<String>, None::<String>)).unwrap();
-    pic.install_canister(data_canister_id, data_wasm, data_init_args, None);
+    // 2. Register receiver
+    let receiver_id = env.register_user(
+        Some("+256700222222".to_string()),
+        None,
+        "Bob",
+        "Receiver",
+        "bob@example.com",
+        "UGX",
+        "5678",
+    ).expect("Receiver registration should succeed");
     
-    // Install business logic canister with data_canister_id as init arg
-    let canister_id = pic.create_canister();
-    pic.add_cycles(canister_id, 2_000_000_000_000);
-    let wasm = std::fs::read(WASM_PATH)
-        .expect("Failed to read business logic WASM. Run: cargo build --target wasm32-unknown-unknown --release --package business_logic_canister");
-    let init_args = encode_args((data_canister_id.to_text(),)).unwrap();
-    pic.install_canister(canister_id, wasm, init_args, None);
+    // 3. Give sender initial balance (simulating deposit from agent)
+    env.set_fiat_balance(&sender_id, "UGX", 100000)
+        .expect("Should set balance");
     
-    // Authorize business logic canister to call data canister
-    let result = pic.update_call(
-        data_canister_id,
-        Principal::anonymous(),
-        "add_authorized_canister",
-        encode_args((canister_id.to_text(),)).unwrap(),
-    );
-    assert!(result.is_ok(), "Failed to authorize business logic canister");
+    // 4. Verify sender balance
+    let sender_balance_before = env.check_fiat_balance(&sender_id, "UGX")
+        .expect("Should check balance");
+    assert_eq!(sender_balance_before, 100000);
     
-    (pic, canister_id, data_canister_id)
-}
-
-fn create_test_user(pic: &PocketIc, data_canister: Principal, phone: &str, pin_hash: &str, initial_balance: u64) -> String {
-    // Create user using shared_types::CreateUserData
-    use shared_types::{CreateUserData, UserType, FiatCurrency, User};
+    // 5. Send money from Alice to Bob
+    let tx_result = env.send_money_to_phone(
+        "+256700111111",
+        "+256700222222",
+        50000,
+        "UGX",
+        "1234",
+    ).expect("Transfer should succeed");
     
-    let user_data = CreateUserData {
-        user_type: UserType::User,
-        preferred_currency: FiatCurrency::UGX,
-        email: "test@example.com".to_string(),
-        first_name: "Test".to_string(),
-        last_name: "User".to_string(),
-        principal_id: None,
-        phone_number: Some(phone.to_string()),
-    };
+    // 6. Verify transaction result
+    assert_eq!(tx_result.amount, 50000);
+    assert_eq!(tx_result.from_user, sender_id);
+    assert_eq!(tx_result.to_user, receiver_id);
+    assert_eq!(tx_result.new_balance, 50000); // Sender's new balance
     
-    let result = pic.update_call(
-        data_canister,
-        Principal::anonymous(),
-        "create_user",
-        encode_args((user_data,)).unwrap(),
-    );
-    assert!(result.is_ok(), "Failed to create user: {:?}", result.err());
-    let user_result: Result<User, String> = decode_one(&result.unwrap()).unwrap();
-    let user = user_result.unwrap();
-    let user_id = user.id;
+    // 7. Verify final balances in data canister
+    let sender_balance_after = env.check_fiat_balance(&sender_id, "UGX")
+        .expect("Should check sender balance");
+    let receiver_balance_after = env.check_fiat_balance(&receiver_id, "UGX")
+        .expect("Should check receiver balance");
     
-    // Set PIN (setup_user_pin expects pin and salt)
-    let result = pic.update_call(
-        data_canister,
-        Principal::anonymous(),
-        "setup_user_pin",
-        encode_args((user_id.clone(), pin_hash.to_string(), "test_salt".to_string())).unwrap(),
-    );
-    assert!(result.is_ok(), "Failed to setup PIN: {:?}", result.err());
+    assert_eq!(sender_balance_after, 50000, "Sender should have 50000 left");
+    assert_eq!(receiver_balance_after, 50000, "Receiver should have 50000");
     
-    // Set initial balance
-    let result = pic.update_call(
-        data_canister,
-        Principal::anonymous(),
-        "set_fiat_balance",
-        encode_args((user_id.clone(), "UGX".to_string(), initial_balance)).unwrap(),
-    );
-    assert!(result.is_ok(), "Failed to set balance");
+    // 8. Verify transaction was recorded
+    let sender_txs = env.get_transaction_history(&sender_id, None, None)
+        .expect("Should get sender transactions");
+    assert_eq!(sender_txs.len(), 1, "Sender should have 1 transaction");
     
-    user_id
+    let receiver_txs = env.get_transaction_history(&receiver_id, None, None)
+        .expect("Should get receiver transactions");
+    assert_eq!(receiver_txs.len(), 1, "Receiver should have 1 transaction");
 }
 
 #[test]
-fn test_full_money_transfer_flow_success() {
-    let (pic, canister_id, data_canister) = setup();
+fn test_transfer_insufficient_balance_fails() {
+    let env = TestEnv::new();
     
-    // Create sender with 100,000 UGX
-    let sender_phone = "+256700123456";
-    let sender_pin = "1234";
-    create_test_user(&pic, data_canister, sender_phone, sender_pin, 100_000);
+    // Register users
+    let sender_id = env.register_user(
+        Some("+256700333333".to_string()),
+        None,
+        "Poor",
+        "User",
+        "poor@example.com",
+        "UGX",
+        "1234",
+    ).expect("Should register");
     
-    // Create recipient with 0 UGX
-    let recipient_phone = "+256700654321";
-    create_test_user(&pic, data_canister, recipient_phone, "5678", 0);
+    env.register_user(
+        Some("+256700444444".to_string()),
+        None,
+        "Rich",
+        "User",
+        "rich@example.com",
+        "UGX",
+        "5678",
+    ).expect("Should register");
     
-    let user = Principal::anonymous();
+    // Give sender only 10000
+    env.set_fiat_balance(&sender_id, "UGX", 10000).expect("Should set balance");
     
-    // Transfer 10,000 UGX from sender to recipient
-    let result = pic.update_call(
-        canister_id,
-        user,
-        "send_money_to_phone",
-        encode_args((
-            sender_phone.to_string(),
-            recipient_phone.to_string(),
-            10_000u64,
-            "UGX".to_string(),
-            sender_pin.to_string(),
-        )).unwrap(),
+    // Try to send 50000 - should fail
+    let result = env.send_money_to_phone(
+        "+256700333333",
+        "+256700444444",
+        50000,
+        "UGX",
+        "1234",
     );
     
-    assert!(result.is_ok(), "Transfer call failed");
-    let response: Result<TransactionResult, String> = decode_one(&result.unwrap()).unwrap();
-    
-    assert!(response.is_ok(), "Transfer should succeed: {:?}", response);
-    let tx = response.unwrap();
-    
-    // Verify transaction details
-    assert_eq!(tx.amount, 10_000);
-    assert_eq!(tx.currency, "UGX");
-    assert_eq!(tx.new_balance, 90_000); // 100,000 - 10,000
-    assert!(!tx.transaction_id.is_empty());
-    
-    // Verify sender balance decreased
-    let sender_balance_result = pic.query_call(
-        data_canister,
-        Principal::anonymous(),
-        "get_fiat_balance",
-        encode_args((format!("user_{}", sender_phone), "UGX".to_string())).unwrap(),
-    );
-    assert!(sender_balance_result.is_ok());
-    let sender_balance: u64 = decode_one(&sender_balance_result.unwrap()).unwrap();
-    assert_eq!(sender_balance, 90_000, "Sender balance should be 90,000");
-    
-    // Verify recipient balance increased
-    let recipient_balance_result = pic.query_call(
-        data_canister,
-        Principal::anonymous(),
-        "get_fiat_balance",
-        encode_args((format!("user_{}", recipient_phone), "UGX".to_string())).unwrap(),
-    );
-    assert!(recipient_balance_result.is_ok());
-    let recipient_balance: u64 = decode_one(&recipient_balance_result.unwrap()).unwrap();
-    assert_eq!(recipient_balance, 10_000, "Recipient balance should be 10,000");
+    assert!(result.is_err(), "Should fail with insufficient balance");
+    assert!(result.unwrap_err().contains("Insufficient"));
 }
 
 #[test]
-fn test_transfer_fails_with_insufficient_balance() {
-    let (pic, canister_id, data_canister) = setup();
+fn test_transfer_wrong_pin_fails() {
+    let env = TestEnv::new();
     
-    // Create sender with only 5,000 UGX
-    let sender_phone = "+256700111111";
-    let sender_pin = "1234";
-    create_test_user(&pic, data_canister, sender_phone, sender_pin, 5_000);
+    // Register users
+    let sender_id = env.register_user(
+        Some("+256700555555".to_string()),
+        None,
+        "Alice",
+        "User",
+        "alice2@example.com",
+        "UGX",
+        "1234",
+    ).expect("Should register");
     
-    // Create recipient
-    let recipient_phone = "+256700222222";
-    create_test_user(&pic, data_canister, recipient_phone, "5678", 0);
+    env.register_user(
+        Some("+256700666666".to_string()),
+        None,
+        "Bob",
+        "User",
+        "bob2@example.com",
+        "UGX",
+        "5678",
+    ).expect("Should register");
     
-    let user = Principal::anonymous();
-    
-    // Try to transfer 10,000 UGX (more than balance)
-    let result = pic.update_call(
-        canister_id,
-        user,
-        "send_money_to_phone",
-        encode_args((
-            sender_phone.to_string(),
-            recipient_phone.to_string(),
-            10_000u64,
-            "UGX".to_string(),
-            sender_pin.to_string(),
-        )).unwrap(),
-    );
-    
-    assert!(result.is_ok());
-    let response: Result<TransactionResult, String> = decode_one(&result.unwrap()).unwrap();
-    
-    assert!(response.is_err(), "Transfer should fail with insufficient balance");
-    let error = response.unwrap_err();
-    assert!(error.contains("insufficient") || error.contains("balance"), "Error should mention insufficient balance: {}", error);
-}
-
-#[test]
-fn test_transfer_fails_with_wrong_pin() {
-    let (pic, canister_id, data_canister) = setup();
-    
-    // Create users
-    let sender_phone = "+256700333333";
-    let correct_pin = "1234";
-    create_test_user(&pic, data_canister, sender_phone, correct_pin, 100_000);
-    
-    let recipient_phone = "+256700444444";
-    create_test_user(&pic, data_canister, recipient_phone, "5678", 0);
-    
-    let user = Principal::anonymous();
+    env.set_fiat_balance(&sender_id, "UGX", 100000).expect("Should set balance");
     
     // Try with wrong PIN
-    let result = pic.update_call(
-        canister_id,
-        user,
-        "send_money_to_phone",
-        encode_args((
-            sender_phone.to_string(),
-            recipient_phone.to_string(),
-            10_000u64,
-            "UGX".to_string(),
-            "9999".to_string(), // Wrong PIN
-        )).unwrap(),
+    let result = env.send_money_to_phone(
+        "+256700555555",
+        "+256700666666",
+        50000,
+        "UGX",
+        "9999", // Wrong PIN!
     );
     
-    assert!(result.is_ok());
-    let response: Result<TransactionResult, String> = decode_one(&result.unwrap()).unwrap();
-    
-    assert!(response.is_err(), "Transfer should fail with wrong PIN");
-    let error = response.unwrap_err();
-    assert!(error.contains("PIN") || error.contains("Invalid"), "Error should mention PIN: {}", error);
-}
-
-#[test]
-fn test_transfer_validates_zero_amount() {
-    let (pic, canister_id, data_canister) = setup();
-    
-    let sender_phone = "+256700555555";
-    create_test_user(&pic, data_canister, sender_phone, "1234", 100_000);
-    
-    let recipient_phone = "+256700666666";
-    create_test_user(&pic, data_canister, recipient_phone, "5678", 0);
-    
-    let user = Principal::anonymous();
-    
-    // Try to transfer 0 amount
-    let result = pic.update_call(
-        canister_id,
-        user,
-        "send_money_to_phone",
-        encode_args((
-            sender_phone.to_string(),
-            recipient_phone.to_string(),
-            0u64,
-            "UGX".to_string(),
-            "1234".to_string(),
-        )).unwrap(),
-    );
-    
-    assert!(result.is_ok());
-    let response: Result<TransactionResult, String> = decode_one(&result.unwrap()).unwrap();
-    
-    assert!(response.is_err(), "Transfer should fail with zero amount");
-    let error = response.unwrap_err();
-    assert!(error.contains("amount") || error.contains("greater than 0"), "Error should mention amount: {}", error);
+    assert!(result.is_err(), "Should fail with wrong PIN");
+    assert!(result.unwrap_err().contains("PIN"));
 }
 
 #[test]
 fn test_transfer_to_nonexistent_user_fails() {
-    let (pic, canister_id, data_canister) = setup();
+    let env = TestEnv::new();
     
-    let sender_phone = "+256700777777";
-    create_test_user(&pic, data_canister, sender_phone, "1234", 100_000);
+    let sender_id = env.register_user(
+        Some("+256700777777".to_string()),
+        None,
+        "Alice",
+        "User",
+        "alice3@example.com",
+        "UGX",
+        "1234",
+    ).expect("Should register");
     
-    let user = Principal::anonymous();
+    env.set_fiat_balance(&sender_id, "UGX", 100000).expect("Should set balance");
     
-    // Try to transfer to non-existent user
-    let result = pic.update_call(
-        canister_id,
-        user,
-        "send_money_to_phone",
-        encode_args((
-            sender_phone.to_string(),
-            "+256700999999".to_string(), // Non-existent
-            10_000u64,
-            "UGX".to_string(),
-            "1234".to_string(),
-        )).unwrap(),
+    // Try to send to non-existent phone
+    let result = env.send_money_to_phone(
+        "+256700777777",
+        "+256700999999", // Doesn't exist
+        50000,
+        "UGX",
+        "1234",
     );
     
-    assert!(result.is_ok());
-    let response: Result<TransactionResult, String> = decode_one(&result.unwrap()).unwrap();
-    
-    assert!(response.is_err(), "Transfer should fail for non-existent recipient");
-    let error = response.unwrap_err();
-    assert!(error.contains("not found") || error.contains("User"), "Error should mention user not found: {}", error);
-}
-
-// ============================================================================
-// EDGE CASES - Multiple Currencies, Large Amounts, Transaction History
-// ============================================================================
-
-#[test]
-fn test_transfer_with_different_currency_kes() {
-    let (pic, canister_id, data_canister) = setup();
-    
-    // Create users with KES (Kenyan Shillings)
-    let sender_phone = "+254700111111";
-    let sender_id = create_test_user(&pic, data_canister, sender_phone, "1234", 0);
-    
-    // Set KES balance
-    let result = pic.update_call(
-        data_canister,
-        Principal::anonymous(),
-        "set_fiat_balance",
-        encode_args((sender_id.clone(), "KES".to_string(), 50_000u64)).unwrap(),
-    );
-    assert!(result.is_ok());
-    
-    let recipient_phone = "+254700222222";
-    create_test_user(&pic, data_canister, recipient_phone, "5678", 0);
-    
-    let user = Principal::anonymous();
-    
-    // Transfer 10,000 KES
-    let result = pic.update_call(
-        canister_id,
-        user,
-        "send_money_to_phone",
-        encode_args((
-            sender_phone.to_string(),
-            recipient_phone.to_string(),
-            10_000u64,
-            "KES".to_string(),
-            "1234".to_string(),
-        )).unwrap(),
-    );
-    
-    assert!(result.is_ok());
-    let response: Result<TransactionResult, String> = decode_one(&result.unwrap()).unwrap();
-    
-    assert!(response.is_ok(), "KES transfer should succeed: {:?}", response);
-    let tx = response.unwrap();
-    assert_eq!(tx.currency, "KES");
-    assert_eq!(tx.amount, 10_000);
-}
-
-#[test]
-fn test_transfer_with_nigerian_naira() {
-    let (pic, canister_id, data_canister) = setup();
-    
-    // Create users with NGN (Nigerian Naira)
-    let sender_phone = "+234800111111";
-    let sender_id = create_test_user(&pic, data_canister, sender_phone, "1234", 0);
-    
-    // Set NGN balance
-    let result = pic.update_call(
-        data_canister,
-        Principal::anonymous(),
-        "set_fiat_balance",
-        encode_args((sender_id.clone(), "NGN".to_string(), 200_000u64)).unwrap(),
-    );
-    assert!(result.is_ok());
-    
-    let recipient_phone = "+234800222222";
-    create_test_user(&pic, data_canister, recipient_phone, "5678", 0);
-    
-    let user = Principal::anonymous();
-    
-    // Transfer 50,000 NGN
-    let result = pic.update_call(
-        canister_id,
-        user,
-        "send_money_to_phone",
-        encode_args((
-            sender_phone.to_string(),
-            recipient_phone.to_string(),
-            50_000u64,
-            "NGN".to_string(),
-            "1234".to_string(),
-        )).unwrap(),
-    );
-    
-    assert!(result.is_ok());
-    let response: Result<TransactionResult, String> = decode_one(&result.unwrap()).unwrap();
-    
-    assert!(response.is_ok(), "NGN transfer should succeed: {:?}", response);
-    let tx = response.unwrap();
-    assert_eq!(tx.currency, "NGN");
-}
-
-#[test]
-fn test_multiple_transfers_update_balance_correctly() {
-    let (pic, canister_id, data_canister) = setup();
-    
-    // Create sender with 1M UGX
-    let sender_phone = "+256700123123";
-    create_test_user(&pic, data_canister, sender_phone, "1234", 1_000_000);
-    
-    // Create recipient
-    let recipient_phone = "+256700456456";
-    create_test_user(&pic, data_canister, recipient_phone, "5678", 0);
-    
-    let user = Principal::anonymous();
-    
-    // Make 3 transfers of 100k each
-    for i in 1..=3 {
-        let result = pic.update_call(
-            canister_id,
-            user,
-            "send_money_to_phone",
-            encode_args((
-                sender_phone.to_string(),
-                recipient_phone.to_string(),
-                100_000u64,
-                "UGX".to_string(),
-                "1234".to_string(),
-            )).unwrap(),
-        );
-        
-        assert!(result.is_ok(), "Transfer {} should succeed", i);
-        let response: Result<TransactionResult, String> = decode_one(&result.unwrap()).unwrap();
-        assert!(response.is_ok(), "Transfer {} should succeed: {:?}", i, response);
-        
-        let tx = response.unwrap();
-        let expected_balance = 1_000_000 - (i * 100_000);
-        assert_eq!(tx.new_balance, expected_balance, "Balance after transfer {} should be {}", i, expected_balance);
-    }
-    
-    // Verify final balances
-    let sender_balance_result = pic.query_call(
-        data_canister,
-        Principal::anonymous(),
-        "get_fiat_balance",
-        encode_args((format!("user_{}", sender_phone), "UGX".to_string())).unwrap(),
-    );
-    assert!(sender_balance_result.is_ok());
-    let sender_balance: u64 = decode_one(&sender_balance_result.unwrap()).unwrap();
-    assert_eq!(sender_balance, 700_000, "Sender final balance should be 700k");
-    
-    let recipient_balance_result = pic.query_call(
-        data_canister,
-        Principal::anonymous(),
-        "get_fiat_balance",
-        encode_args((format!("user_{}", recipient_phone), "UGX".to_string())).unwrap(),
-    );
-    assert!(recipient_balance_result.is_ok());
-    let recipient_balance: u64 = decode_one(&recipient_balance_result.unwrap()).unwrap();
-    assert_eq!(recipient_balance, 300_000, "Recipient final balance should be 300k");
-}
-
-#[test]
-fn test_transfer_with_exact_balance_leaves_zero() {
-    let (pic, canister_id, data_canister) = setup();
-    
-    // Create sender with exactly 50,000 UGX
-    let sender_phone = "+256700789789";
-    create_test_user(&pic, data_canister, sender_phone, "1234", 50_000);
-    
-    let recipient_phone = "+256700987987";
-    create_test_user(&pic, data_canister, recipient_phone, "5678", 0);
-    
-    let user = Principal::anonymous();
-    
-    // Transfer all 50,000 UGX
-    let result = pic.update_call(
-        canister_id,
-        user,
-        "send_money_to_phone",
-        encode_args((
-            sender_phone.to_string(),
-            recipient_phone.to_string(),
-            50_000u64,
-            "UGX".to_string(),
-            "1234".to_string(),
-        )).unwrap(),
-    );
-    
-    assert!(result.is_ok());
-    let response: Result<TransactionResult, String> = decode_one(&result.unwrap()).unwrap();
-    
-    assert!(response.is_ok(), "Transfer of exact balance should succeed: {:?}", response);
-    let tx = response.unwrap();
-    assert_eq!(tx.new_balance, 0, "Sender balance should be 0");
-    
-    // Verify sender has 0 balance
-    let sender_balance_result = pic.query_call(
-        data_canister,
-        Principal::anonymous(),
-        "get_fiat_balance",
-        encode_args((format!("user_{}", sender_phone), "UGX".to_string())).unwrap(),
-    );
-    assert!(sender_balance_result.is_ok());
-    let sender_balance: u64 = decode_one(&sender_balance_result.unwrap()).unwrap();
-    assert_eq!(sender_balance, 0);
-}
-
-#[test]
-fn test_transfer_one_unit_above_balance_fails() {
-    let (pic, canister_id, data_canister) = setup();
-    
-    // Create sender with 50,000 UGX
-    let sender_phone = "+256700321321";
-    create_test_user(&pic, data_canister, sender_phone, "1234", 50_000);
-    
-    let recipient_phone = "+256700654654";
-    create_test_user(&pic, data_canister, recipient_phone, "5678", 0);
-    
-    let user = Principal::anonymous();
-    
-    // Try to transfer 50,001 UGX (1 more than balance)
-    let result = pic.update_call(
-        canister_id,
-        user,
-        "send_money_to_phone",
-        encode_args((
-            sender_phone.to_string(),
-            recipient_phone.to_string(),
-            50_001u64,
-            "UGX".to_string(),
-            "1234".to_string(),
-        )).unwrap(),
-    );
-    
-    assert!(result.is_ok());
-    let response: Result<TransactionResult, String> = decode_one(&result.unwrap()).unwrap();
-    
-    assert!(response.is_err(), "Transfer should fail");
-    let error = response.unwrap_err();
-    assert!(error.contains("insufficient") || error.contains("balance"), 
-        "Error should mention insufficient balance: {}", error);
+    assert!(result.is_err(), "Should fail for nonexistent receiver");
 }

@@ -29,7 +29,8 @@ pub async fn register_user(
     }
     
     // Convert currency string to enum
-    let currency_enum = FiatCurrency::from_string(&preferred_currency)?;
+    let currency_enum = FiatCurrency::from_string(&preferred_currency)
+        .map_err(|e| format!("Invalid currency: {}", e))?;
     
     // Create user in data canister (order MUST match Data Canister's CreateUserData)
     let user_data = CreateUserData {

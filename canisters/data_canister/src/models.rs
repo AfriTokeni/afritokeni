@@ -1,9 +1,13 @@
 use candid::{CandidType, Deserialize};
 
 // ============================================================================
-// Currency Enums - Type-safe, extensible for 39 African currencies
+// Currency Enums - Import from shared_types for consistency
 // ============================================================================
 
+pub use shared_types::FiatCurrency;
+
+// OLD LOCAL DEFINITION - REMOVED TO USE SHARED_TYPES
+/*
 #[derive(CandidType, Deserialize, Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum FiatCurrency {
     // East Africa
@@ -57,7 +61,10 @@ pub enum FiatCurrency {
     STN,  // São Tomé and Príncipe Dobra
     MRU,  // Mauritanian Ouguiya
 }
+*/
 
+// OLD IMPL BLOCK - REMOVED, NOW IN SHARED_TYPES
+/*
 impl FiatCurrency {
     pub fn code(&self) -> &'static str {
         match self {
@@ -148,113 +155,26 @@ impl FiatCurrency {
         }
     }
 }
-
-#[derive(CandidType, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
-pub enum CryptoCurrency {
-    CkBTC,   // ICP-native Bitcoin
-    CkUSDC,  // ICP-native USDC
-}
+*/
 
 // ============================================================================
-// User Models - Using shared types
+// ALL MODELS NOW IN SHARED_TYPES - SINGLE SOURCE OF TRUTH
 // ============================================================================
 
-pub use shared_types::{UserType, KYCStatus, User, CreateUserData};
-
-// ============================================================================
-// Balance Models
-// ============================================================================
-
-#[derive(CandidType, Deserialize, Clone)]
-pub struct FiatBalance {
-    pub user_id: String,
-    pub currency: FiatCurrency,
-    pub balance: u64,  // Amount in smallest unit (cents)
-    pub updated_at: u64,
-}
-
-#[derive(CandidType, Deserialize, Clone)]
-pub struct CryptoBalance {
-    pub user_id: String,
-    pub ckbtc: u64,   // Satoshis (1 BTC = 100,000,000 satoshis)
-    pub ckusdc: u64,  // Micro-USDC (1 USDC = 1,000,000 micro-USDC)
-    pub updated_at: u64,
-}
-
-// ============================================================================
-// Transaction Models
-// ============================================================================
-
-#[derive(CandidType, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
-pub enum TransactionType {
-    // Fiat operations
-    DepositFiat,
-    WithdrawFiat,
-    TransferFiat,
-    
-    // Crypto operations
-    BuyCrypto,    // Fiat → Crypto (via agent)
-    SellCrypto,   // Crypto → Fiat (via agent)
-    TransferCrypto,
-    
-    // Agent operations
-    AgentCommission,
-}
-
-#[derive(CandidType, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
-pub enum TransactionStatus {
-    Pending,
-    Completed,
-    Failed,
-    Cancelled,
-}
-
-#[derive(CandidType, Deserialize, Clone)]
-pub struct Transaction {
-    pub id: String,
-    pub transaction_type: TransactionType,
-    pub from_user: Option<String>,
-    pub to_user: Option<String>,
-    pub amount: u64,
-    pub currency_type: CurrencyType,  // Fiat or Crypto
-    pub status: TransactionStatus,
-    pub created_at: u64,
-    pub completed_at: Option<u64>,
-    pub description: Option<String>,
-}
-
-#[derive(CandidType, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
-pub enum CurrencyType {
-    Fiat(FiatCurrency),
-    Crypto(CryptoCurrency),
-}
-
-// ============================================================================
-// PIN Security Models
-// ============================================================================
-
-#[derive(CandidType, Deserialize, Clone)]
-pub struct UserPin {
-    pub user_id: String,
-    pub pin_hash: String,      // HMAC-SHA256 hash
-    pub salt: String,          // Hex-encoded salt
-    pub failed_attempts: u32,
-    pub locked_until: Option<u64>,
-    pub created_at: u64,
-    pub updated_at: u64,
-}
-
-// ============================================================================
-// Audit Models
-// ============================================================================
-
-#[derive(CandidType, Deserialize, Clone)]
-pub struct AuditEntry {
-    pub timestamp: u64,
-    pub action: String,
-    pub user_id: Option<String>,
-    pub details: String,
-}
+pub use shared_types::{
+    // User types
+    UserType, KYCStatus, User, CreateUserData,
+    // Balance types
+    FiatBalance, CryptoBalance,
+    // Transaction types
+    Transaction, TransactionType, TransactionStatus, CurrencyType,
+    // Crypto types
+    CryptoType,
+    // Security types
+    UserPin,
+    // Audit types
+    AuditEntry,
+};
 
 // ============================================================================
 // System Stats
