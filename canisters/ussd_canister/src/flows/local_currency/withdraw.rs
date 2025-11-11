@@ -1,10 +1,10 @@
-// Withdraw flow with PIN verification
+// Withdraw flow with PIN verification and commission display
 use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
-use crate::utils::validation;
+use crate::services::business_logic;
 
 /// Handle withdraw flow
-/// Steps: 1. Enter amount → 2. Enter PIN → 3. Execute
+/// Steps: 0. Enter agent ID → 1. Enter amount → 2. Show fees & confirm → 3. Enter PIN → 4. Create request
 pub async fn handle_withdraw(text: &str, session: &mut UssdSession) -> (String, bool) {
     let lang = Language::from_code(&session.language);
     let parts: Vec<&str> = text.split('*').collect();
@@ -13,55 +13,78 @@ pub async fn handle_withdraw(text: &str, session: &mut UssdSession) -> (String, 
     
     match step {
         0 => {
-            // Step 0: Ask for amount
-            (format!("{}\n{} (KES):", 
+            // Step 0: Ask for agent ID
+            (format!("{}\n{}", 
                 TranslationService::translate("withdraw", lang),
-                TranslationService::translate("enter_amount", lang)), true)
+                "Enter agent ID:"), true)
         }
         1 => {
-            // Step 1: Validate amount (parts[2])
-            // Text: "1*4*amount" -> parts[0]=1, parts[1]=4, parts[2]=amount
-            let amount_str = parts.get(2).unwrap_or(&"");
+            // Step 1: Store agent ID, ask for amount
+            let agent_id = parts.get(2).unwrap_or(&"");
+            session.set_data("agent_id", agent_id);
             
-            match validation::parse_amount(amount_str) {
+            (format!("Enter amount (UGX):"), true)
+        }
+        2 => {
+            // Step 2: Get fees and show confirmation
+            let amount_str = parts.get(3).unwrap_or(&"");
+            
+            match amount_str.parse::<u64>() {
                 Ok(amount) => {
-                    (format!("{}\n{}: {} KES\n\n{}", 
-                        TranslationService::translate("confirm_transaction", lang),
-                        TranslationService::translate("amount", lang),
-                        amount,
-                        TranslationService::translate("enter_pin_confirm", lang)), true)
+                    // Get withdrawal fees from Business Logic
+                    match business_logic::get_withdrawal_fees(amount).await {
+                        Ok(fees) => {
+                            session.set_data("amount", &amount.to_string());
+                            
+                            (format!("💰 Withdrawal Details:\n\nAmount: {} UGX\nPlatform fee (0.5%): {} UGX\nAgent fee (10%): {} UGX\nTotal fees: {} UGX\nYou receive: {} UGX\n\n1. Confirm\n2. Cancel",
+                                fees.amount,
+                                fees.platform_fee,
+                                fees.agent_fee,
+                                fees.total_fees,
+                                fees.net_amount), true)
+                        }
+                        Err(e) => {
+                            (format!("❌ Error calculating fees: {}\n\nTry again", e), true)
+                        }
+                    }
                 }
-                Err(e) => {
-                    (format!("{}\n{}", e, TranslationService::translate("try_again", lang)), true)
+                Err(_) => {
+                    (format!("Invalid amount. Please try again."), true)
                 }
             }
         }
-        2 => {
-            // Step 2: Verify PIN and execute withdrawal
-            // parts: [0]=1, [1]=4, [2]=amount, [3]=pin
-            let pin = parts.get(3).unwrap_or(&"");
-            let phone = session.phone_number.clone();
-            let amount_str = parts.get(2).unwrap_or(&"");
-            let amount_f64 = amount_str.parse::<f64>().unwrap_or(0.0);
-            let amount_cents = (amount_f64 * 100.0) as u64;
-            let currency = session.get_data("currency").unwrap_or_else(|| "UGX".to_string());
+        3 => {
+            // Step 3: User confirmed, ask for PIN
+            let choice = parts.get(4).unwrap_or(&"");
             
-            // Execute withdrawal via Business Logic Canister
-            match crate::services::business_logic::withdraw_fiat(&phone, amount_cents, &currency, pin).await {
-                Ok(_result) => {
-                    (format!("{}\n{} {} {}\n{}\n\n0. {}", 
-                        TranslationService::translate("transaction_successful", lang),
-                        TranslationService::translate("withdraw", lang),
-                        currency,
-                        amount_f64,
-                        TranslationService::translate("receive_cash", lang),
-                        TranslationService::translate("main_menu", lang)), false)
+            if choice == &"1" {
+                (format!("Enter your PIN:"), true)
+            } else {
+                session.clear_data();
+                (format!("Withdrawal cancelled\n\n0. Main Menu"), false)
+            }
+        }
+        4 => {
+            // Step 4: Create withdrawal request with PIN
+            let pin = parts.get(5).unwrap_or(&"");
+            let agent_id = session.get_data("agent_id").unwrap_or_default();
+            let amount: u64 = session.get_data("amount").unwrap_or_default().parse().unwrap_or(0);
+            let phone = session.phone_number.clone();
+            
+            match business_logic::create_withdrawal_request(&phone, &agent_id, amount, pin).await {
+                Ok(result) => {
+                    session.clear_data();
+                    (format!("✅ Withdrawal Request Created!\n\n📋 CODE: {}\n\nShow this code to agent:\n{}\n\nAmount: {} UGX\nPlatform fee: {} UGX\nAgent fee: {} UGX\nYou'll receive: {} UGX\n\n0. Main Menu",
+                        result.withdrawal_code,
+                        result.withdrawal_code,
+                        result.amount_ugx,
+                        result.platform_fee_ugx,
+                        result.agent_fee_ugx,
+                        result.net_amount), false)
                 }
                 Err(e) => {
-                    (format!("{}: {}\n\n0. {}", 
-                        TranslationService::translate("transaction_failed", lang),
-                        e,
-                        TranslationService::translate("main_menu", lang)), false)
+                    session.clear_data();
+                    (format!("❌ Error: {}\n\n0. Main Menu", e), false)
                 }
             }
         }
