@@ -54,7 +54,7 @@ pub async fn handle_buy_bitcoin(text: &str, session: &mut UssdSession) -> (Strin
                 &phone,
                 amount_cents,
                 "UGX",
-                crate::services::business_logic::CryptoType::ckBTC,
+                crate::services::business_logic::CryptoType::CkBTC,
                 pin
             ).await {
                 Ok(tx_result) => {

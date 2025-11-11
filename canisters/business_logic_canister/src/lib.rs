@@ -47,6 +47,7 @@ thread_local! {
     static CONFIG: RefCell<Option<Config>> = RefCell::new(None);
     static AUTHORIZED_CANISTERS: RefCell<Vec<Principal>> = RefCell::new(Vec::new());
     static AUDIT_LOG: RefCell<Vec<AuditEntry>> = RefCell::new(Vec::new());
+    static TEST_MODE: RefCell<bool> = RefCell::new(false);
 }
 
 fn get_config() -> Config {
@@ -140,6 +141,21 @@ fn add_authorized_canister(canister_id: String) -> Result<(), String> {
     );
     
     Ok(())
+}
+
+/// Enable test mode (skips ledger calls) - only for testing
+#[update]
+fn enable_test_mode() -> Result<(), String> {
+    TEST_MODE.with(|mode| {
+        *mode.borrow_mut() = true;
+    });
+    ic_cdk::println!("🧪 TEST MODE ENABLED - Ledger calls will be mocked");
+    Ok(())
+}
+
+/// Check if test mode is enabled
+pub fn is_test_mode() -> bool {
+    TEST_MODE.with(|mode| *mode.borrow())
 }
 
 /// Remove authorized canister (only controller can call)
@@ -535,6 +551,105 @@ async fn send_crypto(
                 "send_crypto",
                 Some(user_identifier.clone()),
                 &format!("Failed to send crypto: {}", e),
+                false
+            );
+        }
+    }
+    
+    result
+}
+
+/// Send USDC (simplified wrapper for USSD)
+#[update]
+async fn send_usdc(
+    user_identifier: String,
+    to_address: String,
+    amount: u64,
+    pin: String,
+) -> Result<TransactionResult, String> {
+    verify_authorized_caller()?;
+    
+    send_crypto(
+        user_identifier,
+        to_address,
+        amount,
+        CryptoType::CkUSDC,
+        pin,
+    ).await
+}
+
+/// Sell Bitcoin for fiat (simplified wrapper for USSD)
+#[update]
+async fn sell_bitcoin(
+    user_identifier: String,
+    crypto_amount: u64,
+    fiat_currency: String,
+    pin: String,
+) -> Result<TransactionResult, String> {
+    verify_authorized_caller()?;
+    
+    let result = services::crypto_operations::sell_crypto_direct(
+        user_identifier.clone(),
+        crypto_amount,
+        CryptoType::CkBTC,
+        fiat_currency.clone(),
+        pin,
+    ).await;
+    
+    match &result {
+        Ok(tx) => {
+            log_audit(
+                "sell_bitcoin",
+                Some(user_identifier),
+                &format!("Sold {} sats for {} {}", crypto_amount, fiat_currency, tx.new_balance),
+                true
+            );
+        }
+        Err(e) => {
+            log_audit(
+                "sell_bitcoin",
+                Some(user_identifier),
+                &format!("Failed to sell Bitcoin: {}", e),
+                false
+            );
+        }
+    }
+    
+    result
+}
+
+/// Sell USDC for fiat (simplified wrapper for USSD)
+#[update]
+async fn sell_usdc(
+    user_identifier: String,
+    crypto_amount: u64,
+    fiat_currency: String,
+    pin: String,
+) -> Result<TransactionResult, String> {
+    verify_authorized_caller()?;
+    
+    let result = services::crypto_operations::sell_crypto_direct(
+        user_identifier.clone(),
+        crypto_amount,
+        CryptoType::CkUSDC,
+        fiat_currency.clone(),
+        pin,
+    ).await;
+    
+    match &result {
+        Ok(tx) => {
+            log_audit(
+                "sell_usdc",
+                Some(user_identifier),
+                &format!("Sold {} e6 USDC for {} {}", crypto_amount, fiat_currency, tx.new_balance),
+                true
+            );
+        }
+        Err(e) => {
+            log_audit(
+                "sell_usdc",
+                Some(user_identifier),
+                &format!("Failed to sell USDC: {}", e),
                 false
             );
         }

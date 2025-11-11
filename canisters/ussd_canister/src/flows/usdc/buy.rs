@@ -51,7 +51,7 @@ pub async fn handle_buy_usdc(text: &str, session: &mut UssdSession) -> (String, 
                 &phone,
                 amount_cents,
                 "UGX",
-                crate::services::business_logic::CryptoType::ckUSDC,
+                crate::services::business_logic::CryptoType::CkUSDC,
                 pin
             ).await {
                 Ok(result) => {

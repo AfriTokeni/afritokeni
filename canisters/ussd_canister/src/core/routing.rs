@@ -319,6 +319,10 @@ pub async fn handle_bitcoin_menu(text: &str, session: &mut UssdSession) -> (Stri
                 // Buy Bitcoin flow
                 return crate::flows::bitcoin::buy::handle_buy_bitcoin(text, session).await;
             }
+            Some(&"4") => {
+                // Sell Bitcoin flow
+                return crate::flows::bitcoin::sell::handle_sell_bitcoin(text, session).await;
+            }
             Some(&"5") => {
                 // Send Bitcoin flow
                 return crate::flows::bitcoin::send::handle_send_bitcoin(text, session).await;
@@ -397,10 +401,22 @@ pub async fn handle_usdc_menu(text: &str, session: &mut UssdSession) -> (String,
     let parts: Vec<&str> = text.split('*').collect();
     let last_input = parts.last().unwrap_or(&"");
     
-    // If we have more than 2 parts, we're in buy flow
+    // If we have more than 2 parts, we're in a flow
     if parts.len() > 2 {
-        if let Some(&"2") = parts.get(1) {
-            return crate::flows::usdc::buy::handle_buy_usdc(text, session).await;
+        match parts.get(1) {
+            Some(&"3") => {
+                // Buy USDC flow
+                return crate::flows::usdc::buy::handle_buy_usdc(text, session).await;
+            }
+            Some(&"4") => {
+                // Sell USDC flow
+                return crate::flows::usdc::sell::handle_sell_usdc(text, session).await;
+            }
+            Some(&"5") => {
+                // Send USDC flow
+                return crate::flows::usdc::send::handle_send_usdc(text, session).await;
+            }
+            _ => {}
         }
     }
     

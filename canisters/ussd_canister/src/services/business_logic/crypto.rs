@@ -160,14 +160,14 @@ pub async fn swap_crypto(
     
     // Map string to CryptoType enum
     let from_type = match from_crypto {
-        "CkBTC" => super::CryptoType::ckBTC,
-        "CkUSDC" => super::CryptoType::ckUSDC,
+        "CkBTC" => super::CryptoType::CkBTC,
+        "CkUSDC" => super::CryptoType::CkUSDC,
         _ => return Err(format!("Invalid from_crypto: {}", from_crypto)),
     };
     
     let to_type = match to_crypto {
-        "CkBTC" => super::CryptoType::ckBTC,
-        "CkUSDC" => super::CryptoType::ckUSDC,
+        "CkBTC" => super::CryptoType::CkBTC,
+        "CkUSDC" => super::CryptoType::CkUSDC,
         _ => return Err(format!("Invalid to_crypto: {}", to_crypto)),
     };
     

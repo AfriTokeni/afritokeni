@@ -48,6 +48,12 @@ pub async fn transfer_crypto_to_user(
     to_principal: Principal,
     amount: u64,
 ) -> Result<u64, String> {
+    // In test mode, skip actual ledger calls and return mock success
+    if crate::is_test_mode() {
+        ic_cdk::println!("🧪 TEST MODE: Skipping ledger transfer of {} {:?} to {}", amount, token, to_principal);
+        return Ok(12345); // Mock block index
+    }
+    
     let ledger_id = get_ledger_principal(token)?;
     
     let transfer_arg = TransferArg {

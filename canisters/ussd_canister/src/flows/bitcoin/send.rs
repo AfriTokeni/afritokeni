@@ -67,7 +67,7 @@ pub async fn handle_send_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
                 &phone,
                 &btc_address,
                 amount_sats,
-                crate::services::business_logic::CryptoType::ckBTC,
+                crate::services::business_logic::CryptoType::CkBTC,
                 pin
             ).await {
                 Ok(result) => {

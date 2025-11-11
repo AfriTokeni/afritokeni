@@ -4,6 +4,7 @@ use candid::{CandidType, Deserialize};
 
 // Use shared types - NO MORE DUPLICATION!
 pub use shared_types::UserBalances;
+pub use shared_types::CryptoType;
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct TransactionResult {
@@ -14,13 +15,6 @@ pub struct TransactionResult {
     pub currency: String,
     pub new_balance: u64,
     pub timestamp: u64,
-}
-
-#[derive(CandidType, Deserialize, Clone, Copy, Debug)]
-#[allow(non_camel_case_types)]
-pub enum CryptoType {
-    ckBTC,
-    ckUSDC,
 }
 
 #[derive(CandidType, Deserialize, Clone, Debug)]

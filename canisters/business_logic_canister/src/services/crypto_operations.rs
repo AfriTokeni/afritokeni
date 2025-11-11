@@ -323,6 +323,93 @@ pub async fn sell_crypto_to_agent(
     })
 }
 
+/// Sell cryptocurrency directly for fiat (no escrow, for USSD)
+pub async fn sell_crypto_direct(
+    user_identifier: String,
+    crypto_amount: u64,
+    crypto_type: CryptoType,
+    fiat_currency: String,
+    pin: String,
+) -> Result<TransactionResult, String> {
+    // Validate inputs
+    transfer_logic::validate_identifier_not_empty(&user_identifier, "User identifier")?;
+    crypto_logic::validate_crypto_amount_positive(crypto_amount)?;
+    
+    // 1. Get user
+    let user = get_user_by_identifier(&user_identifier).await?;
+    
+    // 2. Verify PIN
+    let verified = data_client::verify_pin(&user.id, &pin).await?;
+    if !verified {
+        return Err("Invalid PIN".to_string());
+    }
+    
+    // 3. Check crypto balance
+    let (ckbtc_balance, ckusdc_balance) = data_client::get_crypto_balance(&user.id).await?;
+    let current_balance = match crypto_type {
+        CryptoType::CkBTC => ckbtc_balance,
+        CryptoType::CkUSDC => ckusdc_balance,
+    };
+    
+    crypto_logic::validate_sufficient_crypto_balance(current_balance, crypto_amount)?;
+    
+    // 4. Rate limiting
+    if !fraud_detection::check_rate_limit(&user.id)? {
+        return Err("Too many transactions. Please wait before trying again.".to_string());
+    }
+    
+    // 5. Calculate fiat amount
+    let crypto_type_str = format!("{:?}", crypto_type);
+    let fiat_amount = exchange_rate::calculate_fiat_from_crypto(
+        crypto_amount,
+        &crypto_type_str,
+        &fiat_currency
+    ).await?;
+    
+    // 6. Deduct crypto from user
+    let (ckbtc_delta, ckusdc_delta) = match crypto_type {
+        CryptoType::CkBTC => (-(crypto_amount as i64), 0),
+        CryptoType::CkUSDC => (0, -(crypto_amount as i64)),
+    };
+    data_client::update_crypto_balance(&user.id, ckbtc_delta, ckusdc_delta).await?;
+    
+    // 7. Add fiat to user
+    let current_fiat = data_client::get_fiat_balance(&user.id, &fiat_currency).await?;
+    let new_fiat_balance = current_fiat + fiat_amount;
+    data_client::set_fiat_balance(&user.id, &fiat_currency, new_fiat_balance).await?;
+    
+    // 8. Record transaction
+    let timestamp = ic_cdk::api::time();
+    let tx_id = transfer_logic::generate_transaction_id(timestamp);
+    let currency_enum = shared_types::FiatCurrency::from_string(&fiat_currency)
+        .map_err(|e| format!("Invalid currency: {}", e))?;
+    
+    let transaction = shared_types::Transaction {
+        id: tx_id.clone(),
+        transaction_type: shared_types::TransactionType::SellCrypto,
+        from_user: Some(user.id.clone()),
+        to_user: Some("system".to_string()),
+        amount: fiat_amount,
+        currency_type: shared_types::CurrencyType::Fiat(currency_enum),
+        status: shared_types::TransactionStatus::Completed,
+        created_at: timestamp,
+        completed_at: Some(timestamp),
+        description: Some(format!("Sold {} {:?} for {} {}", crypto_amount, crypto_type, fiat_amount, fiat_currency)),
+    };
+    
+    data_client::store_transaction(&transaction).await?;
+    
+    Ok(TransactionResult {
+        transaction_id: tx_id,
+        from_user: user.id.clone(),
+        to_user: "system".to_string(),
+        amount: fiat_amount,
+        currency: fiat_currency,
+        new_balance: new_fiat_balance,
+        timestamp,
+    })
+}
+
 /// Get estimated fiat value for crypto amount (for display purposes)
 pub async fn get_crypto_value_estimate(
     crypto_amount: u64,

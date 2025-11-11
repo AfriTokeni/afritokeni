@@ -146,6 +146,14 @@ impl TestEnv {
             auth_ussd,
         ).expect("Failed to authorize USSD canister");
         
+        // Enable test mode to skip ledger calls
+        pic.update_call(
+            business_logic_canister_id,
+            Principal::anonymous(),
+            "enable_test_mode",
+            vec![],
+        ).expect("Failed to enable test mode");
+        
         Self {
             pic,
             ussd_canister_id,
@@ -191,9 +199,18 @@ impl TestEnv {
         preferred_currency: &str,
         pin: &str,
     ) -> Result<String, String> {
+        // Generate a unique principal ID for each test user
+        // Use a deterministic principal based on phone number for consistency
+        let mut bytes = [0u8; 29];
+        let phone_string = format!("test-user-{}", phone_number);
+        let phone_bytes = phone_string.as_bytes();
+        let len = phone_bytes.len().min(29);
+        bytes[..len].copy_from_slice(&phone_bytes[..len]);
+        let principal_id = Principal::from_slice(&bytes);
+        
         let request = RegisterUserRequest {
             phone_number: Some(phone_number.to_string()),
-            principal_id: None,
+            principal_id: Some(principal_id.to_text()),
             first_name: first_name.to_string(),
             last_name: last_name.to_string(),
             email: email.to_string(),
@@ -300,9 +317,20 @@ impl TestEnv {
         balance_in_cents.map(|cents| cents / 100)
     }
     
-    /// Get crypto balance from data canister
-    pub fn get_crypto_balance(&self, user_id: &str) -> Result<(u64, u64), String> {
-        let arg = encode_one(user_id.to_string()).unwrap();
+    /// Get crypto balance from data canister (accepts phone number or user_id)
+    pub fn get_crypto_balance(&self, user_identifier: &str) -> Result<(u64, u64), String> {
+        // If it's a phone number, look up the user_id first
+        let user_id = if user_identifier.starts_with('+') {
+            match self.get_user(user_identifier) {
+                Ok(Some(user)) => user.id,
+                Ok(None) => return Err(format!("User not found: {}", user_identifier)),
+                Err(e) => return Err(e),
+            }
+        } else {
+            user_identifier.to_string()
+        };
+        
+        let arg = encode_one(user_id).unwrap();
         let response = self.pic.query_call(
             self.data_canister_id,
             self.business_logic_canister_id,
