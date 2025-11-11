@@ -4,6 +4,9 @@ use candid::Principal;
 // Config is now loaded in lib.rs
 thread_local! {
     static DATA_CANISTER_ID: RefCell<Option<Principal>> = RefCell::new(None);
+    static DEPOSIT_CANISTER_ID: RefCell<Option<Principal>> = RefCell::new(None);
+    static WITHDRAWAL_CANISTER_ID: RefCell<Option<Principal>> = RefCell::new(None);
+    static EXCHANGE_CANISTER_ID: RefCell<Option<Principal>> = RefCell::new(None);
 }
 
 pub fn set_data_canister_id(canister_id: String) {
@@ -18,6 +21,51 @@ pub fn set_data_canister_id(canister_id: String) {
 pub fn get_data_canister_id() -> Result<Principal, String> {
     DATA_CANISTER_ID.with(|id| {
         id.borrow().ok_or_else(|| "Data canister ID not set".to_string())
+    })
+}
+
+pub fn set_deposit_canister_id(canister_id: String) {
+    let principal = Principal::from_text(&canister_id)
+        .expect("Invalid deposit canister principal");
+    
+    DEPOSIT_CANISTER_ID.with(|id| {
+        *id.borrow_mut() = Some(principal);
+    });
+}
+
+pub fn get_deposit_canister_id() -> Principal {
+    DEPOSIT_CANISTER_ID.with(|id| {
+        id.borrow().expect("Deposit canister ID not set")
+    })
+}
+
+pub fn set_withdrawal_canister_id(canister_id: String) {
+    let principal = Principal::from_text(&canister_id)
+        .expect("Invalid withdrawal canister principal");
+    
+    WITHDRAWAL_CANISTER_ID.with(|id| {
+        *id.borrow_mut() = Some(principal);
+    });
+}
+
+pub fn get_withdrawal_canister_id() -> Principal {
+    WITHDRAWAL_CANISTER_ID.with(|id| {
+        id.borrow().expect("Withdrawal canister ID not set")
+    })
+}
+
+pub fn set_exchange_canister_id(canister_id: String) {
+    let principal = Principal::from_text(&canister_id)
+        .expect("Invalid exchange canister principal");
+    
+    EXCHANGE_CANISTER_ID.with(|id| {
+        *id.borrow_mut() = Some(principal);
+    });
+}
+
+pub fn get_exchange_canister_id() -> Principal {
+    EXCHANGE_CANISTER_ID.with(|id| {
+        id.borrow().expect("Exchange canister ID not set")
     })
 }
 

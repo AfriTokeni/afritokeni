@@ -10,6 +10,12 @@ pub mod pin_security_tests;
 pub mod error_handling_tests;
 pub mod crypto_operations_tests;
 pub mod escrow_tests;
+pub mod exchange_rate_tests;
+pub mod fraud_detection_tests;
+pub mod deposit_commission_tests;
+pub mod withdrawal_commission_tests;
+pub mod exchange_spread_tests;
+pub mod commission_end_to_end_tests;
 
 // ============================================================================
 // Test Environment Setup
@@ -19,6 +25,9 @@ pub struct TestEnv {
     pub pic: PocketIc,
     pub data_canister_id: Principal,
     pub business_canister_id: Principal,
+    pub deposit_canister_id: Option<Principal>,
+    pub withdrawal_canister_id: Option<Principal>,
+    pub exchange_canister_id: Option<Principal>,
 }
 
 impl TestEnv {
@@ -59,7 +68,115 @@ impl TestEnv {
             auth_arg,
         ).expect("Failed to authorize");
         
-        Self { pic, data_canister_id, business_canister_id }
+        Self {
+            pic,
+            data_canister_id,
+            business_canister_id,
+            deposit_canister_id: None,
+            withdrawal_canister_id: None,
+            exchange_canister_id: None,
+        }
+    }
+    
+    /// Create test environment with commission canisters deployed
+    pub fn new_with_commission_canisters() -> Self {
+        let pic = PocketIc::new();
+        
+        let workspace_root = std::path::PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap())
+            .parent().unwrap()
+            .parent().unwrap()
+            .to_path_buf();
+        
+        // Load all WASMs
+        let data_wasm = std::fs::read(
+            workspace_root.join("target/wasm32-unknown-unknown/release/data_canister.wasm")
+        ).expect("data_canister WASM not found");
+        
+        let business_wasm = std::fs::read(
+            workspace_root.join("target/wasm32-unknown-unknown/release/business_logic_canister.wasm")
+        ).expect("business_logic_canister WASM not found");
+        
+        let deposit_wasm = std::fs::read(
+            workspace_root.join("target/wasm32-unknown-unknown/release/deposit_canister.wasm")
+        ).expect("deposit_canister WASM not found");
+        
+        let withdrawal_wasm = std::fs::read(
+            workspace_root.join("target/wasm32-unknown-unknown/release/withdrawal_canister.wasm")
+        ).expect("withdrawal_canister WASM not found");
+        
+        let exchange_wasm = std::fs::read(
+            workspace_root.join("target/wasm32-unknown-unknown/release/exchange_canister.wasm")
+        ).expect("exchange_canister WASM not found");
+        
+        // Install data canister
+        let data_canister_id = pic.create_canister();
+        pic.add_cycles(data_canister_id, 2_000_000_000_000);
+        let data_init_arg = encode_one((None::<String>, None::<String>)).unwrap();
+        pic.install_canister(data_canister_id, data_wasm, data_init_arg, None);
+        
+        // Install deposit canister
+        let deposit_canister_id = pic.create_canister();
+        pic.add_cycles(deposit_canister_id, 2_000_000_000_000);
+        pic.install_canister(deposit_canister_id, deposit_wasm, vec![], None);
+        
+        // Install withdrawal canister
+        let withdrawal_canister_id = pic.create_canister();
+        pic.add_cycles(withdrawal_canister_id, 2_000_000_000_000);
+        pic.install_canister(withdrawal_canister_id, withdrawal_wasm, vec![], None);
+        
+        // Install exchange canister
+        let exchange_canister_id = pic.create_canister();
+        pic.add_cycles(exchange_canister_id, 2_000_000_000_000);
+        pic.install_canister(exchange_canister_id, exchange_wasm, vec![], None);
+        
+        // Install business logic canister with all canister IDs
+        let business_canister_id = pic.create_canister();
+        pic.add_cycles(business_canister_id, 2_000_000_000_000);
+        let init_arg = encode_one(data_canister_id.to_text()).unwrap();
+        pic.install_canister(business_canister_id, business_wasm, init_arg, None);
+        
+        // Configure commission canister IDs in business logic
+        let config_deposit = encode_one(deposit_canister_id.to_text()).unwrap();
+        pic.update_call(
+            business_canister_id,
+            Principal::anonymous(),
+            "set_deposit_canister_id",
+            config_deposit,
+        ).ok(); // Ignore if method doesn't exist yet
+        
+        let config_withdrawal = encode_one(withdrawal_canister_id.to_text()).unwrap();
+        pic.update_call(
+            business_canister_id,
+            Principal::anonymous(),
+            "set_withdrawal_canister_id",
+            config_withdrawal,
+        ).ok();
+        
+        let config_exchange = encode_one(exchange_canister_id.to_text()).unwrap();
+        pic.update_call(
+            business_canister_id,
+            Principal::anonymous(),
+            "set_exchange_canister_id",
+            config_exchange,
+        ).ok();
+        
+        // Authorize business_logic to call data_canister
+        let auth_arg = encode_one(business_canister_id.to_text()).unwrap();
+        pic.update_call(
+            data_canister_id,
+            Principal::anonymous(),
+            "add_authorized_canister",
+            auth_arg,
+        ).expect("Failed to authorize");
+        
+        Self {
+            pic,
+            data_canister_id,
+            business_canister_id,
+            deposit_canister_id: Some(deposit_canister_id),
+            withdrawal_canister_id: Some(withdrawal_canister_id),
+            exchange_canister_id: Some(exchange_canister_id),
+        }
     }
     
     pub fn register_user(
@@ -330,6 +447,24 @@ impl TestEnv {
             "cancel_escrow",
             arg,
         ).expect("cancel_escrow call failed");
+        
+        decode_one(&response).expect("Failed to decode")
+    }
+    
+    pub fn get_crypto_value_estimate(
+        &self,
+        crypto_amount: u64,
+        crypto_type: CryptoType,
+        fiat_currency: &str,
+    ) -> Result<u64, String> {
+        let arg = encode_args((crypto_amount, crypto_type, fiat_currency)).unwrap();
+        
+        let response = self.pic.update_call(
+            self.business_canister_id,
+            Principal::anonymous(),
+            "get_crypto_value_estimate",
+            arg,
+        ).expect("get_crypto_value_estimate call failed");
         
         decode_one(&response).expect("Failed to decode")
     }
