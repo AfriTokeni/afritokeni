@@ -237,3 +237,18 @@ pub async fn get_agent_withdrawal_earnings(
     
     Ok(earnings)
 }
+
+/// Get withdrawal fee split (platform fee rate + agent fee rate)
+/// Returns (platform_fee_basis_points, agent_fee_basis_points)
+pub async fn get_withdrawal_fee_split() -> Result<(u64, u64), String> {
+    let withdrawal_canister = config::get_withdrawal_canister_id();
+    
+    let response = Call::unbounded_wait(withdrawal_canister, "get_fee_split")
+        .await
+        .map_err(|e| format!("Get fee split call failed: {:?}", e))?;
+    
+    let (platform_fee, agent_fee): (u64, u64) = candid::decode_args(&response.into_bytes())
+        .map_err(|e| format!("Failed to decode fee split response: {:?}", e))?;
+    
+    Ok((platform_fee, agent_fee))
+}

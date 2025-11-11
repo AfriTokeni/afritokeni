@@ -980,6 +980,168 @@ fn get_audit_log_count() -> Result<usize, String> {
     Ok(AUDIT_LOG.with(|log| log.borrow().len()))
 }
 
+// ============================================================================
+// Deposit & Withdrawal Commission (USSD Integration)
+// ============================================================================
+
+/// Result for deposit request creation
+#[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
+pub struct DepositRequestResult {
+    pub deposit_code: String,
+    pub amount_ugx: u64,
+    pub commission_ugx: u64,
+    pub net_amount: u64,
+}
+
+/// Result for withdrawal fees estimate
+#[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
+pub struct WithdrawalFeesResult {
+    pub amount: u64,
+    pub platform_fee: u64,
+    pub agent_fee: u64,
+    pub total_fees: u64,
+    pub net_amount: u64,
+}
+
+/// Result for withdrawal request creation
+#[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
+pub struct WithdrawalRequestResult {
+    pub withdrawal_code: String,
+    pub amount_ugx: u64,
+    pub platform_fee_ugx: u64,
+    pub agent_fee_ugx: u64,
+    pub net_amount: u64,
+}
+
+/// Create deposit request (user shows code to agent)
+/// Returns deposit code and commission breakdown
+#[update]
+async fn create_deposit_request(
+    user_phone: String,
+    agent_id: String,
+    amount: u64,
+) -> Result<DepositRequestResult, String> {
+    verify_authorized_caller()?;
+    
+    // Get user by phone number
+    let user = services::data_client::get_user_by_phone(&user_phone).await?
+        .ok_or_else(|| format!("User not found: {}", user_phone))?;
+    
+    // Parse agent principal
+    let agent_principal = Principal::from_text(&agent_id)
+        .map_err(|e| format!("Invalid agent ID: {:?}", e))?;
+    
+    // Get principal from user
+    let user_principal = Principal::from_text(user.principal_id.as_ref()
+        .ok_or("User has no principal ID")?)
+        .map_err(|e| format!("Invalid principal ID: {:?}", e))?;
+    
+    // Call deposit canister via commission client
+    let deposit_tx = services::commission_client::create_deposit_request(
+        user_principal,
+        agent_principal,
+        amount
+    ).await?;
+    
+    // Calculate net amount (amount - commission)
+    let net_amount = deposit_tx.amount_ugx.saturating_sub(deposit_tx.commission_ugx);
+    
+    log_audit(
+        "create_deposit_request",
+        Some(user_phone),
+        &format!("amount={}, commission={}, code={}", amount, deposit_tx.commission_ugx, deposit_tx.deposit_code),
+        true
+    );
+    
+    Ok(DepositRequestResult {
+        deposit_code: deposit_tx.deposit_code,
+        amount_ugx: deposit_tx.amount_ugx,
+        commission_ugx: deposit_tx.commission_ugx,
+        net_amount,
+    })
+}
+
+/// Get withdrawal fees estimate (before creating withdrawal)
+/// Shows platform fee + agent fee breakdown
+#[update]
+async fn get_withdrawal_fees(amount: u64) -> Result<WithdrawalFeesResult, String> {
+    verify_authorized_caller()?;
+    
+    // Get fee split from withdrawal canister
+    let (platform_fee_rate, agent_fee_rate) = services::commission_client::get_withdrawal_fee_split().await?;
+    
+    // Calculate fees
+    let platform_fee = (amount * platform_fee_rate) / 10_000;
+    let agent_fee = (amount * agent_fee_rate) / 10_000;
+    let total_fees = platform_fee + agent_fee;
+    let net_amount = amount.saturating_sub(total_fees);
+    
+    Ok(WithdrawalFeesResult {
+        amount,
+        platform_fee,
+        agent_fee,
+        total_fees,
+        net_amount,
+    })
+}
+
+/// Create withdrawal request (with fees already shown to user)
+/// Returns withdrawal code and fee breakdown
+#[update]
+async fn create_withdrawal_request(
+    user_phone: String,
+    agent_id: String,
+    amount: u64,
+    pin: String,
+) -> Result<WithdrawalRequestResult, String> {
+    verify_authorized_caller()?;
+    
+    // Get user by phone number
+    let user = services::data_client::get_user_by_phone(&user_phone).await?
+        .ok_or_else(|| format!("User not found: {}", user_phone))?;
+    
+    // Verify PIN
+    if !services::data_client::verify_pin(&user.id, &pin).await? {
+        return Err("Invalid PIN".to_string());
+    }
+    
+    // Parse agent principal
+    let agent_principal = Principal::from_text(&agent_id)
+        .map_err(|e| format!("Invalid agent ID: {:?}", e))?;
+    
+    // Get principal from user
+    let user_principal = Principal::from_text(user.principal_id.as_ref()
+        .ok_or("User has no principal ID")?)
+        .map_err(|e| format!("Invalid principal ID: {:?}", e))?;
+    
+    // Call withdrawal canister via commission client
+    let withdrawal_tx = services::commission_client::create_withdrawal_request(
+        user_principal,
+        agent_principal,
+        amount
+    ).await?;
+    
+    // Calculate net amount
+    let total_fees = withdrawal_tx.platform_fee_ugx + withdrawal_tx.agent_fee_ugx;
+    let net_amount = amount.saturating_sub(total_fees);
+    
+    log_audit(
+        "create_withdrawal_request",
+        Some(user_phone),
+        &format!("amount={}, platform_fee={}, agent_fee={}, code={}", 
+            amount, withdrawal_tx.platform_fee_ugx, withdrawal_tx.agent_fee_ugx, withdrawal_tx.withdrawal_code),
+        true
+    );
+    
+    Ok(WithdrawalRequestResult {
+        withdrawal_code: withdrawal_tx.withdrawal_code,
+        amount_ugx: withdrawal_tx.amount_ugx,
+        platform_fee_ugx: withdrawal_tx.platform_fee_ugx,
+        agent_fee_ugx: withdrawal_tx.agent_fee_ugx,
+        net_amount,
+    })
+}
+
 // Export Candid interface
 ic_cdk::export_candid!();
 
