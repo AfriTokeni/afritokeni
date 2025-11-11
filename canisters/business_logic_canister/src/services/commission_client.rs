@@ -252,3 +252,61 @@ pub async fn get_withdrawal_fee_split() -> Result<(u64, u64), String> {
     
     Ok((platform_fee, agent_fee))
 }
+
+// ============================================================================
+// EXCHANGE CANISTER TYPES
+// ============================================================================
+
+use shared_types::CryptoType;
+
+#[derive(CandidType, Deserialize, Clone)]
+pub struct ExchangeRequest {
+    pub from_token: CryptoType,
+    pub to_token: CryptoType,
+    pub amount: u64,
+    pub min_output: u64,
+    pub user_principal: Principal,
+}
+
+#[derive(CandidType, Deserialize)]
+pub struct ExchangeResult {
+    pub output_amount: u64,
+    pub spread_amount: u64,
+    pub exchange_rate: String,
+    pub tx_id: String,
+}
+
+// ============================================================================
+// EXCHANGE CANISTER CALLS
+// ============================================================================
+
+/// Swap tokens via exchange canister
+pub async fn swap_tokens(
+    from_token: CryptoType,
+    to_token: CryptoType,
+    amount: u64,
+    user_principal: Principal,
+) -> Result<ExchangeResult, String> {
+    let exchange_canister = config::get_exchange_canister_id();
+    
+    // Calculate min_output with 1% slippage tolerance
+    let min_output = (amount * 99) / 100;
+    
+    let request = ExchangeRequest {
+        from_token,
+        to_token,
+        amount,
+        min_output,
+        user_principal,
+    };
+    
+    let response = Call::unbounded_wait(exchange_canister, "swap_tokens")
+        .with_arg((request,))
+        .await
+        .map_err(|e| format!("Exchange canister call failed: {:?}", e))?;
+    
+    let (result,): (Result<ExchangeResult, String>,) = candid::decode_args(&response.into_bytes())
+        .map_err(|e| format!("Failed to decode exchange response: {:?}", e))?;
+    
+    result
+}

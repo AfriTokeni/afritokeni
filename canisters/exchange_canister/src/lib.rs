@@ -3,6 +3,7 @@ use ic_cdk::call::Call;
 use ic_cdk_macros::*;
 use serde::Deserialize as SerdeDeserialize;
 use std::cell::RefCell;
+use shared_types::CryptoType;
 
 // Configuration loaded from TOML
 const CONFIG_TOML: &str = include_str!("../exchange_config.toml");
@@ -56,22 +57,18 @@ thread_local! {
 
 #[derive(CandidType, Deserialize, Clone)]
 pub struct ExchangeRequest {
-    pub from_token: Token,
-    pub to_token: Token,
+    pub from_token: CryptoType,
+    pub to_token: CryptoType,
     pub amount: u64,
     pub min_output: u64, // Slippage protection
-}
-
-#[derive(CandidType, Deserialize, Clone, PartialEq, Debug)]
-pub enum Token {
-    CkBTC,
-    CkUSDC,
+    pub user_principal: Principal,
 }
 
 #[derive(CandidType, Deserialize)]
 pub struct ExchangeResult {
     pub output_amount: u64,
     pub spread_amount: u64,
+    pub exchange_rate: String,
     pub tx_id: String,
 }
 
@@ -94,7 +91,8 @@ fn get_config() -> Config {
 
 #[update]
 async fn swap_tokens(request: ExchangeRequest) -> Result<ExchangeResult, String> {
-    let caller = ic_cdk::api::msg_caller();
+    // Use user_principal from request instead of caller
+    let user_principal = request.user_principal;
     
     // Validate request
     if request.amount == 0 {
@@ -116,7 +114,7 @@ async fn swap_tokens(request: ExchangeRequest) -> Result<ExchangeResult, String>
     let swap_amount = request.amount - spread_amount;
     
     // Step 1: Transfer input tokens from user to this canister
-    transfer_from_user(caller, request.from_token.clone(), request.amount).await?;
+    transfer_from_user(user_principal, request.from_token.clone(), request.amount).await?;
     
     // Step 2: Send spread to company wallet (platform revenue)
     transfer_to_company_wallet(company_wallet, request.from_token.clone(), spread_amount).await?;
@@ -133,19 +131,27 @@ async fn swap_tokens(request: ExchangeRequest) -> Result<ExchangeResult, String>
     }
     
     // Step 4: Transfer output tokens to user
-    transfer_to_user(caller, request.to_token, output_amount).await?;
+    transfer_to_user(user_principal, request.to_token, output_amount).await?;
+    
+    // Calculate exchange rate for display
+    let exchange_rate = if request.amount > 0 {
+        format!("{:.8}", output_amount as f64 / request.amount as f64)
+    } else {
+        "0".to_string()
+    };
     
     Ok(ExchangeResult {
         output_amount,
         spread_amount,
-        tx_id: format!("{}-{}", ic_cdk::api::time(), caller.to_text()),
+        exchange_rate,
+        tx_id: format!("{}-{}", ic_cdk::api::time(), user_principal.to_text()),
     })
 }
 
 // Helper: Transfer tokens from user to canister
 async fn transfer_from_user(
     from: Principal,
-    token: Token,
+    token: CryptoType,
     amount: u64,
 ) -> Result<(), String> {
     let canister_id = get_token_canister(token)?;
@@ -171,7 +177,7 @@ async fn transfer_from_user(
 // Helper: Transfer tokens to company wallet (platform revenue)
 async fn transfer_to_company_wallet(
     company_wallet: Principal,
-    token: Token,
+    token: CryptoType,
     amount: u64,
 ) -> Result<(), String> {
     let canister_id = get_token_canister(token)?;
@@ -196,7 +202,7 @@ async fn transfer_to_company_wallet(
 // Helper: Transfer tokens to user
 async fn transfer_to_user(
     to: Principal,
-    token: Token,
+    token: CryptoType,
     amount: u64,
 ) -> Result<(), String> {
     let canister_id = get_token_canister(token)?;
@@ -220,8 +226,8 @@ async fn transfer_to_user(
 
 // Helper: Perform the actual swap using Sonic DEX
 async fn perform_swap(
-    from_token: Token,
-    to_token: Token,
+    from_token: CryptoType,
+    to_token: CryptoType,
     amount: u64,
 ) -> Result<u64, String> {
     let config = get_config();
@@ -284,12 +290,12 @@ async fn perform_swap(
 }
 
 // Helper: Get token canister ID from config
-fn get_token_canister(token: Token) -> Result<Principal, String> {
+fn get_token_canister(token: CryptoType) -> Result<Principal, String> {
     let config = get_config();
     
     let ledger_id = match token {
-        Token::CkBTC => &config.tokens.ckbtc.ledger,
-        Token::CkUSDC => &config.tokens.ckusdc.ledger,
+        CryptoType::CkBTC => &config.tokens.ckbtc.ledger,
+        CryptoType::CkUSDC => &config.tokens.ckusdc.ledger,
     };
     
     Principal::from_text(ledger_id)
@@ -303,7 +309,7 @@ fn get_company_wallet() -> String {
 }
 
 #[query]
-fn get_spread_percentage() -> u64 {
+fn get_spread_basis_points() -> u64 {
     let config = get_config();
     config.spread.basis_points
 }

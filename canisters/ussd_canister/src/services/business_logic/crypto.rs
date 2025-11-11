@@ -1,5 +1,5 @@
 // Cryptocurrency functions (Bitcoin and USDC)
-use super::{get_business_logic_canister_id, TransactionResult, ExchangeRate};
+use super::{get_business_logic_canister_id, TransactionResult, ExchangeRate, SwapResult};
 use ic_cdk::call::Call;
 
 // ============================================================================
@@ -142,6 +142,44 @@ pub async fn send_crypto(
         .map_err(|e| format!("Call failed: {:?}", e))?;
     
     let (result,): (Result<TransactionResult, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+/// Swap between cryptocurrencies (BTC ↔ USDC)
+pub async fn swap_crypto(
+    phone_number: &str,
+    from_crypto: &str,
+    to_crypto: &str,
+    amount: u64,
+    pin: &str,
+) -> Result<SwapResult, String> {
+    let canister_id = get_business_logic_canister_id()?;
+    
+    // Map string to CryptoType enum
+    let from_type = match from_crypto {
+        "CkBTC" => super::CryptoType::ckBTC,
+        "CkUSDC" => super::CryptoType::ckUSDC,
+        _ => return Err(format!("Invalid from_crypto: {}", from_crypto)),
+    };
+    
+    let to_type = match to_crypto {
+        "CkBTC" => super::CryptoType::ckBTC,
+        "CkUSDC" => super::CryptoType::ckUSDC,
+        _ => return Err(format!("Invalid to_crypto: {}", to_crypto)),
+    };
+    
+    ic_cdk::println!("📤 Calling swap_crypto: phone={}, from={:?}, to={:?}, amount={}", 
+        phone_number, from_type, to_type, amount);
+    
+    let response = Call::unbounded_wait(canister_id, "swap_crypto")
+        .with_args(&(phone_number, from_type, to_type, amount, pin))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<SwapResult, String>,) = response
         .candid_tuple()
         .map_err(|e| format!("Decode failed: {}", e))?;
     

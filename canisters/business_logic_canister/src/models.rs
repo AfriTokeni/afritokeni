@@ -1,7 +1,8 @@
 use candid::{CandidType, Deserialize};
 
-// Re-export CryptoType from shared_types instead of defining our own
+// Re-export types from shared_types instead of defining our own
 pub use shared_types::CryptoType;
+pub use shared_types::SwapResult;
 
 #[derive(CandidType, Deserialize, Clone)]
 pub struct AuditEntry {

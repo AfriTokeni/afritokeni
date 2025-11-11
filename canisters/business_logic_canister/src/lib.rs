@@ -498,6 +498,69 @@ async fn get_crypto_value_estimate(
     ).await
 }
 
+/// Swap between cryptocurrencies (BTC ↔ USDC)
+#[update]
+async fn swap_crypto(
+    user_identifier: String,
+    from_crypto: CryptoType,
+    to_crypto: CryptoType,
+    amount: u64,
+    pin: String,
+) -> Result<SwapResult, String> {
+    verify_authorized_caller()?;
+    
+    // Get user
+    let user = services::user_management::get_user_by_identifier(&user_identifier).await?;
+    
+    // Verify PIN
+    if !services::data_client::verify_pin(&user.id, &pin).await? {
+        log_audit(
+            "swap_crypto",
+            Some(user_identifier.clone()),
+            "Invalid PIN",
+            false
+        );
+        return Err("Invalid PIN".to_string());
+    }
+    
+    // Get user principal
+    let user_principal = Principal::from_text(user.principal_id.as_ref()
+        .ok_or("User has no principal ID")?)
+        .map_err(|e| format!("Invalid principal ID: {:?}", e))?;
+    
+    // Call exchange canister
+    let exchange_result = services::commission_client::swap_tokens(
+        from_crypto,
+        to_crypto,
+        amount,
+        user_principal
+    ).await?;
+    
+    let swap_result = SwapResult {
+        from_crypto,
+        to_crypto,
+        from_amount: amount,
+        to_amount: exchange_result.output_amount,
+        spread_amount: exchange_result.spread_amount,
+        exchange_rate: exchange_result.exchange_rate,
+        tx_id: exchange_result.tx_id,
+        timestamp: ic_cdk::api::time() / 1_000_000_000,
+    };
+    
+    // Audit log
+    log_audit(
+        "swap_crypto",
+        Some(user_identifier),
+        &format!("Swapped {} {:?} → {} {:?}, Rate: {}", 
+            amount, from_crypto, 
+            exchange_result.output_amount, to_crypto,
+            exchange_result.exchange_rate),
+        true
+    );
+    
+    Ok(swap_result)
+}
+
 /// Sell cryptocurrency to agent (creates escrow)
 #[update]
 async fn sell_crypto_to_agent(

@@ -1100,7 +1100,7 @@ impl TranslationService {
     
     pub fn get_main_menu(lang: Language, currency: &str) -> String {
         format!(
-            "{}\n1. {} ({})\n2. {} (ckBTC)\n3. {} (ckUSDC)\n4. {}\n5. {}\n6. {}",
+            "{}\n1. {} ({})\n2. {} (ckBTC)\n3. {} (ckUSDC)\n4. Swap Crypto\n5. {}\n6. {}\n7. {}",
             Self::translate("welcome", lang),
             Self::translate("local_currency", lang),
             currency,

@@ -2,5 +2,6 @@
 pub mod local_currency;
 pub mod bitcoin;
 pub mod usdc;
+pub mod crypto;
 pub mod dao;
 pub mod common;

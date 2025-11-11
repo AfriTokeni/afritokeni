@@ -210,6 +210,19 @@ pub struct TransactionResult {
     pub timestamp: u64,
 }
 
+/// Swap result returned from crypto swap operations
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct SwapResult {
+    pub from_crypto: CryptoType,
+    pub to_crypto: CryptoType,
+    pub from_amount: u64,
+    pub to_amount: u64,
+    pub spread_amount: u64,
+    pub exchange_rate: String,
+    pub tx_id: String,
+    pub timestamp: u64,
+}
+
 // ============================================================================
 // Balance Models - SHARED BETWEEN ALL CANISTERS
 // ============================================================================

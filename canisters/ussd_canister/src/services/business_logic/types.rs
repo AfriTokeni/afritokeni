@@ -56,3 +56,15 @@ pub struct FeeConfig {
     pub min_fee: f64,
     pub max_fee: f64,
 }
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct SwapResult {
+    pub from_crypto: CryptoType,
+    pub to_crypto: CryptoType,
+    pub from_amount: u64,
+    pub to_amount: u64,
+    pub spread_amount: u64,
+    pub exchange_rate: String,
+    pub tx_id: String,
+    pub timestamp: u64,
+}
