@@ -1,11 +1,7 @@
 // Crypto swap flow - Swap BTC ↔ USDC
 use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
-use crate::services::business_logic;
-
-// Spread basis points - fetched from exchange canister config
-// Default to 50 (0.5%) if fetch fails
-const DEFAULT_SPREAD_BASIS_POINTS: u64 = 50;
+use crate::services::{business_logic, exchange};
 
 /// Handle crypto swap flow
 /// Steps: 0. Select from crypto → 1. Select to crypto → 2. Enter amount → 3. Show spread & confirm → 4. Enter PIN → 5. Execute swap
@@ -47,7 +43,7 @@ pub async fn handle_crypto_swap(text: &str, session: &mut UssdSession) -> (Strin
             let from_choice = session.get_data("from_crypto").unwrap_or_default();
             
             // Validate not swapping same token
-            if from_choice == to_choice {
+            if from_choice == *to_choice {
                 session.clear_data();
                 return (format!("❌ {}\n\n0. {}",
                     TranslationService::translate("cannot_swap_same_token", lang),
@@ -78,8 +74,20 @@ pub async fn handle_crypto_swap(text: &str, session: &mut UssdSession) -> (Strin
                             TranslationService::translate("main_menu", lang)), false);
                     }
                     
-                    // Calculate spread using default (will be validated by exchange canister)
-                    let spread = (amount * DEFAULT_SPREAD_BASIS_POINTS) / 10_000;
+                    // Fetch spread from exchange canister (NO HARDCODED VALUES!)
+                    let spread_basis_points = match exchange::get_spread_basis_points().await {
+                        Ok(bp) => bp,
+                        Err(e) => {
+                            ic_cdk::println!("❌ Failed to fetch spread: {}", e);
+                            return (format!("❌ {}: {}\n\n0. {}",
+                                TranslationService::translate("error", lang),
+                                "Could not fetch exchange rate",
+                                TranslationService::translate("main_menu", lang)), false);
+                        }
+                    };
+                    
+                    // Calculate spread using fetched value
+                    let spread = (amount * spread_basis_points) / 10_000;
                     let net_amount = amount.saturating_sub(spread);
                     
                     session.set_data("amount", &amount.to_string());
@@ -99,7 +107,7 @@ pub async fn handle_crypto_swap(text: &str, session: &mut UssdSession) -> (Strin
                         _ => "?"
                     };
                     
-                    let spread_pct = DEFAULT_SPREAD_BASIS_POINTS as f64 / 100.0;
+                    let spread_pct = spread_basis_points as f64 / 100.0;
                     (format!("{}:\n\n{}: {} {}\n{} ({:.1}%): {} {}\n{}: ~{} {}\n\n1. {}\n2. {}",
                         TranslationService::translate("swap_details", lang),
                         TranslationService::translate("swap_from", lang), amount, from_name,

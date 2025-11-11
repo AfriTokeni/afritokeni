@@ -57,11 +57,11 @@ thread_local! {
 
 #[derive(CandidType, Deserialize, Clone)]
 pub struct ExchangeRequest {
-    pub from_token: CryptoType,
     pub to_token: CryptoType,
-    pub amount: u64,
-    pub min_output: u64, // Slippage protection
     pub user_principal: Principal,
+    pub from_token: CryptoType,
+    pub min_output: u64,
+    pub amount: u64,
 }
 
 #[derive(CandidType, Deserialize)]

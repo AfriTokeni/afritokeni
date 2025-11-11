@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 candid = "0.10"
@@ -27,3 +27,4 @@ shared_types = { path = "../shared_types" }
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 serde_json = "1.0"
+pocket-ic = "10.0.0"

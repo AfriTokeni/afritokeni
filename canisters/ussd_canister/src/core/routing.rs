@@ -201,19 +201,19 @@ pub async fn handle_local_currency_menu(text: &str, session: &mut UssdSession) -
     let parts: Vec<&str> = text.split('*').collect();
     ic_cdk::println!("🔍 Local currency menu: parts={:?}, len={}", parts, parts.len());
     
-    // If we have more than 2 parts (e.g., "1*2*phone"), we're in a flow
+    // If we have more than 2 parts (e.g., "1*1*phone"), we're in a flow
     if parts.len() > 2 {
         ic_cdk::println!("🔍 Checking flow routing, parts[1]={:?}", parts.get(1));
         // Determine which flow based on second part
         match parts.get(1) {
-            Some(&"2") => {
-                // Send money flow
+            Some(&"1") => {
+                // Send money flow (1*1 = Local Currency -> Send Money)
                 ic_cdk::println!("✅ Routing to send_money flow");
                 session.current_menu = "send_money".to_string();
                 return crate::flows::local_currency::send_money::handle_send_money(text, session).await;
             }
             Some(&"4") => {
-                // Withdraw flow
+                // Withdraw flow (1*4 = Local Currency -> Withdraw)
                 session.current_menu = "withdraw".to_string();
                 return crate::flows::local_currency::withdraw::handle_withdraw(text, session).await;
             }

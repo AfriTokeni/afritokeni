@@ -4,10 +4,10 @@ use candid::Principal;
 // Organized module structure
 mod config_loader;
 mod api;
-mod core;
+pub mod core;
 mod flows;
 mod services;
-mod utils;
+pub mod utils;
 
 /// Initialize USSD canister with Business Logic Canister ID
 #[init]
@@ -44,10 +44,10 @@ pub fn get_business_logic_canister_id() -> Result<Principal, String> {
     services::business_logic::get_business_logic_canister_id()
 }
 
-/// Test helper for integration tests (bypasses HTTP layer)
+/// USSD endpoint for integration tests
 /// Returns (response_text, continue_session)
 #[update]
-async fn test_ussd_direct(session_id: String, phone_number: String, text: String) -> (String, bool) {
+async fn ussd(session_id: String, phone_number: String, text: String) -> (String, bool) {
     // Call the USSD handler directly
     let req = api::http::HttpRequest {
         method: "POST".to_string(),

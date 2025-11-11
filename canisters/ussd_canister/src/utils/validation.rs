@@ -12,8 +12,37 @@ pub fn is_valid_phone(phone: &str) -> bool {
     digits.len() >= 10 && digits.len() <= 15 && digits.chars().all(|c| c.is_numeric())
 }
 
-/// Validate transaction amount
-pub fn is_valid_amount(amount: f64) -> Result<(), String> {
+/// Validate PIN format (4 digits)
+pub fn is_valid_pin(pin: &str) -> bool {
+    pin.len() == 4 && pin.chars().all(|c| c.is_numeric())
+}
+
+/// Validate transaction amount from string (for tests and USSD input)
+pub fn is_valid_amount(amount_str: &str) -> bool {
+    // Try to parse as f64
+    let amount = match amount_str.parse::<f64>() {
+        Ok(amt) => amt,
+        Err(_) => return false,
+    };
+    
+    // Check if it's a valid number
+    if amount.is_nan() || amount.is_infinite() || amount <= 0.0 {
+        return false;
+    }
+    
+    // Check if it has decimals (USSD amounts should be whole numbers)
+    if amount.fract() != 0.0 {
+        return false;
+    }
+    
+    // Check limits
+    let config = get_config();
+    amount >= config.transaction_limits.min_amount_kes && 
+    amount <= config.transaction_limits.max_amount_kes
+}
+
+/// Validate transaction amount (f64 version for internal use)
+pub fn is_valid_amount_f64(amount: f64) -> Result<(), String> {
     let config = get_config();
     
     if amount < config.transaction_limits.min_amount_kes {
@@ -36,7 +65,7 @@ pub fn parse_amount(amount_str: &str) -> Result<f64, String> {
     let amount = amount_str.parse::<f64>()
         .map_err(|_| "Invalid amount format".to_string())?;
     
-    is_valid_amount(amount)?;
+    is_valid_amount_f64(amount)?;
     Ok(amount)
 }
 
@@ -70,9 +99,18 @@ mod tests {
 
     #[test]
     fn test_amount_validation() {
-        assert!(is_valid_amount(100.0).is_ok());
-        assert!(is_valid_amount(5.0).is_err()); // Too small
-        assert!(is_valid_amount(2_000_000.0).is_err()); // Too large
+        assert!(is_valid_amount_f64(100.0).is_ok());
+        assert!(is_valid_amount_f64(5.0).is_err()); // Too small
+        assert!(is_valid_amount_f64(2_000_000.0).is_err()); // Too large
+    }
+    
+    #[test]
+    fn test_pin_validation() {
+        assert!(is_valid_pin("1234"));
+        assert!(is_valid_pin("0000"));
+        assert!(!is_valid_pin("123")); // Too short
+        assert!(!is_valid_pin("12345")); // Too long
+        assert!(!is_valid_pin("abcd")); // Not numeric
     }
 
     #[test]

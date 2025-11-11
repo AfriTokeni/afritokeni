@@ -469,4 +469,24 @@ impl TestEnv {
         
         decode_one(&response).expect("Failed to decode")
     }
+    
+    pub fn swap_crypto(
+        &self,
+        user_identifier: &str,
+        from_crypto: CryptoType,
+        to_crypto: CryptoType,
+        amount: u64,
+        pin: &str,
+    ) -> Result<SwapResult, String> {
+        let arg = encode_args((user_identifier, from_crypto, to_crypto, amount, pin)).unwrap();
+        
+        let response = self.pic.update_call(
+            self.business_canister_id,
+            Principal::anonymous(),
+            "swap_crypto",
+            arg,
+        ).expect("swap_crypto call failed");
+        
+        decode_one(&response).expect("Failed to decode")
+    }
 }

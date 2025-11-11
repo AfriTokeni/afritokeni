@@ -712,6 +712,7 @@ dependencies = [
  "ic-cdk-macros",
  "serde",
  "serde_bytes",
+ "shared_types",
  "toml",
 ]
 
@@ -3325,6 +3326,7 @@ dependencies = [
  "ic-stable-structures 0.6.9",
  "lazy_static",
  "num-bigint",
+ "pocket-ic",
  "serde",
  "serde_json",
  "serde_urlencoded",

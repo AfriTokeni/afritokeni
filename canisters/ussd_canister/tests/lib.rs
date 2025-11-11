@@ -7,4 +7,5 @@ mod common;
 // Unit tests - Fast, isolated tests
 mod unit;
 
-// Integration tests - Full flow tests (moved to tests/integration/ for BDD)
+// Integration tests - Full flow tests with PocketIC
+mod integration;

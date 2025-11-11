@@ -188,6 +188,22 @@ pub async fn update_crypto_balance(user_id: &str, ckbtc_delta: i64, ckusdc_delta
     result
 }
 
+/// Set crypto balance (for testing - bypasses business logic)
+pub async fn set_crypto_balance(user_id: &str, ckbtc: u64, ckusdc: u64) -> Result<(), String> {
+    let canister_id = config::get_data_canister_id()?;
+    
+    let response = Call::unbounded_wait(canister_id, "set_crypto_balance")
+        .with_args(&(user_id.to_string(), ckbtc, ckusdc))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<(), String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
 /// Get user transactions with pagination
 pub async fn get_user_transactions(user_id: &str, limit: Option<usize>, offset: Option<usize>) -> Result<Vec<Transaction>, String> {
     let canister_id = config::get_data_canister_id()?;

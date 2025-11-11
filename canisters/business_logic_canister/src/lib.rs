@@ -211,6 +211,45 @@ fn set_data_canister_id(canister_id: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Set deposit canister ID (for commission operations)
+#[update]
+fn set_deposit_canister_id(canister_id: String) -> Result<(), String> {
+    let caller = msg_caller();
+    if !ic_cdk::api::is_controller(&caller) {
+        return Err("Only controller can set deposit canister ID".to_string());
+    }
+    
+    services::config::set_deposit_canister_id(canister_id.clone());
+    ic_cdk::println!("✅ Deposit canister ID set to: {}", canister_id);
+    Ok(())
+}
+
+/// Set withdrawal canister ID (for commission operations)
+#[update]
+fn set_withdrawal_canister_id(canister_id: String) -> Result<(), String> {
+    let caller = msg_caller();
+    if !ic_cdk::api::is_controller(&caller) {
+        return Err("Only controller can set withdrawal canister ID".to_string());
+    }
+    
+    services::config::set_withdrawal_canister_id(canister_id.clone());
+    ic_cdk::println!("✅ Withdrawal canister ID set to: {}", canister_id);
+    Ok(())
+}
+
+/// Set exchange canister ID (for crypto swap operations)
+#[update]
+fn set_exchange_canister_id(canister_id: String) -> Result<(), String> {
+    let caller = msg_caller();
+    if !ic_cdk::api::is_controller(&caller) {
+        return Err("Only controller can set exchange canister ID".to_string());
+    }
+    
+    services::config::set_exchange_canister_id(canister_id.clone());
+    ic_cdk::println!("✅ Exchange canister ID set to: {}", canister_id);
+    Ok(())
+}
+
 // ============================================================================
 // Configuration Management
 // ============================================================================
@@ -396,6 +435,26 @@ async fn send_money_to_phone(
     result
 }
 
+/// Alias for send_money_to_phone (for backward compatibility with USSD)
+#[update]
+async fn send_money(
+    from_phone: String,
+    to_phone: String,
+    amount: u64,
+    currency: String,
+    pin: String,
+) -> Result<TransactionResult, String> {
+    send_money_to_phone(from_phone, to_phone, amount, currency, pin).await
+}
+
+/// Get transfer fee for a given amount (for USSD display)
+#[update]
+fn get_transfer_fee(amount: u64) -> Result<u64, String> {
+    verify_authorized_caller()?;
+    // For now, no transfer fees between users
+    Ok(0)
+}
+
 // ============================================================================
 // Crypto Operations
 // ============================================================================
@@ -509,8 +568,9 @@ async fn swap_crypto(
 ) -> Result<SwapResult, String> {
     verify_authorized_caller()?;
     
-    // Get user
-    let user = services::user_management::get_user_by_identifier(&user_identifier).await?;
+    // Get user by phone number
+    let user = services::data_client::get_user_by_phone(&user_identifier).await?
+        .ok_or("User not found".to_string())?;
     
     // Verify PIN
     if !services::data_client::verify_pin(&user.id, &pin).await? {
@@ -536,6 +596,10 @@ async fn swap_crypto(
         user_principal
     ).await?;
     
+    // Clone values needed for audit log before moving exchange_result
+    let output_amount = exchange_result.output_amount;
+    let exchange_rate_str = exchange_result.exchange_rate.clone();
+    
     let swap_result = SwapResult {
         from_crypto,
         to_crypto,
@@ -553,8 +617,8 @@ async fn swap_crypto(
         Some(user_identifier),
         &format!("Swapped {} {:?} → {} {:?}, Rate: {}", 
             amount, from_crypto, 
-            exchange_result.output_amount, to_crypto,
-            exchange_result.exchange_rate),
+            output_amount, to_crypto,
+            exchange_rate_str),
         true
     );
     
@@ -770,6 +834,17 @@ async fn check_crypto_balance(
 ) -> Result<u64, String> {
     verify_authorized_caller()?;
     services::balance_queries::check_crypto_balance(user_identifier, crypto_type).await
+}
+
+/// Set crypto balance (for testing only - bypasses business logic)
+#[update]
+async fn set_crypto_balance(
+    user_id: String,
+    ckbtc: u64,
+    ckusdc: u64,
+) -> Result<(), String> {
+    verify_authorized_caller()?;
+    services::data_client::set_crypto_balance(&user_id, ckbtc, ckusdc).await
 }
 
 // ============================================================================

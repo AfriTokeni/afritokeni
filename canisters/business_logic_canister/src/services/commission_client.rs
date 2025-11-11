@@ -261,11 +261,11 @@ use shared_types::CryptoType;
 
 #[derive(CandidType, Deserialize, Clone)]
 pub struct ExchangeRequest {
-    pub from_token: CryptoType,
     pub to_token: CryptoType,
-    pub amount: u64,
-    pub min_output: u64,
     pub user_principal: Principal,
+    pub from_token: CryptoType,
+    pub min_output: u64,
+    pub amount: u64,
 }
 
 #[derive(CandidType, Deserialize)]
@@ -293,11 +293,11 @@ pub async fn swap_tokens(
     let min_output = (amount * 99) / 100;
     
     let request = ExchangeRequest {
-        from_token,
         to_token,
-        amount,
-        min_output,
         user_principal,
+        from_token,
+        min_output,
+        amount,
     };
     
     let response = Call::unbounded_wait(exchange_canister, "swap_tokens")
