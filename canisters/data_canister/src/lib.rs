@@ -27,6 +27,7 @@ pub struct DataCanisterState {
     transactions: HashMap<String, Transaction>,
     user_pins: HashMap<String, UserPin>,
     audit_log: Vec<AuditEntry>,
+    escrows: HashMap<String, Escrow>,  // key: escrow_code
 }
 
 impl DataCanisterState {
@@ -545,6 +546,31 @@ async fn update_crypto_balance(
     STATE.with(|state| {
         let mut s = state.borrow_mut();
         operations::balance_ops::update_crypto_balance(&mut s, user_id, ckbtc_delta, ckusdc_delta)
+    })
+}
+
+/// Set crypto balance directly (canister only - for testing)
+#[update]
+async fn set_crypto_balance(
+    user_id: String,
+    ckbtc: u64,
+    ckusdc: u64,
+) -> Result<(), String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        let mut s = state.borrow_mut();
+        let now = ic_cdk::api::time() / 1_000_000_000;
+        
+        let balance = CryptoBalance {
+            user_id: user_id.clone(),
+            ckbtc,
+            ckusdc,
+            updated_at: now,
+        };
+        
+        s.crypto_balances.insert(user_id, balance);
+        Ok(())
     })
 }
 

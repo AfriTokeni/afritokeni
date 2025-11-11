@@ -8,6 +8,8 @@ pub mod deposit_withdrawal_tests;
 pub mod balance_integrity_tests;
 pub mod pin_security_tests;
 pub mod error_handling_tests;
+pub mod crypto_operations_tests;
+pub mod escrow_tests;
 
 // ============================================================================
 // Test Environment Setup
@@ -182,6 +184,152 @@ impl TestEnv {
             "get_transaction_history",
             arg,
         ).expect("get_transaction_history call failed");
+        
+        decode_one(&response).expect("Failed to decode")
+    }
+    
+    pub fn buy_crypto(
+        &self,
+        user_identifier: &str,
+        fiat_amount: u64,
+        fiat_currency: &str,
+        crypto_type: CryptoType,
+        pin: &str,
+    ) -> Result<TransactionResult, String> {
+        let arg = encode_args((user_identifier, fiat_amount, fiat_currency, crypto_type, pin)).unwrap();
+        
+        let response = self.pic.update_call(
+            self.business_canister_id,
+            Principal::anonymous(),
+            "buy_crypto",
+            arg,
+        ).expect("buy_crypto call failed");
+        
+        decode_one(&response).expect("Failed to decode")
+    }
+    
+    pub fn send_crypto(
+        &self,
+        user_identifier: &str,
+        to_address: &str,
+        amount: u64,
+        crypto_type: CryptoType,
+        pin: &str,
+    ) -> Result<TransactionResult, String> {
+        let arg = encode_args((user_identifier, to_address, amount, crypto_type, pin)).unwrap();
+        
+        let response = self.pic.update_call(
+            self.business_canister_id,
+            Principal::anonymous(),
+            "send_crypto",
+            arg,
+        ).expect("send_crypto call failed");
+        
+        decode_one(&response).expect("Failed to decode")
+    }
+    
+    pub fn sell_crypto_to_agent(
+        &self,
+        user_identifier: &str,
+        crypto_amount: u64,
+        crypto_type: CryptoType,
+        agent_id: &str,
+        pin: &str,
+    ) -> Result<TransactionResult, String> {
+        let arg = encode_args((user_identifier, crypto_amount, crypto_type, agent_id, pin)).unwrap();
+        
+        let response = self.pic.update_call(
+            self.business_canister_id,
+            Principal::anonymous(),
+            "sell_crypto_to_agent",
+            arg,
+        ).expect("sell_crypto_to_agent call failed");
+        
+        decode_one(&response).expect("Failed to decode")
+    }
+    
+    pub fn get_crypto_balance(&self, user_id: &str) -> Result<(u64, u64), String> {
+        let arg = encode_one(user_id.to_string()).unwrap();
+        let response = self.pic.query_call(
+            self.data_canister_id,
+            Principal::anonymous(),
+            "get_crypto_balance",
+            arg,
+        ).expect("get_crypto_balance call failed");
+        
+        let balance: Result<CryptoBalance, String> = decode_one(&response).expect("Failed to decode");
+        balance.map(|b| (b.ckbtc, b.ckusdc))
+    }
+    
+    pub fn set_crypto_balance(&self, user_id: &str, ckbtc: u64, ckusdc: u64) -> Result<(), String> {
+        let arg = encode_args((user_id, ckbtc, ckusdc)).unwrap();
+        let response = self.pic.update_call(
+            self.data_canister_id,
+            self.business_canister_id,
+            "set_crypto_balance",
+            arg,
+        ).expect("set_crypto_balance call failed");
+        
+        decode_one(&response).expect("Failed to decode")
+    }
+    
+    pub fn create_escrow(
+        &self,
+        user_identifier: &str,
+        crypto_amount: u64,
+        crypto_type: CryptoType,
+        agent_id: &str,
+        pin: &str,
+    ) -> Result<String, String> {
+        // Use sell_crypto_to_agent which creates escrow
+        let result = self.sell_crypto_to_agent(user_identifier, crypto_amount, crypto_type, agent_id, pin)?;
+        Ok(result.transaction_id) // Returns escrow code
+    }
+    
+    pub fn verify_escrow_code(
+        &self,
+        code: &str,
+        agent_id: &str,
+    ) -> Result<TransactionResult, String> {
+        let arg = encode_args((code, agent_id)).unwrap();
+        
+        let response = self.pic.update_call(
+            self.business_canister_id,
+            Principal::anonymous(),
+            "verify_escrow_code",
+            arg,
+        ).expect("verify_escrow_code call failed");
+        
+        decode_one(&response).expect("Failed to decode")
+    }
+    
+    pub fn get_escrow_status(&self, code: &str) -> Result<Escrow, String> {
+        let arg = encode_one(code.to_string()).unwrap();
+        
+        let response = self.pic.query_call(
+            self.business_canister_id,
+            Principal::anonymous(),
+            "get_escrow_status",
+            arg,
+        ).expect("get_escrow_status call failed");
+        
+        decode_one(&response).expect("Failed to decode")
+    }
+    
+    pub fn cancel_escrow(
+        &self,
+        code: &str,
+        user_id: &str,
+        pin: &str,
+    ) -> Result<(), String> {
+        let arg = encode_args((code, user_id, pin)).unwrap();
+        
+        let response = self.pic.update_call(
+            self.business_canister_id,
+            Principal::anonymous(),
+            "cancel_escrow",
+            arg,
+        ).expect("cancel_escrow call failed");
         
         decode_one(&response).expect("Failed to decode")
     }

@@ -66,18 +66,37 @@ pub async fn buy_crypto(
         &crypto_type_str
     ).await?;
     
-    // 6. Deduct fiat
+    // 6. Get user principal for ledger transfer (validate BEFORE deducting money)
+    let user_principal = Principal::from_text(&user.principal_id.ok_or("User has no principal ID")?)
+        .map_err(|e| format!("Invalid user principal: {}", e))?;
+    
+    let ledger_token = match crypto_type {
+        CryptoType::CkBTC => ledger_client::CryptoToken::CkBTC,
+        CryptoType::CkUSDC => ledger_client::CryptoToken::CkUSDC,
+    };
+    
+    // 7. Transfer crypto from this canister to user via ICRC-1 FIRST
+    // This ensures we don't deduct fiat if ledger transfer fails
+    let block_index = ledger_client::transfer_crypto_to_user(
+        ledger_token,
+        user_principal,
+        crypto_amount
+    ).await?;
+    
+    ic_cdk::println!("✅ Crypto transferred to user. Block index: {}", block_index);
+    
+    // 8. Only AFTER successful ledger transfer, deduct fiat
     let new_fiat_balance = transfer_logic::calculate_new_balance(fiat_balance, fiat_amount)?;
     data_client::set_fiat_balance(&user.id, &fiat_currency, new_fiat_balance).await?;
     
-    // 7. Add crypto
+    // 9. Add crypto to user's balance
     let (ckbtc_delta, ckusdc_delta) = match crypto_type {
         CryptoType::CkBTC => (crypto_amount as i64, 0),
         CryptoType::CkUSDC => (0, crypto_amount as i64),
     };
     data_client::update_crypto_balance(&user.id, ckbtc_delta, ckusdc_delta).await?;
     
-    // 8. Record transaction
+    // 10. Record transaction
     let timestamp = ic_cdk::api::time();
     let tx_id = transfer_logic::generate_transaction_id(timestamp);
     let currency_enum = shared_types::FiatCurrency::from_string(&fiat_currency)
@@ -97,23 +116,8 @@ pub async fn buy_crypto(
     };
     data_client::store_transaction(&tx).await?;
     
-    // 9. Update last active (for security monitoring)
+    // 11. Update last active (for security monitoring)
     let _ = data_client::update_last_active(&user.id).await;
-    
-    // 10. Transfer crypto from this canister to user via ICRC-1
-    let user_principal = Principal::from_text(&user.principal_id.ok_or("User has no principal ID")?)
-        .map_err(|e| format!("Invalid user principal: {}", e))?;
-    
-    let ledger_token = match crypto_type {
-        CryptoType::CkBTC => ledger_client::CryptoToken::CkBTC,
-        CryptoType::CkUSDC => ledger_client::CryptoToken::CkUSDC,
-    };
-    
-    let block_index = ledger_client::transfer_crypto_to_user(
-        ledger_token,
-        user_principal,
-        crypto_amount
-    ).await?;
     
     ic_cdk::println!("✅ Crypto transferred to user. Block index: {}", block_index);
     
@@ -160,14 +164,32 @@ pub async fn send_crypto(
     
     crypto_logic::validate_sufficient_crypto_balance(current_balance, amount)?;
     
-    // 4. Deduct crypto
+    // 4. Validate recipient address and prepare ledger transfer FIRST
+    let recipient_principal = Principal::from_text(&to_address)
+        .map_err(|e| format!("Invalid recipient address: {}", e))?;
+    
+    let ledger_token = match crypto_type {
+        CryptoType::CkBTC => ledger_client::CryptoToken::CkBTC,
+        CryptoType::CkUSDC => ledger_client::CryptoToken::CkUSDC,
+    };
+    
+    // 5. Transfer crypto via ICRC-1 FIRST (before deducting balance)
+    let block_index = ledger_client::transfer_crypto_to_user(
+        ledger_token,
+        recipient_principal,
+        amount
+    ).await?;
+    
+    ic_cdk::println!("✅ Crypto sent. Block index: {}", block_index);
+    
+    // 6. Only AFTER successful ledger transfer, deduct crypto from sender
     let (ckbtc_delta, ckusdc_delta) = match crypto_type {
         CryptoType::CkBTC => (-(amount as i64), 0),
         CryptoType::CkUSDC => (0, -(amount as i64)),
     };
     data_client::update_crypto_balance(&user.id, ckbtc_delta, ckusdc_delta).await?;
     
-    // 5. Record transaction
+    // 7. Record transaction
     let timestamp = ic_cdk::api::time();
     let tx_id = transfer_logic::generate_transaction_id(timestamp);
     let tx = shared_types::Transaction {
@@ -183,21 +205,6 @@ pub async fn send_crypto(
         status: shared_types::TransactionStatus::Completed,
     };
     data_client::store_transaction(&tx).await?;
-    
-    // 6. Transfer crypto to recipient address via ICRC-1
-    let recipient_principal = Principal::from_text(&to_address)
-        .map_err(|e| format!("Invalid recipient address: {}", e))?;
-    
-    let ledger_token = match crypto_type {
-        CryptoType::CkBTC => ledger_client::CryptoToken::CkBTC,
-        CryptoType::CkUSDC => ledger_client::CryptoToken::CkUSDC,
-    };
-    
-    let block_index = ledger_client::transfer_crypto_to_user(
-        ledger_token,
-        recipient_principal,
-        amount
-    ).await?;
     
     ic_cdk::println!("✅ Crypto sent to {}. Block index: {}", to_address, block_index);
     
@@ -227,6 +234,10 @@ pub async fn sell_crypto_to_agent(
     
     // 1. Get user
     let user = get_user_by_identifier(&user_identifier).await?;
+    
+    // 1.5. Validate agent exists
+    let _agent = data_client::get_user(&agent_id).await?
+        .ok_or_else(|| format!("Agent not found: {}", agent_id))?;
     
     // 2. Verify PIN
     let verified = data_client::verify_pin(&user.id, &pin).await?;

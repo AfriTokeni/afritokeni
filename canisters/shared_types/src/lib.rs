@@ -400,3 +400,46 @@ pub struct UpdateUserPhoneRequest {
     pub user_id: String,
     pub phone_number: String,
 }
+
+// ============================================================================
+// Escrow Models - SHARED BETWEEN ALL CANISTERS
+// ============================================================================
+
+/// Escrow status
+#[derive(CandidType, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum EscrowStatus {
+    Active,
+    Claimed,
+    Expired,
+    Cancelled,
+}
+
+/// Escrow record
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct Escrow {
+    pub code: String,
+    pub user_id: String,
+    pub agent_id: String,
+    pub amount: u64,
+    pub crypto_type: CryptoType,
+    pub status: EscrowStatus,
+    pub created_at: u64,
+    pub expires_at: u64,
+    pub claimed_at: Option<u64>,
+}
+
+/// Request to create escrow
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct CreateEscrowRequest {
+    pub user_id: String,
+    pub agent_id: String,
+    pub amount: u64,
+    pub crypto_type: CryptoType,
+}
+
+/// Request to verify and claim escrow
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct ClaimEscrowRequest {
+    pub code: String,
+    pub agent_id: String,
+}
