@@ -214,11 +214,16 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                             crate::core::routing::handle_usdc_menu(&clean_text, &mut session).await
                         }
                         Some(&"4") => {
+                            // Swap Crypto
+                            ic_cdk::println!("✅ Routing to swap crypto");
+                            crate::flows::crypto::swap::handle_crypto_swap(&clean_text, &mut session).await
+                        }
+                        Some(&"5") => {
                             // DAO menu
                             ic_cdk::println!("✅ Routing to dao");
                             crate::core::routing::handle_dao_menu(&clean_text, &mut session).await
                         }
-                        Some(&"5") => {
+                        Some(&"6") => {
                             // Help
                             ic_cdk::println!("ℹ️ Showing help");
                             let lang = crate::utils::translations::Language::from_code(&session.language);
@@ -228,7 +233,7 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                                 crate::utils::translations::TranslationService::translate("visit", lang),
                                 crate::utils::translations::TranslationService::translate("back_or_menu", lang)), true)
                         }
-                        Some(&"6") => {
+                        Some(&"7") => {
                             // Language menu
                             ic_cdk::println!("✅ Routing to language");
                             crate::core::routing::handle_language_menu(&clean_text, &mut session).await

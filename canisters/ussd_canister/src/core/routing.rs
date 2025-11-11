@@ -472,8 +472,8 @@ pub async fn handle_dao_menu(text: &str, session: &mut UssdSession) -> (String, 
     let last_input = parts.last().unwrap_or(&"");
     
     match *last_input {
-        "4" if parts.len() == 1 => {
-            // Show DAO menu (when text is just "4")
+        "5" if parts.len() == 1 => {
+            // Show DAO menu (when text is just "5")
             session.current_menu = "dao".to_string();
             let menu = format!("{}\n{}\n1. {}\n2. {}\n\n{}",
                 TranslationService::translate("dao_governance", lang),
@@ -484,11 +484,11 @@ pub async fn handle_dao_menu(text: &str, session: &mut UssdSession) -> (String, 
             (menu, true)
         }
         "1" if parts.len() == 2 => {
-            // View proposals (when text is "4*1")
+            // View proposals (when text is "5*1")
             crate::flows::dao::proposals::handle_view_proposals(text, session).await
         }
         "2" if parts.len() == 2 => {
-            // Vote on proposals (when text is "4*2")
+            // Vote on proposals (when text is "5*2")
             crate::flows::dao::vote::handle_vote(text, session).await
         }
         _ => {

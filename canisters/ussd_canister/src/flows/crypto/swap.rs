@@ -3,6 +3,10 @@ use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 use crate::services::business_logic;
 
+// Spread basis points - fetched from exchange canister config
+// Default to 50 (0.5%) if fetch fails
+const DEFAULT_SPREAD_BASIS_POINTS: u64 = 50;
+
 /// Handle crypto swap flow
 /// Steps: 0. Select from crypto → 1. Select to crypto → 2. Enter amount → 3. Show spread & confirm → 4. Enter PIN → 5. Execute swap
 pub async fn handle_crypto_swap(text: &str, session: &mut UssdSession) -> (String, bool) {
@@ -15,7 +19,10 @@ pub async fn handle_crypto_swap(text: &str, session: &mut UssdSession) -> (Strin
     match step {
         0 => {
             // Step 0: Select from crypto (1=BTC, 2=USDC)
-            (format!("🔄 Swap Crypto\n\nFrom:\n1. Bitcoin (BTC)\n2. USDC"), true)
+            (format!("{}\n\n{}:\n1. {} (BTC)\n2. USDC",
+                TranslationService::translate("swap_crypto", lang),
+                TranslationService::translate("swap_from", lang),
+                TranslationService::translate("bitcoin", lang)), true)
         }
         1 => {
             // Step 1: Store from crypto, select to crypto
@@ -23,12 +30,16 @@ pub async fn handle_crypto_swap(text: &str, session: &mut UssdSession) -> (Strin
             session.set_data("from_crypto", from_choice);
             
             let from_name = match from_choice {
-                &"1" => "Bitcoin (BTC)",
+                &"1" => TranslationService::translate("bitcoin", lang),
                 &"2" => "USDC",
-                _ => "Unknown"
+                _ => ""
             };
             
-            (format!("To:\n1. Bitcoin (BTC)\n2. USDC\n\n(Swapping from {})", from_name), true)
+            (format!("{}:\n1. {} (BTC)\n2. USDC\n\n({} {})",
+                TranslationService::translate("swap_to", lang),
+                TranslationService::translate("bitcoin", lang),
+                TranslationService::translate("swapping_from", lang),
+                from_name), true)
         }
         2 => {
             // Step 2: Store to crypto, ask for amount
@@ -38,7 +49,9 @@ pub async fn handle_crypto_swap(text: &str, session: &mut UssdSession) -> (Strin
             // Validate not swapping same token
             if from_choice == to_choice {
                 session.clear_data();
-                return (format!("❌ Cannot swap same token\n\n0. Main Menu"), false);
+                return (format!("❌ {}\n\n0. {}",
+                    TranslationService::translate("cannot_swap_same_token", lang),
+                    TranslationService::translate("main_menu", lang)), false);
             }
             
             session.set_data("to_crypto", to_choice);
@@ -46,10 +59,12 @@ pub async fn handle_crypto_swap(text: &str, session: &mut UssdSession) -> (Strin
             let from_name = match from_choice.as_str() {
                 "1" => "BTC",
                 "2" => "USDC",
-                _ => "Unknown"
+                _ => ""
             };
             
-            (format!("Enter amount ({}):", from_name), true)
+            (format!("{} ({}):",
+                TranslationService::translate("enter_amount", lang),
+                from_name), true)
         }
         3 => {
             // Step 3: Calculate spread and show confirmation
@@ -58,11 +73,13 @@ pub async fn handle_crypto_swap(text: &str, session: &mut UssdSession) -> (Strin
             match amount_str.parse::<u64>() {
                 Ok(amount) => {
                     if amount == 0 {
-                        return (format!("❌ Amount must be greater than 0\n\n0. Main Menu"), false);
+                        return (format!("❌ {}\n\n0. {}",
+                            TranslationService::translate("amount_must_be_greater_than_zero", lang),
+                            TranslationService::translate("main_menu", lang)), false);
                     }
                     
-                    // Calculate spread (0.5%)
-                    let spread = (amount * 50) / 10_000;
+                    // Calculate spread using default (will be validated by exchange canister)
+                    let spread = (amount * DEFAULT_SPREAD_BASIS_POINTS) / 10_000;
                     let net_amount = amount.saturating_sub(spread);
                     
                     session.set_data("amount", &amount.to_string());
@@ -82,14 +99,20 @@ pub async fn handle_crypto_swap(text: &str, session: &mut UssdSession) -> (Strin
                         _ => "?"
                     };
                     
-                    (format!("🔄 Swap Details:\n\nFrom: {} {}\nSpread (0.5%): {} {}\nYou'll receive: ~{} {}\n\n1. Confirm\n2. Cancel",
-                        amount, from_name,
-                        spread, from_name,
-                        net_amount, to_name), true)
+                    let spread_pct = DEFAULT_SPREAD_BASIS_POINTS as f64 / 100.0;
+                    (format!("{}:\n\n{}: {} {}\n{} ({:.1}%): {} {}\n{}: ~{} {}\n\n1. {}\n2. {}",
+                        TranslationService::translate("swap_details", lang),
+                        TranslationService::translate("swap_from", lang), amount, from_name,
+                        TranslationService::translate("spread", lang), spread_pct, spread, from_name,
+                        TranslationService::translate("youll_receive_approx", lang), net_amount, to_name,
+                        TranslationService::translate("confirm", lang),
+                        TranslationService::translate("cancel", lang)), true)
                 }
                 Err(_) => {
                     session.clear_data();
-                    (format!("❌ Invalid amount\n\n0. Main Menu"), false)
+                    (format!("❌ {}\n\n0. {}",
+                        TranslationService::translate("invalid_amount", lang),
+                        TranslationService::translate("main_menu", lang)), false)
                 }
             }
         }
@@ -99,11 +122,14 @@ pub async fn handle_crypto_swap(text: &str, session: &mut UssdSession) -> (Strin
             
             if choice == &"1" {
                 // User confirmed - ask for PIN
-                (format!("🔐 Enter your PIN:"), true)
+                (format!("{}:",
+                    TranslationService::translate("enter_pin", lang)), true)
             } else {
                 // User cancelled
                 session.clear_data();
-                (format!("Swap cancelled\n\n0. Main Menu"), false)
+                (format!("{}\n\n0. {}",
+                    TranslationService::translate("swap_cancelled", lang),
+                    TranslationService::translate("main_menu", lang)), false)
             }
         }
         5 => {
@@ -120,22 +146,29 @@ pub async fn handle_crypto_swap(text: &str, session: &mut UssdSession) -> (Strin
                 ("2", "1") => ("CkUSDC", "CkBTC"),
                 _ => {
                     session.clear_data();
-                    return (format!("❌ Invalid crypto selection\n\n0. Main Menu"), false);
+                    return (format!("❌ {}\n\n0. {}",
+                        TranslationService::translate("invalid_crypto_selection", lang),
+                        TranslationService::translate("main_menu", lang)), false);
                 }
             };
             
             match business_logic::swap_crypto(&phone, from_crypto, to_crypto, amount, pin).await {
                 Ok(result) => {
                     session.clear_data();
-                    (format!("✅ Swap Successful!\n\n📊 Details:\nFrom: {} {}\nTo: {} {}\nSpread: {} {}\nRate: {}\n\n0. Main Menu",
-                        result.from_amount, from_crypto,
-                        result.to_amount, to_crypto,
-                        result.spread_amount, from_crypto,
-                        result.exchange_rate), false)
+                    (format!("✅ {}!\n\n{}: {} {}\n{}: {} {}\n{}: {} {}\n{}: {}\n\n0. {}",
+                        TranslationService::translate("swap_successful", lang),
+                        TranslationService::translate("swap_from", lang), result.from_amount, from_crypto,
+                        TranslationService::translate("swap_to", lang), result.to_amount, to_crypto,
+                        TranslationService::translate("spread", lang), result.spread_amount, from_crypto,
+                        TranslationService::translate("rate", lang), result.exchange_rate,
+                        TranslationService::translate("main_menu", lang)), false)
                 }
                 Err(e) => {
                     session.clear_data();
-                    (format!("❌ Swap failed: {}\n\n0. Main Menu", e), false)
+                    (format!("❌ {}: {}\n\n0. {}",
+                        TranslationService::translate("swap_failed", lang),
+                        e,
+                        TranslationService::translate("main_menu", lang)), false)
                 }
             }
         }

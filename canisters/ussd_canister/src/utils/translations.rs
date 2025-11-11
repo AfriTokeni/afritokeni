@@ -337,6 +337,66 @@ impl TranslationService {
             ("send_bitcoin", Language::Luganda) => "Wereza Bitcoin",
             ("send_bitcoin", Language::Swahili) => "Tuma Bitcoin",
 
+            ("swap_crypto", Language::English) => "Swap Crypto",
+            ("swap_crypto", Language::Luganda) => "Kyusa Crypto",
+            ("swap_crypto", Language::Swahili) => "Badilisha Crypto",
+
+            ("swap_from", Language::English) => "From",
+            ("swap_from", Language::Luganda) => "Okuva",
+            ("swap_from", Language::Swahili) => "Kutoka",
+
+            ("swap_to", Language::English) => "To",
+            ("swap_to", Language::Luganda) => "Okugenda",
+            ("swap_to", Language::Swahili) => "Kwenda",
+
+            ("swapping_from", Language::English) => "Swapping from",
+            ("swapping_from", Language::Luganda) => "Okukyusa okuva ku",
+            ("swapping_from", Language::Swahili) => "Kubadilisha kutoka",
+
+            ("cannot_swap_same_token", Language::English) => "Cannot swap same token",
+            ("cannot_swap_same_token", Language::Luganda) => "Tosobola kukyusa token y'emu",
+            ("cannot_swap_same_token", Language::Swahili) => "Huwezi kubadilisha token sawa",
+
+            ("enter_amount", Language::English) => "Enter amount",
+            ("enter_amount", Language::Luganda) => "Yingiza omuwendo",
+            ("enter_amount", Language::Swahili) => "Weka kiasi",
+
+            ("amount_must_be_greater_than_zero", Language::English) => "Amount must be greater than 0",
+            ("amount_must_be_greater_than_zero", Language::Luganda) => "Omuwendo gulina okuba okusingawo 0",
+            ("amount_must_be_greater_than_zero", Language::Swahili) => "Kiasi lazima kiwe zaidi ya 0",
+
+            ("swap_details", Language::English) => "Swap Details",
+            ("swap_details", Language::Luganda) => "Ebikwata ku Kukyusa",
+            ("swap_details", Language::Swahili) => "Maelezo ya Kubadilisha",
+
+            ("spread", Language::English) => "Spread",
+            ("spread", Language::Luganda) => "Enjawulo",
+            ("spread", Language::Swahili) => "Tofauti",
+
+            ("youll_receive_approx", Language::English) => "You'll receive",
+            ("youll_receive_approx", Language::Luganda) => "Ojja kufuna",
+            ("youll_receive_approx", Language::Swahili) => "Utapokea",
+
+            ("swap_cancelled", Language::English) => "Swap cancelled",
+            ("swap_cancelled", Language::Luganda) => "Okukyusa kusaziddwamu",
+            ("swap_cancelled", Language::Swahili) => "Kubadilisha kumeghairiwa",
+
+            ("swap_successful", Language::English) => "Swap Successful",
+            ("swap_successful", Language::Luganda) => "Okukyusa kuwedde",
+            ("swap_successful", Language::Swahili) => "Kubadilisha kumefanikiwa",
+
+            ("swap_failed", Language::English) => "Swap failed",
+            ("swap_failed", Language::Luganda) => "Okukyusa kulemye",
+            ("swap_failed", Language::Swahili) => "Kubadilisha kumeshindwa",
+
+            ("rate", Language::English) => "Rate",
+            ("rate", Language::Luganda) => "Omuwendo",
+            ("rate", Language::Swahili) => "Bei",
+
+            ("invalid_crypto_selection", Language::English) => "Invalid crypto selection",
+            ("invalid_crypto_selection", Language::Luganda) => "Okusalawo crypto tekituufu",
+            ("invalid_crypto_selection", Language::Swahili) => "Chaguo la crypto si sahihi",
+
             ("bitcoin_menu_title", Language::English) => "Bitcoin (ckBTC)",
             ("bitcoin_menu_title", Language::Luganda) => "Bitcoin (ckBTC)",
             ("bitcoin_menu_title", Language::Swahili) => "Bitcoin (ckBTC)",

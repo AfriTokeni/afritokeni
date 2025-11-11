@@ -16,6 +16,7 @@ pub mod deposit_commission_tests;
 pub mod withdrawal_commission_tests;
 pub mod exchange_spread_tests;
 pub mod commission_end_to_end_tests;
+pub mod crypto_swap_tests;
 
 // ============================================================================
 // Test Environment Setup
