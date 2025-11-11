@@ -200,66 +200,185 @@ AfriTokeni provides **instant, low-cost crypto banking accessible via USSD** on 
 - Webhook processing
 - Multi-language support (English, Luganda, Swahili)
 
-### 3.2 ICP-Native Architecture
+### 3.2 Multi-Canister Architecture
 
-AfriTokeni runs entirely on the Internet Computer Protocol:
+AfriTokeni uses a sophisticated multi-canister architecture for scalability, security, and revenue optimization:
 
 ```
-┌────────────────────────────────────────────────┐
-│          ICP CANISTER ARCHITECTURE             │
-├────────────────────────────────────────────────┤
-│                                                │
-│  ┌──────────────┐  ┌──────────────┐            │
-│  │  Frontend    │  │  Datastore   │            │
-│  │  Canister    │  │  Canister    │            │
-│  │  (Juno)      │  │  (Juno)      │            │
-│  └──────────────┘  └──────────────┘            │
-│         │                  │                   │
-│         └────────┬─────────┘                   │
-│                  │                             │
-│         ┌────────┴────────┐                    │
-│         │                 │                    │
-│    ┌────▼────┐      ┌────▼────┐                │
-│    │ ckBTC   │      │ ckUSDC  │                │
-│    │ Ledger  │      │ Ledger  │                │
-│    │ Canister│      │ Canister│                │
-│    └────┬────┘      └────┬────┘                │
-│         │                 │                    │
-│    ┌────▼────┐      ┌────▼────┐                │
-│    │ ckBTC   │      │ ckUSDC  │                │
-│    │ Minter  │      │ Minter  │                │
-│    │ Canister│      │ Canister│                │
-│    └─────────┘      └─────────┘                │
-│                                                │
-└────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                    PRESENTATION LAYER                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │   Frontend   │  │     USSD     │  │   Web App    │          │
+│  │   Canister   │  │   Canister   │  │  (Juno)      │          │
+│  │   (Juno)     │  │  (Stateless) │  │              │          │
+│  └──────────────┘  └──────────────┘  └──────────────┘          │
+│         │                  │                  │                │
+│         └──────────────────┼──────────────────┘                │
+│                            │                                   │
+└────────────────────────────┼───────────────────────────────────┘
+                             ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                    BUSINESS LOGIC LAYER                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────┐      │
+│  │         BUSINESS LOGIC CANISTER                      │      │
+│  │  • All transaction flows & validation                │      │
+│  │  • Fraud detection & security                        │      │
+│  │  • User management & authentication                  │      │
+│  │  • Crypto operations (buy/sell/send)                 │      │
+│  │  • Money transfers & escrow                          │      │
+│  │  • Orchestrates all operations                       │      │
+│  └──────────────────────────────────────────────────────┘      │
+│         │                  │                  │                │
+│         └──────────────────┼──────────────────┘                │
+│                            │                                   │
+└────────────────────────────┼───────────────────────────────────┘
+                             ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                    COMMISSION & REVENUE LAYER                   │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐      │
+│  │   DEPOSIT     │  │  WITHDRAWAL   │  │   EXCHANGE    │      │
+│  │   CANISTER    │  │   CANISTER    │  │   CANISTER    │      │
+│  ├───────────────┤  ├───────────────┤  ├───────────────┤      │
+│  │ • 0.5% fee    │  │ • 0.5% fee    │  │ • 0.5% spread │      │
+│  │ • Agent 10%   │  │ • Agent 10%   │  │ • Sonic DEX   │      │
+│  │ • Track codes │  │ • Track codes │  │ • BTC↔USDC    │      │
+│  │ • Revenue     │  │ • Revenue     │  │ • Revenue     │      │
+│  └───────────────┘  └───────────────┘  └───────────────┘      │
+│         │                  │                  │                │
+│         └──────────────────┼──────────────────┘                │
+│                            │                                   │
+└────────────────────────────┼───────────────────────────────────┘
+                             ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                    DATA & STORAGE LAYER                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────┐      │
+│  │         DATA CANISTER (Pure CRUD)                    │      │
+│  │  • User profiles & authentication                    │      │
+│  │  • Fiat & crypto balances                            │      │
+│  │  • Transaction history                               │      │
+│  │  • Escrow metadata                                   │      │
+│  │  • Agent information                                 │      │
+│  │  • NO business logic                                 │      │
+│  └──────────────────────────────────────────────────────┘      │
+│                            │                                   │
+└────────────────────────────┼───────────────────────────────────┘
+                             ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                    BLOCKCHAIN LAYER                             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌──────────┐ │
+│  │   ckBTC    │  │   ckUSDC   │  │   Sonic    │  │   SNS    │ │
+│  │   Ledger   │  │   Ledger   │  │    DEX     │  │   DAO    │ │
+│  └────────────┘  └────────────┘  └────────────┘  └──────────┘ │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-**enefits**:
-- *AWS/Google Cloud**: Pure blockchain astructure
-- **Censorship Resistant**: No single pointfailure
+**Benefits**:
+- **No AWS/Google Cloud**: Pure blockchain infrastructure
+- **Censorship Resistant**: No single point of failure
 - **Low Cost**: ~$0.01 per transaction
-- *tant Finality**: <1 second confirmat
-- **Scalable**: Handles millions of transacs per day
+- **Instant Finality**: <1 second confirmations
+- **Scalable**: Handles millions of transactions per day
+- **Revenue Optimized**: Dedicated commission canisters
+- **Stateless USSD**: No session storage needed
 
-### Data Architecture
+### 3.3 Canister Responsibilities
 
-**ections** (Juno Datastore):
-- `users`: User profiles and authentication
-- `agents`: Agent network information
-- `transactions`: All financial transactions
-- `ckbtc_transactions`: ckBTC-specific operations
-- `ckusdc_transactions`: ckUSDC-specific operations
-- `escrow_transactions`: Secure exchange codes
-- `pending_transactions`: Two-step confirmations
-- `withdrawal_requests`: Cash withdrawal processing
-- `deposit_requests`: Cash deposit processing
+#### USSD Canister (Presentation)
+- **Purpose**: Parse USSD input, format responses
+- **Stateless**: Africa's Talking manages session state
+- **Functions**: 
+  - Parse text input (e.g., "1*256700123456*50000*1234")
+  - Call Business Logic Canister
+  - Format CON/END responses
+  - Multi-language support (English, Luganda, Swahili)
 
-**Security**:
-- Principal-based authentication
-- PIN verification for USSD users
-- Rate limiting (10 requests/minute)
-- Fraud detection algorithms
-- Multi-signature for large transactions
+#### Business Logic Canister (Orchestration)
+- **Purpose**: All business rules and validation
+- **Functions**:
+  - User registration & authentication
+  - Money transfers & validation
+  - Crypto operations (buy/sell/send)
+  - Fraud detection (10M max, 5M suspicious threshold)
+  - Escrow management
+  - Commission calculation
+  - Inter-canister orchestration
+
+#### Deposit Canister (Commission)
+- **Purpose**: Cash deposit revenue tracking
+- **Commission**: 0.5% platform fee
+- **Agent Split**: 10% of platform fee
+- **Functions**:
+  - Create deposit requests
+  - Generate deposit codes (DEP000001, DEP000002, etc.)
+  - Track agent commissions
+  - Company wallet revenue
+
+#### Withdrawal Canister (Commission)
+- **Purpose**: Cash withdrawal revenue tracking
+- **Fees**: 0.5% platform + 10% agent fee
+- **Functions**:
+  - Create withdrawal requests
+  - Generate withdrawal codes (WTH000001, WTH000002, etc.)
+  - Track agent earnings
+  - Company wallet revenue
+
+#### Exchange Canister (Commission)
+- **Purpose**: Crypto swap revenue tracking
+- **Spread**: 0.5% (100% to company)
+- **DEX**: Sonic (3xwpq-ziaaa-aaaah-qcn4a-cai)
+- **Functions**:
+  - BTC ↔ USDC swaps
+  - Spread calculation
+  - Company wallet revenue
+
+#### Data Canister (Storage)
+- **Purpose**: Pure CRUD operations
+- **Collections**:
+  - `users`: User profiles and authentication
+  - `agents`: Agent network information
+  - `transactions`: All financial transactions
+  - `ckbtc_transactions`: ckBTC-specific operations
+  - `ckusdc_transactions`: ckUSDC-specific operations
+  - `escrow_transactions`: Secure exchange codes
+  - `balances`: Fiat and crypto balances
+
+### 3.4 Revenue Model Integration
+
+**Commission Breakdown**:
+
+| Operation | Platform Fee | Agent Commission | Company Revenue |
+|-----------|-------------|------------------|-----------------|
+| Deposit (100K UGX) | 500 UGX (0.5%) | 50 UGX (10%) | 450 UGX |
+| Withdrawal (100K UGX) | 500 UGX (0.5%) | 10,000 UGX (10%) | 500 UGX |
+| Exchange (100K UGX) | 500 UGX (0.5%) | 0 UGX | 500 UGX |
+
+**Monthly Revenue Example** (1,000 transactions each):
+- Deposits: 450,000 UGX company + 50,000 UGX agents
+- Withdrawals: 500,000 UGX company + 10M UGX agents
+- Exchanges: 500,000 UGX company
+- **Total**: 1.45M UGX company + 10.05M UGX agents
+
+### 3.5 Security Architecture
+
+**Multi-Layer Security**:
+- **Principal-based authentication**: ICP cryptographic identities
+- **PIN verification**: 4-digit PIN for USSD users
+- **Rate limiting**: 10 requests/minute per user
+- **Fraud detection**: Automatic blocking of suspicious transactions
+- **Audit logging**: All operations logged for compliance
+- **Multi-signature**: Large transactions require multiple approvals
+- **Escrow system**: Atomic crypto-to-cash exchanges
 
 ---
 
