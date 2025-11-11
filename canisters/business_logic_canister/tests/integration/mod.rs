@@ -306,7 +306,7 @@ impl TestEnv {
     pub fn get_escrow_status(&self, code: &str) -> Result<Escrow, String> {
         let arg = encode_one(code.to_string()).unwrap();
         
-        let response = self.pic.query_call(
+        let response = self.pic.update_call(
             self.business_canister_id,
             Principal::anonymous(),
             "get_escrow_status",

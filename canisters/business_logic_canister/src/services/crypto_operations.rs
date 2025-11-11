@@ -267,14 +267,30 @@ pub async fn sell_crypto_to_agent(
     };
     let escrow_code = format!("{}-{:06}", code_prefix, (timestamp % 1_000_000) as u32);
     
-    // 6. Put crypto in escrow (deduct from user balance)
+    // 6. Create escrow record
+    let escrow = shared_types::Escrow {
+        code: escrow_code.clone(),
+        user_id: user.id.clone(),
+        agent_id: agent_id.clone(),
+        amount: crypto_amount,
+        crypto_type,
+        status: shared_types::EscrowStatus::Active,
+        created_at: timestamp,
+        expires_at: timestamp + (24 * 60 * 60 * 1_000_000_000), // 24 hours in nanoseconds
+        claimed_at: None,
+    };
+    
+    // 7. Store escrow FIRST (before deducting crypto for atomicity)
+    data_client::store_escrow(escrow).await?;
+    
+    // 8. Put crypto in escrow (deduct from user balance)
     let (ckbtc_delta, ckusdc_delta) = match crypto_type {
         CryptoType::CkBTC => (-(crypto_amount as i64), 0),
         CryptoType::CkUSDC => (0, -(crypto_amount as i64)),
     };
     data_client::update_crypto_balance(&user.id, ckbtc_delta, ckusdc_delta).await?;
     
-    // 7. Create escrow transaction record
+    // 9. Create escrow transaction record
     let tx_id = transfer_logic::generate_transaction_id(timestamp);
     let tx = shared_types::Transaction {
         id: tx_id.clone(),

@@ -357,6 +357,90 @@ pub async fn update_user_phone(user_id: &str, phone_number: &str) -> Result<(), 
 }
 
 // ============================================================================
+// Escrow CRUD Operations (Pure Data Access)
+// ============================================================================
+
+/// Store escrow in data canister
+pub async fn store_escrow(escrow: shared_types::Escrow) -> Result<(), String> {
+    let canister_id = config::get_data_canister_id()?;
+    
+    let response = Call::unbounded_wait(canister_id, "store_escrow")
+        .with_args(&(escrow,))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<(), String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+/// Get escrow by code
+pub async fn get_escrow(code: &str) -> Result<Option<shared_types::Escrow>, String> {
+    let canister_id = config::get_data_canister_id()?;
+    
+    let response = Call::unbounded_wait(canister_id, "get_escrow")
+        .with_args(&(code.to_string(),))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<Option<shared_types::Escrow>, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+/// Update escrow status
+pub async fn update_escrow_status(code: &str, status: shared_types::EscrowStatus) -> Result<(), String> {
+    let canister_id = config::get_data_canister_id()?;
+    
+    let response = Call::unbounded_wait(canister_id, "update_escrow_status")
+        .with_args(&(code.to_string(), status))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<(), String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+/// Delete escrow
+pub async fn delete_escrow(code: &str) -> Result<(), String> {
+    let canister_id = config::get_data_canister_id()?;
+    
+    let response = Call::unbounded_wait(canister_id, "delete_escrow")
+        .with_args(&(code.to_string(),))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<(), String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+/// Get all active escrows (for cleanup jobs)
+pub async fn get_active_escrows() -> Result<Vec<shared_types::Escrow>, String> {
+    let canister_id = config::get_data_canister_id()?;
+    
+    let response = Call::unbounded_wait(canister_id, "get_active_escrows")
+        .with_args(&())
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    
+    let (result,): (Result<Vec<shared_types::Escrow>, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    
+    result
+}
+
+// ============================================================================
 // ALL DATA TYPES NOW IN SHARED_TYPES - SINGLE SOURCE OF TRUTH
 // ============================================================================
 

@@ -541,6 +541,141 @@ async fn sell_crypto_to_agent(
 }
 
 // ============================================================================
+// Escrow Operations
+// ============================================================================
+
+/// Verify escrow code and transfer crypto to agent
+#[update]
+async fn verify_escrow_code(
+    code: String,
+    agent_id: String,
+) -> Result<TransactionResult, String> {
+    verify_authorized_caller()?;
+    
+    // 1. Get escrow
+    let escrow = services::data_client::get_escrow(&code).await?
+        .ok_or_else(|| format!("Escrow not found: {}", code))?;
+    
+    // 2. Validate escrow status
+    if escrow.status != shared_types::EscrowStatus::Active {
+        return Err(format!("Escrow already claimed or cancelled: {:?}", escrow.status));
+    }
+    
+    // 3. Validate agent
+    if escrow.agent_id != agent_id {
+        return Err("Wrong agent - not authorized to claim this escrow".to_string());
+    }
+    
+    // 4. Check expiration (24 hours)
+    let current_time = ic_cdk::api::time();
+    if current_time > escrow.expires_at {
+        return Err("Escrow expired".to_string());
+    }
+    
+    // 5. Transfer crypto to agent
+    let (ckbtc_delta, ckusdc_delta) = match escrow.crypto_type {
+        CryptoType::CkBTC => (escrow.amount as i64, 0),
+        CryptoType::CkUSDC => (0, escrow.amount as i64),
+    };
+    services::data_client::update_crypto_balance(&agent_id, ckbtc_delta, ckusdc_delta).await?;
+    
+    // 6. Update escrow status to Claimed
+    services::data_client::update_escrow_status(&code, shared_types::EscrowStatus::Claimed).await?;
+    
+    // 7. Record transaction
+    let tx_id = format!("escrow-claim-{}", current_time);
+    let tx = shared_types::Transaction {
+        id: tx_id.clone(),
+        transaction_type: shared_types::TransactionType::SellCrypto,
+        from_user: Some(escrow.user_id.clone()),
+        to_user: Some(agent_id.clone()),
+        amount: escrow.amount,
+        currency_type: shared_types::CurrencyType::Crypto(escrow.crypto_type),
+        description: Some("Escrow claimed by agent".to_string()),
+        created_at: current_time,
+        completed_at: Some(current_time),
+        status: shared_types::TransactionStatus::Completed,
+    };
+    services::data_client::store_transaction(&tx).await?;
+    
+    log_audit(
+        "verify_escrow_code",
+        Some(agent_id.clone()),
+        &format!("Agent claimed escrow: {}", code),
+        true
+    );
+    
+    Ok(TransactionResult {
+        transaction_id: tx_id,
+        from_user: escrow.user_id,
+        to_user: agent_id,
+        amount: escrow.amount,
+        currency: format!("{:?}", escrow.crypto_type),
+        new_balance: 0, // Agent's new balance not tracked here
+        timestamp: current_time,
+    })
+}
+
+/// Get escrow status
+/// NOTE: Changed to #[update] because it makes inter-canister calls
+#[update]
+async fn get_escrow_status(code: String) -> Result<shared_types::Escrow, String> {
+    verify_authorized_caller()?;
+    
+    services::data_client::get_escrow(&code).await?
+        .ok_or_else(|| format!("Escrow not found: {}", code))
+}
+
+/// Cancel escrow and refund crypto to user
+#[update]
+async fn cancel_escrow(
+    code: String,
+    user_id: String,
+    pin: String,
+) -> Result<(), String> {
+    verify_authorized_caller()?;
+    
+    // 1. Get escrow
+    let escrow = services::data_client::get_escrow(&code).await?
+        .ok_or_else(|| format!("Escrow not found: {}", code))?;
+    
+    // 2. Validate user owns this escrow
+    if escrow.user_id != user_id {
+        return Err("Not authorized to cancel this escrow".to_string());
+    }
+    
+    // 3. Validate escrow status
+    if escrow.status != shared_types::EscrowStatus::Active {
+        return Err(format!("Cannot cancel escrow with status: {:?}", escrow.status));
+    }
+    
+    // 4. Verify PIN
+    let verified = services::data_client::verify_pin(&user_id, &pin).await?;
+    if !verified {
+        return Err("Invalid PIN".to_string());
+    }
+    
+    // 5. Refund crypto to user
+    let (ckbtc_delta, ckusdc_delta) = match escrow.crypto_type {
+        CryptoType::CkBTC => (escrow.amount as i64, 0),
+        CryptoType::CkUSDC => (0, escrow.amount as i64),
+    };
+    services::data_client::update_crypto_balance(&user_id, ckbtc_delta, ckusdc_delta).await?;
+    
+    // 6. Update escrow status to Cancelled
+    services::data_client::update_escrow_status(&code, shared_types::EscrowStatus::Cancelled).await?;
+    
+    log_audit(
+        "cancel_escrow",
+        Some(user_id),
+        &format!("User cancelled escrow: {}", code),
+        true
+    );
+    
+    Ok(())
+}
+
+// ============================================================================
 // Balance Queries
 // ============================================================================
 

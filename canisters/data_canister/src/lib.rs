@@ -634,6 +634,77 @@ fn get_my_transactions(
 }
 
 // ============================================================================
+// Escrow CRUD Operations (Pure Storage - NO Business Logic)
+// ============================================================================
+
+/// Store escrow (canister only - pure CRUD)
+#[update]
+async fn store_escrow(escrow: Escrow) -> Result<(), String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        let mut s = state.borrow_mut();
+        s.escrows.insert(escrow.code.clone(), escrow);
+        Ok(())
+    })
+}
+
+/// Get escrow by code (canister only)
+#[query]
+fn get_escrow(code: String) -> Result<Option<Escrow>, String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        Ok(state.borrow().escrows.get(&code).cloned())
+    })
+}
+
+/// Update escrow status (canister only - pure CRUD)
+#[update]
+async fn update_escrow_status(code: String, status: EscrowStatus) -> Result<(), String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        let mut s = state.borrow_mut();
+        if let Some(escrow) = s.escrows.get_mut(&code) {
+            escrow.status = status;
+            if status == EscrowStatus::Claimed {
+                escrow.claimed_at = Some(ic_cdk::api::time());
+            }
+            Ok(())
+        } else {
+            Err(format!("Escrow not found: {}", code))
+        }
+    })
+}
+
+/// Delete escrow (canister only - pure CRUD)
+#[update]
+async fn delete_escrow(code: String) -> Result<(), String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        let mut s = state.borrow_mut();
+        s.escrows.remove(&code);
+        Ok(())
+    })
+}
+
+/// Get all active escrows (canister only - for cleanup jobs)
+#[query]
+fn get_active_escrows() -> Result<Vec<Escrow>, String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        let s = state.borrow();
+        Ok(s.escrows.values()
+            .filter(|e| e.status == EscrowStatus::Active)
+            .cloned()
+            .collect())
+    })
+}
+
+// ============================================================================
 // System Stats
 // ============================================================================
 

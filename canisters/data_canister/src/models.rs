@@ -174,6 +174,8 @@ pub use shared_types::{
     UserPin,
     // Audit types
     AuditEntry,
+    // Escrow types
+    Escrow, EscrowStatus,
 };
 
 // ============================================================================

@@ -236,7 +236,8 @@ fn test_invalid_code_rejection() {
     let result = env.verify_escrow_code("BTC-999999", &agent_id);
     
     assert!(result.is_err(), "Invalid code should be rejected");
-    assert!(result.unwrap_err().contains("not found") || result.unwrap_err().contains("Invalid"));
+    let err_msg = result.unwrap_err();
+    assert!(err_msg.contains("not found") || err_msg.contains("Invalid"));
 }
 
 #[test]
@@ -290,7 +291,8 @@ fn test_wrong_agent_cannot_claim_escrow() {
     let result = env.verify_escrow_code(&escrow_code, &agent2_id);
     
     assert!(result.is_err(), "Wrong agent should not be able to claim");
-    assert!(result.unwrap_err().contains("not authorized") || result.unwrap_err().contains("Wrong agent"));
+    let err_msg = result.unwrap_err();
+    assert!(err_msg.contains("not authorized") || err_msg.contains("Wrong agent"));
 }
 
 #[test]
@@ -337,7 +339,8 @@ fn test_cannot_double_claim_escrow() {
     // Second claim fails
     let result2 = env.verify_escrow_code(&escrow_code, &agent_id);
     assert!(result2.is_err(), "Second claim should fail");
-    assert!(result2.unwrap_err().contains("already claimed") || result2.unwrap_err().contains("Claimed"));
+    let err_msg = result2.unwrap_err();
+    assert!(err_msg.contains("already claimed") || err_msg.contains("Claimed"));
 }
 
 #[test]
