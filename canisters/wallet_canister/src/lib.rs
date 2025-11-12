@@ -437,6 +437,24 @@ async fn get_escrow(code: String) -> Result<Escrow, String> {
 }
 
 // ============================================================================
+// Balance Operations
+// ============================================================================
+
+/// Get fiat balance (proxy to data_canister)
+#[update]
+async fn get_fiat_balance(user_id: String, currency: FiatCurrency) -> Result<u64, String> {
+    config::verify_authorized_caller()?;
+    services::data_client::get_fiat_balance(&user_id, currency).await
+}
+
+/// Set fiat balance (proxy to data_canister, for testing/admin)
+#[update]
+async fn set_fiat_balance(user_id: String, currency: FiatCurrency, amount: u64) -> Result<(), String> {
+    config::verify_authorized_caller()?;
+    services::data_client::set_fiat_balance(&user_id, currency, amount).await
+}
+
+// ============================================================================
 // TRANSACTION HISTORY ENDPOINTS
 // ============================================================================
 

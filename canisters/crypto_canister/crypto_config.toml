@@ -1,0 +1,110 @@
+# Crypto Canister Configuration
+# All amounts are in smallest units (satoshis for BTC, cents for USDC)
+
+[fees]
+# Crypto purchase fee: 0.5% (50 basis points)
+purchase_fee_basis_points = 50
+
+# Crypto sale fee: 0.5% (50 basis points)
+sale_fee_basis_points = 50
+
+# Crypto transfer fee (network fee estimation)
+btc_network_fee_satoshis = 1000  # ~$0.50 at $50k BTC
+usdc_network_fee_cents = 50      # $0.50
+
+[exchange]
+# Spread for crypto swaps: 0.5% (50 basis points)
+spread_basis_points = 50
+
+# DEX provider for swaps
+dex_provider = "sonic"  # Options: "sonic", "icpswap", "internal"
+
+# Sonic DEX Configuration
+[exchange.sonic]
+swap_canister = "3xwpq-ziaaa-aaaah-qcn4a-cai"  # Sonic Swap Canister (mainnet)
+
+# ICPSwap Configuration (alternative)
+[exchange.icpswap]
+router_canister = "ggzvv-5qaaa-aaaag-qck7a-cai"  # ICPSwap Router (mainnet)
+
+[exchange.slippage]
+# Default slippage tolerance in basis points (100 = 1%)
+default_tolerance = 100
+# Maximum allowed slippage (500 = 5%)
+max_tolerance = 500
+
+[tokens]
+# Token Canister IDs and configuration
+
+[tokens.ckbtc]
+ledger = "mxzaz-hqaaa-aaaar-qaada-cai"  # ckBTC Ledger (mainnet)
+decimals = 8
+min_transfer_amount = 1000  # 0.00001 BTC minimum
+
+[tokens.ckusdc]
+ledger = "xevnm-gaaaa-aaaar-qafnq-cai"  # ckUSDC Ledger (mainnet)
+decimals = 6
+min_transfer_amount = 100  # $0.01 minimum
+
+[escrow]
+# Escrow expiration time in nanoseconds (24 hours)
+expiration_time_ns = 86400000000000
+
+# Minimum escrow amounts (prevent spam)
+min_btc_escrow_satoshis = 10000    # ~$5 at $50k BTC
+min_usdc_escrow_cents = 500        # $5.00
+
+[company_wallet]
+# AfriTokeni Company Wallet - receives platform revenue
+# This is the platform's revenue, NOT the DAO treasury
+principal = "aaaaa-aa"  # REPLACE WITH YOUR COMPANY WALLET PRINCIPAL
+
+[limits]
+# Crypto purchase limits (in cents of fiat equivalent)
+# These prevent large purchases that could drain liquidity
+
+[limits.default]
+max_single_purchase_cents = 100000000    # $1,000,000 max single purchase
+max_daily_purchase_cents = 500000000     # $5,000,000 max daily purchases
+max_single_sale_cents = 100000000        # $1,000,000 max single sale
+max_daily_sale_cents = 500000000         # $5,000,000 max daily sales
+
+[limits.btc]
+# Bitcoin-specific limits (in satoshis)
+max_single_transfer_satoshis = 100000000  # 1 BTC max transfer
+max_daily_transfer_satoshis = 500000000   # 5 BTC max daily
+
+[limits.usdc]
+# USDC-specific limits (in cents)
+max_single_transfer_cents = 100000000     # $1,000,000 max transfer
+max_daily_transfer_cents = 500000000      # $5,000,000 max daily
+
+[external_apis]
+# Exchange rate API endpoints
+coingecko_api_url = "https://api.coingecko.com/api/v3/simple/price"
+exchangerate_api_url = "https://api.exchangerate-api.com/v4/latest/USD"
+
+# API rate limiting
+max_api_calls_per_minute = 10
+api_timeout_seconds = 30
+
+[canisters]
+# Canister IDs (will be set during deployment)
+data_canister_id = ""
+user_canister_id = ""
+wallet_canister_id = ""
+
+[security]
+# Security settings
+require_pin_for_transfers = true
+require_pin_for_purchases = true
+require_pin_for_sales = true
+require_pin_for_escrow = true
+
+# Address validation
+validate_btc_addresses = true
+validate_eth_addresses = true
+
+# Transaction monitoring
+log_all_transactions = true
+log_suspicious_activity = true

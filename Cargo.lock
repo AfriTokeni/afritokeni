@@ -483,6 +483,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "crypto_canister"
+version = "0.1.0"
+dependencies = [
+ "candid",
+ "ic-cdk",
+ "ic-cdk-macros",
+ "ic-cdk-timers",
+ "pocket-ic",
+ "serde",
+ "serde_json",
+ "shared_types",
+ "toml",
+]
+
+[[package]]
 name = "cucumber"
 version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

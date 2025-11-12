@@ -269,6 +269,10 @@ pub enum TransactionType {
     BuyCrypto,
     SellCrypto,
     TransferCrypto,
+    SwapCrypto,
+    EscrowCreate,
+    EscrowClaim,
+    EscrowCancel,
     AgentCommission,
 }
 
