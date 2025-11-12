@@ -1,0 +1,235 @@
+# Wallet Canister Configuration
+# All amounts are in cents (smallest currency unit)
+
+[fees]
+# Transfer fee: 0.5% (50 basis points)
+transfer_fee_basis_points = 50
+
+# Exchange fee: 0.5% (50 basis points)
+exchange_fee_basis_points = 50
+
+# Withdrawal fees
+withdrawal_fee_basis_points = 50
+agent_commission_percentage = 10  # Keep 10% of agent fees
+
+[escrow]
+# Escrow expiration time in nanoseconds (24 hours)
+expiration_time_ns = 86400000000000
+
+[fraud_limits]
+# Default fraud detection limits (in cents)
+# These apply to currencies not explicitly configured below
+[fraud_limits.default]
+max_transaction_amount = 10000000        # 100,000 units (e.g., 100,000 KES = ~$770)
+suspicious_threshold = 5000000           # 50,000 units
+max_daily_transactions = 50
+max_daily_amount = 50000000              # 500,000 units
+
+# Currency-specific limits (in cents)
+# Amounts are calibrated based on ~$1,000 USD equivalent
+
+[fraud_limits.KES]  # Kenyan Shilling (1 USD ≈ 150 KES)
+max_transaction_amount = 15000000        # 150,000 KES ≈ $1,000
+suspicious_threshold = 7500000           # 75,000 KES ≈ $500
+max_daily_amount = 75000000              # 750,000 KES ≈ $5,000
+
+[fraud_limits.UGX]  # Ugandan Shilling (1 USD ≈ 3,700 UGX)
+max_transaction_amount = 370000000       # 3,700,000 UGX ≈ $1,000
+suspicious_threshold = 185000000         # 1,850,000 UGX ≈ $500
+max_daily_amount = 1850000000            # 18,500,000 UGX ≈ $5,000
+
+[fraud_limits.TZS]  # Tanzanian Shilling (1 USD ≈ 2,500 TZS)
+max_transaction_amount = 250000000       # 2,500,000 TZS ≈ $1,000
+suspicious_threshold = 125000000         # 1,250,000 TZS ≈ $500
+max_daily_amount = 1250000000            # 12,500,000 TZS ≈ $5,000
+
+[fraud_limits.NGN]  # Nigerian Naira (1 USD ≈ 1,500 NGN)
+max_transaction_amount = 150000000       # 1,500,000 NGN ≈ $1,000
+suspicious_threshold = 75000000          # 750,000 NGN ≈ $500
+max_daily_amount = 750000000             # 7,500,000 NGN ≈ $5,000
+
+[fraud_limits.RWF]  # Rwandan Franc (1 USD ≈ 1,300 RWF)
+max_transaction_amount = 130000000       # 1,300,000 RWF ≈ $1,000
+suspicious_threshold = 65000000          # 650,000 RWF ≈ $500
+max_daily_amount = 650000000             # 6,500,000 RWF ≈ $5,000
+
+[fraud_limits.GHS]  # Ghanaian Cedi (1 USD ≈ 12 GHS)
+max_transaction_amount = 1200000         # 12,000 GHS ≈ $1,000
+suspicious_threshold = 600000            # 6,000 GHS ≈ $500
+max_daily_amount = 6000000               # 60,000 GHS ≈ $5,000
+
+[fraud_limits.ZAR]  # South African Rand (1 USD ≈ 18 ZAR)
+max_transaction_amount = 1800000         # 18,000 ZAR ≈ $1,000
+suspicious_threshold = 900000            # 9,000 ZAR ≈ $500
+max_daily_amount = 9000000               # 90,000 ZAR ≈ $5,000
+
+[fraud_limits.EGP]  # Egyptian Pound (1 USD ≈ 49 EGP)
+max_transaction_amount = 4900000         # 49,000 EGP ≈ $1,000
+suspicious_threshold = 2450000           # 24,500 EGP ≈ $500
+max_daily_amount = 24500000              # 245,000 EGP ≈ $5,000
+
+[fraud_limits.MAD]  # Moroccan Dirham (1 USD ≈ 10 MAD)
+max_transaction_amount = 1000000         # 10,000 MAD ≈ $1,000
+suspicious_threshold = 500000            # 5,000 MAD ≈ $500
+max_daily_amount = 5000000               # 50,000 MAD ≈ $5,000
+
+[fraud_limits.ETB]  # Ethiopian Birr (1 USD ≈ 125 ETB)
+max_transaction_amount = 12500000        # 125,000 ETB ≈ $1,000
+suspicious_threshold = 6250000           # 62,500 ETB ≈ $500
+max_daily_amount = 62500000              # 625,000 ETB ≈ $5,000
+
+[fraud_limits.XOF]  # West African CFA Franc (1 USD ≈ 600 XOF)
+max_transaction_amount = 60000000        # 600,000 XOF ≈ $1,000
+suspicious_threshold = 30000000          # 300,000 XOF ≈ $500
+max_daily_amount = 300000000             # 3,000,000 XOF ≈ $5,000
+
+[fraud_limits.XAF]  # Central African CFA Franc (1 USD ≈ 600 XAF)
+max_transaction_amount = 60000000        # 600,000 XAF ≈ $1,000
+suspicious_threshold = 30000000          # 300,000 XAF ≈ $500
+max_daily_amount = 300000000             # 3,000,000 XAF ≈ $5,000
+
+# Additional currencies with default-based limits
+[fraud_limits.AOA]  # Angolan Kwanza
+max_transaction_amount = 85000000
+suspicious_threshold = 42500000
+max_daily_amount = 425000000
+
+[fraud_limits.BWP]  # Botswana Pula
+max_transaction_amount = 1350000
+suspicious_threshold = 675000
+max_daily_amount = 6750000
+
+[fraud_limits.BIF]  # Burundian Franc
+max_transaction_amount = 285000000
+suspicious_threshold = 142500000
+max_daily_amount = 1425000000
+
+[fraud_limits.CDF]  # Congolese Franc
+max_transaction_amount = 275000000
+suspicious_threshold = 137500000
+max_daily_amount = 1375000000
+
+[fraud_limits.DJF]  # Djiboutian Franc
+max_transaction_amount = 17800000
+suspicious_threshold = 8900000
+max_daily_amount = 89000000
+
+[fraud_limits.DZD]  # Algerian Dinar
+max_transaction_amount = 13500000
+suspicious_threshold = 6750000
+max_daily_amount = 67500000
+
+[fraud_limits.ERN]  # Eritrean Nakfa
+max_transaction_amount = 1500000
+suspicious_threshold = 750000
+max_daily_amount = 7500000
+
+[fraud_limits.GMD]  # Gambian Dalasi
+max_transaction_amount = 6500000
+suspicious_threshold = 3250000
+max_daily_amount = 32500000
+
+[fraud_limits.KMF]  # Comorian Franc
+max_transaction_amount = 45000000
+suspicious_threshold = 22500000
+max_daily_amount = 225000000
+
+[fraud_limits.LRD]  # Liberian Dollar
+max_transaction_amount = 19000000
+suspicious_threshold = 9500000
+max_daily_amount = 95000000
+
+[fraud_limits.LSL]  # Lesotho Loti
+max_transaction_amount = 1800000
+suspicious_threshold = 900000
+max_daily_amount = 9000000
+
+[fraud_limits.LYD]  # Libyan Dinar
+max_transaction_amount = 480000
+suspicious_threshold = 240000
+max_daily_amount = 2400000
+
+[fraud_limits.MGA]  # Malagasy Ariary
+max_transaction_amount = 450000000
+suspicious_threshold = 225000000
+max_daily_amount = 2250000000
+
+[fraud_limits.MRU]  # Mauritanian Ouguiya
+max_transaction_amount = 3700000
+suspicious_threshold = 1850000
+max_daily_amount = 18500000
+
+[fraud_limits.MUR]  # Mauritian Rupee
+max_transaction_amount = 4500000
+suspicious_threshold = 2250000
+max_daily_amount = 22500000
+
+[fraud_limits.MWK]  # Malawian Kwacha
+max_transaction_amount = 170000000
+suspicious_threshold = 85000000
+max_daily_amount = 850000000
+
+[fraud_limits.NAD]  # Namibian Dollar
+max_transaction_amount = 1800000
+suspicious_threshold = 900000
+max_daily_amount = 9000000
+
+[fraud_limits.SCR]  # Seychellois Rupee
+max_transaction_amount = 1350000
+suspicious_threshold = 675000
+max_daily_amount = 6750000
+
+[fraud_limits.SDG]  # Sudanese Pound
+max_transaction_amount = 60000000
+suspicious_threshold = 30000000
+max_daily_amount = 300000000
+
+[fraud_limits.SLL]  # Sierra Leonean Leone
+max_transaction_amount = 2100000000
+suspicious_threshold = 1050000000
+max_daily_amount = 10500000000
+
+[fraud_limits.SOS]  # Somali Shilling
+max_transaction_amount = 57000000
+suspicious_threshold = 28500000
+max_daily_amount = 285000000
+
+[fraud_limits.SSP]  # South Sudanese Pound
+max_transaction_amount = 130000000
+suspicious_threshold = 65000000
+max_daily_amount = 650000000
+
+[fraud_limits.STN]  # São Tomé and Príncipe Dobra
+max_transaction_amount = 2250000
+suspicious_threshold = 1125000
+max_daily_amount = 11250000
+
+[fraud_limits.SZL]  # Swazi Lilangeni
+max_transaction_amount = 1800000
+suspicious_threshold = 900000
+max_daily_amount = 9000000
+
+[fraud_limits.TND]  # Tunisian Dinar
+max_transaction_amount = 310000
+suspicious_threshold = 155000
+max_daily_amount = 1550000
+
+[fraud_limits.ZMW]  # Zambian Kwacha
+max_transaction_amount = 2700000
+suspicious_threshold = 1350000
+max_daily_amount = 13500000
+
+[fraud_limits.CVE]  # Cape Verdean Escudo
+max_transaction_amount = 10000000
+suspicious_threshold = 5000000
+max_daily_amount = 50000000
+
+[external_apis]
+# Exchange rate API endpoints
+coingecko_api_url = "https://api.coingecko.com/api/v3/simple/price"
+exchangerate_api_url = "https://api.exchangerate-api.com/v4/latest/USD"
+
+[canisters]
+# Canister IDs (will be set during deployment)
+data_canister_id = ""
+user_canister_id = ""
