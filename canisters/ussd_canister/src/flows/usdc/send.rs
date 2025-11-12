@@ -85,8 +85,9 @@ pub async fn handle_send_usdc(text: &str, session: &mut UssdSession) -> (String,
             let pin = parts.get(4).unwrap_or(&"");
             let recipient = parts.get(2).unwrap_or(&"").to_string();
             let amount_str = parts.get(3).unwrap_or(&"").to_string();
-            let amount_usdc = amount_str.parse::<f64>().unwrap_or(0.0);
-            let amount_e6 = (amount_usdc * 1_000_000.0) as u64;
+            // Amount is already in e6 (micro-USDC)
+            let amount_e6 = amount_str.parse::<u64>().unwrap_or(0);
+            let amount_usdc = amount_e6 as f64 / 1_000_000.0;
             
             ic_cdk::println!("💵 Executing send_usdc: to={}, amount={} e6", recipient, amount_e6);
             

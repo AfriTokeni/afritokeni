@@ -40,10 +40,13 @@ pub async fn handle_buy_bitcoin(text: &str, session: &mut UssdSession) -> (Strin
         }
         2 => {
             // Step 2: Call Business Logic to buy crypto
-            // parts: [0]=2, [1]=3, [2]=amount_ugx, [3]=pin
+            // parts: [0]=2, [1]=3, [2]=amount, [3]=pin
             let pin = parts.get(3).unwrap_or(&"");
             let phone = session.phone_number.clone();
             let amount_str = parts.get(2).unwrap_or(&"");
+            
+            // Get user's currency from session
+            let currency = session.get_data("currency").unwrap_or_else(|| "UGX".to_string());
             
             // Parse amount
             let amount_f64 = amount_str.parse::<f64>().unwrap_or(0.0);
@@ -53,7 +56,7 @@ pub async fn handle_buy_bitcoin(text: &str, session: &mut UssdSession) -> (Strin
             match crate::services::business_logic::buy_crypto(
                 &phone,
                 amount_cents,
-                "UGX",
+                &currency,
                 crate::services::business_logic::CryptoType::CkBTC,
                 pin
             ).await {
@@ -61,14 +64,16 @@ pub async fn handle_buy_bitcoin(text: &str, session: &mut UssdSession) -> (Strin
                     let btc_amount = (tx_result.amount as f64) / 100_000_000.0; // satoshis to BTC
                     let new_balance = (tx_result.new_balance as f64) / 100.0;
                     
-                    (format!("{}\n{} {} UGX {} {:.8} BTC\n{}: {} UGX\n\n0. {}", 
+                    (format!("{}\n{} {} {} {} {:.8} BTC\n{}: {} {}\n\n0. {}", 
                         TranslationService::translate("transaction_successful", lang),
                         TranslationService::translate("bought", lang),
                         amount_f64,
+                        currency,
                         TranslationService::translate("worth_of", lang),
                         btc_amount,
                         TranslationService::translate("new_balance", lang),
                         new_balance,
+                        currency,
                         TranslationService::translate("main_menu", lang)), false)
                 }
                 Err(e) => {

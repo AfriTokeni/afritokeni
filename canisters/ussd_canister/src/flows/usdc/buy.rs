@@ -42,15 +42,18 @@ pub async fn handle_buy_usdc(text: &str, session: &mut UssdSession) -> (String, 
             // Step 2: Verify PIN and execute
             let pin = parts.get(3).unwrap_or(&"");
             let phone = session.phone_number.clone();
-            let amount_kes_str = parts.get(2).unwrap_or(&"");
+            let amount_str = parts.get(2).unwrap_or(&"");
+            
+            // Get user's currency from session
+            let currency = session.get_data("currency").unwrap_or_else(|| "UGX".to_string());
             
             // Call Business Logic to buy USDC
-            let amount_cents = (amount_kes_str.parse::<f64>().unwrap_or(0.0) * 100.0) as u64;
+            let amount_cents = (amount_str.parse::<f64>().unwrap_or(0.0) * 100.0) as u64;
             
             match crate::services::business_logic::buy_crypto(
                 &phone,
                 amount_cents,
-                "UGX",
+                &currency,
                 crate::services::business_logic::CryptoType::CkUSDC,
                 pin
             ).await {
@@ -58,10 +61,11 @@ pub async fn handle_buy_usdc(text: &str, session: &mut UssdSession) -> (String, 
                     let usdc_amount = result.amount as f64 / 1_000_000.0;
                     let fiat_amount = amount_cents as f64 / 100.0;
                     
-                    (format!("{}\nBought {:.2} ckUSDC for {:.2} UGX\n\n0. {}", 
+                    (format!("{}\nBought {:.2} ckUSDC for {:.2} {}\n\n0. {}", 
                         TranslationService::translate("transaction_successful", lang),
                         usdc_amount,
                         fiat_amount,
+                        currency,
                         TranslationService::translate("main_menu", lang)), false)
                 }
                 Err(e) if e.contains("Insufficient") => {

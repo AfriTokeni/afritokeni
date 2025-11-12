@@ -190,10 +190,17 @@ pub struct RegisterUserRequest {
     pub pin: String,
 }
 
+/// Simplified fiat balance info for API responses
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct FiatBalanceInfo {
+    pub currency: String,
+    pub balance: u64,
+}
+
 /// User balances response
 #[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct UserBalances {
-    pub fiat_balances: Vec<FiatBalance>,
+    pub fiat_balances: Vec<FiatBalanceInfo>,
     pub ckbtc_balance: u64,
     pub ckusdc_balance: u64,
 }

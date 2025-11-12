@@ -3,6 +3,8 @@ use candid::{CandidType, Deserialize};
 // Re-export types from shared_types instead of defining our own
 pub use shared_types::CryptoType;
 pub use shared_types::SwapResult;
+pub use shared_types::UserBalances;
+pub use shared_types::FiatBalanceInfo;
 
 #[derive(CandidType, Deserialize, Clone)]
 pub struct AuditEntry {
@@ -23,19 +25,6 @@ pub struct TransactionResult {
     pub currency: String,
     pub new_balance: u64,
     pub timestamp: u64,
-}
-
-#[derive(CandidType, Deserialize, Clone)]
-pub struct UserBalances {
-    pub fiat_balances: Vec<FiatBalance>,
-    pub ckbtc_balance: u64,
-    pub ckusdc_balance: u64,
-}
-
-#[derive(CandidType, Deserialize, Clone)]
-pub struct FiatBalance {
-    pub currency: String,
-    pub balance: u64,
 }
 
 #[derive(CandidType, Deserialize, Clone)]

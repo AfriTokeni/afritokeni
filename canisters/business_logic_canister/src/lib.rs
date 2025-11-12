@@ -962,6 +962,17 @@ async fn set_crypto_balance(
     services::data_client::set_crypto_balance(&user_id, ckbtc, ckusdc).await
 }
 
+/// Set fiat balance (for testing only - bypasses business logic)
+#[update]
+async fn set_fiat_balance(
+    user_id: String,
+    currency: String,
+    amount: u64,
+) -> Result<(), String> {
+    verify_authorized_caller()?;
+    services::data_client::set_fiat_balance(&user_id, &currency, amount).await
+}
+
 // ============================================================================
 // User Management
 // ============================================================================

@@ -93,7 +93,11 @@ pub async fn get_or_create_session(session_id: &str, phone_number: &str) -> Resu
     let mut new_session = UssdSession::new(session_id.to_string(), phone_number.to_string());
     new_session.language = "en".to_string();
     
-    ic_cdk::println!("🆕 Creating new session for '{}'", session_id);
+    // Auto-detect currency from phone number
+    let detected_currency = crate::core::routing::detect_currency_from_phone(phone_number);
+    new_session.set_data("currency", &detected_currency);
+    ic_cdk::println!("🆕 Creating new session for '{}' with detected currency: {}", session_id, detected_currency);
+    
     SESSIONS.with(|sessions| {
         sessions.borrow_mut().insert(session_id.to_string(), new_session.clone());
     });

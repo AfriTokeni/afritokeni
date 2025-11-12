@@ -179,7 +179,7 @@ pub async fn handle_registration(session: &mut UssdSession, input: &str) -> (Str
 }
 
 /// Detect currency from phone number (simple country code detection)
-fn detect_currency_from_phone(phone: &str) -> String {
+pub fn detect_currency_from_phone(phone: &str) -> String {
     let phone = phone.trim_start_matches('+');
     
     // African country codes and their currencies
@@ -245,7 +245,7 @@ pub async fn handle_local_currency_menu(text: &str, session: &mut UssdSession) -
             match crate::services::business_logic::get_balances(&session.phone_number).await {
                 Ok(balances) => {
                     let fiat_amount = match balances.fiat_balances.iter()
-                        .find(|b| format!("{:?}", b.currency) == currency) {
+                        .find(|b| b.currency == currency) {
                         Some(balance) => balance.balance as f64 / 100.0,
                         None => {
                             return (format!("{}: {} {}\n\n{}", 

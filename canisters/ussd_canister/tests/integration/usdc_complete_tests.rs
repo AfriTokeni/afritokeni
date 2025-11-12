@@ -90,7 +90,8 @@ fn test_send_usdc_to_valid_address() {
     env.set_crypto_balance(phone, 0, 100000).expect("Set USDC balance");
     
     // Send USDC: Menu 3 -> 5 (Send) -> address -> amount -> PIN
-    let (response, _) = env.process_ussd("session", phone, "3*5*0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb*50000*1234");
+    // Note: ckUSDC uses IC Principal addresses, not Ethereum addresses
+    let (response, _) = env.process_ussd("session", phone, "3*5*rrkah-fqaaa-aaaaa-aaaaq-cai*50000*1234");
     
     assert!(response.contains("success") || response.contains("Success") || response.contains("sent"),
         "Should send USDC. Got: {}", response);
@@ -108,7 +109,7 @@ fn test_send_usdc_insufficient_balance() {
         .expect("Registration");
     env.set_crypto_balance(phone, 0, 10000).expect("Set small USDC balance");
     
-    let (response, _) = env.process_ussd("session", phone, "3*5*0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb*50000*1234");
+    let (response, _) = env.process_ussd("session", phone, "3*5*rrkah-fqaaa-aaaaa-aaaaq-cai*50000*1234");
     
     assert!(response.contains("Insufficient") || response.contains("insufficient"),
         "Should reject insufficient balance. Got: {}", response);
@@ -138,7 +139,7 @@ fn test_send_usdc_zero_amount() {
         .expect("Registration");
     env.set_crypto_balance(phone, 0, 100000).expect("Set balance");
     
-    let (response, _) = env.process_ussd("session", phone, "3*5*0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb*0");
+    let (response, _) = env.process_ussd("session", phone, "3*5*rrkah-fqaaa-aaaaa-aaaaq-cai*0");
     
     assert!(response.contains("Invalid") || response.contains("invalid") || response.contains("positive"),
         "Should reject zero amount. Got: {}", response);
@@ -367,7 +368,7 @@ fn test_usdc_buy_then_send() {
     let (_, usdc_after_buy) = env.get_crypto_balance(phone).expect("Get balance");
     
     // Send USDC
-    env.process_ussd("s2", phone, &format!("3*5*0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb*{}*1234", usdc_after_buy / 2));
+    env.process_ussd("s2", phone, &format!("3*5*rrkah-fqaaa-aaaaa-aaaaq-cai*{}*1234", usdc_after_buy / 2));
     
     let (_, usdc_final) = env.get_crypto_balance(phone).expect("Get balance");
     assert!(usdc_final < usdc_after_buy, "USDC should decrease after send");

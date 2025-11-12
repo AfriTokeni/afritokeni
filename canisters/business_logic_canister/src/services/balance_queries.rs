@@ -17,7 +17,7 @@ pub async fn get_balances(user_identifier: String) -> Result<UserBalances, Strin
     let currency_str = user.preferred_currency.to_string();
     let fiat_balance = data_client::get_fiat_balance(&user.id, &currency_str).await?;
     
-    let fiat_balances = vec![FiatBalance {
+    let fiat_balances = vec![FiatBalanceInfo {
         currency: currency_str,
         balance: fiat_balance,
     }];

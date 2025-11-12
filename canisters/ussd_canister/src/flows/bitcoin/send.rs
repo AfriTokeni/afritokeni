@@ -59,8 +59,8 @@ pub async fn handle_send_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
             let phone = session.phone_number.clone();
             let btc_address = parts.get(2).unwrap_or(&"").to_string();
             let amount_str = parts.get(3).unwrap_or(&"").to_string();
-            let amount_btc = amount_str.parse::<f64>().unwrap_or(0.0);
-            let amount_sats = (amount_btc * 100_000_000.0) as u64;
+            // Amount is already in satoshis
+            let amount_sats = amount_str.parse::<u64>().unwrap_or(0);
             
             // Call Business Logic to send Bitcoin
             match crate::services::business_logic::send_crypto(

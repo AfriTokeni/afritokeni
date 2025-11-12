@@ -190,6 +190,7 @@ impl TestEnv {
     }
     
     /// Register user via business logic canister (for test setup)
+    /// Idempotent - returns existing user_id if user already registered
     pub fn register_user_direct(
         &self,
         phone_number: &str,
@@ -199,6 +200,12 @@ impl TestEnv {
         preferred_currency: &str,
         pin: &str,
     ) -> Result<String, String> {
+        // Check if user already exists (for shared test environment)
+        if let Ok(Some(existing_user)) = self.get_user(phone_number) {
+            // User exists, return their ID
+            return Ok(existing_user.id);
+        }
+        
         // Generate a unique principal ID for each test user
         // Use a deterministic principal based on phone number for consistency
         let mut bytes = [0u8; 29];
@@ -340,5 +347,53 @@ impl TestEnv {
         
         let balance: Result<CryptoBalance, String> = decode_one(&response).expect("Failed to decode");
         balance.map(|b| (b.ckbtc, b.ckusdc))
+    }
+    
+    /// Setup test user with clean state - idempotent and resets all balances
+    /// This is the recommended way to prepare a user for testing in the shared environment
+    pub fn setup_test_user(
+        &self,
+        phone: &str,
+        first_name: &str,
+        last_name: &str,
+        email: &str,
+        currency: &str,
+        pin: &str,
+    ) -> Result<String, String> {
+        // Register user (idempotent - returns existing user_id if already registered)
+        let user_id = self.register_user_direct(phone, first_name, last_name, email, currency, pin)?;
+        
+        // Reset all balances to zero for clean state
+        self.set_fiat_balance(phone, currency, 0)?;
+        self.set_crypto_balance(phone, 0, 0)?;
+        
+        Ok(user_id)
+    }
+    
+    /// Setup test user with initial balances
+    pub fn setup_test_user_with_balances(
+        &self,
+        phone: &str,
+        first_name: &str,
+        last_name: &str,
+        email: &str,
+        currency: &str,
+        pin: &str,
+        fiat_balance: u64,
+        btc_balance: u64,
+        usdc_balance: u64,
+    ) -> Result<String, String> {
+        // Register and reset to zero
+        let user_id = self.setup_test_user(phone, first_name, last_name, email, currency, pin)?;
+        
+        // Set specified balances
+        if fiat_balance > 0 {
+            self.set_fiat_balance(phone, currency, fiat_balance)?;
+        }
+        if btc_balance > 0 || usdc_balance > 0 {
+            self.set_crypto_balance(phone, btc_balance, usdc_balance)?;
+        }
+        
+        Ok(user_id)
     }
 }
