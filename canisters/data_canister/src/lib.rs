@@ -305,6 +305,37 @@ fn get_my_user_data() -> Result<Option<User>, String> {
     })
 }
 
+/// Get user by principal (canister only)
+#[query]
+fn get_user_by_principal(principal_id: String) -> Result<Option<User>, String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        Ok(state.borrow().users.values()
+            .find(|u| u.principal_id.as_ref() == Some(&principal_id))
+            .cloned())
+    })
+}
+
+/// Update user phone number (canister only)
+#[update]
+async fn update_user_phone(request: shared_types::UpdateUserPhoneRequest) -> Result<(), String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        let mut state = state.borrow_mut();
+        
+        // Check if user exists
+        let user = state.users.get_mut(&request.user_id)
+            .ok_or_else(|| format!("User not found: {}", request.user_id))?;
+        
+        // Update phone number
+        user.phone_number = Some(request.phone_number);
+        
+        Ok(())
+    })
+}
+
 // ============================================================================
 // Balance Operations
 // ============================================================================
@@ -510,6 +541,36 @@ async fn reset_pin_attempts(user_id: String) -> Result<(), String> {
     
     STATE.with(|state| {
         security::pin_ops::reset_attempts(&mut state.borrow_mut(), user_id)
+    })
+}
+
+/// Store PIN hash (canister only - for Argon2 hashes from user_canister)
+#[update]
+async fn store_pin_hash(user_id: String, pin_hash: String) -> Result<(), String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        security::pin_ops::store_pin_hash(&mut state.borrow_mut(), user_id, pin_hash)
+    })
+}
+
+/// Get PIN hash (canister only - for verification in user_canister)
+#[query]
+fn get_pin_hash(user_id: String) -> Result<String, String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        security::pin_ops::get_pin_hash(&state.borrow(), user_id)
+    })
+}
+
+/// Increment failed PIN attempts (canister only)
+#[update]
+async fn increment_failed_attempts(user_id: String) -> Result<(), String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        security::pin_ops::increment_failed_attempts(&mut state.borrow_mut(), user_id)
     })
 }
 

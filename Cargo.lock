@@ -2654,6 +2654,7 @@ name = "shared_types"
 version = "0.1.0"
 dependencies = [
  "candid",
+ "ic-cdk",
  "serde",
 ]
 
@@ -3316,6 +3317,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "daf8dba3b7eb870caf1ddeed7bc9d2a049f3cfdfae7cb521b087cc33ae4c49da"
 
 [[package]]
+name = "user_canister"
+version = "0.1.0"
+dependencies = [
+ "argon2",
+ "candid",
+ "hex",
+ "ic-cdk",
+ "ic-cdk-macros",
+ "pocket-ic",
+ "serde",
+ "serde_json",
+ "shared_types",
+]
+
+[[package]]
 name = "ussd_canister"
 version = "0.1.0"
 dependencies = [
@@ -3382,6 +3398,20 @@ checksum = "29790946404f91d9c5d06f9874efddea1dc06c5efe94541a7d6863108e3a5e4b"
 dependencies = [
  "same-file",
  "winapi-util",
+]
+
+[[package]]
+name = "wallet_canister"
+version = "0.1.0"
+dependencies = [
+ "candid",
+ "ic-cdk",
+ "ic-cdk-macros",
+ "pocket-ic",
+ "serde",
+ "serde_json",
+ "shared_types",
+ "toml",
 ]
 
 [[package]]

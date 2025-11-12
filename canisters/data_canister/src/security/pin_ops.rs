@@ -241,3 +241,94 @@ pub fn get_failed_attempts(
 
     Ok(user_pin.failed_attempts)
 }
+
+// ============================================================================
+// New Argon2-based PIN Storage (Pure Storage - No Hashing Logic)
+// ============================================================================
+
+/// Store PIN hash (Argon2 hash from user_canister)
+/// This is pure storage - no hashing logic here
+pub fn store_pin_hash(
+    state: &mut DataCanisterState,
+    user_id: String,
+    pin_hash: String,
+) -> Result<(), String> {
+    let now = time() / 1_000_000_000;
+    
+    // Check if user exists
+    if !state.users.contains_key(&user_id) {
+        return Err("User not found".to_string());
+    }
+    
+    // Create or update PIN record
+    let user_pin = UserPin {
+        user_id: user_id.clone(),
+        pin_hash,
+        salt: String::new(), // Not used for Argon2 (salt is in the hash)
+        failed_attempts: 0,
+        locked_until: None,
+        created_at: now,
+        updated_at: now,
+    };
+    
+    state.user_pins.insert(user_id.clone(), user_pin);
+    
+    // Log audit entry
+    let audit_entry = AuditEntry {
+        timestamp: now,
+        action: "pin_hash_stored".to_string(),
+        caller: caller().to_text(),
+        user_id: Some(user_id),
+        details: "PIN hash stored (Argon2)".to_string(),
+        success: true,
+    };
+    state.log_audit(audit_entry);
+    
+    Ok(())
+}
+
+/// Get PIN hash for verification
+pub fn get_pin_hash(
+    state: &DataCanisterState,
+    user_id: String,
+) -> Result<String, String> {
+    let user_pin = state.user_pins.get(&user_id)
+        .ok_or_else(|| format!("PIN not set for user: {}", user_id))?;
+    
+    Ok(user_pin.pin_hash.clone())
+}
+
+/// Increment failed PIN attempts and handle lockout
+pub fn increment_failed_attempts(
+    state: &mut DataCanisterState,
+    user_id: String,
+) -> Result<(), String> {
+    let now = time() / 1_000_000_000;
+    
+    let mut user_pin = state.user_pins.get(&user_id)
+        .ok_or_else(|| format!("PIN not set for user: {}", user_id))?
+        .clone();
+    
+    user_pin.failed_attempts += 1;
+    user_pin.updated_at = now;
+    
+    // Lock account after MAX_PIN_ATTEMPTS
+    if user_pin.failed_attempts >= MAX_PIN_ATTEMPTS {
+        user_pin.locked_until = Some(now + PIN_LOCKOUT_DURATION);
+    }
+    
+    state.user_pins.insert(user_id.clone(), user_pin.clone());
+    
+    // Log audit entry
+    let audit_entry = AuditEntry {
+        timestamp: now,
+        action: "pin_attempt_failed".to_string(),
+        caller: caller().to_text(),
+        user_id: Some(user_id),
+        details: format!("Failed PIN attempt #{}", user_pin.failed_attempts),
+        success: false,
+    };
+    state.log_audit(audit_entry);
+    
+    Ok(())
+}

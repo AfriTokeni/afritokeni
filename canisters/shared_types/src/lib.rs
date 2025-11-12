@@ -1,6 +1,12 @@
 use candid::{CandidType, Deserialize};
 
 // ============================================================================
+// Public Modules - Shared functionality across all canisters
+// ============================================================================
+
+pub mod audit;
+
+// ============================================================================
 // Shared Types - Used by ALL canisters
 // ============================================================================
 
@@ -164,6 +170,7 @@ pub struct User {
 }
 
 // Helper to deserialize numbers from strings (Candid JSON format)
+#[allow(dead_code)]
 fn deserialize_number_from_string<'de, D>(deserializer: D) -> Result<u64, D::Error>
 where
     D: serde::Deserializer<'de>,
