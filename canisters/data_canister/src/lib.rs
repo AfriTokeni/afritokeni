@@ -26,7 +26,6 @@ pub struct DataCanisterState {
     crypto_balances: HashMap<String, CryptoBalance>,  // key: user_id
     transactions: HashMap<String, Transaction>,
     user_pins: HashMap<String, UserPin>,
-    audit_log: Vec<AuditEntry>,
     escrows: HashMap<String, Escrow>,  // key: escrow_code
     settlements: Vec<MonthlySettlement>,
 }
@@ -34,13 +33,6 @@ pub struct DataCanisterState {
 impl DataCanisterState {
     pub fn new() -> Self {
         Self::default()
-    }
-
-    pub fn log_audit(&mut self, entry: AuditEntry) {
-        self.audit_log.push(entry);
-        if self.audit_log.len() > 10000 {
-            self.audit_log.remove(0);
-        }
     }
 }
 
@@ -193,6 +185,12 @@ fn add_authorized_canister(canister_id: String) -> Result<(), String> {
         }
     });
     
+    shared_types::audit::log_success(
+        "add_authorized_canister",
+        None,
+        format!("Added authorized canister: {}", canister_id)
+    );
+    
     Ok(())
 }
 
@@ -208,6 +206,12 @@ fn remove_authorized_canister(canister_id: String) -> Result<(), String> {
         list.retain(|p| p != &principal);
         ic_cdk::println!("❌ Removed authorized canister: {}", canister_id);
     });
+    
+    shared_types::audit::log_success(
+        "remove_authorized_canister",
+        None,
+        format!("Removed authorized canister: {}", canister_id)
+    );
     
     Ok(())
 }
@@ -767,11 +771,21 @@ fn get_my_transactions(
 async fn store_escrow(escrow: Escrow) -> Result<(), String> {
     verify_canister_access()?;
     
+    let code = escrow.code.clone();
+    let user_id = escrow.user_id.clone();
+    
     STATE.with(|state| {
         let mut s = state.borrow_mut();
         s.escrows.insert(escrow.code.clone(), escrow);
-        Ok(())
-    })
+    });
+    
+    shared_types::audit::log_success(
+        "store_escrow",
+        Some(user_id),
+        format!("Stored escrow: {}", code)
+    );
+    
+    Ok(())
 }
 
 /// Get escrow by code (canister only)
@@ -789,18 +803,26 @@ fn get_escrow(code: String) -> Result<Option<Escrow>, String> {
 async fn update_escrow_status(code: String, status: EscrowStatus) -> Result<(), String> {
     verify_canister_access()?;
     
-    STATE.with(|state| {
+    let user_id = STATE.with(|state| {
         let mut s = state.borrow_mut();
         if let Some(escrow) = s.escrows.get_mut(&code) {
             escrow.status = status;
             if status == EscrowStatus::Claimed {
                 escrow.claimed_at = Some(ic_cdk::api::time());
             }
-            Ok(())
+            Ok(escrow.user_id.clone())
         } else {
             Err(format!("Escrow not found: {}", code))
         }
-    })
+    })?;
+    
+    shared_types::audit::log_success(
+        "update_escrow_status",
+        Some(user_id),
+        format!("Updated escrow {} to status: {:?}", code, status)
+    );
+    
+    Ok(())
 }
 
 /// Delete escrow (canister only - pure CRUD)
@@ -808,11 +830,23 @@ async fn update_escrow_status(code: String, status: EscrowStatus) -> Result<(), 
 async fn delete_escrow(code: String) -> Result<(), String> {
     verify_canister_access()?;
     
+    let user_id = STATE.with(|state| {
+        let s = state.borrow();
+        s.escrows.get(&code).map(|e| e.user_id.clone())
+    });
+    
     STATE.with(|state| {
         let mut s = state.borrow_mut();
         s.escrows.remove(&code);
-        Ok(())
-    })
+    });
+    
+    shared_types::audit::log_success(
+        "delete_escrow",
+        user_id,
+        format!("Deleted escrow: {}", code)
+    );
+    
+    Ok(())
 }
 
 /// Get all active escrows (canister only - for cleanup jobs)
@@ -849,30 +883,36 @@ fn get_system_stats() -> Result<SystemStats, String> {
 }
 
 // ============================================================================
-// Audit Log Queries
+// Audit Log Queries (Using Shared Audit Library)
 // ============================================================================
 
 /// Get audit log (only admin/controller can access)
 #[query]
-fn get_audit_log(limit: Option<usize>, offset: Option<usize>) -> Result<Vec<AuditEntry>, String> {
+fn get_audit_log(limit: Option<usize>) -> Result<Vec<AuditEntry>, String> {
     verify_admin_access()?;
-    
-    STATE.with(|state| {
-        let s = state.borrow();
-        let start = offset.unwrap_or(0);
-        let end = start + limit.unwrap_or(100).min(1000);
-        Ok(s.audit_log.iter().skip(start).take(end - start).cloned().collect())
-    })
+    Ok(shared_types::audit::get_audit_log(limit))
 }
 
 /// Get audit log count
 #[query]
 fn get_audit_log_count() -> Result<usize, String> {
     verify_admin_access()?;
-    
-    STATE.with(|state| {
-        Ok(state.borrow().audit_log.len())
-    })
+    let stats = shared_types::audit::get_audit_stats();
+    Ok(stats.total_entries)
+}
+
+/// Get audit log statistics (admin only)
+#[query]
+fn get_audit_stats() -> Result<shared_types::audit::AuditStats, String> {
+    verify_admin_access()?;
+    Ok(shared_types::audit::get_audit_stats())
+}
+
+/// Get failed operations (admin only - for debugging)
+#[query]
+fn get_failed_operations(limit: Option<usize>) -> Result<Vec<AuditEntry>, String> {
+    verify_admin_access()?;
+    Ok(shared_types::audit::get_failed_operations(limit))
 }
 
 // Export Candid interface
@@ -1099,29 +1139,8 @@ mod tests {
         assert_eq!(state.crypto_balances.len(), 0);
         assert_eq!(state.transactions.len(), 0);
         assert_eq!(state.user_pins.len(), 0);
-        assert_eq!(state.audit_log.len(), 0);
+        assert_eq!(state.escrows.len(), 0);
+        assert_eq!(state.settlements.len(), 0);
     }
 
-    #[test]
-    fn test_audit_log_retention_limit() {
-        let mut state = DataCanisterState::new();
-        
-        // Add 10,001 entries
-        for i in 0..10_001 {
-            let entry = AuditEntry {
-                timestamp: i as u64,
-                action: format!("action_{}", i),
-                caller: "aaaa-bbbb-cccc-dddd".to_string(),
-                user_id: Some(format!("user_{}", i)),
-                details: format!("details_{}", i),
-                success: true,
-            };
-            state.log_audit(entry);
-        }
-        
-        // Should only keep last 10,000
-        assert_eq!(state.audit_log.len(), 10_000);
-        // First entry should be removed
-        assert_eq!(state.audit_log[0].action, "action_1");
-    }
 }

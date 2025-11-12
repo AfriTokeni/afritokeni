@@ -1,6 +1,7 @@
 use crate::models::*;
 use crate::DataCanisterState;
-use ic_cdk::api::{time, caller};
+use ic_cdk::api::time;
+use shared_types::audit;
 
 /// Deposit fiat currency
 pub fn deposit_fiat(
@@ -51,16 +52,12 @@ pub fn deposit_fiat(
     
     state.transactions.insert(tx_id, transaction.clone());
     
-    // Log audit
-    let audit_entry = AuditEntry {
-        timestamp: now,
-        action: "deposit_fiat".to_string(),
-        caller: caller().to_text(),
-        user_id: Some(user_id),
-        details: format!("Deposited {} {}", amount, currency.code()),
-        success: true,
-    };
-    state.log_audit(audit_entry);
+    // Log audit using shared library
+    audit::log_success(
+        "deposit_fiat",
+        Some(user_id),
+        format!("Deposited {} {}", amount, currency.code())
+    );
     
     Ok(transaction)
 }
@@ -135,17 +132,12 @@ pub fn transfer_fiat(
     
     state.transactions.insert(tx_id, transaction.clone());
     
-    // Log audit
-    let audit_entry = AuditEntry {
-        timestamp: now,
-        action: "transfer_fiat".to_string(),
-        caller: caller().to_text(),
-        user_id: Some(from_user.clone()),
-        details: format!("Transferred {} {} to {}", 
-                        amount, currency.code(), to_user),
-        success: true,
-    };
-    state.log_audit(audit_entry);
+    // Log audit using shared library
+    audit::log_success(
+        "transfer_fiat",
+        Some(from_user.clone()),
+        format!("Transferred {} {} to {}", amount, currency.code(), to_user)
+    );
     
     Ok(transaction)
 }
@@ -202,17 +194,12 @@ pub fn withdraw_fiat(
     
     state.transactions.insert(tx_id, transaction.clone());
     
-    // Log audit
-    let audit_entry = AuditEntry {
-        timestamp: now,
-        action: "withdraw_fiat".to_string(),
-        caller: caller().to_text(),
-        user_id: Some(user_id),
-        details: format!("Withdrew {} {}", 
-                        amount, currency.code()),
-        success: true,
-    };
-    state.log_audit(audit_entry);
+    // Log audit using shared library
+    audit::log_success(
+        "withdraw_fiat",
+        Some(user_id),
+        format!("Withdrew {} {}", amount, currency.code())
+    );
     
     Ok(transaction)
 }
@@ -266,16 +253,12 @@ pub fn update_crypto_balance(
     // Store updated balance
     state.crypto_balances.insert(user_id.clone(), balance);
     
-    // Log audit
-    let audit_entry = AuditEntry {
-        timestamp: now,
-        action: "crypto_balance_updated".to_string(),
-        caller: caller().to_text(),
-        user_id: Some(user_id),
-        details: format!("ckBTC: {:+}, ckUSDC: {:+}", ckbtc_delta, ckusdc_delta),
-        success: true,
-    };
-    state.log_audit(audit_entry);
+    // Log audit using shared library
+    audit::log_success(
+        "crypto_balance_updated",
+        Some(user_id),
+        format!("ckBTC: {:+}, ckUSDC: {:+}", ckbtc_delta, ckusdc_delta)
+    );
     
     Ok(())
 }

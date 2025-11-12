@@ -1,8 +1,9 @@
 use crate::models::*;
 use crate::DataCanisterState;
-use ic_cdk::api::{time, caller};
+use ic_cdk::api::time;
 use sha2::Sha256;
 use hmac::{Hmac, Mac};
+use shared_types::audit;
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -46,16 +47,12 @@ pub fn setup_pin_with_salt(
     // Store PIN
     state.user_pins.insert(user_id.clone(), user_pin);
 
-    // Log audit entry
-    let audit_entry = AuditEntry {
-        timestamp: now,
-        action: "pin_setup".to_string(),
-        caller: caller().to_text(),
-        user_id: Some(user_id),
-        details: "PIN setup completed".to_string(),
-        success: true,
-    };
-    state.log_audit(audit_entry);
+    // Log audit using shared library
+    audit::log_success(
+        "pin_setup",
+        Some(user_id),
+        "PIN setup completed".to_string()
+    );
 
     Ok(())
 }
@@ -95,16 +92,12 @@ pub fn verify_pin(
 
         state.user_pins.insert(user_id.clone(), user_pin);
 
-        // Log audit entry
-        let audit_entry = AuditEntry {
-            timestamp: now,
-            action: "pin_verified".to_string(),
-            caller: caller().to_text(),
-            user_id: Some(user_id),
-            details: "PIN verification successful".to_string(),
-            success: true,
-        };
-        state.log_audit(audit_entry);
+        // Log audit using shared library
+        audit::log_success(
+            "pin_verified",
+            Some(user_id),
+            "PIN verification successful".to_string()
+        );
 
         Ok(true)
     } else {
@@ -120,16 +113,12 @@ pub fn verify_pin(
         let failed_attempts = user_pin.failed_attempts;
         state.user_pins.insert(user_id.clone(), user_pin);
 
-        // Log audit entry
-        let audit_entry = AuditEntry {
-            timestamp: now,
-            action: "pin_failed".to_string(),
-            caller: caller().to_text(),
-            user_id: Some(user_id),
-            details: format!("PIN verification failed. Attempts: {}", failed_attempts),
-            success: false,
-        };
-        state.log_audit(audit_entry);
+        // Log audit using shared library
+        audit::log_failure(
+            "pin_failed",
+            Some(user_id),
+            format!("PIN verification failed. Attempts: {}", failed_attempts)
+        );
 
         Ok(false)
     }
@@ -149,16 +138,12 @@ pub fn reset_attempts(
     user_pin.locked_until = None;
     user_pin.updated_at = now;
 
-    // Log audit entry
-    let audit_entry = AuditEntry {
-        timestamp: now,
-        action: "pin_attempts_reset".to_string(),
-        caller: caller().to_text(),
-        user_id: Some(user_id),
-        details: "PIN attempts reset".to_string(),
-        success: true,
-    };
-    state.log_audit(audit_entry);
+    // Log audit using shared library
+    audit::log_success(
+        "pin_attempts_reset",
+        Some(user_id),
+        "PIN attempts reset".to_string()
+    );
 
     Ok(())
 }
@@ -273,16 +258,12 @@ pub fn store_pin_hash(
     
     state.user_pins.insert(user_id.clone(), user_pin);
     
-    // Log audit entry
-    let audit_entry = AuditEntry {
-        timestamp: now,
-        action: "pin_hash_stored".to_string(),
-        caller: caller().to_text(),
-        user_id: Some(user_id),
-        details: "PIN hash stored (Argon2)".to_string(),
-        success: true,
-    };
-    state.log_audit(audit_entry);
+    // Log audit using shared library
+    audit::log_success(
+        "pin_hash_stored",
+        Some(user_id),
+        "PIN hash stored (Argon2)".to_string()
+    );
     
     Ok(())
 }
@@ -319,16 +300,12 @@ pub fn increment_failed_attempts(
     
     state.user_pins.insert(user_id.clone(), user_pin.clone());
     
-    // Log audit entry
-    let audit_entry = AuditEntry {
-        timestamp: now,
-        action: "pin_attempt_failed".to_string(),
-        caller: caller().to_text(),
-        user_id: Some(user_id),
-        details: format!("Failed PIN attempt #{}", user_pin.failed_attempts),
-        success: false,
-    };
-    state.log_audit(audit_entry);
+    // Log audit using shared library
+    audit::log_failure(
+        "pin_attempt_failed",
+        Some(user_id),
+        format!("Failed PIN attempt #{}", user_pin.failed_attempts)
+    );
     
     Ok(())
 }

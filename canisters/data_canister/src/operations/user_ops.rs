@@ -1,6 +1,7 @@
 use crate::models::*;
 use crate::DataCanisterState;
-use ic_cdk::api::{time, caller};
+use ic_cdk::api::time;
+use shared_types::audit;
 
 /// Create a new user
 pub fn create_user(
@@ -46,19 +47,15 @@ pub fn create_user(
         last_active: now,
     };
     
-    // Log audit entry
-    let audit_entry = AuditEntry {
-        timestamp: now,
-        action: "user_created".to_string(),
-        caller: caller().to_text(),
-        user_id: Some(user_id.clone()),
-        details: format!("Created user: {} {}", user.first_name, user.last_name),
-        success: true,
-    };
-    state.log_audit(audit_entry);
-    
     // Store user
-    state.users.insert(user_id, user.clone());
+    state.users.insert(user_id.clone(), user.clone());
+    
+    // Log audit entry using shared library
+    audit::log_success(
+        "user_created",
+        Some(user_id),
+        format!("Created user: {} {}", user.first_name, user.last_name)
+    );
     
     Ok(user)
 }
@@ -92,16 +89,12 @@ pub fn link_phone_to_user(
     
     user.phone_number = Some(phone_number.clone());
     
-    let now = time() / 1_000_000_000;
-    let audit_entry = AuditEntry {
-        timestamp: now,
-        action: "phone_linked".to_string(),
-        caller: caller().to_text(),
-        user_id: Some(user_id.to_string()),
-        details: format!("Linked phone: {}", phone_number),
-        success: true,
-    };
-    state.log_audit(audit_entry);
+    // Log audit entry using shared library
+    audit::log_success(
+        "phone_linked",
+        Some(user_id.to_string()),
+        format!("Linked phone: {}", phone_number)
+    );
     
     Ok(())
 }
@@ -122,16 +115,12 @@ pub fn link_principal_to_user(
     
     user.principal_id = Some(principal_id.clone());
     
-    let now = time() / 1_000_000_000;
-    let audit_entry = AuditEntry {
-        timestamp: now,
-        action: "principal_linked".to_string(),
-        caller: caller().to_text(),
-        user_id: Some(user_id.to_string()),
-        details: format!("Linked principal: {}", principal_id),
-        success: true,
-    };
-    state.log_audit(audit_entry);
+    // Log audit entry using shared library
+    audit::log_success(
+        "principal_linked",
+        Some(user_id.to_string()),
+        format!("Linked principal: {}", principal_id)
+    );
     
     Ok(())
 }
@@ -151,16 +140,12 @@ pub fn update_kyc_status(
         user.is_verified = true;
     }
     
-    let now = time() / 1_000_000_000;
-    let audit_entry = AuditEntry {
-        timestamp: now,
-        action: "kyc_updated".to_string(),
-        caller: caller().to_text(),
-        user_id: Some(user_id.to_string()),
-        details: format!("KYC status updated to: {:?}", status),
-        success: true,
-    };
-    state.log_audit(audit_entry);
+    // Log audit entry using shared library
+    audit::log_success(
+        "kyc_updated",
+        Some(user_id.to_string()),
+        format!("KYC status updated to: {:?}", status)
+    );
     
     Ok(())
 }
