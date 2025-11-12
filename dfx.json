@@ -66,6 +66,21 @@
       "package": "business_logic_canister",
       "candid": "canisters/business_logic_canister/business_logic_canister.did"
     },
+    "user_canister": {
+      "type": "rust",
+      "package": "user_canister",
+      "candid": "canisters/user_canister/user_canister.did"
+    },
+    "wallet_canister": {
+      "type": "rust",
+      "package": "wallet_canister",
+      "candid": "canisters/wallet_canister/wallet_canister.did"
+    },
+    "crypto_canister": {
+      "type": "rust",
+      "package": "crypto_canister",
+      "candid": "canisters/crypto_canister/crypto_canister.did"
+    },
     "ussd_canister": {
       "type": "rust",
       "package": "ussd_canister",

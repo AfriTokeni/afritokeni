@@ -6,7 +6,7 @@ use super::*;
 fn test_registration_flow_complete() {
     let env = get_test_env();
     
-    let phone = "+256700111111";
+    let phone = &phone("UGX");
     let session_id = "reg_test_1";
     
     // Step 0: Start registration - should ask for PIN
@@ -57,7 +57,7 @@ fn test_registration_flow_complete() {
 fn test_registration_invalid_pin_format() {
     let env = get_test_env();
     
-    let phone = "+256700222222";
+    let phone = &phone("UGX");
     let session_id = "reg_test_2";
     
     // Start registration
@@ -109,7 +109,7 @@ fn test_registration_currency_auto_detection() {
 fn test_registration_manual_currency_selection() {
     let env = get_test_env();
     
-    let phone = "+256700555555";
+    let phone = &phone("UGX");
     let session_id = "reg_test_5";
     
     // Go through registration steps
@@ -135,11 +135,11 @@ fn test_registration_manual_currency_selection() {
 fn test_registration_duplicate_phone_fails() {
     let env = get_test_env();
     
-    let phone = "+256700666666";
+    let phone = &phone("UGX");
     
     // Register user directly first
-    env.register_user_direct(phone, "First", "User", "first@test.com", "UGX", "1111")
-        .expect("First registration should succeed");
+    env.setup_test_user_with_balances(phone, "First", "User", "first@test.com", "UGX", "1111", 0, 0, 0)
+        .expect("Setup");
     
     // Try to register again via USSD
     let session_id = "reg_test_6";
@@ -157,7 +157,7 @@ fn test_registration_duplicate_phone_fails() {
 fn test_registration_empty_names_rejected() {
     let env = get_test_env();
     
-    let phone = "+256700777777";
+    let phone = &phone("UGX");
     let session_id = "reg_test_7";
     
     env.process_ussd(session_id, phone, "");
@@ -186,10 +186,10 @@ fn test_registration_empty_names_rejected() {
 #[test]
 fn test_registration_with_kes_kenya() {
     let env = get_test_env();
-    let phone = "+254700111111"; // Kenya number
+    let phone = &phone("KES"); // Kenya number
     
-    env.register_user_direct(phone, "Kenya", "User", "kenya@test.com", "KES", "1234")
-        .expect("KES registration should succeed");
+    env.setup_test_user_with_balances(phone, "Kenya", "User", "kenya@test.com", "KES", "1234", 0, 0, 0)
+        .expect("Setup");
     
     let user = env.get_user(phone).expect("Should get user").expect("User should exist");
     assert_eq!(user.preferred_currency.code(), "KES");
@@ -198,10 +198,10 @@ fn test_registration_with_kes_kenya() {
 #[test]
 fn test_registration_with_ugx_uganda() {
     let env = get_test_env();
-    let phone = "+256700222222"; // Uganda number
+    let phone = &phone("UGX"); // Uganda number
     
-    env.register_user_direct(phone, "Uganda", "User", "uganda@test.com", "UGX", "1234")
-        .expect("UGX registration should succeed");
+    env.setup_test_user_with_balances(phone, "Uganda", "User", "uganda@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     let user = env.get_user(phone).expect("Should get user").expect("User should exist");
     assert_eq!(user.preferred_currency.code(), "UGX");
@@ -210,10 +210,10 @@ fn test_registration_with_ugx_uganda() {
 #[test]
 fn test_registration_with_tzs_tanzania() {
     let env = get_test_env();
-    let phone = "+255700333333"; // Tanzania number
+    let phone = &phone("TZS"); // Tanzania number
     
-    env.register_user_direct(phone, "Tanzania", "User", "tanzania@test.com", "TZS", "1234")
-        .expect("TZS registration should succeed");
+    env.setup_test_user_with_balances(phone, "Tanzania", "User", "tanzania@test.com", "TZS", "1234", 0, 0, 0)
+        .expect("Setup");
     
     let user = env.get_user(phone).expect("Should get user").expect("User should exist");
     assert_eq!(user.preferred_currency.code(), "TZS");
@@ -222,10 +222,10 @@ fn test_registration_with_tzs_tanzania() {
 #[test]
 fn test_registration_with_rwf_rwanda() {
     let env = get_test_env();
-    let phone = "+250700444444"; // Rwanda number
+    let phone = &phone("RWF"); // Rwanda number
     
-    env.register_user_direct(phone, "Rwanda", "User", "rwanda@test.com", "RWF", "1234")
-        .expect("RWF registration should succeed");
+    env.setup_test_user_with_balances(phone, "Rwanda", "User", "rwanda@test.com", "RWF", "1234", 0, 0, 0)
+        .expect("Setup");
     
     let user = env.get_user(phone).expect("Should get user").expect("User should exist");
     assert_eq!(user.preferred_currency.code(), "RWF");
@@ -234,10 +234,10 @@ fn test_registration_with_rwf_rwanda() {
 #[test]
 fn test_registration_with_ngn_nigeria() {
     let env = get_test_env();
-    let phone = "+234700555555"; // Nigeria number
+    let phone = &phone("NGN"); // Nigeria number
     
-    env.register_user_direct(phone, "Nigeria", "User", "nigeria@test.com", "NGN", "1234")
-        .expect("NGN registration should succeed");
+    env.setup_test_user_with_balances(phone, "Nigeria", "User", "nigeria@test.com", "NGN", "1234", 0, 0, 0)
+        .expect("Setup");
     
     let user = env.get_user(phone).expect("Should get user").expect("User should exist");
     assert_eq!(user.preferred_currency.code(), "NGN");
@@ -246,10 +246,10 @@ fn test_registration_with_ngn_nigeria() {
 #[test]
 fn test_registration_with_ghs_ghana() {
     let env = get_test_env();
-    let phone = "+233700666666"; // Ghana number
+    let phone = &phone("GHS"); // Ghana number
     
-    env.register_user_direct(phone, "Ghana", "User", "ghana@test.com", "GHS", "1234")
-        .expect("GHS registration should succeed");
+    env.setup_test_user_with_balances(phone, "Ghana", "User", "ghana@test.com", "GHS", "1234", 0, 0, 0)
+        .expect("Setup");
     
     let user = env.get_user(phone).expect("Should get user").expect("User should exist");
     assert_eq!(user.preferred_currency.code(), "GHS");
@@ -260,8 +260,8 @@ fn test_registration_with_zar_south_africa() {
     let env = get_test_env();
     let phone = "+27700777777"; // South Africa number
     
-    env.register_user_direct(phone, "SouthAfrica", "User", "sa@test.com", "ZAR", "1234")
-        .expect("ZAR registration should succeed");
+    env.setup_test_user_with_balances(phone, "SouthAfrica", "User", "sa@test.com", "ZAR", "1234", 0, 0, 0)
+        .expect("Setup");
     
     let user = env.get_user(phone).expect("Should get user").expect("User should exist");
     assert_eq!(user.preferred_currency.code(), "ZAR");
@@ -274,10 +274,10 @@ fn test_registration_with_zar_south_africa() {
 #[test]
 fn test_registration_with_all_zeros_pin() {
     let env = get_test_env();
-    let phone = "+256700888888";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Zero", "PIN", "zero@test.com", "UGX", "0000")
-        .expect("0000 PIN should be valid");
+    env.setup_test_user_with_balances(phone, "Zero", "PIN", "zero@test.com", "UGX", "0000", 0, 0, 0)
+        .expect("Setup");
     
     let user = env.get_user(phone).expect("Should get user").expect("User should exist");
     assert_eq!(user.first_name, "Zero");
@@ -286,10 +286,10 @@ fn test_registration_with_all_zeros_pin() {
 #[test]
 fn test_registration_with_all_nines_pin() {
     let env = get_test_env();
-    let phone = "+256700999999";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Nine", "PIN", "nine@test.com", "UGX", "9999")
-        .expect("9999 PIN should be valid");
+    env.setup_test_user_with_balances(phone, "Nine", "PIN", "nine@test.com", "UGX", "9999", 0, 0, 0)
+        .expect("Setup");
     
     let user = env.get_user(phone).expect("Should get user").expect("User should exist");
     assert_eq!(user.first_name, "Nine");
@@ -298,10 +298,10 @@ fn test_registration_with_all_nines_pin() {
 #[test]
 fn test_registration_with_sequential_pin() {
     let env = get_test_env();
-    let phone = "+256700101010";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Sequential", "PIN", "seq@test.com", "UGX", "1234")
-        .expect("Sequential PIN should be valid");
+    env.setup_test_user_with_balances(phone, "Sequential", "PIN", "seq@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     let user = env.get_user(phone).expect("Should get user").expect("User should exist");
     assert_eq!(user.first_name, "Sequential");
@@ -314,10 +314,10 @@ fn test_registration_with_sequential_pin() {
 #[test]
 fn test_registration_with_hyphenated_name() {
     let env = get_test_env();
-    let phone = "+256700111222";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Mary-Jane", "Smith-Jones", "hyphen@test.com", "UGX", "1234")
-        .expect("Hyphenated names should work");
+    env.setup_test_user_with_balances(phone, "Mary-Jane", "Smith-Jones", "hyphen@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     let user = env.get_user(phone).expect("Should get user").expect("User should exist");
     assert_eq!(user.first_name, "Mary-Jane");
@@ -327,10 +327,10 @@ fn test_registration_with_hyphenated_name() {
 #[test]
 fn test_registration_with_apostrophe_name() {
     let env = get_test_env();
-    let phone = "+256700222333";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "O'Brien", "D'Angelo", "apostrophe@test.com", "UGX", "1234")
-        .expect("Names with apostrophes should work");
+    env.setup_test_user_with_balances(phone, "O'Brien", "D'Angelo", "apostrophe@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     let user = env.get_user(phone).expect("Should get user").expect("User should exist");
     assert_eq!(user.first_name, "O'Brien");
@@ -339,10 +339,10 @@ fn test_registration_with_apostrophe_name() {
 #[test]
 fn test_registration_with_single_letter_name() {
     let env = get_test_env();
-    let phone = "+256700333444";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "X", "Y", "single@test.com", "UGX", "1234")
-        .expect("Single letter names should work");
+    env.setup_test_user_with_balances(phone, "X", "Y", "single@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     let user = env.get_user(phone).expect("Should get user").expect("User should exist");
     assert_eq!(user.first_name, "X");
@@ -352,7 +352,7 @@ fn test_registration_with_single_letter_name() {
 #[test]
 fn test_registration_with_very_long_name() {
     let env = get_test_env();
-    let phone = "+256700444555";
+    let phone = &phone("UGX");
     let long_name = "Uvuvwevwevwe Onyetenyevwe Ugwemuhwem Osas";
     
     env.register_user_direct(phone, long_name, "Lastname", "long@test.com", "UGX", "1234")
@@ -369,11 +369,11 @@ fn test_registration_with_very_long_name() {
 #[test]
 fn test_registration_data_in_business_logic_and_data_canister() {
     let env = get_test_env();
-    let phone = "+256700555666";
+    let phone = &phone("UGX");
     
     // Register via business logic
-    env.register_user_direct(phone, "Cross", "Canister", "cross@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Cross", "Canister", "cross@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Verify data exists in data canister
     let user = env.get_user(phone).expect("Should get from data canister").expect("User should exist");
@@ -387,10 +387,10 @@ fn test_registration_data_in_business_logic_and_data_canister() {
 #[test]
 fn test_registration_creates_zero_balances() {
     let env = get_test_env();
-    let phone = "+256700666777";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Zero", "Balance", "zero@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Zero", "Balance", "zero@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Check fiat balance is 0
     let balance = env.check_fiat_balance(phone, "UGX").expect("Should get balance");

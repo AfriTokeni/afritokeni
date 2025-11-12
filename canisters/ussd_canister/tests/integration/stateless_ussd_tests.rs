@@ -6,10 +6,10 @@ use super::*;
 fn test_ussd_is_stateless() {
     let env = get_test_env();
     
-    let phone = "+256700111111";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Stateless", "User", "stateless@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Stateless", "User", "stateless@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Each call should be independent - no session state stored
     // Call 1: Check balance
@@ -30,10 +30,10 @@ fn test_ussd_is_stateless() {
 fn test_ussd_input_determines_state() {
     let env = get_test_env();
     
-    let phone = "+256700222222";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Input", "State", "input@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Input", "State", "input@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // State is determined by input text, not session
     // Direct navigation via input text
@@ -47,10 +47,10 @@ fn test_ussd_input_determines_state() {
 fn test_same_input_same_output() {
     let env = get_test_env();
     
-    let phone = "+256700333333";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Same", "Output", "same@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Same", "Output", "same@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Call same input multiple times
     let (response1, _) = env.process_ussd("session_a", phone, "6");
@@ -66,10 +66,10 @@ fn test_same_input_same_output() {
 fn test_no_session_carryover() {
     let env = get_test_env();
     
-    let phone = "+256700444444";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "No", "Carryover", "no@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "No", "Carryover", "no@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Navigate in one session
     env.process_ussd("session_1", phone, "2");
@@ -87,10 +87,10 @@ fn test_no_session_carryover() {
 fn test_concurrent_requests_independent() {
     let env = get_test_env();
     
-    let phone = "+256700555555";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Concurrent", "User", "concurrent@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Concurrent", "User", "concurrent@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Simulate concurrent requests with different inputs
     let (response1, _) = env.process_ussd("concurrent_1", phone, "2");
@@ -106,15 +106,16 @@ fn test_concurrent_requests_independent() {
 #[test]
 fn test_ussd_text_parsing() {
     let env = get_test_env();
+    let sess = session();
     
-    let phone = "+256700666666";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Parse", "Test", "parse@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Parse", "Test", "parse@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Test USSD text format: *123*option1*option2#
     // The text parameter contains the user's navigation
-    let (response, _) = env.process_ussd("session", phone, "2*1");
+    let (response, _) = env.process_ussd(&sess, phone, "2*1");
     
     // Should parse and navigate correctly
     assert!(response.len() > 0, "Should parse USSD text input");
@@ -123,14 +124,15 @@ fn test_ussd_text_parsing() {
 #[test]
 fn test_empty_text_shows_main_menu() {
     let env = get_test_env();
+    let sess = session();
     
-    let phone = "+256700777777";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Empty", "Text", "empty@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Empty", "Text", "empty@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Empty text should show main menu
-    let (response, _) = env.process_ussd("session", phone, "");
+    let (response, _) = env.process_ussd(&sess, phone, "");
     
     assert!(response.contains("Send") || response.contains("Bitcoin") || response.contains("1"),
         "Empty text should show main menu. Got: {}", response);
@@ -140,10 +142,10 @@ fn test_empty_text_shows_main_menu() {
 fn test_ussd_idempotency() {
     let env = get_test_env();
     
-    let phone = "+256700888888";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Idempotent", "Test", "idempotent@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Idempotent", "Test", "idempotent@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Same request should give same result (idempotent)
     let input = "2*1"; // Bitcoin -> Balance
@@ -157,18 +159,19 @@ fn test_ussd_idempotency() {
 #[test]
 fn test_different_users_independent() {
     let env = get_test_env();
+    let sess = session();
     
-    let phone1 = "+256700999001";
-    let phone2 = "+256700999002";
+    let phone1 = &format!("{}1", phone("UGX"));
+    let phone2 = &format!("{}2", phone("UGX"));
     
-    env.register_user_direct(phone1, "User", "One", "user1@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
-    env.register_user_direct(phone2, "User", "Two", "user2@test.com", "KES", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone1, "User", "One", "user1@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
+    env.setup_test_user_with_balances(phone2, "User", "Two", "user2@test.com", "KES", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Same input, different users
-    let (response1, _) = env.process_ussd("session", phone1, "6");
-    let (response2, _) = env.process_ussd("session", phone2, "6");
+    let (response1, _) = env.process_ussd(&sess, phone1, "6");
+    let (response2, _) = env.process_ussd(&sess, phone2, "6");
     
     // Should show different currencies
     assert!(response1.contains("UGX"), "User 1 should see UGX");

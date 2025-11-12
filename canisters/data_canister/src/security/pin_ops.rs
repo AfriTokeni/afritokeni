@@ -1,6 +1,6 @@
 use crate::models::*;
 use crate::DataCanisterState;
-use ic_cdk::api::time;
+use ic_cdk::api::{time, caller};
 use sha2::Sha256;
 use hmac::{Hmac, Mac};
 
@@ -50,8 +50,10 @@ pub fn setup_pin_with_salt(
     let audit_entry = AuditEntry {
         timestamp: now,
         action: "pin_setup".to_string(),
+        caller: caller().to_text(),
         user_id: Some(user_id),
         details: "PIN setup completed".to_string(),
+        success: true,
     };
     state.log_audit(audit_entry);
 
@@ -97,8 +99,10 @@ pub fn verify_pin(
         let audit_entry = AuditEntry {
             timestamp: now,
             action: "pin_verified".to_string(),
+            caller: caller().to_text(),
             user_id: Some(user_id),
             details: "PIN verification successful".to_string(),
+            success: true,
         };
         state.log_audit(audit_entry);
 
@@ -120,8 +124,10 @@ pub fn verify_pin(
         let audit_entry = AuditEntry {
             timestamp: now,
             action: "pin_failed".to_string(),
+            caller: caller().to_text(),
             user_id: Some(user_id),
             details: format!("PIN verification failed. Attempts: {}", failed_attempts),
+            success: false,
         };
         state.log_audit(audit_entry);
 
@@ -147,8 +153,10 @@ pub fn reset_attempts(
     let audit_entry = AuditEntry {
         timestamp: now,
         action: "pin_attempts_reset".to_string(),
+        caller: caller().to_text(),
         user_id: Some(user_id),
         details: "PIN attempts reset".to_string(),
+        success: true,
     };
     state.log_audit(audit_entry);
 

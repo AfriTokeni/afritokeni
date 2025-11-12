@@ -5,12 +5,12 @@ use super::*;
 fn test_main_menu_display() {
     let env = get_test_env();
     
-    let phone = "+256700111111";
+    let phone = &phone("UGX");
     let session_id = "menu_test_1";
     
     // Register user first
-    env.register_user_direct(phone, "Menu", "Tester", "menu@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Menu", "Tester", "menu@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Get main menu
     let (response, continue_session) = env.process_ussd(session_id, phone, "");
@@ -24,11 +24,11 @@ fn test_main_menu_display() {
 fn test_navigate_to_send_money() {
     let env = get_test_env();
     
-    let phone = "+256700222222";
+    let phone = &phone("UGX");
     let session_id = "menu_test_2";
     
-    env.register_user_direct(phone, "Send", "User", "send@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Send", "User", "send@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Navigate to send money (option 1)
     let (response, continue_session) = env.process_ussd(session_id, phone, "1");
@@ -42,11 +42,11 @@ fn test_navigate_to_send_money() {
 fn test_navigate_to_bitcoin() {
     let env = get_test_env();
     
-    let phone = "+256700333333";
+    let phone = &phone("UGX");
     let session_id = "menu_test_3";
     
-    env.register_user_direct(phone, "BTC", "User", "btc@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "BTC", "User", "btc@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Navigate to Bitcoin (option 2)
     let (response, continue_session) = env.process_ussd(session_id, phone, "2");
@@ -60,11 +60,11 @@ fn test_navigate_to_bitcoin() {
 fn test_navigate_to_usdc() {
     let env = get_test_env();
     
-    let phone = "+256700444444";
+    let phone = &phone("UGX");
     let session_id = "menu_test_4";
     
-    env.register_user_direct(phone, "USDC", "User", "usdc@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "USDC", "User", "usdc@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Navigate to USDC (option 3)
     let (response, continue_session) = env.process_ussd(session_id, phone, "3");
@@ -78,11 +78,11 @@ fn test_navigate_to_usdc() {
 fn test_navigate_to_swap() {
     let env = get_test_env();
     
-    let phone = "+256700555555";
+    let phone = &phone("UGX");
     let session_id = "menu_test_5";
     
-    env.register_user_direct(phone, "Swap", "User", "swap@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Swap", "User", "swap@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Navigate to Swap (option 4)
     let (response, continue_session) = env.process_ussd(session_id, phone, "4");
@@ -96,11 +96,11 @@ fn test_navigate_to_swap() {
 fn test_navigate_to_dao() {
     let env = get_test_env();
     
-    let phone = "+256700666666";
+    let phone = &phone("UGX");
     let session_id = "menu_test_6";
     
-    env.register_user_direct(phone, "DAO", "User", "dao@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "DAO", "User", "dao@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Navigate to DAO (option 5)
     let (response, continue_session) = env.process_ussd(session_id, phone, "5");
@@ -114,11 +114,11 @@ fn test_navigate_to_dao() {
 fn test_navigate_to_balance() {
     let env = get_test_env();
     
-    let phone = "+256700777777";
+    let phone = &phone("UGX");
     let session_id = "menu_test_7";
     
-    env.register_user_direct(phone, "Balance", "User", "balance@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Balance", "User", "balance@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Navigate to Balance (option 6)
     let (response, _) = env.process_ussd(session_id, phone, "6");
@@ -131,11 +131,11 @@ fn test_navigate_to_balance() {
 fn test_navigate_to_withdraw() {
     let env = get_test_env();
     
-    let phone = "+256700888888";
+    let phone = &phone("UGX");
     let session_id = "menu_test_8";
     
-    env.register_user_direct(phone, "Withdraw", "User", "withdraw@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Withdraw", "User", "withdraw@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Navigate to Withdraw (option 7 or similar)
     let (response, continue_session) = env.process_ussd(session_id, phone, "7");
@@ -148,11 +148,11 @@ fn test_navigate_to_withdraw() {
 fn test_invalid_menu_option() {
     let env = get_test_env();
     
-    let phone = "+256700999999";
+    let phone = &phone("UGX");
     let session_id = "menu_test_9";
     
-    env.register_user_direct(phone, "Invalid", "User", "invalid@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Invalid", "User", "invalid@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Try invalid option
     let (response, continue_session) = env.process_ussd(session_id, phone, "99");
@@ -166,11 +166,11 @@ fn test_invalid_menu_option() {
 fn test_return_to_main_menu_from_submenu() {
     let env = get_test_env();
     
-    let phone = "+256700101010";
+    let phone = &phone("UGX");
     let session_id = "menu_test_10";
     
-    env.register_user_direct(phone, "Return", "User", "return@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Return", "User", "return@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Navigate to Bitcoin then back to main menu
     env.process_ussd(session_id, phone, "2");
@@ -184,11 +184,11 @@ fn test_return_to_main_menu_from_submenu() {
 fn test_menu_has_all_options() {
     let env = get_test_env();
     
-    let phone = "+256700111222";
+    let phone = &phone("UGX");
     let session_id = "menu_test_11";
     
-    env.register_user_direct(phone, "All", "Options", "all@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "All", "Options", "all@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     let (response, _) = env.process_ussd(session_id, phone, "");
     
@@ -201,11 +201,11 @@ fn test_menu_has_all_options() {
 fn test_menu_formatting() {
     let env = get_test_env();
     
-    let phone = "+256700222333";
+    let phone = &phone("UGX");
     let session_id = "menu_test_12";
     
-    env.register_user_direct(phone, "Format", "Test", "format@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Format", "Test", "format@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     let (response, _) = env.process_ussd(session_id, phone, "");
     

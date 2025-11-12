@@ -5,7 +5,7 @@ use super::*;
 fn test_withdraw_flow_navigation() {
     let env = get_test_env();
     
-    let phone = "+256700111111";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Alice", "Withdraw", "alice@test.com", "UGX", "1111"
@@ -30,7 +30,7 @@ fn test_withdraw_flow_navigation() {
 fn test_withdraw_insufficient_balance() {
     let env = get_test_env();
     
-    let phone = "+256700222222";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Bob", "Poor", "bob@test.com", "UGX", "2222"
@@ -54,7 +54,7 @@ fn test_withdraw_insufficient_balance() {
 fn test_withdraw_zero_amount() {
     let env = get_test_env();
     
-    let phone = "+256700333333";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Charlie", "User", "charlie@test.com", "UGX", "3333"
@@ -77,7 +77,7 @@ fn test_withdraw_zero_amount() {
 fn test_withdraw_wrong_pin() {
     let env = get_test_env();
     
-    let phone = "+256700444444";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Dave", "User", "dave@test.com", "UGX", "4444"
@@ -100,7 +100,7 @@ fn test_withdraw_wrong_pin() {
 fn test_withdraw_requires_agent_id() {
     let env = get_test_env();
     
-    let phone = "+256700555555";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Eve", "User", "eve@test.com", "UGX", "5555"
@@ -126,7 +126,7 @@ fn test_withdraw_requires_agent_id() {
 fn test_withdraw_menu_structure() {
     let env = get_test_env();
     
-    let phone = "+256700666666";
+    let phone = &phone("UGX");
     
     env.register_user_direct(
         phone, "Frank", "User", "frank@test.com", "UGX", "6666"
@@ -145,7 +145,7 @@ fn test_withdraw_menu_structure() {
 fn test_withdraw_step_by_step() {
     let env = get_test_env();
     
-    let phone = "+256700777777";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Grace", "User", "grace@test.com", "UGX", "7777"
@@ -176,7 +176,7 @@ fn test_withdraw_step_by_step() {
 fn test_withdraw_balance_check_before() {
     let env = get_test_env();
     
-    let phone = "+256700888888";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Henry", "User", "henry@test.com", "UGX", "8888"
@@ -203,7 +203,7 @@ fn test_withdraw_balance_check_before() {
 fn test_withdraw_invalid_agent_id() {
     let env = get_test_env();
     
-    let phone = "+256700999999";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Ivy", "User", "ivy@test.com", "UGX", "9999"
@@ -226,7 +226,7 @@ fn test_withdraw_invalid_agent_id() {
 fn test_withdraw_large_amount() {
     let env = get_test_env();
     
-    let phone = "+256700101010";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Jack", "Rich", "jack@test.com", "UGX", "1010"

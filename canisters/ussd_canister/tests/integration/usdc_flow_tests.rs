@@ -5,7 +5,7 @@ use super::*;
 fn test_usdc_balance_check() {
     let env = get_test_env();
     
-    let phone = "+256700111111";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Alice", "USDC", "alice@test.com", "UGX", "1111"
@@ -32,7 +32,7 @@ fn test_usdc_balance_check() {
 fn test_usdc_rate_check() {
     let env = get_test_env();
     
-    let phone = "+256700222222";
+    let phone = &phone("UGX");
     
     env.register_user_direct(
         phone, "Bob", "Trader", "bob@test.com", "UGX", "2222"
@@ -53,7 +53,7 @@ fn test_usdc_rate_check() {
 fn test_buy_usdc_flow_navigation() {
     let env = get_test_env();
     
-    let phone = "+256700333333";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Charlie", "Buyer", "charlie@test.com", "UGX", "3333"
@@ -78,7 +78,7 @@ fn test_buy_usdc_flow_navigation() {
 fn test_buy_usdc_insufficient_balance() {
     let env = get_test_env();
     
-    let phone = "+256700444444";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Dave", "Poor", "dave@test.com", "UGX", "4444"
@@ -100,7 +100,7 @@ fn test_buy_usdc_insufficient_balance() {
 fn test_send_usdc_flow_navigation() {
     let env = get_test_env();
     
-    let phone = "+256700555555";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Eve", "Sender", "eve@test.com", "UGX", "5555"
@@ -125,7 +125,7 @@ fn test_send_usdc_flow_navigation() {
 fn test_send_usdc_insufficient_balance() {
     let env = get_test_env();
     
-    let phone = "+256700666666";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Frank", "Sender", "frank@test.com", "UGX", "6666"
@@ -149,7 +149,7 @@ fn test_send_usdc_insufficient_balance() {
 fn test_sell_usdc_flow_navigation() {
     let env = get_test_env();
     
-    let phone = "+256700777777";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Grace", "Seller", "grace@test.com", "UGX", "7777"
@@ -174,7 +174,7 @@ fn test_sell_usdc_flow_navigation() {
 fn test_usdc_menu_structure() {
     let env = get_test_env();
     
-    let phone = "+256700888888";
+    let phone = &phone("UGX");
     
     env.register_user_direct(
         phone, "Henry", "User", "henry@test.com", "UGX", "8888"
@@ -203,7 +203,7 @@ fn test_usdc_menu_structure() {
 fn test_usdc_zero_balance_display() {
     let env = get_test_env();
     
-    let phone = "+256700999999";
+    let phone = &phone("UGX");
     
     env.register_user_direct(
         phone, "Ivy", "NewUser", "ivy@test.com", "UGX", "9999"
@@ -223,7 +223,7 @@ fn test_usdc_zero_balance_display() {
 fn test_usdc_stablecoin_characteristics() {
     let env = get_test_env();
     
-    let phone = "+256700101010";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Jack", "Stable", "jack@test.com", "UGX", "1010"

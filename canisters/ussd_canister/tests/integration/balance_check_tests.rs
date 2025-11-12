@@ -5,7 +5,7 @@ use super::*;
 fn test_local_currency_balance_check() {
     let env = get_test_env();
     
-    let phone = "+256700111111";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Alice", "Balance", "alice@test.com", "UGX", "1111"
@@ -54,7 +54,7 @@ fn test_balance_check_multiple_currencies() {
 fn test_balance_check_with_crypto() {
     let env = get_test_env();
     
-    let phone = "+256700333333";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Charlie", "Crypto", "charlie@test.com", "UGX", "3333"
@@ -82,7 +82,7 @@ fn test_balance_check_with_crypto() {
 fn test_balance_check_zero_balance() {
     let env = get_test_env();
     
-    let phone = "+256700444444";
+    let phone = &phone("UGX");
     
     env.register_user_direct(
         phone, "Dave", "Zero", "dave@test.com", "UGX", "4444"
@@ -102,7 +102,7 @@ fn test_balance_check_zero_balance() {
 fn test_bitcoin_balance_check_separate() {
     let env = get_test_env();
     
-    let phone = "+256700555555";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Eve", "BTCUser", "eve@test.com", "UGX", "5555"
@@ -125,7 +125,7 @@ fn test_bitcoin_balance_check_separate() {
 fn test_usdc_balance_check_separate() {
     let env = get_test_env();
     
-    let phone = "+256700666666";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Frank", "USDCUser", "frank@test.com", "UGX", "6666"
@@ -148,7 +148,7 @@ fn test_usdc_balance_check_separate() {
 fn test_balance_check_formatting() {
     let env = get_test_env();
     
-    let phone = "+256700777777";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Grace", "Format", "grace@test.com", "UGX", "7777"
@@ -208,12 +208,11 @@ fn test_balance_check_after_transaction() {
 #[test]
 fn test_balance_check_unregistered_user() {
     let env = get_test_env();
-    
-    let phone = "+256700999999";
-    let session_id = "balance_test_9";
+    let sess = session();
+    let phone = &phone("UGX");
     
     // Try to check balance without registration
-    let (response, _) = env.process_ussd(session_id, phone, "1*2");
+    let (response, _) = env.process_ussd(&sess, phone, "1*2");
     
     // Should show error or prompt to register
     assert!(response.contains("not registered") || response.contains("register") || response.contains("error"), 
@@ -224,7 +223,7 @@ fn test_balance_check_unregistered_user() {
 fn test_balance_precision() {
     let env = get_test_env();
     
-    let phone = "+256700101010";
+    let phone = &phone("UGX");
     
     let user_id = env.register_user_direct(
         phone, "Jack", "Precise", "jack@test.com", "UGX", "1010"

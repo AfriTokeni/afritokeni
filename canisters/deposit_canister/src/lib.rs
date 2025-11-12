@@ -5,8 +5,9 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 pub mod logic;
+use shared_types::AuditEntry;
 
-const CONFIG_TOML: &str = include_str!("../../revenue_config.toml");
+const CONFIG_TOML: &str = include_str!("../deposit_config.toml");
 
 #[derive(SerdeDeserialize, Clone)]
 struct RevenueConfig {
@@ -94,6 +95,7 @@ thread_local! {
     static AGENT_BALANCES: RefCell<HashMap<Principal, AgentBalance>> = RefCell::new(HashMap::new());
     static SETTLEMENTS: RefCell<Vec<MonthlySettlement>> = RefCell::new(Vec::new());
     static NEXT_DEPOSIT_ID: RefCell<u64> = RefCell::new(1);
+    static AUDIT_LOG: RefCell<Vec<AuditEntry>> = RefCell::new(Vec::new());
 }
 
 // ============================================================================
@@ -104,9 +106,17 @@ thread_local! {
 fn init() {
     // Load configuration from shared TOML
     let config: RevenueConfig = toml::from_str(CONFIG_TOML)
-        .expect("Failed to parse revenue_config.toml");
+        .expect("Failed to parse deposit_config.toml");
     
     CONFIG.with(|c| *c.borrow_mut() = Some(config));
+
+    // Audit init event
+    log_audit(
+        "init",
+        None,
+        "deposit_canister initialized",
+        true,
+    );
 }
 
 fn get_config() -> RevenueConfig {
@@ -121,6 +131,42 @@ fn get_company_wallet() -> Result<Principal, String> {
     let config = get_config();
     Principal::from_text(&config.company_wallet.principal)
         .map_err(|e| format!("Invalid company wallet principal: {}", e))
+}
+
+// ============================================================================
+// SECURITY & AUDIT
+// ============================================================================
+
+fn is_controller() -> bool {
+    let caller = ic_cdk::api::msg_caller();
+    ic_cdk::api::is_controller(&caller)
+}
+
+fn verify_admin_access() -> Result<(), String> {
+    if is_controller() {
+        Ok(())
+    } else {
+        Err("Unauthorized: admin/controller required".to_string())
+    }
+}
+
+fn log_audit(action: &str, user_id: Option<String>, details: &str, success: bool) {
+    let entry = AuditEntry {
+        timestamp: ic_cdk::api::time() / 1_000_000_000,
+        action: action.to_string(),
+        caller: ic_cdk::api::msg_caller().to_text(),
+        user_id,
+        details: details.to_string(),
+        success,
+    };
+
+    AUDIT_LOG.with(|log| {
+        let mut l = log.borrow_mut();
+        l.push(entry);
+        if l.len() > 10_000 {
+            l.remove(0);
+        }
+    });
 }
 
 // ============================================================================
@@ -161,7 +207,21 @@ fn create_deposit_request(request: CreateDepositRequest) -> Result<DepositTransa
     DEPOSITS.with(|deposits| {
         deposits.borrow_mut().insert(deposit_id, transaction.clone());
     });
-    
+
+    // Audit
+    log_audit(
+        "create_deposit_request",
+        Some(request.user_principal.to_text()),
+        &format!(
+            "agent={}, amount_ugx={}, commission_bp={}, code={}",
+            request.agent_principal.to_text(),
+            request.amount_ugx,
+            config.deposit.platform_fee_basis_points,
+            transaction.deposit_code
+        ),
+        true,
+    );
+
     Ok(transaction)
 }
 
@@ -195,7 +255,21 @@ fn confirm_deposit(request: ConfirmDepositRequest) -> Result<DepositTransaction,
         transaction.amount_ugx,
         transaction.commission_ugx,
     );
-    
+
+    // Audit (user field refers to the user principal of the deposit)
+    log_audit(
+        "confirm_deposit",
+        Some(transaction.user_principal.to_text()),
+        &format!(
+            "agent={}, deposit_id={}, amount_ugx={}, commission_ugx={}",
+            request.agent_principal.to_text(),
+            transaction.id,
+            transaction.amount_ugx,
+            transaction.commission_ugx
+        ),
+        true,
+    );
+
     Ok(transaction)
 }
 
@@ -233,9 +307,9 @@ fn get_all_agent_balances() -> Vec<AgentBalance> {
     })
 }
 
-// ============================================================================
+// ==========================================================================
 // SETTLEMENT MANAGEMENT
-// ============================================================================
+// ==========================================================================
 
 #[update]
 fn create_monthly_settlement(month: String) -> Result<Vec<MonthlySettlement>, String> {
@@ -244,6 +318,12 @@ fn create_monthly_settlement(month: String) -> Result<Vec<MonthlySettlement>, St
     let company = get_company_wallet()?;
     
     if caller != company {
+        log_audit(
+            "create_monthly_settlement",
+            None,
+            &format!("unauthorized attempt by {} for month {}", caller.to_text(), month),
+            false,
+        );
         return Err("Only company wallet can create settlements".to_string());
     }
     
@@ -270,7 +350,14 @@ fn create_monthly_settlement(month: String) -> Result<Vec<MonthlySettlement>, St
     SETTLEMENTS.with(|settlements| {
         settlements.borrow_mut().extend(new_settlements.clone());
     });
-    
+    // Audit count
+    log_audit(
+        "create_monthly_settlement",
+        None,
+        &format!("month={}, created={} settlements", month, new_settlements.len()),
+        true,
+    );
+
     Ok(new_settlements)
 }
 
@@ -281,10 +368,16 @@ fn mark_settlement_paid(month: String, agent: Principal) -> Result<(), String> {
     let company = get_company_wallet()?;
     
     if caller != company {
+        log_audit(
+            "mark_settlement_paid",
+            Some(agent.to_text()),
+            &format!("unauthorized attempt by {} for month {}", caller.to_text(), month),
+            false,
+        );
         return Err("Only company wallet can mark settlements paid".to_string());
     }
     
-    SETTLEMENTS.with(|settlements| {
+    let res = SETTLEMENTS.with(|settlements| {
         let mut setts = settlements.borrow_mut();
         let settlement = setts.iter_mut()
             .find(|s| s.month == month && s.agent_principal == agent)
@@ -307,7 +400,24 @@ fn mark_settlement_paid(month: String, agent: Principal) -> Result<(), String> {
         });
         
         Ok(())
-    })
+    });
+
+    match &res {
+        Ok(()) => log_audit(
+            "mark_settlement_paid",
+            Some(agent.to_text()),
+            &format!("month={} marked paid", month),
+            true,
+        ),
+        Err(e) => log_audit(
+            "mark_settlement_paid",
+            Some(agent.to_text()),
+            &format!("month={} failed: {}", month, e),
+            false,
+        ),
+    }
+
+    res
 }
 
 #[query]
@@ -397,5 +507,25 @@ fn get_company_wallet_principal() -> Result<Principal, String> {
     get_company_wallet()
 }
 
+// ==========================================================================
+// AUDIT LOG QUERIES (ADMIN ONLY)
+// ==========================================================================
+
+#[query]
+fn get_audit_log(limit: Option<usize>, offset: Option<usize>) -> Result<Vec<AuditEntry>, String> {
+    verify_admin_access()?;
+    let start = offset.unwrap_or(0);
+    let lim = limit.unwrap_or(100).min(1000);
+    AUDIT_LOG.with(|log| {
+        let l = log.borrow();
+        Ok(l.iter().skip(start).take(lim).cloned().collect())
+    })
+}
+
+#[query]
+fn get_audit_log_count() -> Result<u64, String> {
+    verify_admin_access()?;
+    AUDIT_LOG.with(|log| Ok(log.borrow().len() as u64))
+}
 
 ic_cdk::export_candid!();

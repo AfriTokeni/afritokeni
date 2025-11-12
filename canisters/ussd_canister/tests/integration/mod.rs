@@ -43,6 +43,63 @@ pub fn get_test_env() -> std::sync::MutexGuard<'static, TestEnv> {
 }
 
 // ============================================================================
+// Phone Number Generator - Ensures unique phones per test
+// ============================================================================
+
+/// Generate a unique phone number based on test name
+/// Usage: let phone = &phone("UGX");
+/// Returns "+256700XXXXXX" where X is unique per test based on test name hash
+pub fn phone(country_or_currency: &str) -> String {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    
+    // Get test name from thread
+    let test_name = std::thread::current()
+        .name()
+        .unwrap_or("unknown")
+        .to_string();
+    
+    // Hash test name to get unique 6-digit suffix
+    let mut hasher = DefaultHasher::new();
+    test_name.hash(&mut hasher);
+    let hash = hasher.finish();
+    let suffix = format!("{:06}", hash % 1_000_000);
+    
+    // Map currency/country to country code
+    let country_code = match country_or_currency {
+        "UGX" | "Uganda" | "256" => "256",
+        "KES" | "Kenya" | "254" => "254",
+        "TZS" | "Tanzania" | "255" => "255",
+        "RWF" | "Rwanda" | "250" => "250",
+        "NGN" | "Nigeria" | "234" => "234",
+        "GHS" | "Ghana" | "233" => "233",
+        "ZAR" | "SouthAfrica" | "27" => "27",
+        _ => "256", // Default to Uganda
+    };
+    
+    format!("+{}7{}", country_code, suffix)
+}
+
+/// Generate a unique session ID based on test name
+/// Usage: let session = &session();
+/// Returns "session_XXXXXX" where X is unique per test
+pub fn session() -> String {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    
+    let test_name = std::thread::current()
+        .name()
+        .unwrap_or("unknown")
+        .to_string();
+    
+    let mut hasher = DefaultHasher::new();
+    test_name.hash(&mut hasher);
+    let hash = hasher.finish();
+    
+    format!("session_{:06}", hash % 1_000_000)
+}
+
+// ============================================================================
 // Test Environment Setup
 // ============================================================================
 
@@ -349,28 +406,8 @@ impl TestEnv {
         balance.map(|b| (b.ckbtc, b.ckusdc))
     }
     
-    /// Setup test user with clean state - idempotent and resets all balances
-    /// This is the recommended way to prepare a user for testing in the shared environment
-    pub fn setup_test_user(
-        &self,
-        phone: &str,
-        first_name: &str,
-        last_name: &str,
-        email: &str,
-        currency: &str,
-        pin: &str,
-    ) -> Result<String, String> {
-        // Register user (idempotent - returns existing user_id if already registered)
-        let user_id = self.register_user_direct(phone, first_name, last_name, email, currency, pin)?;
-        
-        // Reset all balances to zero for clean state
-        self.set_fiat_balance(phone, currency, 0)?;
-        self.set_crypto_balance(phone, 0, 0)?;
-        
-        Ok(user_id)
-    }
-    
-    /// Setup test user with initial balances
+    /// Setup test user with initial balances - ONE FUNCTION TO RULE THEM ALL
+    /// This is the ONLY method tests should use - completely idempotent
     pub fn setup_test_user_with_balances(
         &self,
         phone: &str,
@@ -383,16 +420,22 @@ impl TestEnv {
         btc_balance: u64,
         usdc_balance: u64,
     ) -> Result<String, String> {
-        // Register and reset to zero
-        let user_id = self.setup_test_user(phone, first_name, last_name, email, currency, pin)?;
+        // Step 1: Register user (idempotent)
+        let user_id = self.register_user_direct(phone, first_name, last_name, email, currency, pin)?;
         
-        // Set specified balances
-        if fiat_balance > 0 {
-            self.set_fiat_balance(phone, currency, fiat_balance)?;
+        // Step 2: Reset ALL currencies EXCEPT the one we're about to set
+        let all_test_currencies = vec!["UGX", "KES", "TZS", "RWF", "NGN", "GHS", "ZAR"];
+        for curr in all_test_currencies {
+            if curr != currency {
+                let _ = self.set_fiat_balance(phone, curr, 0);
+            }
         }
-        if btc_balance > 0 || usdc_balance > 0 {
-            self.set_crypto_balance(phone, btc_balance, usdc_balance)?;
-        }
+        
+        // Step 3: Set the currency we care about
+        self.set_fiat_balance(phone, currency, fiat_balance)?;
+        
+        // Step 4: Set crypto balances
+        self.set_crypto_balance(phone, btc_balance, usdc_balance)?;
         
         Ok(user_id)
     }

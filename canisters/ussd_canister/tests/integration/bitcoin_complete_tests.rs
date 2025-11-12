@@ -9,13 +9,14 @@ use super::*;
 #[test]
 fn test_buy_bitcoin_with_ugx() {
     let env = get_test_env();
-    let phone = "+256700111111";
+    let sess = session();
+    let phone = &phone("UGX");
     
     env.setup_test_user_with_balances(phone, "BTC", "Buyer", "btc@test.com", "UGX", "1234", 1000000, 0, 0)
         .expect("Setup");
     
     // Buy Bitcoin: Menu 2 (Bitcoin) -> 3 (Buy) -> Amount -> PIN
-    let (response, _) = env.process_ussd("session", phone, "2*3*100000*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "2*3*100000*1234");
     
     assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
         "Should buy BTC. Got: {}", response);
@@ -32,13 +33,13 @@ fn test_buy_bitcoin_with_ugx() {
 #[test]
 fn test_buy_bitcoin_with_kes() {
     let env = get_test_env();
-    let phone = "+254700222222";
+    let sess = session();
+    let phone = &phone("KES");
     
-    env.register_user_direct(phone, "KES", "BTCBuyer", "kesbtc@test.com", "KES", "1234")
-        .expect("Registration");
-    env.set_fiat_balance(phone, "KES", 500000).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "KES", "BTCBuyer", "kesbtc@test.com", "KES", "1234", 500000, 0, 0)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "2*3*50000*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "2*3*50000*1234");
     
     assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
         "Should buy BTC. Got: {}", response);
@@ -50,13 +51,13 @@ fn test_buy_bitcoin_with_kes() {
 #[test]
 fn test_buy_bitcoin_with_tzs() {
     let env = get_test_env();
-    let phone = "+255700333333";
+    let sess = session();
+    let phone = &phone("TZS");
     
-    env.register_user_direct(phone, "TZS", "BTCBuyer", "tzsbtc@test.com", "TZS", "1234")
-        .expect("Registration");
-    env.set_fiat_balance(phone, "TZS", 2000000).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "TZS", "BTCBuyer", "tzsbtc@test.com", "TZS", "1234", 2000000, 0, 0)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "2*3*50000*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "2*3*50000*1234");
     
     assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
         "Should buy BTC. Got: {}", response);
@@ -65,13 +66,13 @@ fn test_buy_bitcoin_with_tzs() {
 #[test]
 fn test_buy_bitcoin_with_ngn() {
     let env = get_test_env();
-    let phone = "+234700444444";
+    let sess = session();
+    let phone = &phone("NGN");
     
-    env.register_user_direct(phone, "NGN", "BTCBuyer", "ngnbtc@test.com", "NGN", "1234")
-        .expect("Registration");
-    env.set_fiat_balance(phone, "NGN", 5000000).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "NGN", "BTCBuyer", "ngnbtc@test.com", "NGN", "1234", 5000000, 0, 0)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "2*3*50000*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "2*3*50000*1234");
     
     assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
         "Should buy BTC. Got: {}", response);
@@ -84,15 +85,15 @@ fn test_buy_bitcoin_with_ngn() {
 #[test]
 fn test_send_bitcoin_to_valid_address() {
     let env = get_test_env();
-    let phone = "+256700555555";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "BTC", "Sender", "btcsend@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_crypto_balance(phone, 100000, 0).expect("Set BTC balance");
+    env.setup_test_user_with_balances(phone, "BTC", "Sender", "btcsend@test.com", "UGX", "1234", 0, 100000, 0)
+        .expect("Setup");
     
     // Send Bitcoin: Menu 2 -> 5 (Send) -> address -> amount -> PIN
     // Note: ckBTC uses IC Principal addresses, not Bitcoin addresses
-    let (response, _) = env.process_ussd("session", phone, "2*5*rrkah-fqaaa-aaaaa-aaaaq-cai*50000*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "2*5*rrkah-fqaaa-aaaaa-aaaaq-cai*50000*1234");
     
     assert!(response.contains("success") || response.contains("Success") || response.contains("sent"),
         "Should send BTC. Got: {}", response);
@@ -105,13 +106,13 @@ fn test_send_bitcoin_to_valid_address() {
 #[test]
 fn test_send_bitcoin_insufficient_balance() {
     let env = get_test_env();
-    let phone = "+256700666666";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "BTC", "Poor", "btcpoor@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_crypto_balance(phone, 10000, 0).expect("Set small BTC balance");
+    env.setup_test_user_with_balances(phone, "BTC", "Poor", "btcpoor@test.com", "UGX", "1234", 0, 10000, 0)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "2*5*bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh*50000*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "2*5*bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh*50000*1234");
     
     assert!(response.contains("Insufficient") || response.contains("insufficient"),
         "Should reject insufficient balance. Got: {}", response);
@@ -120,13 +121,13 @@ fn test_send_bitcoin_insufficient_balance() {
 #[test]
 fn test_send_bitcoin_invalid_address() {
     let env = get_test_env();
-    let phone = "+256700777777";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "BTC", "Invalid", "btcinvalid@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_crypto_balance(phone, 100000, 0).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "BTC", "Invalid", "btcinvalid@test.com", "UGX", "1234", 0, 100000, 0)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "2*5*invalid_address_123");
+    let (response, _) = env.process_ussd(&sess, phone, "2*5*invalid_address_123");
     
     assert!(response.contains("Invalid") || response.contains("invalid") || response.contains("address"),
         "Should reject invalid address. Got: {}", response);
@@ -135,13 +136,13 @@ fn test_send_bitcoin_invalid_address() {
 #[test]
 fn test_send_bitcoin_zero_amount() {
     let env = get_test_env();
-    let phone = "+256700888888";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "BTC", "Zero", "btczero@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_crypto_balance(phone, 100000, 0).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "BTC", "Zero", "btczero@test.com", "UGX", "1234", 0, 100000, 0)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "2*5*rrkah-fqaaa-aaaaa-aaaaq-cai*0");
+    let (response, _) = env.process_ussd(&sess, phone, "2*5*rrkah-fqaaa-aaaaa-aaaaq-cai*0");
     
     assert!(response.contains("Invalid") || response.contains("invalid") || response.contains("positive"),
         "Should reject zero amount. Got: {}", response);
@@ -154,15 +155,15 @@ fn test_send_bitcoin_zero_amount() {
 #[test]
 fn test_sell_bitcoin_to_ugx() {
     let env = get_test_env();
-    let phone = "+256700999999";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "BTC", "Seller", "btcsell@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_crypto_balance(phone, 200000, 0).expect("Set BTC balance");
+    env.setup_test_user_with_balances(phone, "BTC", "Seller", "btcsell@test.com", "UGX", "1234", 0, 200000, 0)
+        .expect("Setup");
     
     // Sell Bitcoin: Menu 2 -> 4 (Sell) -> amount in BTC -> PIN
     // 0.001 BTC = 100,000 sats
-    let (response, _) = env.process_ussd("session", phone, "2*4*0.001*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "2*4*0.001*1234");
     
     assert!(response.contains("success") || response.contains("Success") || response.contains("sold"),
         "Should sell BTC. Got: {}", response);
@@ -179,13 +180,14 @@ fn test_sell_bitcoin_to_ugx() {
 #[test]
 fn test_sell_bitcoin_insufficient_btc() {
     let env = get_test_env();
-    let phone = "+256700101010";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "BTC", "NoBalance", "btcno@test.com", "UGX", "1234")
-        .expect("Registration");
+    env.setup_test_user_with_balances(phone, "BTC", "NoBalance", "btcno@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     // No BTC balance
     
-    let (response, _) = env.process_ussd("session", phone, "2*4*0.001*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "2*4*0.001*1234");
     
     assert!(response.contains("Insufficient") || response.contains("insufficient"),
         "Should reject. Got: {}", response);
@@ -194,13 +196,13 @@ fn test_sell_bitcoin_insufficient_btc() {
 #[test]
 fn test_sell_bitcoin_all_balance() {
     let env = get_test_env();
-    let phone = "+256700202020";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "BTC", "SellAll", "btcall@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_crypto_balance(phone, 150000, 0).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "BTC", "SellAll", "btcall@test.com", "UGX", "1234", 0, 150000, 0)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "2*4*0.0015*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "2*4*0.0015*1234");
     
     assert!(response.contains("success") || response.contains("Success"));
     
@@ -215,13 +217,14 @@ fn test_sell_bitcoin_all_balance() {
 #[test]
 fn test_check_bitcoin_balance_zero() {
     let env = get_test_env();
-    let phone = "+256700303030";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "BTC", "CheckZero", "btccheck0@test.com", "UGX", "1234")
-        .expect("Registration");
+    env.setup_test_user_with_balances(phone, "BTC", "CheckZero", "btccheck0@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Check balance: Menu 2 -> 1
-    let (response, _) = env.process_ussd("session", phone, "2*1");
+    let (response, _) = env.process_ussd(&sess, phone, "2*1");
     
     assert!(response.contains("0") || response.contains("zero") || response.contains("Balance"),
         "Should show zero balance. Got: {}", response);
@@ -230,13 +233,13 @@ fn test_check_bitcoin_balance_zero() {
 #[test]
 fn test_check_bitcoin_balance_with_btc() {
     let env = get_test_env();
-    let phone = "+256700404040";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "BTC", "CheckFull", "btccheckfull@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_crypto_balance(phone, 250000, 0).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "BTC", "CheckFull", "btccheckfull@test.com", "UGX", "1234", 0, 250000, 0)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "2*1");
+    let (response, _) = env.process_ussd(&sess, phone, "2*1");
     
     assert!(response.contains("250") || response.contains("BTC") || response.contains("Bitcoin"),
         "Should show BTC balance. Got: {}", response);
@@ -245,13 +248,14 @@ fn test_check_bitcoin_balance_with_btc() {
 #[test]
 fn test_check_bitcoin_rate() {
     let env = get_test_env();
-    let phone = "+256700505050";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "BTC", "CheckRate", "btcrate@test.com", "UGX", "1234")
-        .expect("Registration");
+    env.setup_test_user_with_balances(phone, "BTC", "CheckRate", "btcrate@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Check rate: Menu 2 -> 5 (or similar)
-    let (response, _) = env.process_ussd("session", phone, "2");
+    let (response, _) = env.process_ussd(&sess, phone, "2");
     
     assert!(response.contains("Rate") || response.contains("rate") || response.contains("price") || response.contains("BTC"),
         "Should show rate info. Got: {}", response);
@@ -264,12 +268,13 @@ fn test_check_bitcoin_rate() {
 #[test]
 fn test_bitcoin_menu_shows_all_options() {
     let env = get_test_env();
-    let phone = "+256700606060";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "BTC", "Menu", "btcmenu@test.com", "UGX", "1234")
-        .expect("Registration");
+    env.setup_test_user_with_balances(phone, "BTC", "Menu", "btcmenu@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
-    let (response, continue_session) = env.process_ussd("session", phone, "2");
+    let (response, continue_session) = env.process_ussd(&sess, phone, "2");
     
     assert!(continue_session, "Should continue");
     assert!(response.contains("Balance") || response.contains("balance"));
@@ -280,13 +285,14 @@ fn test_bitcoin_menu_shows_all_options() {
 #[test]
 fn test_bitcoin_return_to_main_menu() {
     let env = get_test_env();
-    let phone = "+256700707070";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "BTC", "Return", "btcreturn@test.com", "UGX", "1234")
-        .expect("Registration");
+    env.setup_test_user_with_balances(phone, "BTC", "Return", "btcreturn@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
-    env.process_ussd("session", phone, "2"); // Bitcoin menu
-    let (response, _) = env.process_ussd("session", phone, "0"); // Back
+    env.process_ussd(&sess, phone, "2"); // Bitcoin menu
+    let (response, _) = env.process_ussd(&sess, phone, "0"); // Back
     
     assert!(response.contains("Main") || response.contains("Menu") || response.contains("Send"),
         "Should return to main menu. Got: {}", response);
@@ -299,13 +305,13 @@ fn test_bitcoin_return_to_main_menu() {
 #[test]
 fn test_buy_bitcoin_wrong_pin() {
     let env = get_test_env();
-    let phone = "+256700808080";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "BTC", "WrongPIN", "btcwrong@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_fiat_balance(phone, "UGX", 100000).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "BTC", "WrongPIN", "btcwrong@test.com", "UGX", "1234", 100000, 0, 0)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "2*3*50000*9999"); // Wrong PIN
+    let (response, _) = env.process_ussd(&sess, phone, "2*3*50000*9999"); // Wrong PIN
     
     assert!(response.contains("Incorrect") || response.contains("incorrect") || response.contains("Wrong") || response.contains("Invalid"),
         "Should reject wrong PIN. Got: {}", response);
@@ -318,13 +324,13 @@ fn test_buy_bitcoin_wrong_pin() {
 #[test]
 fn test_sell_bitcoin_wrong_pin() {
     let env = get_test_env();
-    let phone = "+256700909090";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "BTC", "SellWrong", "btcsellwrong@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_crypto_balance(phone, 100000, 0).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "BTC", "SellWrong", "btcsellwrong@test.com", "UGX", "1234", 0, 100000, 0)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "2*4*0.0005*9999");
+    let (response, _) = env.process_ussd(&sess, phone, "2*4*0.0005*9999");
     
     assert!(response.contains("Incorrect") || response.contains("incorrect") || response.contains("Invalid"),
         "Should reject wrong PIN. Got: {}", response);
@@ -340,10 +346,11 @@ fn test_sell_bitcoin_wrong_pin() {
 #[test]
 fn test_bitcoin_uses_exchange_canister_rate() {
     let env = get_test_env();
-    let phone = "+256700010101";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "BTC", "ExchangeRate", "btcexch@test.com", "UGX", "1234")
-        .expect("Registration");
+    env.setup_test_user_with_balances(phone, "BTC", "ExchangeRate", "btcexch@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Get spread from exchange canister
     let spread = env.get_exchange_spread();
@@ -351,7 +358,7 @@ fn test_bitcoin_uses_exchange_canister_rate() {
     
     // Buy Bitcoin should use this rate
     env.set_fiat_balance(phone, "UGX", 1000000).expect("Set balance");
-    let (response, _) = env.process_ussd("session", phone, "2*3*150000*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "2*3*150000*1234");
     
     // Should show rate information
     assert!(response.len() > 0, "Should complete transaction");
@@ -364,21 +371,21 @@ fn test_bitcoin_uses_exchange_canister_rate() {
 #[test]
 fn test_bitcoin_buy_then_sell() {
     let env = get_test_env();
-    let phone = "+256700020202";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "BTC", "BuySell", "btcbuysell@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_fiat_balance(phone, "UGX", 500000).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "BTC", "BuySell", "btcbuysell@test.com", "UGX", "1234", 500000, 0, 0)
+        .expect("Setup");
     
     // Buy Bitcoin (under fraud limit of 100,000 UGX)
-    env.process_ussd("s1", phone, "2*3*50000*1234");
+    env.process_ussd(&sess, phone, "2*3*50000*1234");
     
     // Check BTC balance
     let (btc_after_buy, _) = env.get_crypto_balance(phone).expect("Get balance");
     assert!(btc_after_buy > 0, "Should have BTC after buy");
     
     // Sell half
-    env.process_ussd("s2", phone, &format!("2*4*{}*1234", btc_after_buy / 2));
+    env.process_ussd(&sess, phone, &format!("2*4*{}*1234", btc_after_buy / 2));
     
     // Check final balance
     let (btc_final, _) = env.get_crypto_balance(phone).expect("Get balance");
@@ -388,19 +395,19 @@ fn test_bitcoin_buy_then_sell() {
 #[test]
 fn test_bitcoin_buy_then_send() {
     let env = get_test_env();
-    let phone = "+256700030303";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "BTC", "BuySend", "btcbuysend@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_fiat_balance(phone, "UGX", 500000).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "BTC", "BuySend", "btcbuysend@test.com", "UGX", "1234", 500000, 0, 0)
+        .expect("Setup");
     
     // Buy Bitcoin (under fraud limit of 100,000 UGX)
-    env.process_ussd("s1", phone, "2*3*50000*1234");
+    env.process_ussd(&sess, phone, "2*3*50000*1234");
     
     let (btc_after_buy, _) = env.get_crypto_balance(phone).expect("Get balance");
     
     // Send Bitcoin
-    env.process_ussd("s2", phone, &format!("2*5*bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh*{}*1234", btc_after_buy / 2));
+    env.process_ussd(&sess, phone, &format!("2*5*bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh*{}*1234", btc_after_buy / 2));
     
     let (btc_final, _) = env.get_crypto_balance(phone).expect("Get balance");
     assert!(btc_final < btc_after_buy, "BTC should decrease after send");

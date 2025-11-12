@@ -5,7 +5,7 @@ use super::*;
 fn test_dao_menu_navigation() {
     let env = get_test_env();
     
-    let phone = "+256700111111";
+    let phone = &phone("UGX");
     let session_id = "dao_test_1";
     
     // Navigate to DAO menu (Main menu -> 5. DAO)
@@ -22,7 +22,7 @@ fn test_dao_menu_navigation() {
 fn test_dao_view_proposals() {
     let env = get_test_env();
     
-    let phone = "+256700222222";
+    let phone = &phone("UGX");
     let session_id = "dao_test_2";
     
     // Navigate to view proposals (5 -> 1)
@@ -38,12 +38,12 @@ fn test_dao_view_proposals() {
 fn test_dao_vote_on_proposal() {
     let env = get_test_env();
     
-    let phone = "+256700333333";
+    let phone = &phone("UGX");
     let session_id = "dao_test_3";
     
     // Register user first
-    env.register_user_direct(phone, "Alice", "DAO", "alice@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Alice", "DAO", "alice@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Navigate to vote (5 -> 2)
     env.process_ussd(session_id, phone, "5");
@@ -57,7 +57,7 @@ fn test_dao_vote_on_proposal() {
 fn test_dao_proposal_details() {
     let env = get_test_env();
     
-    let phone = "+256700444444";
+    let phone = &phone("UGX");
     let session_id = "dao_test_4";
     
     // Navigate to DAO and check proposal details
@@ -72,12 +72,12 @@ fn test_dao_proposal_details() {
 fn test_dao_voting_power_display() {
     let env = get_test_env();
     
-    let phone = "+256700555555";
+    let phone = &phone("UGX");
     let session_id = "dao_test_5";
     
     // Register user with some balance
-    env.register_user_direct(phone, "Bob", "Voter", "bob@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Bob", "Voter", "bob@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     env.set_fiat_balance(phone, "UGX", 100000).ok();
     
     // Navigate to DAO
@@ -92,12 +92,12 @@ fn test_dao_voting_power_display() {
 fn test_dao_cannot_vote_twice() {
     let env = get_test_env();
     
-    let phone = "+256700666666";
+    let phone = &phone("UGX");
     let session_id = "dao_test_6";
     
     // Register user
-    env.register_user_direct(phone, "Charlie", "Double", "charlie@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Charlie", "Double", "charlie@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Try to vote twice on same proposal (if proposals exist)
     env.process_ussd(session_id, phone, "5");
@@ -111,7 +111,7 @@ fn test_dao_cannot_vote_twice() {
 fn test_dao_menu_structure() {
     let env = get_test_env();
     
-    let phone = "+256700777777";
+    let phone = &phone("UGX");
     let session_id = "dao_test_7";
     
     // Navigate to DAO menu
@@ -128,7 +128,7 @@ fn test_dao_menu_structure() {
 fn test_dao_return_to_main_menu() {
     let env = get_test_env();
     
-    let phone = "+256700888888";
+    let phone = &phone("UGX");
     let session_id = "dao_test_8";
     
     // Navigate to DAO then back to main menu

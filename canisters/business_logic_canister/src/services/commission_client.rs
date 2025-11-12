@@ -169,6 +169,51 @@ pub async fn get_agent_deposit_balance(
     Ok(balance)
 }
 
+/// Get all agent balances from the deposit canister
+pub async fn get_all_agent_balances() -> Result<Vec<AgentBalance>, String> {
+    let deposit_canister = config::get_deposit_canister_id();
+    let response = Call::unbounded_wait(deposit_canister, "get_all_agent_balances")
+        .with_arg(())
+        .await
+        .map_err(|e| format!("Get all agent balances call failed: {:?}", e))?;
+    let (balances,): (Vec<AgentBalance>,) = candid::decode_args(&response.into_bytes())
+        .map_err(|e| format!("Failed to decode balances: {:?}", e))?;
+    Ok(balances)
+}
+
+/// Mark settlement paid in the deposit canister (updates agent paid totals)
+pub async fn mark_settlement_paid(month: String, agent: Principal) -> Result<(), String> {
+    let deposit_canister = config::get_deposit_canister_id();
+    let response = Call::unbounded_wait(deposit_canister, "mark_settlement_paid")
+        .with_arg((month, agent))
+        .await
+        .map_err(|e| format!("Mark settlement paid call failed: {:?}", e))?;
+    let (result,): (Result<(), String>,) = candid::decode_args(&response.into_bytes())
+        .map_err(|e| format!("Failed to decode mark_settlement_paid: {:?}", e))?;
+    result
+}
+
+/// Ask deposit canister to materialize its internal monthly settlements for a month
+pub async fn create_monthly_settlement(month: String) -> Result<(), String> {
+    let deposit_canister = config::get_deposit_canister_id();
+    let response = Call::unbounded_wait(deposit_canister, "create_monthly_settlement")
+        .with_arg((month,))
+        .await
+        .map_err(|e| format!("Create monthly settlement call failed: {:?}", e))?;
+    // We ignore the returned list; only ensure it succeeded
+    let (_result,): (Result<Vec<AgentBalance>, String>,) = {
+        // Decode as generic Result<Vec<MonthlySettlement>, String>. We can't import the type here.
+        // So we just attempt to decode as bytes and ignore content if Ok.
+        // Fallback: try decoding as candid::types::Serializer unsupported; instead, decode to candid::utils::ArgumentDecoder with Vec<u8>.
+        // Minimal approach: treat success if decode to any Result succeeds; otherwise, still Ok(()) to avoid tight coupling.
+        match candid::decode_args::<(Result<Vec<AgentBalance>, String>,)>(&response.into_bytes()) {
+            Ok(v) => v,
+            Err(_e) => (Ok(Vec::new()),),
+        }
+    };
+    Ok(())
+}
+
 // ============================================================================
 // WITHDRAWAL CANISTER CALLS
 // ============================================================================

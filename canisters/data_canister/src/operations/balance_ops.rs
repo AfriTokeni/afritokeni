@@ -1,7 +1,6 @@
 use crate::models::*;
 use crate::DataCanisterState;
-use crate::security::fraud_detection;
-use ic_cdk::api::time;
+use ic_cdk::api::{time, caller};
 
 /// Deposit fiat currency
 pub fn deposit_fiat(
@@ -14,18 +13,6 @@ pub fn deposit_fiat(
     // Verify user exists
     if !state.users.contains_key(&user_id) {
         return Err("User not found".to_string());
-    }
-    
-    // Fraud check
-    let fraud_check = fraud_detection::check_transaction_fraud(
-        state,
-        &user_id,
-        amount,
-        TransactionType::DepositFiat,
-    )?;
-    
-    if fraud_check.should_block() {
-        return Err(format!("Transaction blocked: {:?}", fraud_check.warnings));
     }
     
     let now = time() / 1_000_000_000;
@@ -68,9 +55,10 @@ pub fn deposit_fiat(
     let audit_entry = AuditEntry {
         timestamp: now,
         action: "deposit_fiat".to_string(),
+        caller: caller().to_text(),
         user_id: Some(user_id),
-        details: format!("Deposited {} {} ({})", amount, currency.code(), 
-                        if fraud_check.should_flag() { "FLAGGED" } else { "OK" }),
+        details: format!("Deposited {} {}", amount, currency.code()),
+        success: true,
     };
     state.log_audit(audit_entry);
     
@@ -92,18 +80,6 @@ pub fn transfer_fiat(
     }
     if !state.users.contains_key(&to_user) {
         return Err("Recipient not found".to_string());
-    }
-    
-    // Fraud check
-    let fraud_check = fraud_detection::check_transaction_fraud(
-        state,
-        &from_user,
-        amount,
-        TransactionType::TransferFiat,
-    )?;
-    
-    if fraud_check.should_block() {
-        return Err(format!("Transaction blocked: {:?}", fraud_check.warnings));
     }
     
     let now = time() / 1_000_000_000;
@@ -163,10 +139,11 @@ pub fn transfer_fiat(
     let audit_entry = AuditEntry {
         timestamp: now,
         action: "transfer_fiat".to_string(),
+        caller: caller().to_text(),
         user_id: Some(from_user.clone()),
-        details: format!("Transferred {} {} to {} ({})", 
-                        amount, currency.code(), to_user,
-                        if fraud_check.should_flag() { "FLAGGED" } else { "OK" }),
+        details: format!("Transferred {} {} to {}", 
+                        amount, currency.code(), to_user),
+        success: true,
     };
     state.log_audit(audit_entry);
     
@@ -184,18 +161,6 @@ pub fn withdraw_fiat(
     // Verify user exists
     if !state.users.contains_key(&user_id) {
         return Err("User not found".to_string());
-    }
-    
-    // Fraud check
-    let fraud_check = fraud_detection::check_transaction_fraud(
-        state,
-        &user_id,
-        amount,
-        TransactionType::WithdrawFiat,
-    )?;
-    
-    if fraud_check.should_block() {
-        return Err(format!("Transaction blocked: {:?}", fraud_check.warnings));
     }
     
     let now = time() / 1_000_000_000;
@@ -241,10 +206,11 @@ pub fn withdraw_fiat(
     let audit_entry = AuditEntry {
         timestamp: now,
         action: "withdraw_fiat".to_string(),
+        caller: caller().to_text(),
         user_id: Some(user_id),
-        details: format!("Withdrew {} {} ({})", 
-                        amount, currency.code(),
-                        if fraud_check.should_flag() { "FLAGGED" } else { "OK" }),
+        details: format!("Withdrew {} {}", 
+                        amount, currency.code()),
+        success: true,
     };
     state.log_audit(audit_entry);
     
@@ -304,8 +270,10 @@ pub fn update_crypto_balance(
     let audit_entry = AuditEntry {
         timestamp: now,
         action: "crypto_balance_updated".to_string(),
+        caller: caller().to_text(),
         user_id: Some(user_id),
         details: format!("ckBTC: {:+}, ckUSDC: {:+}", ckbtc_delta, ckusdc_delta),
+        success: true,
     };
     state.log_audit(audit_entry);
     

@@ -1,6 +1,6 @@
 use crate::models::*;
 use crate::DataCanisterState;
-use ic_cdk::api::time;
+use ic_cdk::api::{time, caller};
 
 /// Create a new user
 pub fn create_user(
@@ -50,8 +50,10 @@ pub fn create_user(
     let audit_entry = AuditEntry {
         timestamp: now,
         action: "user_created".to_string(),
+        caller: caller().to_text(),
         user_id: Some(user_id.clone()),
         details: format!("Created user: {} {}", user.first_name, user.last_name),
+        success: true,
     };
     state.log_audit(audit_entry);
     
@@ -94,8 +96,10 @@ pub fn link_phone_to_user(
     let audit_entry = AuditEntry {
         timestamp: now,
         action: "phone_linked".to_string(),
+        caller: caller().to_text(),
         user_id: Some(user_id.to_string()),
         details: format!("Linked phone: {}", phone_number),
+        success: true,
     };
     state.log_audit(audit_entry);
     
@@ -122,8 +126,10 @@ pub fn link_principal_to_user(
     let audit_entry = AuditEntry {
         timestamp: now,
         action: "principal_linked".to_string(),
+        caller: caller().to_text(),
         user_id: Some(user_id.to_string()),
         details: format!("Linked principal: {}", principal_id),
+        success: true,
     };
     state.log_audit(audit_entry);
     
@@ -149,8 +155,10 @@ pub fn update_kyc_status(
     let audit_entry = AuditEntry {
         timestamp: now,
         action: "kyc_updated".to_string(),
+        caller: caller().to_text(),
         user_id: Some(user_id.to_string()),
         details: format!("KYC status updated to: {:?}", status),
+        success: true,
     };
     state.log_audit(audit_entry);
     

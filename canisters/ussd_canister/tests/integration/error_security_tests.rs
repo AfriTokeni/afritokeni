@@ -8,14 +8,15 @@ use super::*;
 #[test]
 fn test_invalid_menu_option() {
     let env = get_test_env();
+    let sess = session();
     
-    let phone = "+256700111111";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Invalid", "Option", "invalid@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Invalid", "Option", "invalid@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Try invalid menu option
-    let (response, continue_session) = env.process_ussd("session", phone, "999");
+    let (response, continue_session) = env.process_ussd(&sess, phone, "999");
     
     assert!(continue_session, "Should continue session after error");
     assert!(response.contains("Invalid") || response.contains("option") || response.contains("Menu"),
@@ -25,14 +26,15 @@ fn test_invalid_menu_option() {
 #[test]
 fn test_special_characters_in_input() {
     let env = get_test_env();
+    let sess = session();
     
-    let phone = "+256700222222";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Special", "Chars", "special@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Special", "Chars", "special@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Try special characters
-    let (response, _) = env.process_ussd("session", phone, "!@#$%");
+    let (response, _) = env.process_ussd(&sess, phone, "!@#$%");
     
     assert!(response.len() > 0, "Should handle special characters gracefully");
 }
@@ -40,15 +42,16 @@ fn test_special_characters_in_input() {
 #[test]
 fn test_very_long_input() {
     let env = get_test_env();
+    let sess = session();
     
-    let phone = "+256700333333";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Long", "Input", "long@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Long", "Input", "long@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Try very long input
     let long_input = "1".repeat(1000);
-    let (response, _) = env.process_ussd("session", phone, &long_input);
+    let (response, _) = env.process_ussd(&sess, phone, &long_input);
     
     assert!(response.len() > 0, "Should handle long input");
 }
@@ -56,14 +59,15 @@ fn test_very_long_input() {
 #[test]
 fn test_sql_injection_attempt() {
     let env = get_test_env();
+    let sess = session();
     
-    let phone = "+256700444444";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "SQL", "Test", "sql@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "SQL", "Test", "sql@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Try SQL injection patterns
-    let (response, _) = env.process_ussd("session", phone, "'; DROP TABLE users; --");
+    let (response, _) = env.process_ussd(&sess, phone, "'; DROP TABLE users; --");
     
     assert!(response.len() > 0, "Should sanitize SQL injection attempts");
 }
@@ -71,14 +75,15 @@ fn test_sql_injection_attempt() {
 #[test]
 fn test_script_injection_attempt() {
     let env = get_test_env();
+    let sess = session();
     
-    let phone = "+256700555555";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Script", "Test", "script@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Script", "Test", "script@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Try script injection
-    let (response, _) = env.process_ussd("session", phone, "<script>alert('xss')</script>");
+    let (response, _) = env.process_ussd(&sess, phone, "<script>alert('xss')</script>");
     
     assert!(response.len() > 0, "Should sanitize script injection");
 }
@@ -86,14 +91,15 @@ fn test_script_injection_attempt() {
 #[test]
 fn test_null_byte_injection() {
     let env = get_test_env();
+    let sess = session();
     
-    let phone = "+256700666666";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Null", "Byte", "null@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Null", "Byte", "null@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Try null byte injection
-    let (response, _) = env.process_ussd("session", phone, "1\0admin");
+    let (response, _) = env.process_ussd(&sess, phone, "1\0admin");
     
     assert!(response.len() > 0, "Should handle null bytes");
 }
@@ -101,14 +107,15 @@ fn test_null_byte_injection() {
 #[test]
 fn test_unicode_characters() {
     let env = get_test_env();
+    let sess = session();
     
-    let phone = "+256700777777";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Unicode", "Test", "unicode@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Unicode", "Test", "unicode@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Try unicode characters
-    let (response, _) = env.process_ussd("session", phone, "😀🎉💰");
+    let (response, _) = env.process_ussd(&sess, phone, "😀🎉💰");
     
     assert!(response.len() > 0, "Should handle unicode");
 }
@@ -116,14 +123,15 @@ fn test_unicode_characters() {
 #[test]
 fn test_empty_input_handling() {
     let env = get_test_env();
+    let sess = session();
     
-    let phone = "+256700888888";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Empty", "Test", "empty@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Empty", "Test", "empty@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Empty input should show main menu
-    let (response, continue_session) = env.process_ussd("session", phone, "");
+    let (response, continue_session) = env.process_ussd(&sess, phone, "");
     
     assert!(continue_session, "Should continue");
     assert!(response.len() > 0, "Should return main menu");
@@ -137,7 +145,7 @@ fn test_empty_input_handling() {
 fn test_pin_validation_4_digits() {
     let env = get_test_env();
     
-    let phone = "+256700111222";
+    let phone = &phone("UGX");
     
     // Try to register with invalid PIN (too short)
     let result = env.register_user_direct(phone, "PIN", "Short", "pin@test.com", "UGX", "123");
@@ -150,7 +158,7 @@ fn test_pin_validation_4_digits() {
 fn test_pin_numeric_only() {
     let env = get_test_env();
     
-    let phone = "+256700222333";
+    let phone = &phone("UGX");
     
     // Try to register with non-numeric PIN
     let result = env.register_user_direct(phone, "PIN", "Alpha", "pinalpha@test.com", "UGX", "abcd");
@@ -162,20 +170,21 @@ fn test_pin_numeric_only() {
 #[test]
 fn test_cannot_access_other_user_data() {
     let env = get_test_env();
+    let sess = session();
     
-    let phone1 = "+256700333444";
-    let phone2 = "+256700333445";
+    let phone1 = &phone("UGX");
+    let phone2 = &phone("UGX");
     
-    env.register_user_direct(phone1, "User", "One", "user1@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
-    env.register_user_direct(phone2, "User", "Two", "user2@test.com", "UGX", "5678")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone1, "User", "One", "user1@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
+    env.setup_test_user_with_balances(phone2, "User", "Two", "user2@test.com", "UGX", "5678", 0, 0, 0)
+        .expect("Setup");
     
     // Set balance for user 1
     env.set_fiat_balance(phone1, "UGX", 100000).ok();
     
     // User 2 checks their balance (should be 0, not user 1's balance)
-    let (response, _) = env.process_ussd("session", phone2, "6");
+    let (response, _) = env.process_ussd(&sess, phone2, "6");
     
     assert!(!response.contains("100000") && !response.contains("100,000"),
         "User 2 should not see User 1's balance. Got: {}", response);
@@ -211,17 +220,18 @@ fn test_phone_number_validation() {
 #[test]
 fn test_amount_validation_positive() {
     let env = get_test_env();
+    let sess = session();
     
-    let phone = "+256700444555";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Amount", "Test", "amount@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Amount", "Test", "amount@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     env.set_fiat_balance(phone, "UGX", 100000).ok();
     
     // Try to send negative amount (should be rejected)
-    env.process_ussd("session", phone, "1"); // Send money
-    env.process_ussd("session", phone, "+256700999999"); // Recipient
-    let (response, _) = env.process_ussd("session", phone, "-1000"); // Negative amount
+    env.process_ussd(&sess, phone, "1"); // Send money
+    env.process_ussd(&sess, phone, "+256700999999"); // Recipient
+    let (response, _) = env.process_ussd(&sess, phone, "-1000"); // Negative amount
     
     assert!(response.contains("Invalid") || response.contains("amount") || response.contains("positive"),
         "Should reject negative amounts. Got: {}", response);
@@ -230,33 +240,34 @@ fn test_amount_validation_positive() {
 #[test]
 fn test_rate_limiting_protection() {
     let env = get_test_env();
+    let sess = session();
     
-    let phone = "+256700555666";
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Rate", "Limit", "rate@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Rate", "Limit", "rate@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Make many rapid requests
     for _ in 0..100 {
-        env.process_ussd("session", phone, "6");
+        env.process_ussd(&sess, phone, "6");
     }
     
     // Should still work (or show rate limit message)
-    let (response, _) = env.process_ussd("session", phone, "6");
+    let (response, _) = env.process_ussd(&sess, phone, "6");
     assert!(response.len() > 0, "Should handle rapid requests");
 }
 
 #[test]
 fn test_no_sensitive_data_in_responses() {
     let env = get_test_env();
+    let sess = session();
+    let phone = &phone("UGX");
     
-    let phone = "+256700666777";
-    
-    env.register_user_direct(phone, "Sensitive", "Data", "sensitive@test.com", "UGX", "1234")
-        .expect("Registration should succeed");
+    env.setup_test_user_with_balances(phone, "Sensitive", "Data", "sensitive@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Check various responses don't leak sensitive data
-    let (response, _) = env.process_ussd("session", phone, "6");
+    let (response, _) = env.process_ussd(&sess, phone, "6");
     
     // Should not contain PIN, internal IDs, etc.
     assert!(!response.contains("1234"), "Should not show PIN in response");
@@ -267,11 +278,11 @@ fn test_no_sensitive_data_in_responses() {
 fn test_duplicate_phone_registration_prevented() {
     let env = get_test_env();
     
-    let phone = "+256700777888";
+    let phone = &phone("UGX");
     
     // Register once
-    env.register_user_direct(phone, "First", "User", "first@test.com", "UGX", "1234")
-        .expect("First registration should succeed");
+    env.setup_test_user_with_balances(phone, "First", "User", "first@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Try to register again with same phone
     let result = env.register_user_direct(phone, "Second", "User", "second@test.com", "KES", "5678");

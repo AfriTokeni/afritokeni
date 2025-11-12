@@ -5,7 +5,7 @@ use super::*;
 fn test_language_menu_navigation() {
     let env = get_test_env();
     
-    let phone = "+256700111111";
+    let phone = &phone("UGX");
     let session_id = "lang_test_1";
     
     // Navigate to language menu (Main menu -> 8 or similar)
@@ -20,7 +20,7 @@ fn test_language_menu_navigation() {
 fn test_select_english() {
     let env = get_test_env();
     
-    let phone = "+256700222222";
+    let phone = &phone("UGX");
     let session_id = "lang_test_2";
     
     // Navigate to language menu and select English
@@ -35,7 +35,7 @@ fn test_select_english() {
 fn test_select_luganda() {
     let env = get_test_env();
     
-    let phone = "+256700333333";
+    let phone = &phone("UGX");
     let session_id = "lang_test_3";
     
     // Navigate to language menu and select Luganda
@@ -50,7 +50,7 @@ fn test_select_luganda() {
 fn test_select_swahili() {
     let env = get_test_env();
     
-    let phone = "+256700444444";
+    let phone = &phone("UGX");
     let session_id = "lang_test_4";
     
     // Navigate to language menu and select Swahili
@@ -65,7 +65,7 @@ fn test_select_swahili() {
 fn test_language_persistence() {
     let env = get_test_env();
     
-    let phone = "+256700555555";
+    let phone = &phone("UGX");
     let session_id_1 = "lang_test_5a";
     let session_id_2 = "lang_test_5b";
     
@@ -84,7 +84,7 @@ fn test_language_persistence() {
 fn test_invalid_language_selection() {
     let env = get_test_env();
     
-    let phone = "+256700666666";
+    let phone = &phone("UGX");
     let session_id = "lang_test_6";
     
     // Navigate to language menu and select invalid option
@@ -100,7 +100,7 @@ fn test_invalid_language_selection() {
 fn test_all_menus_have_translations() {
     let env = get_test_env();
     
-    let phone = "+256700777777";
+    let phone = &phone("UGX");
     let session_id = "lang_test_7";
     
     // Select Luganda
@@ -118,7 +118,7 @@ fn test_all_menus_have_translations() {
 fn test_language_menu_structure() {
     let env = get_test_env();
     
-    let phone = "+256700888888";
+    let phone = &phone("UGX");
     let session_id = "lang_test_8";
     
     // Navigate to language menu
@@ -135,7 +135,7 @@ fn test_language_menu_structure() {
 fn test_language_change_affects_errors() {
     let env = get_test_env();
     
-    let phone = "+256700999999";
+    let phone = &phone("UGX");
     let session_id = "lang_test_9";
     
     // Select Swahili
@@ -153,7 +153,7 @@ fn test_language_change_affects_errors() {
 fn test_no_hardcoded_english_strings() {
     let env = get_test_env();
     
-    let phone = "+256700101010";
+    let phone = &phone("UGX");
     let session_id = "lang_test_10";
     
     // Select Luganda

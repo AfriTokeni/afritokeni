@@ -329,14 +329,32 @@ pub struct UserPin {
 pub struct AuditEntry {
     pub timestamp: u64,
     pub action: String,
+    // Principal text of the caller that triggered the event (canister or user)
+    pub caller: String,
     pub user_id: Option<String>,
     pub details: String,
+    // Whether the operation succeeded (true) or failed/was denied (false)
+    pub success: bool,
+}
+
+
+// ============================================================================
+// Settlement Models - SHARED
+// ============================================================================
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct MonthlySettlement {
+    pub month: String,             // e.g. "2025-11"
+    pub agent_principal: String,   // principal text
+    pub total_commission: u64,
+    pub paid: bool,
+    pub paid_date: Option<u64>,    // seconds since epoch
 }
 
 
 // ============================================================================
 // Data Canister Request Types - For proper non-deprecated API usage
-// ============================================================================
+// =========================================================================
 
 /// Request to create a user (internal - string types for inter-canister calls)
 #[derive(CandidType, Deserialize, Clone, Debug)]

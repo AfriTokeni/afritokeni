@@ -28,6 +28,7 @@ pub struct DataCanisterState {
     user_pins: HashMap<String, UserPin>,
     audit_log: Vec<AuditEntry>,
     escrows: HashMap<String, Escrow>,  // key: escrow_code
+    settlements: Vec<MonthlySettlement>,
 }
 
 impl DataCanisterState {
@@ -74,14 +75,16 @@ fn get_access_level(user_id: Option<&str>) -> AccessLevel {
         return AccessLevel::AuthorizedCanister;
     }
     
-    // For testing: Allow anonymous if no authorized canisters are set
-    // This allows PocketIC tests to work without explicit authorization
-    let has_authorized = AUTHORIZED_CANISTERS.with(|canisters| {
-        !canisters.borrow().is_empty()
-    });
-    
-    if !has_authorized && caller == Principal::anonymous() {
-        return AccessLevel::AuthorizedCanister;
+    // For testing only: Allow anonymous if no authorized canisters are set
+    // This makes PocketIC tests work without explicit authorization while keeping production strict.
+    #[cfg(test)]
+    {
+        let has_authorized = AUTHORIZED_CANISTERS.with(|canisters| {
+            !canisters.borrow().is_empty()
+        });
+        if !has_authorized && caller == Principal::anonymous() {
+            return AccessLevel::AuthorizedCanister;
+        }
     }
     
     // 3. Check if user accessing their own data
@@ -520,15 +523,7 @@ async fn change_pin(user_id: String, old_pin: String, new_pin: String, new_salt:
     })
 }
 
-/// Check for account takeover (canister only - security check)
-#[query]
-fn check_account_takeover(user_id: String) -> Result<bool, String> {
-    verify_canister_access()?;
-    
-    STATE.with(|state| {
-        security::fraud_detection::check_account_takeover(&state.borrow(), &user_id)
-    })
-}
+// Note: Fraud detection and account takeover checks have been moved to the business_logic_canister.
 
 // ============================================================================
 // Crypto Balance Operations
@@ -587,6 +582,75 @@ async fn store_transaction(tx: Transaction) -> Result<(), String> {
         let mut s = state.borrow_mut();
         s.transactions.insert(tx.id.clone(), tx);
         Ok(())
+    })
+}
+
+// =========================================================================
+// Settlement Storage (Canister-only writes; queries for admin/canisters)
+// =========================================================================
+
+/// Store settlements for a given month (idempotent: replaces existing entries for the month)
+#[update]
+async fn store_settlements(month: String, settlements: Vec<MonthlySettlement>) -> Result<(), String> {
+    verify_canister_access()?;
+    STATE.with(|state| {
+        let mut s = state.borrow_mut();
+        // Remove existing for the month
+        s.settlements.retain(|ms| ms.month != month);
+        // Insert all provided
+        for mut ms in settlements {
+            // Ensure month matches for safety
+            ms.month = month.clone();
+            s.settlements.push(ms);
+        }
+        Ok(())
+    })
+}
+
+/// Mark settlement paid for a given month and agent principal text
+#[update]
+async fn mark_settlement_paid_record(month: String, agent_principal: String) -> Result<(), String> {
+    verify_canister_access()?;
+    STATE.with(|state| {
+        let mut s = state.borrow_mut();
+        let now = ic_cdk::api::time();
+        let mut found = false;
+        for ms in s.settlements.iter_mut() {
+            if ms.month == month && ms.agent_principal == agent_principal {
+                ms.paid = true;
+                ms.paid_date = Some(now);
+                found = true;
+            }
+        }
+        if !found { return Err("Settlement not found".to_string()); }
+        Ok(())
+    })
+}
+
+/// Get settlements for a month
+#[query]
+fn get_settlements_for_month(month: String) -> Result<Vec<MonthlySettlement>, String> {
+    // Allow admin or authorized canister
+    match get_access_level(None) {
+        AccessLevel::Controller | AccessLevel::AuthorizedCanister => {}
+        _ => return Err("Unauthorized".to_string()),
+    }
+    STATE.with(|state| {
+        let s = state.borrow();
+        Ok(s.settlements.iter().filter(|ms| ms.month == month).cloned().collect())
+    })
+}
+
+/// Get settlements for a specific agent principal text
+#[query]
+fn get_agent_settlements(agent_principal: String) -> Result<Vec<MonthlySettlement>, String> {
+    match get_access_level(None) {
+        AccessLevel::Controller | AccessLevel::AuthorizedCanister => {}
+        _ => return Err("Unauthorized".to_string()),
+    }
+    STATE.with(|state| {
+        let s = state.borrow();
+        Ok(s.settlements.iter().filter(|ms| ms.agent_principal == agent_principal).cloned().collect())
     })
 }
 
@@ -881,8 +945,10 @@ mod tests {
         let entry = AuditEntry {
             timestamp: 1699459200,
             action: "test_action".to_string(),
+            caller: "aaaa-bbbb-cccc-dddd".to_string(),
             user_id: Some("user123".to_string()),
             details: "test details".to_string(),
+            success: true,
         };
         
         assert_eq!(entry.action, "test_action");
@@ -897,8 +963,10 @@ mod tests {
         let entry = AuditEntry {
             timestamp: 1699459200,
             action: "system_action".to_string(),
+            caller: "aaaa-bbbb-cccc-dddd".to_string(),
             user_id: None,
             details: "automated task".to_string(),
+            success: false,
         };
         
         assert_eq!(entry.action, "system_action");
@@ -910,8 +978,10 @@ mod tests {
         let entry = AuditEntry {
             timestamp: 0,
             action: "action".to_string(),
+            caller: "aaaa-bbbb-cccc-dddd".to_string(),
             user_id: None,
             details: "".to_string(),
+            success: true,
         };
         
         assert_eq!(entry.details, "");
@@ -923,8 +993,10 @@ mod tests {
         let entry = AuditEntry {
             timestamp: 1699459200,
             action: "large_action".to_string(),
+            caller: "aaaa-bbbb-cccc-dddd".to_string(),
             user_id: Some("user123".to_string()),
             details: large_details.clone(),
+            success: true,
         };
         
         assert_eq!(entry.details.len(), 10000);
@@ -935,15 +1007,19 @@ mod tests {
         let entry_min = AuditEntry {
             timestamp: 0,
             action: "min".to_string(),
+            caller: "aaaa-bbbb-cccc-dddd".to_string(),
             user_id: None,
             details: "".to_string(),
+            success: true,
         };
         
         let entry_max = AuditEntry {
             timestamp: u64::MAX,
             action: "max".to_string(),
+            caller: "aaaa-bbbb-cccc-dddd".to_string(),
             user_id: None,
             details: "".to_string(),
+            success: true,
         };
         
         assert_eq!(entry_min.timestamp, 0);
@@ -974,8 +1050,10 @@ mod tests {
             let entry = AuditEntry {
                 timestamp: i as u64,
                 action: format!("action_{}", i),
+                caller: "aaaa-bbbb-cccc-dddd".to_string(),
                 user_id: Some(format!("user_{}", i)),
                 details: format!("details_{}", i),
+                success: true,
             };
             state.log_audit(entry);
         }

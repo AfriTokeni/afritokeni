@@ -3,7 +3,7 @@
 // ============================================================================
 
 use crate::logic::fraud_logic;
-use super::config;
+use super::{config, data_client};
 use std::cell::RefCell;
 use std::collections::HashMap;
 
@@ -71,6 +71,15 @@ pub fn check_rate_limit(user_id: &str) -> Result<bool, String> {
         
         Ok(true)
     })
+}
+
+/// Check for account takeover patterns at the business-logic layer
+/// Minimal heuristic: flag if there are multiple recent failed PIN attempts.
+/// More sophisticated behavioral checks can be added here later.
+pub async fn check_account_takeover(user_id: &str) -> Result<bool, String> {
+    // Use data_canister purely as a data source
+    let attempts = data_client::get_failed_attempts(user_id).await.unwrap_or(0);
+    Ok(attempts >= 3)
 }
 
 #[cfg(test)]

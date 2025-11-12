@@ -1096,8 +1096,8 @@ async fn verify_pin(
         ));
     }
     
-    // SECURITY: Check for account takeover patterns
-    if services::data_client::check_account_takeover(&user.id).await? {
+    // SECURITY: Check for account takeover patterns (handled in business logic)
+    if services::fraud_detection::check_account_takeover(&user.id).await? {
         log_audit(
             "verify_pin",
             Some(user_identifier.clone()),

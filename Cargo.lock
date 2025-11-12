@@ -592,6 +592,7 @@ dependencies = [
  "ic-cdk",
  "ic-cdk-macros",
  "ic-stable-structures 0.6.9",
+ "pocket-ic",
  "serde",
  "serde_json",
  "sha2",
@@ -609,6 +610,7 @@ dependencies = [
  "pocket-ic",
  "serde",
  "serde_bytes",
+ "shared_types",
  "toml",
 ]
 

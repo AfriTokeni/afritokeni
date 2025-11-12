@@ -173,7 +173,7 @@ pub use shared_types::{
     // Security types
     UserPin,
     // Audit types
-    AuditEntry,
+    AuditEntry, MonthlySettlement,
     // Escrow types
     Escrow, EscrowStatus,
 };

@@ -308,21 +308,7 @@ pub async fn reset_pin_attempts(user_id: &str) -> Result<(), String> {
     result
 }
 
-/// Check for account takeover
-pub async fn check_account_takeover(user_id: &str) -> Result<bool, String> {
-    let canister_id = config::get_data_canister_id()?;
-    
-    let response = Call::unbounded_wait(canister_id, "check_account_takeover")
-        .with_args(&(user_id.to_string(),))
-        .await
-        .map_err(|e| format!("Call failed: {:?}", e))?;
-    
-    let (result,): (Result<bool, String>,) = response
-        .candid_tuple()
-        .map_err(|e| format!("Decode failed: {}", e))?;
-    
-    result
-}
+// Note: Account takeover checks moved to business_logic_canister::services::fraud_detection
 
 /// Update last active timestamp
 pub async fn update_last_active(user_id: &str) -> Result<(), String> {
@@ -465,4 +451,61 @@ pub use shared_types::{
     CryptoBalance,
     Transaction,
     TransactionRecord,
+    MonthlySettlement,
 };
+
+// =========================================================================
+// Settlement Persistence (Data Canister)
+// =========================================================================
+
+/// Store settlements for a month (replaces existing entries for that month)
+pub async fn store_settlements(month: &str, settlements: Vec<MonthlySettlement>) -> Result<(), String> {
+    let canister_id = config::get_data_canister_id()?;
+    let response = Call::unbounded_wait(canister_id, "store_settlements")
+        .with_args(&(month.to_string(), settlements))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    let (result,): (Result<(), String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    result
+}
+
+/// Mark settlement paid in the stored records
+pub async fn mark_settlement_paid_record(month: &str, agent_principal: &str) -> Result<(), String> {
+    let canister_id = config::get_data_canister_id()?;
+    let response = Call::unbounded_wait(canister_id, "mark_settlement_paid_record")
+        .with_args(&(month.to_string(), agent_principal.to_string()))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    let (result,): (Result<(), String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    result
+}
+
+/// Get settlements for a month
+pub async fn get_settlements_for_month(month: &str) -> Result<Vec<MonthlySettlement>, String> {
+    let canister_id = config::get_data_canister_id()?;
+    let response = Call::unbounded_wait(canister_id, "get_settlements_for_month")
+        .with_args(&(month.to_string(),))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    let (result,): (Result<Vec<MonthlySettlement>, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    result
+}
+
+/// Get settlements for an agent principal (text)
+pub async fn get_agent_settlements(agent_principal: &str) -> Result<Vec<MonthlySettlement>, String> {
+    let canister_id = config::get_data_canister_id()?;
+    let response = Call::unbounded_wait(canister_id, "get_agent_settlements")
+        .with_args(&(agent_principal.to_string(),))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+    let (result,): (Result<Vec<MonthlySettlement>, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+    result
+}

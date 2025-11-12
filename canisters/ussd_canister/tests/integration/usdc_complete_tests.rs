@@ -9,14 +9,14 @@ use super::*;
 #[test]
 fn test_buy_usdc_with_ugx() {
     let env = get_test_env();
-    let phone = "+256700111111";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "USDC", "Buyer", "usdc@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_fiat_balance(phone, "UGX", 1000000).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "USDC", "Buyer", "usdc@test.com", "UGX", "1234", 1000000, 0, 0)
+        .expect("Setup");
     
     // Buy USDC: Menu 3 (USDC) -> 3 (Buy) -> amount -> PIN
-    let (response, _) = env.process_ussd("session", phone, "3*3*100000*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "3*3*100000*1234");
     
     assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
         "Should buy USDC. Got: {}", response);
@@ -31,13 +31,13 @@ fn test_buy_usdc_with_ugx() {
 #[test]
 fn test_buy_usdc_with_kes() {
     let env = get_test_env();
-    let phone = "+254700222222";
+    let sess = session();
+    let phone = &phone("KES");
     
-    env.register_user_direct(phone, "KES", "USDCBuyer", "kesusdc@test.com", "KES", "1234")
-        .expect("Registration");
-    env.set_fiat_balance(phone, "KES", 500000).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "KES", "USDCBuyer", "kesusdc@test.com", "KES", "1234", 500000, 0, 0)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "3*3*50000*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "3*3*50000*1234");
     
     assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
         "Should buy USDC. Got: {}", response);
@@ -49,13 +49,13 @@ fn test_buy_usdc_with_kes() {
 #[test]
 fn test_buy_usdc_with_tzs() {
     let env = get_test_env();
-    let phone = "+255700333333";
+    let sess = session();
+    let phone = &phone("TZS");
     
-    env.register_user_direct(phone, "TZS", "USDCBuyer", "tzsusdc@test.com", "TZS", "1234")
-        .expect("Registration");
-    env.set_fiat_balance(phone, "TZS", 2000000).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "TZS", "USDCBuyer", "tzsusdc@test.com", "TZS", "1234", 2000000, 0, 0)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "3*3*50000*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "3*3*50000*1234");
     
     assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
         "Should buy USDC. Got: {}", response);
@@ -64,13 +64,13 @@ fn test_buy_usdc_with_tzs() {
 #[test]
 fn test_buy_usdc_with_ngn() {
     let env = get_test_env();
-    let phone = "+234700444444";
+    let sess = session();
+    let phone = &phone("NGN");
     
-    env.register_user_direct(phone, "NGN", "USDCBuyer", "ngnusdc@test.com", "NGN", "1234")
-        .expect("Registration");
-    env.set_fiat_balance(phone, "NGN", 5000000).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "NGN", "USDCBuyer", "ngnusdc@test.com", "NGN", "1234", 5000000, 0, 0)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "3*3*50000*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "3*3*50000*1234");
     
     assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
         "Should buy USDC. Got: {}", response);
@@ -83,15 +83,15 @@ fn test_buy_usdc_with_ngn() {
 #[test]
 fn test_send_usdc_to_valid_address() {
     let env = get_test_env();
-    let phone = "+256700555555";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "USDC", "Sender", "usdcsend@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_crypto_balance(phone, 0, 100000).expect("Set USDC balance");
+    env.setup_test_user_with_balances(phone, "USDC", "Sender", "usdcsend@test.com", "UGX", "1234", 0, 0, 100000)
+        .expect("Setup");
     
     // Send USDC: Menu 3 -> 5 (Send) -> address -> amount -> PIN
     // Note: ckUSDC uses IC Principal addresses, not Ethereum addresses
-    let (response, _) = env.process_ussd("session", phone, "3*5*rrkah-fqaaa-aaaaa-aaaaq-cai*50000*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "3*5*rrkah-fqaaa-aaaaa-aaaaq-cai*50000*1234");
     
     assert!(response.contains("success") || response.contains("Success") || response.contains("sent"),
         "Should send USDC. Got: {}", response);
@@ -103,13 +103,13 @@ fn test_send_usdc_to_valid_address() {
 #[test]
 fn test_send_usdc_insufficient_balance() {
     let env = get_test_env();
-    let phone = "+256700666666";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "USDC", "Poor", "usdcpoor@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_crypto_balance(phone, 0, 10000).expect("Set small USDC balance");
+    env.setup_test_user_with_balances(phone, "USDC", "Poor", "usdcpoor@test.com", "UGX", "1234", 0, 0, 10000)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "3*5*rrkah-fqaaa-aaaaa-aaaaq-cai*50000*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "3*5*rrkah-fqaaa-aaaaa-aaaaq-cai*50000*1234");
     
     assert!(response.contains("Insufficient") || response.contains("insufficient"),
         "Should reject insufficient balance. Got: {}", response);
@@ -118,13 +118,13 @@ fn test_send_usdc_insufficient_balance() {
 #[test]
 fn test_send_usdc_invalid_address() {
     let env = get_test_env();
-    let phone = "+256700777777";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "USDC", "Invalid", "usdcinvalid@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_crypto_balance(phone, 0, 100000).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "USDC", "Invalid", "usdcinvalid@test.com", "UGX", "1234", 0, 0, 100000)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "3*5*invalid_address");
+    let (response, _) = env.process_ussd(&sess, phone, "3*5*invalid_address");
     
     assert!(response.contains("Invalid") || response.contains("invalid") || response.contains("address"),
         "Should reject invalid address. Got: {}", response);
@@ -133,13 +133,13 @@ fn test_send_usdc_invalid_address() {
 #[test]
 fn test_send_usdc_zero_amount() {
     let env = get_test_env();
-    let phone = "+256700888888";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "USDC", "Zero", "usdczero@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_crypto_balance(phone, 0, 100000).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "USDC", "Zero", "usdczero@test.com", "UGX", "1234", 0, 0, 100000)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "3*5*rrkah-fqaaa-aaaaa-aaaaq-cai*0");
+    let (response, _) = env.process_ussd(&sess, phone, "3*5*rrkah-fqaaa-aaaaa-aaaaq-cai*0");
     
     assert!(response.contains("Invalid") || response.contains("invalid") || response.contains("positive"),
         "Should reject zero amount. Got: {}", response);
@@ -152,15 +152,15 @@ fn test_send_usdc_zero_amount() {
 #[test]
 fn test_sell_usdc_to_ugx() {
     let env = get_test_env();
-    let phone = "+256700999999";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "USDC", "Seller", "usdcsell@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_crypto_balance(phone, 0, 200000).expect("Set USDC balance");
+    env.setup_test_user_with_balances(phone, "USDC", "Seller", "usdcsell@test.com", "UGX", "1234", 0, 0, 200000)
+        .expect("Setup");
     
     // Sell USDC: Menu 3 -> 4 (Sell) -> amount in USDC -> PIN
     // 0.1 USDC = 100,000 e6
-    let (response, _) = env.process_ussd("session", phone, "3*4*0.1*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "3*4*0.1*1234");
     
     assert!(response.contains("success") || response.contains("Success") || response.contains("sold"),
         "Should sell USDC. Got: {}", response);
@@ -175,12 +175,13 @@ fn test_sell_usdc_to_ugx() {
 #[test]
 fn test_sell_usdc_insufficient_usdc() {
     let env = get_test_env();
-    let phone = "+256700101010";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "USDC", "NoBalance", "usdcno@test.com", "UGX", "1234")
-        .expect("Registration");
+    env.setup_test_user_with_balances(phone, "USDC", "NoBalance", "usdcno@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "3*4*0.1*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "3*4*0.1*1234");
     
     assert!(response.contains("Insufficient") || response.contains("insufficient"),
         "Should reject. Got: {}", response);
@@ -189,13 +190,13 @@ fn test_sell_usdc_insufficient_usdc() {
 #[test]
 fn test_sell_usdc_all_balance() {
     let env = get_test_env();
-    let phone = "+256700202020";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "USDC", "SellAll", "usdcall@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_crypto_balance(phone, 0, 150000).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "USDC", "SellAll", "usdcall@test.com", "UGX", "1234", 0, 0, 150000)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "3*4*0.15*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "3*4*0.15*1234");
     
     assert!(response.contains("success") || response.contains("Success") || response.contains("sold"),
         "Should sell USDC. Got: {}", response);
@@ -211,12 +212,13 @@ fn test_sell_usdc_all_balance() {
 #[test]
 fn test_check_usdc_balance_zero() {
     let env = get_test_env();
-    let phone = "+256700303030";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "USDC", "CheckZero", "usdccheck0@test.com", "UGX", "1234")
-        .expect("Registration");
+    env.setup_test_user_with_balances(phone, "USDC", "CheckZero", "usdccheck0@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "3*1");
+    let (response, _) = env.process_ussd(&sess, phone, "3*1");
     
     assert!(response.contains("0") || response.contains("zero") || response.contains("Balance"),
         "Should show zero balance. Got: {}", response);
@@ -225,13 +227,13 @@ fn test_check_usdc_balance_zero() {
 #[test]
 fn test_check_usdc_balance_with_usdc() {
     let env = get_test_env();
-    let phone = "+256700404040";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "USDC", "CheckFull", "usdccheckfull@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_crypto_balance(phone, 0, 250000).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "USDC", "CheckFull", "usdccheckfull@test.com", "UGX", "1234", 0, 0, 250000)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "3*1");
+    let (response, _) = env.process_ussd(&sess, phone, "3*1");
     
     assert!(response.contains("250") || response.contains("USDC"),
         "Should show USDC balance. Got: {}", response);
@@ -240,13 +242,13 @@ fn test_check_usdc_balance_with_usdc() {
 #[test]
 fn test_usdc_stablecoin_precision() {
     let env = get_test_env();
-    let phone = "+256700505050";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "USDC", "Precision", "usdcprec@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_crypto_balance(phone, 0, 123456).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "USDC", "Precision", "usdcprec@test.com", "UGX", "1234", 0, 0, 123456)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "3*1");
+    let (response, _) = env.process_ussd(&sess, phone, "3*1");
     
     // USDC should show with proper decimal precision (2 decimals for stablecoin display)
     assert!(response.len() > 0, "Should show balance");
@@ -259,12 +261,13 @@ fn test_usdc_stablecoin_precision() {
 #[test]
 fn test_usdc_menu_shows_all_options() {
     let env = get_test_env();
-    let phone = "+256700606060";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "USDC", "Menu", "usdcmenu@test.com", "UGX", "1234")
-        .expect("Registration");
+    env.setup_test_user_with_balances(phone, "USDC", "Menu", "usdcmenu@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
-    let (response, continue_session) = env.process_ussd("session", phone, "3");
+    let (response, continue_session) = env.process_ussd(&sess, phone, "3");
     
     assert!(continue_session, "Should continue");
     assert!(response.contains("Balance") || response.contains("balance"));
@@ -275,13 +278,14 @@ fn test_usdc_menu_shows_all_options() {
 #[test]
 fn test_usdc_return_to_main_menu() {
     let env = get_test_env();
-    let phone = "+256700707070";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "USDC", "Return", "usdcreturn@test.com", "UGX", "1234")
-        .expect("Registration");
+    env.setup_test_user_with_balances(phone, "USDC", "Return", "usdcreturn@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
-    env.process_ussd("session", phone, "3");
-    let (response, _) = env.process_ussd("session", phone, "0");
+    env.process_ussd(&sess, phone, "3");
+    let (response, _) = env.process_ussd(&sess, phone, "0");
     
     assert!(response.contains("Main") || response.contains("Menu") || response.contains("Send"),
         "Should return to main menu. Got: {}", response);
@@ -294,13 +298,13 @@ fn test_usdc_return_to_main_menu() {
 #[test]
 fn test_buy_usdc_wrong_pin() {
     let env = get_test_env();
-    let phone = "+256700808080";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "USDC", "WrongPIN", "usdcwrong@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_fiat_balance(phone, "UGX", 100000).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "USDC", "WrongPIN", "usdcwrong@test.com", "UGX", "1234", 100000, 0, 0)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "3*3*50000*9999");
+    let (response, _) = env.process_ussd(&sess, phone, "3*3*50000*9999");
     
     assert!(response.contains("Incorrect") || response.contains("incorrect") || response.contains("Wrong") || response.contains("Invalid"),
         "Should reject wrong PIN. Got: {}", response);
@@ -312,13 +316,13 @@ fn test_buy_usdc_wrong_pin() {
 #[test]
 fn test_sell_usdc_wrong_pin() {
     let env = get_test_env();
-    let phone = "+256700909090";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "USDC", "SellWrong", "usdcsellwrong@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_crypto_balance(phone, 0, 100000).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "USDC", "SellWrong", "usdcsellwrong@test.com", "UGX", "1234", 0, 0, 100000)
+        .expect("Setup");
     
-    let (response, _) = env.process_ussd("session", phone, "3*4*0.05*9999");
+    let (response, _) = env.process_ussd(&sess, phone, "3*4*0.05*9999");
     
     assert!(response.contains("Incorrect") || response.contains("incorrect") || response.contains("Invalid"),
         "Should reject wrong PIN. Got: {}", response);
@@ -334,20 +338,20 @@ fn test_sell_usdc_wrong_pin() {
 #[test]
 fn test_usdc_buy_then_sell() {
     let env = get_test_env();
-    let phone = "+256700010101";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "USDC", "BuySell", "usdcbuysell@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_fiat_balance(phone, "UGX", 500000).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "USDC", "BuySell", "usdcbuysell@test.com", "UGX", "1234", 500000, 0, 0)
+        .expect("Setup");
     
     // Buy USDC (under fraud limit)
-    env.process_ussd("s1", phone, "3*3*50000*1234");
+    env.process_ussd(&sess, phone, "3*3*50000*1234");
     
     let (_, usdc_after_buy) = env.get_crypto_balance(phone).expect("Get balance");
     assert!(usdc_after_buy > 0, "Should have USDC after buy");
     
     // Sell half
-    env.process_ussd("s2", phone, &format!("3*4*{}*1234", usdc_after_buy / 2));
+    env.process_ussd(&sess, phone, &format!("3*4*{}*1234", usdc_after_buy / 2));
     
     let (_, usdc_final) = env.get_crypto_balance(phone).expect("Get balance");
     assert!(usdc_final < usdc_after_buy, "USDC should decrease after sell");
@@ -356,19 +360,19 @@ fn test_usdc_buy_then_sell() {
 #[test]
 fn test_usdc_buy_then_send() {
     let env = get_test_env();
-    let phone = "+256700020202";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "USDC", "BuySend", "usdcbuysend@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.set_fiat_balance(phone, "UGX", 500000).expect("Set balance");
+    env.setup_test_user_with_balances(phone, "USDC", "BuySend", "usdcbuysend@test.com", "UGX", "1234", 500000, 0, 0)
+        .expect("Setup");
     
     // Buy USDC (under fraud limit)
-    env.process_ussd("s1", phone, "3*3*50000*1234");
+    env.process_ussd(&sess, phone, "3*3*50000*1234");
     
     let (_, usdc_after_buy) = env.get_crypto_balance(phone).expect("Get balance");
     
     // Send USDC
-    env.process_ussd("s2", phone, &format!("3*5*rrkah-fqaaa-aaaaa-aaaaq-cai*{}*1234", usdc_after_buy / 2));
+    env.process_ussd(&sess, phone, &format!("3*5*rrkah-fqaaa-aaaaa-aaaaq-cai*{}*1234", usdc_after_buy / 2));
     
     let (_, usdc_final) = env.get_crypto_balance(phone).expect("Get balance");
     assert!(usdc_final < usdc_after_buy, "USDC should decrease after send");
@@ -381,10 +385,11 @@ fn test_usdc_buy_then_send() {
 #[test]
 fn test_usdc_and_btc_independent_balances() {
     let env = get_test_env();
-    let phone = "+256700030303";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Crypto", "Both", "both@test.com", "UGX", "1234")
-        .expect("Registration");
+    env.setup_test_user_with_balances(phone, "Crypto", "Both", "both@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
     
     // Set both BTC and USDC
     env.set_crypto_balance(phone, 100000, 200000).expect("Set balances");
@@ -395,7 +400,7 @@ fn test_usdc_and_btc_independent_balances() {
     
     // Buy more USDC - BTC should not change
     env.set_fiat_balance(phone, "UGX", 500000).expect("Set fiat");
-    env.process_ussd("s1", phone, "3*3*100000*1234");
+    env.process_ussd(&sess, phone, "3*3*100000*1234");
     
     let (btc_after, usdc_after) = env.get_crypto_balance(phone).expect("Get balance");
     assert_eq!(btc_after, 100000, "BTC should not change");
@@ -405,15 +410,13 @@ fn test_usdc_and_btc_independent_balances() {
 #[test]
 fn test_usdc_stablecoin_characteristics() {
     let env = get_test_env();
-    let phone = "+256700040404";
+    let sess = session();
+    let phone = &phone("UGX");
     
-    env.register_user_direct(phone, "Stable", "Coin", "stable@test.com", "UGX", "1234")
-        .expect("Registration");
+    env.setup_test_user_with_balances(phone, "Stable", "Coin", "stable@test.com", "UGX", "1234", 0, 100000, 0)
+        .expect("Setup");
     
-    // USDC is a stablecoin - should have different display characteristics
-    env.set_crypto_balance(phone, 0, 100000).expect("Set USDC");
-    
-    let (response, _) = env.process_ussd("session", phone, "3*1");
+    let (response, _) = env.process_ussd(&sess, phone, "3*1");
     
     // Should show USDC with proper formatting
     assert!(response.contains("USDC") || response.contains("usdc") || response.contains("Balance"),

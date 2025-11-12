@@ -44,6 +44,13 @@ pub fn get_business_logic_canister_id() -> Result<Principal, String> {
     services::business_logic::get_business_logic_canister_id()
 }
 
+/// Set Exchange Canister ID (for manual configuration)
+#[update]
+fn set_exchange_canister_id(canister_id: Principal) {
+    services::exchange::set_exchange_canister_id(canister_id);
+    ic_cdk::println!("✅ Exchange Canister ID set");
+}
+
 /// USSD endpoint for integration tests
 /// Returns (response_text, continue_session)
 #[update]
