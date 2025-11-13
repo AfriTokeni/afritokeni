@@ -85,16 +85,21 @@ pub async fn handle_withdraw(text: &str, session: &mut UssdSession) -> (String, 
             ).await {
                 Ok(result) => {
                     session.clear_data();
+                    // Calculate fees for display
+                    let platform_fee = (result.amount as f64 * 0.005).round() as u64;
+                    let agent_fee = (result.amount as f64 * 0.10).round() as u64;
+                    let net_amount = result.amount - platform_fee - agent_fee;
+                    
                     (format!("✅ Withdrawal Request Created!\n\n📋 CODE: {}\n\nShow this code to agent:\n{}\n\nAmount: {} {}\nPlatform fee: {} {}\nAgent fee: {} {}\nYou'll receive: {} {}\n\n0. Main Menu",
                         result.withdrawal_code,
                         result.withdrawal_code,
                         result.amount,
                         currency,
-                        result.platform_fee,
+                        platform_fee,
                         currency,
-                        result.agent_fee,
+                        agent_fee,
                         currency,
-                        result.net_amount,
+                        net_amount,
                         currency), false)
                 }
                 Err(e) => {

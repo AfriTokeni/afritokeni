@@ -9,6 +9,51 @@ thread_local! {
     static AGENT_CANISTER_ID: RefCell<Option<Principal>> = RefCell::new(None);
 }
 
+// ============================================================================
+// TEST MOCKS
+// ============================================================================
+
+#[cfg(any(test, feature = "test-utils"))]
+use std::sync::Mutex;
+
+#[cfg(any(test, feature = "test-utils"))]
+lazy_static::lazy_static! {
+    static ref MOCK_CREATE_DEPOSIT_REQUEST: Mutex<Option<Box<dyn Fn(String, String, u64, FiatCurrency) -> Result<DepositTransaction, String> + Send>>> = Mutex::new(None);
+    static ref MOCK_CREATE_WITHDRAWAL_REQUEST: Mutex<Option<Box<dyn Fn(String, String, u64, FiatCurrency, String) -> Result<WithdrawalTransaction, String> + Send>>> = Mutex::new(None);
+    static ref MOCK_GET_WITHDRAWAL_FEES: Mutex<Option<Box<dyn Fn(u64) -> Result<WithdrawalFeesResponse, String> + Send>>> = Mutex::new(None);
+}
+
+#[cfg(any(test, feature = "test-utils"))]
+pub fn set_mock_create_deposit_request<F>(mock: F)
+where
+    F: Fn(String, String, u64, FiatCurrency) -> Result<DepositTransaction, String> + Send + 'static,
+{
+    *MOCK_CREATE_DEPOSIT_REQUEST.lock().unwrap() = Some(Box::new(mock));
+}
+
+#[cfg(any(test, feature = "test-utils"))]
+pub fn set_mock_create_withdrawal_request<F>(mock: F)
+where
+    F: Fn(String, String, u64, FiatCurrency, String) -> Result<WithdrawalTransaction, String> + Send + 'static,
+{
+    *MOCK_CREATE_WITHDRAWAL_REQUEST.lock().unwrap() = Some(Box::new(mock));
+}
+
+#[cfg(any(test, feature = "test-utils"))]
+pub fn set_mock_get_withdrawal_fees<F>(mock: F)
+where
+    F: Fn(u64) -> Result<WithdrawalFeesResponse, String> + Send + 'static,
+{
+    *MOCK_GET_WITHDRAWAL_FEES.lock().unwrap() = Some(Box::new(mock));
+}
+
+#[cfg(any(test, feature = "test-utils"))]
+pub fn clear_mocks() {
+    *MOCK_CREATE_DEPOSIT_REQUEST.lock().unwrap() = None;
+    *MOCK_CREATE_WITHDRAWAL_REQUEST.lock().unwrap() = None;
+    *MOCK_GET_WITHDRAWAL_FEES.lock().unwrap() = None;
+}
+
 pub fn set_agent_canister_id(canister_id: Principal) {
     AGENT_CANISTER_ID.with(|id| {
         *id.borrow_mut() = Some(canister_id);
@@ -88,18 +133,25 @@ pub struct AgentBalanceResponse {
 
 /// Create deposit request (user brings cash to agent)
 pub async fn create_deposit_request(
-    user_id: String,
+    user_identifier: String,
     agent_id: String,
     amount: u64,
     currency: FiatCurrency,
-) -> Result<CreateDepositResponse, String> {
+) -> Result<DepositTransaction, String> {
+    #[cfg(any(test, feature = "test-utils"))]
+    {
+        if let Some(mock) = MOCK_CREATE_DEPOSIT_REQUEST.lock().unwrap().as_ref() {
+            return mock(user_identifier, agent_id, amount, currency);
+        }
+    }
+    
     let canister_id = get_agent_canister_id()?;
     
     ic_cdk::println!("📤 [AGENT_CLIENT] Calling create_deposit_request: user={}, agent={}, amount={}, currency={:?}", 
-        user_id, agent_id, amount, currency);
+        user_identifier, agent_id, amount, currency);
     
     let request = CreateDepositRequest {
-        user_id: user_id.clone(),
+        user_id: user_identifier.clone(),
         agent_id: agent_id.clone(),
         amount,
         currency,
@@ -110,13 +162,13 @@ pub async fn create_deposit_request(
         .await
         .map_err(|e| format!("❌ [AGENT_CLIENT] Call failed: {:?}", e))?;
     
-    let (result,): (Result<CreateDepositResponse, String>,) = response
+    let (result,): (Result<DepositTransaction, String>,) = response
         .candid_tuple()
         .map_err(|e| format!("❌ [AGENT_CLIENT] Decode failed: {}", e))?;
     
     match &result {
-        Ok(resp) => ic_cdk::println!("✅ [AGENT_CLIENT] Deposit created: code={}, net={}", 
-            resp.deposit_code, resp.net_amount),
+        Ok(deposit) => ic_cdk::println!("✅ [AGENT_CLIENT] Deposit created: {} (status={:?})", 
+            deposit.deposit_code, deposit.status),
         Err(e) => ic_cdk::println!("❌ [AGENT_CLIENT] Create deposit failed: {}", e),
     }
     
@@ -177,19 +229,26 @@ pub async fn get_withdrawal_fees(amount: u64) -> Result<WithdrawalFeesResponse, 
 
 /// Create withdrawal request (user wants cash from agent)
 pub async fn create_withdrawal_request(
-    user_id: String,
+    user_identifier: String,
     agent_id: String,
     amount: u64,
     currency: FiatCurrency,
     pin: String,
-) -> Result<CreateWithdrawalResponse, String> {
+) -> Result<WithdrawalTransaction, String> {
+    #[cfg(any(test, feature = "test-utils"))]
+    {
+        if let Some(mock) = MOCK_CREATE_WITHDRAWAL_REQUEST.lock().unwrap().as_ref() {
+            return mock(user_identifier, agent_id, amount, currency, pin);
+        }
+    }
+    
     let canister_id = get_agent_canister_id()?;
     
     ic_cdk::println!("📤 [AGENT_CLIENT] Calling create_withdrawal_request: user={}, agent={}, amount={}, currency={:?}", 
-        user_id, agent_id, amount, currency);
+        user_identifier, agent_id, amount, currency);
     
     let request = CreateWithdrawalRequest {
-        user_id: user_id.clone(),
+        user_id: user_identifier.clone(),
         agent_id: agent_id.clone(),
         amount,
         currency,
@@ -211,7 +270,21 @@ pub async fn create_withdrawal_request(
         Err(e) => ic_cdk::println!("❌ [AGENT_CLIENT] Create withdrawal failed: {}", e),
     }
     
-    result
+    // Convert response to WithdrawalTransaction
+    result.map(|resp| WithdrawalTransaction {
+        id: "".to_string(),
+        user_id: user_identifier,
+        agent_id,
+        amount: resp.amount,
+        currency: resp.currency.code().to_string(),
+        status: shared_types::AgentTransactionStatus::Pending,
+        withdrawal_code: resp.withdrawal_code,
+        timestamp: 0,
+        agent_fee: resp.agent_fee,
+        agent_keeps: resp.agent_fee,
+        platform_revenue: resp.platform_fee,
+        confirmed_at: None,
+    })
 }
 
 /// Get withdrawal status by code

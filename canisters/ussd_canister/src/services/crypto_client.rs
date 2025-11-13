@@ -9,6 +9,71 @@ thread_local! {
     static CRYPTO_CANISTER_ID: RefCell<Option<Principal>> = RefCell::new(None);
 }
 
+// ============================================================================
+// TEST MOCKS
+// ============================================================================
+
+#[cfg(any(test, feature = "test-utils"))]
+use std::sync::Mutex;
+
+#[cfg(any(test, feature = "test-utils"))]
+lazy_static::lazy_static! {
+    static ref MOCK_BUY_CRYPTO: Mutex<Option<Box<dyn Fn(String, u64, FiatCurrency, CryptoType, String) -> Result<BuyCryptoResponse, String> + Send>>> = Mutex::new(None);
+    static ref MOCK_SELL_CRYPTO: Mutex<Option<Box<dyn Fn(String, u64, CryptoType, FiatCurrency, String) -> Result<BuyCryptoResponse, String> + Send>>> = Mutex::new(None);
+    static ref MOCK_SEND_CRYPTO: Mutex<Option<Box<dyn Fn(String, String, u64, CryptoType, String) -> Result<String, String> + Send>>> = Mutex::new(None);
+    static ref MOCK_SWAP_CRYPTO: Mutex<Option<Box<dyn Fn(String, CryptoType, CryptoType, u64, String) -> Result<SwapCryptoResponse, String> + Send>>> = Mutex::new(None);
+    static ref MOCK_CHECK_CRYPTO_BALANCE: Mutex<Option<Box<dyn Fn(String, CryptoType) -> Result<u64, String> + Send>>> = Mutex::new(None);
+}
+
+#[cfg(any(test, feature = "test-utils"))]
+pub fn set_mock_buy_crypto<F>(mock: F)
+where
+    F: Fn(String, u64, FiatCurrency, CryptoType, String) -> Result<BuyCryptoResponse, String> + Send + 'static,
+{
+    *MOCK_BUY_CRYPTO.lock().unwrap() = Some(Box::new(mock));
+}
+
+#[cfg(any(test, feature = "test-utils"))]
+pub fn set_mock_sell_crypto<F>(mock: F)
+where
+    F: Fn(String, u64, CryptoType, FiatCurrency, String) -> Result<BuyCryptoResponse, String> + Send + 'static,
+{
+    *MOCK_SELL_CRYPTO.lock().unwrap() = Some(Box::new(mock));
+}
+
+#[cfg(any(test, feature = "test-utils"))]
+pub fn set_mock_send_crypto<F>(mock: F)
+where
+    F: Fn(String, String, u64, CryptoType, String) -> Result<String, String> + Send + 'static,
+{
+    *MOCK_SEND_CRYPTO.lock().unwrap() = Some(Box::new(mock));
+}
+
+#[cfg(any(test, feature = "test-utils"))]
+pub fn set_mock_swap_crypto<F>(mock: F)
+where
+    F: Fn(String, CryptoType, CryptoType, u64, String) -> Result<SwapCryptoResponse, String> + Send + 'static,
+{
+    *MOCK_SWAP_CRYPTO.lock().unwrap() = Some(Box::new(mock));
+}
+
+#[cfg(any(test, feature = "test-utils"))]
+pub fn set_mock_check_crypto_balance<F>(mock: F)
+where
+    F: Fn(String, CryptoType) -> Result<u64, String> + Send + 'static,
+{
+    *MOCK_CHECK_CRYPTO_BALANCE.lock().unwrap() = Some(Box::new(mock));
+}
+
+#[cfg(any(test, feature = "test-utils"))]
+pub fn clear_mocks() {
+    *MOCK_BUY_CRYPTO.lock().unwrap() = None;
+    *MOCK_SELL_CRYPTO.lock().unwrap() = None;
+    *MOCK_SEND_CRYPTO.lock().unwrap() = None;
+    *MOCK_SWAP_CRYPTO.lock().unwrap() = None;
+    *MOCK_CHECK_CRYPTO_BALANCE.lock().unwrap() = None;
+}
+
 pub fn set_crypto_canister_id(canister_id: Principal) {
     CRYPTO_CANISTER_ID.with(|id| {
         *id.borrow_mut() = Some(canister_id);
@@ -91,6 +156,13 @@ pub async fn buy_crypto(
     crypto_type: CryptoType,
     pin: String,
 ) -> Result<BuyCryptoResponse, String> {
+    #[cfg(any(test, feature = "test-utils"))]
+    {
+        if let Some(mock) = MOCK_BUY_CRYPTO.lock().unwrap().as_ref() {
+            return mock(user_identifier, fiat_amount, fiat_currency, crypto_type, pin);
+        }
+    }
+    
     let canister_id = get_crypto_canister_id()?;
     
     ic_cdk::println!("📤 [CRYPTO_CLIENT] Calling buy_crypto: user={}, amount={}, currency={:?}, type={:?}", 
@@ -130,6 +202,13 @@ pub async fn sell_crypto(
     fiat_currency: FiatCurrency,
     pin: String,
 ) -> Result<BuyCryptoResponse, String> {
+    #[cfg(any(test, feature = "test-utils"))]
+    {
+        if let Some(mock) = MOCK_SELL_CRYPTO.lock().unwrap().as_ref() {
+            return mock(user_identifier, crypto_amount, crypto_type, fiat_currency, pin);
+        }
+    }
+    
     let canister_id = get_crypto_canister_id()?;
     
     ic_cdk::println!("📤 [CRYPTO_CLIENT] Calling sell_crypto: user={}, amount={}, type={:?}, currency={:?}", 
@@ -205,6 +284,13 @@ pub async fn send_crypto(
 
 /// Check crypto balance
 pub async fn check_crypto_balance(user_identifier: String, crypto_type: CryptoType) -> Result<u64, String> {
+    #[cfg(any(test, feature = "test-utils"))]
+    {
+        if let Some(mock) = MOCK_CHECK_CRYPTO_BALANCE.lock().unwrap().as_ref() {
+            return mock(user_identifier, crypto_type);
+        }
+    }
+    
     let canister_id = get_crypto_canister_id()?;
     
     // Convert CryptoType to string for the API

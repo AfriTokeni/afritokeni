@@ -71,14 +71,17 @@ pub async fn handle_deposit(text: &str, session: &mut UssdSession) -> (String, b
                 ).await {
                     Ok(result) => {
                         session.clear_data();
-                        (format!("✅ Deposit Request Created!\n\n📋 CODE: {}\n\nShow this code to agent:\n{}\n\nAmount: {} {}\nCommission: {} {}\nYou'll receive: {} {}\n\n0. Main Menu",
+                        // Calculate commission for display (1% agent commission)
+                        let commission = (result.amount as f64 * 0.01).round() as u64;
+                        
+                        (format!("✅ Deposit Request Created!\n\n📋 CODE: {}\n\nShow this code to agent:\n{}\n\nAmount: {} {}\nAgent Commission: {} {}\nYou'll receive: {} {}\n\n0. Main Menu",
                             result.deposit_code,
                             result.deposit_code,
                             result.amount,
                             currency,
-                            result.commission,
+                            commission,
                             currency,
-                            result.net_amount,
+                            result.amount, // User receives full amount for deposit
                             currency), false)
                     }
                     Err(e) => {
