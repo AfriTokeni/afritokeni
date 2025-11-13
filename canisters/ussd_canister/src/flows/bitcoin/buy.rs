@@ -42,8 +42,16 @@ pub async fn handle_buy_bitcoin(text: &str, session: &mut UssdSession) -> (Strin
             // Step 2: Call Business Logic to buy crypto
             // parts: [0]=2, [1]=3, [2]=amount, [3]=pin
             let pin = parts.get(3).unwrap_or(&"");
-            let phone = session.phone_number.clone();
             let amount_str = parts.get(2).unwrap_or(&"");
+            
+            // Get user ID first
+            let user_profile = match crate::services::user_client::get_user_by_phone(session.phone_number.clone()).await {
+                Ok(profile) => profile,
+                Err(e) => return (format!("{}: {}\n\n0. {}", 
+                    TranslationService::translate("error", lang),
+                    e,
+                    TranslationService::translate("main_menu", lang)), false),
+            };
             
             // Get user's currency from session
             let currency = session.get_data("currency").unwrap_or_else(|| "UGX".to_string());
@@ -68,7 +76,7 @@ pub async fn handle_buy_bitcoin(text: &str, session: &mut UssdSession) -> (Strin
             
             // Call Crypto Canister to buy Bitcoin
             match crate::services::crypto_client::buy_crypto(
-                phone.clone(),
+                user_profile.id.clone(),
                 amount_cents,
                 currency_enum,
                 shared_types::CryptoType::CkBTC,

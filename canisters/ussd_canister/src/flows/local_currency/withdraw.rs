@@ -68,7 +68,12 @@ pub async fn handle_withdraw(text: &str, session: &mut UssdSession) -> (String, 
             let pin = parts.get(5).unwrap_or(&"");
             let agent_id = session.get_data("agent_id").unwrap_or_default();
             let amount: u64 = session.get_data("amount").unwrap_or_default().parse().unwrap_or(0);
-            let phone = session.phone_number.clone();
+            
+            // Get user ID first
+            let user_profile = match crate::services::user_client::get_user_by_phone(session.phone_number.clone()).await {
+                Ok(profile) => profile,
+                Err(e) => return (format!("❌ Error: {}\n\n0. Main Menu", e), false),
+            };
             
             let currency = session.get_data("currency").unwrap_or_else(|| "UGX".to_string());
             let currency_enum = match shared_types::FiatCurrency::from_code(&currency) {
@@ -77,7 +82,7 @@ pub async fn handle_withdraw(text: &str, session: &mut UssdSession) -> (String, 
             };
             
             match crate::services::agent_client::create_withdrawal_request(
-                phone.clone(),
+                user_profile.id.clone(),
                 agent_id.clone(),
                 amount,
                 currency_enum,

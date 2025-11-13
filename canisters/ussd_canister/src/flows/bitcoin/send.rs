@@ -56,15 +56,20 @@ pub async fn handle_send_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
             // Step 3: Verify PIN and execute real ckBTC transfer
             // parts: [0]=2, [1]=4, [2]=address, [3]=amount, [4]=pin
             let pin = parts.get(4).unwrap_or(&"");
-            let phone = session.phone_number.clone();
             let btc_address = parts.get(2).unwrap_or(&"").to_string();
             let amount_str = parts.get(3).unwrap_or(&"").to_string();
             // Amount is already in satoshis
             let amount_sats = amount_str.parse::<u64>().unwrap_or(0);
             
+            // Get user ID first
+            let user_profile = match crate::services::user_client::get_user_by_phone(session.phone_number.clone()).await {
+                Ok(profile) => profile,
+                Err(e) => return (format!("Error: {}\n\n0. Main Menu", e), false),
+            };
+            
             // Call Crypto Canister to send Bitcoin
             match crate::services::crypto_client::send_crypto(
-                phone.clone(),
+                user_profile.id.clone(),
                 btc_address.clone(),
                 amount_sats,
                 shared_types::CryptoType::CkBTC,

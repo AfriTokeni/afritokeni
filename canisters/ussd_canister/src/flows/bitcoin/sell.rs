@@ -33,9 +33,15 @@ pub async fn handle_sell_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
                 }
             };
             
+            // Get user ID first
+            let user_profile = match crate::services::user_client::get_user_by_phone(session.phone_number.clone()).await {
+                Ok(profile) => profile,
+                Err(e) => return (format!("Error: {}\n\n0. Main Menu", e), false),
+            };
+            
             // Check BTC balance from crypto canister
             match crate::services::crypto_client::check_crypto_balance(
-                session.phone_number.clone(),
+                user_profile.id.clone(),
                 shared_types::CryptoType::CkBTC
             ).await {
                 Ok(balance_sats) => {
@@ -84,6 +90,12 @@ pub async fn handle_sell_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
             let amount_btc = amount_str.parse::<f64>().unwrap_or(0.0);
             let amount_sats = (amount_btc * 100_000_000.0) as u64;
             
+            // Get user ID first
+            let user_profile = match crate::services::user_client::get_user_by_phone(session.phone_number.clone()).await {
+                Ok(profile) => profile,
+                Err(e) => return (format!("Error: {}\n\n0. Main Menu", e), false),
+            };
+            
             ic_cdk::println!("💰 Executing sell_bitcoin: amount={} sats", amount_sats);
             
             let currency_enum = match shared_types::FiatCurrency::from_code(&currency) {
@@ -96,7 +108,7 @@ pub async fn handle_sell_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
             };
             
             match crate::services::crypto_client::sell_crypto(
-                session.phone_number.clone(),
+                user_profile.id.clone(),
                 amount_sats,
                 shared_types::CryptoType::CkBTC,
                 currency_enum,
