@@ -28,6 +28,10 @@ pub struct DataCanisterState {
     user_pins: HashMap<String, UserPin>,
     escrows: HashMap<String, Escrow>,  // key: escrow_code
     settlements: Vec<MonthlySettlement>,
+    // Agent-specific data (added for agent_canister)
+    deposit_transactions: HashMap<String, DepositTransaction>,  // key: deposit_code
+    withdrawal_transactions: HashMap<String, WithdrawalTransaction>,  // key: withdrawal_code
+    agent_balances: HashMap<String, AgentBalance>,  // key: "agent_id:currency"
 }
 
 impl DataCanisterState {
@@ -913,6 +917,185 @@ fn get_audit_stats() -> Result<shared_types::audit::AuditStats, String> {
 fn get_failed_operations(limit: Option<usize>) -> Result<Vec<AuditEntry>, String> {
     verify_admin_access()?;
     Ok(shared_types::audit::get_failed_operations(limit))
+}
+
+// ============================================================================
+// Agent Operations - Deposit & Withdrawal CRUD (Canister Only)
+// ============================================================================
+
+/// Store deposit transaction (canister only - pure CRUD)
+#[update]
+async fn store_deposit_transaction(deposit: DepositTransaction) -> Result<DepositTransaction, String> {
+    verify_canister_access()?;
+    
+    let code = deposit.deposit_code.clone();
+    
+    STATE.with(|state| {
+        let mut s = state.borrow_mut();
+        s.deposit_transactions.insert(code.clone(), deposit.clone());
+    });
+    
+    shared_types::audit::log_success(
+        "store_deposit_transaction",
+        Some(deposit.user_id.clone()),
+        format!("Stored deposit: {}", code)
+    );
+    
+    Ok(deposit)
+}
+
+/// Get deposit by code (canister only)
+#[query]
+fn get_deposit_by_code(code: String) -> Result<Option<DepositTransaction>, String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        Ok(state.borrow().deposit_transactions.get(&code).cloned())
+    })
+}
+
+/// Update deposit status (canister only)
+#[update]
+async fn update_deposit_status(code: String, status: AgentTransactionStatus) -> Result<DepositTransaction, String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        let mut s = state.borrow_mut();
+        let deposit = s.deposit_transactions.get_mut(&code)
+            .ok_or_else(|| "Deposit not found".to_string())?;
+        
+        deposit.status = status.clone();
+        if status == AgentTransactionStatus::Confirmed {
+            deposit.confirmed_at = Some(ic_cdk::api::time());
+        }
+        
+        Ok(deposit.clone())
+    })
+}
+
+/// Get agent deposits (canister only)
+#[query]
+fn get_agent_deposits(agent_id: String) -> Result<Vec<DepositTransaction>, String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        let deposits: Vec<DepositTransaction> = state.borrow()
+            .deposit_transactions
+            .values()
+            .filter(|d| d.agent_id == agent_id)
+            .cloned()
+            .collect();
+        Ok(deposits)
+    })
+}
+
+/// Store withdrawal transaction (canister only - pure CRUD)
+#[update]
+async fn store_withdrawal_transaction(withdrawal: WithdrawalTransaction) -> Result<WithdrawalTransaction, String> {
+    verify_canister_access()?;
+    
+    let code = withdrawal.withdrawal_code.clone();
+    
+    STATE.with(|state| {
+        let mut s = state.borrow_mut();
+        s.withdrawal_transactions.insert(code.clone(), withdrawal.clone());
+    });
+    
+    shared_types::audit::log_success(
+        "store_withdrawal_transaction",
+        Some(withdrawal.user_id.clone()),
+        format!("Stored withdrawal: {}", code)
+    );
+    
+    Ok(withdrawal)
+}
+
+/// Get withdrawal by code (canister only)
+#[query]
+fn get_withdrawal_by_code(code: String) -> Result<Option<WithdrawalTransaction>, String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        Ok(state.borrow().withdrawal_transactions.get(&code).cloned())
+    })
+}
+
+/// Update withdrawal status (canister only)
+#[update]
+async fn update_withdrawal_status(code: String, status: AgentTransactionStatus) -> Result<WithdrawalTransaction, String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        let mut s = state.borrow_mut();
+        let withdrawal = s.withdrawal_transactions.get_mut(&code)
+            .ok_or_else(|| "Withdrawal not found".to_string())?;
+        
+        withdrawal.status = status.clone();
+        if status == AgentTransactionStatus::Confirmed {
+            withdrawal.confirmed_at = Some(ic_cdk::api::time());
+        }
+        
+        Ok(withdrawal.clone())
+    })
+}
+
+/// Get agent withdrawals (canister only)
+#[query]
+fn get_agent_withdrawals(agent_id: String) -> Result<Vec<WithdrawalTransaction>, String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        let withdrawals: Vec<WithdrawalTransaction> = state.borrow()
+            .withdrawal_transactions
+            .values()
+            .filter(|w| w.agent_id == agent_id)
+            .cloned()
+            .collect();
+        Ok(withdrawals)
+    })
+}
+
+/// Get agent balance (canister only)
+#[query]
+fn get_agent_balance(agent_id: String, currency: String) -> Result<Option<AgentBalance>, String> {
+    verify_canister_access()?;
+    
+    let key = format!("{}:{}", agent_id, currency);
+    
+    STATE.with(|state| {
+        Ok(state.borrow().agent_balances.get(&key).cloned())
+    })
+}
+
+/// Update agent balance (canister only - pure CRUD)
+#[update]
+async fn update_agent_balance(balance: AgentBalance) -> Result<AgentBalance, String> {
+    verify_canister_access()?;
+    
+    let key = format!("{}:{}", balance.agent_id, balance.currency);
+    
+    STATE.with(|state| {
+        let mut s = state.borrow_mut();
+        s.agent_balances.insert(key, balance.clone());
+    });
+    
+    shared_types::audit::log_success(
+        "update_agent_balance",
+        Some(balance.agent_id.clone()),
+        format!("Updated balance for currency: {}", balance.currency)
+    );
+    
+    Ok(balance)
+}
+
+/// Get all agent balances (canister only)
+#[query]
+fn get_all_agent_balances() -> Result<Vec<AgentBalance>, String> {
+    verify_canister_access()?;
+    
+    STATE.with(|state| {
+        Ok(state.borrow().agent_balances.values().cloned().collect())
+    })
 }
 
 // Export Candid interface

@@ -362,6 +362,61 @@ pub struct MonthlySettlement {
     pub paid_date: Option<u64>,    // seconds since epoch
 }
 
+// ============================================================================
+// Agent Operations Types (Deposits & Withdrawals)
+// ============================================================================
+
+#[derive(CandidType, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub enum AgentTransactionStatus {
+    Pending,
+    Confirmed,
+    Cancelled,
+    Expired,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct DepositTransaction {
+    pub id: String,
+    pub user_id: String,
+    pub agent_id: String,
+    pub amount: u64,
+    pub currency: String,
+    pub agent_commission: u64,
+    pub agent_keeps: u64,
+    pub platform_revenue: u64,
+    pub deposit_code: String,
+    pub status: AgentTransactionStatus,
+    pub timestamp: u64,
+    pub confirmed_at: Option<u64>,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct WithdrawalTransaction {
+    pub id: String,
+    pub user_id: String,
+    pub agent_id: String,
+    pub amount: u64,
+    pub currency: String,
+    pub agent_fee: u64,
+    pub agent_keeps: u64,
+    pub platform_revenue: u64,
+    pub withdrawal_code: String,
+    pub status: AgentTransactionStatus,
+    pub timestamp: u64,
+    pub confirmed_at: Option<u64>,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct AgentBalance {
+    pub agent_id: String,
+    pub currency: String,
+    pub total_deposits: u64,
+    pub total_withdrawals: u64,
+    pub commission_earned: u64,
+    pub commission_paid: u64,
+    pub last_settlement_date: Option<u64>,
+    pub last_updated: u64,
+}
 
 // ============================================================================
 // Data Canister Request Types - For proper non-deprecated API usage

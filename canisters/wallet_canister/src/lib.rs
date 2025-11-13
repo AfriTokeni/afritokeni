@@ -454,6 +454,33 @@ async fn set_fiat_balance(user_id: String, currency: FiatCurrency, amount: u64) 
     services::data_client::set_fiat_balance(&user_id, currency, amount).await
 }
 
+/// Add to fiat balance (for deposits)
+#[update]
+async fn add_fiat_balance(user_id: String, amount: u64, currency: FiatCurrency) -> Result<u64, String> {
+    config::verify_authorized_caller()?;
+    
+    let current = services::data_client::get_fiat_balance(&user_id, currency).await?;
+    let new_balance = current.saturating_add(amount);
+    services::data_client::set_fiat_balance(&user_id, currency, new_balance).await?;
+    
+    Ok(new_balance)
+}
+
+/// Deduct from fiat balance (for withdrawals)
+#[update]
+async fn deduct_fiat_balance(user_id: String, amount: u64, currency: FiatCurrency) -> Result<u64, String> {
+    config::verify_authorized_caller()?;
+    
+    let current = services::data_client::get_fiat_balance(&user_id, currency).await?;
+    if current < amount {
+        return Err("Insufficient balance".to_string());
+    }
+    let new_balance = current - amount;
+    services::data_client::set_fiat_balance(&user_id, currency, new_balance).await?;
+    
+    Ok(new_balance)
+}
+
 // ============================================================================
 // TRANSACTION HISTORY ENDPOINTS
 // ============================================================================

@@ -176,6 +176,8 @@ pub use shared_types::{
     AuditEntry, MonthlySettlement,
     // Escrow types
     Escrow, EscrowStatus,
+    // Agent types
+    DepositTransaction, WithdrawalTransaction, AgentBalance, AgentTransactionStatus,
 };
 
 // ============================================================================
