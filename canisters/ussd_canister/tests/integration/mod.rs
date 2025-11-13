@@ -326,10 +326,15 @@ impl TestEnv {
         // Convert to cents (multiply by 100)
         let amount_in_cents = amount_in_currency * 100;
         
-        let arg = encode_args((user_id, currency, amount_in_cents)).unwrap();
+        // Convert currency string to FiatCurrency enum
+        let currency_enum = FiatCurrency::from_code(currency)
+            .ok_or_else(|| format!("Invalid currency code: {}", currency))?;
+        
+        // Call wallet_canister (not data_canister directly - respect architecture!)
+        let arg = encode_args((user_id, currency_enum, amount_in_cents)).unwrap();
         let response = self.pic.update_call(
-            self.data_canister_id,
             self.wallet_canister_id,
+            Principal::anonymous(),
             "set_fiat_balance",
             arg,
         ).expect("set_fiat_balance call failed");
