@@ -456,11 +456,11 @@ impl TestEnv {
             }
         }
         
-        // Step 3: Set the currency we care about
-        self.set_fiat_balance(phone, currency, fiat_balance)?;
+        // Step 3: Set the currency we care about (use user_id, not phone!)
+        self.set_fiat_balance(&user_id, currency, fiat_balance)?;
         
-        // Step 4: Set crypto balances
-        self.set_crypto_balance(phone, btc_balance, usdc_balance)?;
+        // Step 4: Set crypto balances (use user_id, not phone!)
+        self.set_crypto_balance(&user_id, btc_balance, usdc_balance)?;
         
         Ok(user_id)
     }

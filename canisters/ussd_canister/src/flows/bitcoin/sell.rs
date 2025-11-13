@@ -87,8 +87,16 @@ pub async fn handle_sell_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
             // Step 2: Execute sell
             let pin = parts.get(3).unwrap_or(&"");
             let amount_str = parts.get(2).unwrap_or(&"").to_string();
-            let amount_btc = amount_str.parse::<f64>().unwrap_or(0.0);
-            let amount_sats = (amount_btc * 100_000_000.0) as u64;
+
+            // Parse and validate amount
+            let amount_sats = match amount_str.parse::<f64>() {
+                Ok(amt) if amt > 0.0 => (amt * 100_000_000.0) as u64,
+                _ => {
+                    return (format!("{}\n\n{}",
+                        TranslationService::translate("invalid_amount", lang),
+                        TranslationService::translate("thank_you", lang)), false);
+                }
+            };
             
             // Get user ID first
             let user_profile = match crate::services::user_client::get_user_by_phone(session.phone_number.clone()).await {
@@ -116,7 +124,8 @@ pub async fn handle_sell_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
             ).await {
                 Ok(result) => {
                     let fiat_received = result.fiat_amount as f64 / 100.0;
-                    (format!("{}!\n{} {:.8} BTC\n{}: {} {:.2}\n\n{}", 
+                    let amount_btc = amount_sats as f64 / 100_000_000.0;
+                    (format!("{}!\n{} {:.8} BTC\n{}: {} {:.2}\n\n{}",
                         TranslationService::translate("transaction_successful", lang),
                         TranslationService::translate("sold", lang),
                         amount_btc,

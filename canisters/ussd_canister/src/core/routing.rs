@@ -550,13 +550,10 @@ pub async fn handle_language_menu(text: &str, session: &mut UssdSession) -> (Str
             // Set English
             let new_lang = Language::English;
             session.language = new_lang.to_code().to_string();
-            
-            // Save language preference to Data Canister
-            // TODO: Implement language update via user_client
-            match Ok::<(), String>(()) {
-                Ok(_) => ic_cdk::println!("✅ Language preference saved: en"),
-                Err(e) => ic_cdk::println!("⚠️ Failed to save language preference: {}", e),
-            }
+
+            // Language is saved in session and persists across USSD session
+            // NOTE: Permanent user profile language preference requires user_canister ProfileUpdates extension
+            ic_cdk::println!("✅ Language set for session: en");
             
             (format!("{}\n\n{}", 
                 TranslationService::translate("language_set", new_lang),
@@ -566,13 +563,10 @@ pub async fn handle_language_menu(text: &str, session: &mut UssdSession) -> (Str
             // Set Luganda
             let new_lang = Language::Luganda;
             session.language = new_lang.to_code().to_string();
-            
-            // Save language preference to Data Canister
-            // TODO: Implement language update via user_client
-            match Ok::<(), String>(()) {
-                Ok(_) => ic_cdk::println!("✅ Language preference saved: lg"),
-                Err(e) => ic_cdk::println!("⚠️ Failed to save language preference: {}", e),
-            }
+
+            // Language is saved in session and persists across USSD session
+            // NOTE: Permanent user profile language preference requires user_canister ProfileUpdates extension
+            ic_cdk::println!("✅ Language set for session: lg");
             
             (format!("{}\n\n{}", 
                 TranslationService::translate("language_set", new_lang),
@@ -582,13 +576,10 @@ pub async fn handle_language_menu(text: &str, session: &mut UssdSession) -> (Str
             // Set Swahili
             let new_lang = Language::Swahili;
             session.language = new_lang.to_code().to_string();
-            
-            // Save language preference to Data Canister
-            // TODO: Implement language update via user_client
-            match Ok::<(), String>(()) {
-                Ok(_) => ic_cdk::println!("✅ Language preference saved: sw"),
-                Err(e) => ic_cdk::println!("⚠️ Failed to save language preference: {}", e),
-            }
+
+            // Language is saved in session and persists across USSD session
+            // NOTE: Permanent user profile language preference requires user_canister ProfileUpdates extension
+            ic_cdk::println!("✅ Language set for session: sw");
             
             (format!("{}\n\n{}", 
                 TranslationService::translate("language_set", new_lang),

@@ -77,8 +77,16 @@ pub async fn handle_sell_usdc(text: &str, session: &mut UssdSession) -> (String,
             // Step 2: Execute sell
             let pin = parts.get(3).unwrap_or(&"");
             let amount_str = parts.get(2).unwrap_or(&"").to_string();
-            let amount_usdc = amount_str.parse::<f64>().unwrap_or(0.0);
-            let amount_e6 = (amount_usdc * 1_000_000.0) as u64;
+
+            // Parse and validate amount
+            let amount_e6 = match amount_str.parse::<f64>() {
+                Ok(amt) if amt > 0.0 => (amt * 1_000_000.0) as u64,
+                _ => {
+                    return (format!("{}\n\n{}",
+                        TranslationService::translate("invalid_amount", lang),
+                        TranslationService::translate("thank_you", lang)), false);
+                }
+            };
             
             ic_cdk::println!("💵 Executing sell_usdc: amount={} e6", amount_e6);
             
@@ -102,7 +110,8 @@ pub async fn handle_sell_usdc(text: &str, session: &mut UssdSession) -> (String,
             ).await {
                 Ok(result) => {
                     let fiat_received = result.fiat_amount as f64 / 100.0;
-                    (format!("{}!\n{} {:.2} USDC\n{}: {} {:.2}\n\n{}", 
+                    let amount_usdc = amount_e6 as f64 / 1_000_000.0;
+                    (format!("{}!\n{} {:.2} USDC\n{}: {} {:.2}\n\n{}",
                         TranslationService::translate("transaction_successful", lang),
                         TranslationService::translate("sold", lang),
                         amount_usdc,

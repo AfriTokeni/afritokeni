@@ -137,10 +137,16 @@ pub async fn handle_send_money(text: &str, session: &mut UssdSession) -> (String
             let phone = session.phone_number.clone();
             let recipient_phone = parts.get(2).unwrap_or(&"").to_string();
             let amount_str = parts.get(3).unwrap_or(&"").to_string();
-            
-            // Parse amount
-            let amount_f64 = amount_str.parse::<f64>().unwrap_or(0.0);
-            let amount_cents = (amount_f64 * 100.0) as u64;
+
+            // Parse and validate amount
+            let amount_cents = match amount_str.parse::<f64>() {
+                Ok(amt) if amt > 0.0 => (amt * 100.0) as u64,
+                _ => {
+                    return (format!("{}\n\n{}",
+                        TranslationService::translate("invalid_amount", lang),
+                        TranslationService::translate("thank_you", lang)), false);
+                }
+            };
             
             ic_cdk::println!("💸 Executing send_money: from={}, to={}, amount={} cents, currency={}", 
                 phone, recipient_phone, amount_cents, currency);
@@ -189,7 +195,8 @@ pub async fn handle_send_money(text: &str, session: &mut UssdSession) -> (String
             ).await {
                 Ok(tx_result) => {
                     let new_balance = (tx_result.sender_new_balance as f64) / 100.0;
-                    (format!("{}!\n{} {} {:.2} {} {}\n{}: {} {:.2}\n\n{}", 
+                    let amount_f64 = amount_cents as f64 / 100.0;
+                    (format!("{}!\n{} {} {:.2} {} {}\n{}: {} {:.2}\n\n{}",
                         TranslationService::translate("transaction_successful", lang),
                         TranslationService::translate("sent", lang),
                         currency,
