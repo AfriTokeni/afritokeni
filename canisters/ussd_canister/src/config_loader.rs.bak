@@ -10,10 +10,6 @@ pub struct Config {
     pub session: SessionConfig,
     pub security: SecurityConfig,
     pub africas_talking: AfricasTalkingConfig,
-    pub contact_info: ContactInfoConfig,
-    pub ussd_defaults: UssdDefaultsConfig,
-    pub features: FeaturesConfig,
-    pub validation: ValidationConfig,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -67,39 +63,6 @@ pub struct AfricasTalkingConfig {
     pub is_sandbox: bool,
 }
 
-#[derive(Debug, Deserialize, Clone)]
-#[allow(dead_code)]
-pub struct ContactInfoConfig {
-    pub support_phone: String,
-    pub support_email: String,
-    pub website: String,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-#[allow(dead_code)]
-pub struct UssdDefaultsConfig {
-    pub default_email_domain: String,
-    pub default_currency: String,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-#[allow(dead_code)]
-pub struct FeaturesConfig {
-    pub enable_dao_voting: bool,
-    pub enable_rate_checking: bool,
-    pub enable_find_agent: bool,
-    pub enable_transaction_history: bool,
-    pub enable_language_switching: bool,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-#[allow(dead_code)]
-pub struct ValidationConfig {
-    pub btc_address_min_length: usize,
-    pub btc_address_max_length: usize,
-    pub btc_strict_checksum_validation: bool,
-}
-
 // Default config for when TOML parsing fails (e.g., in tests)
 fn get_default_config() -> Config {
     Config {
@@ -136,27 +99,6 @@ fn get_default_config() -> Config {
             api_url: "https://api.sandbox.africastalking.com".to_string(),
             is_sandbox: true,
         },
-        contact_info: ContactInfoConfig {
-            support_phone: "+256700000000".to_string(),
-            support_email: "support@afritokeni.com".to_string(),
-            website: "afritokeni.com".to_string(),
-        },
-        ussd_defaults: UssdDefaultsConfig {
-            default_email_domain: "ussd.afritokeni.com".to_string(),
-            default_currency: "UGX".to_string(),
-        },
-        features: FeaturesConfig {
-            enable_dao_voting: false,
-            enable_rate_checking: false,
-            enable_find_agent: false,
-            enable_transaction_history: false,
-            enable_language_switching: false,
-        },
-        validation: ValidationConfig {
-            btc_address_min_length: 26,
-            btc_address_max_length: 62,
-            btc_strict_checksum_validation: false, // Default to false for tests
-        },
     }
 }
 
@@ -183,8 +125,7 @@ mod tests {
     #[test]
     fn test_config_loads() {
         let config = get_config();
-        assert!(config.rate_limiting.max_requests_per_minute > 0);
+        assert_eq!(config.rate_limiting.max_requests_per_minute, 10);
         assert_eq!(config.pin_security.max_pin_attempts, 3);
-        assert!(!config.contact_info.support_phone.is_empty());
     }
 }

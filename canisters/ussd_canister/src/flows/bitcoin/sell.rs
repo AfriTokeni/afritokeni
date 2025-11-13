@@ -57,8 +57,8 @@ pub async fn handle_sell_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
                             TranslationService::translate("thank_you", lang)), false);
                     }
                     
-                    // Calculate fiat amount (rate will be determined by crypto canister)
-                    let currency_enum = match shared_types::FiatCurrency::from_code(&currency) {
+                    // Validate currency (validation will be done again at execution)
+                    let _currency_enum = match shared_types::FiatCurrency::from_code(&currency) {
                         Some(c) => c,
                         None => {
                             return (format!("{}: Invalid currency\n\n{}",
@@ -66,7 +66,7 @@ pub async fn handle_sell_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
                                 TranslationService::translate("back_or_menu", lang)), true);
                         }
                     };
-                    
+
                     // Show confirmation (actual rate determined at execution)
                     (format!("{}\n{}: {:.8} BTC\n{}\n\n{}", 
                         TranslationService::translate("confirm_transaction", lang),

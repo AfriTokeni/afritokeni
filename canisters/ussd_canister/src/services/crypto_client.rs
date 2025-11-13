@@ -95,9 +95,11 @@ pub fn get_crypto_canister_id() -> Result<Principal, String> {
 pub struct BuyCryptoRequest {
     pub user_identifier: String,
     pub fiat_amount: u64,
-    pub fiat_currency: FiatCurrency,
-    pub crypto_type: CryptoType,
+    pub currency: String,  // ACL pattern: accept string
+    pub crypto_type: String,  // ACL pattern: accept string
     pub pin: String,
+    pub device_fingerprint: Option<String>,
+    pub geo_location: Option<String>,
 }
 
 #[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
@@ -112,9 +114,11 @@ pub struct BuyCryptoResponse {
 pub struct SellCryptoRequest {
     pub user_identifier: String,
     pub crypto_amount: u64,
-    pub crypto_type: CryptoType,
-    pub fiat_currency: FiatCurrency,
+    pub crypto_type: String,  // ACL pattern
+    pub currency: String,  // ACL pattern
     pub pin: String,
+    pub device_fingerprint: Option<String>,
+    pub geo_location: Option<String>,
 }
 
 #[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
@@ -122,17 +126,21 @@ pub struct SendCryptoRequest {
     pub user_identifier: String,
     pub recipient: String,
     pub amount: u64,
-    pub crypto_type: CryptoType,
+    pub crypto_type: String,  // ACL pattern
     pub pin: String,
+    pub device_fingerprint: Option<String>,
+    pub geo_location: Option<String>,
 }
 
 #[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
 pub struct SwapCryptoRequest {
     pub user_identifier: String,
-    pub from_crypto: CryptoType,
-    pub to_crypto: CryptoType,
+    pub from_crypto: String,  // ACL pattern
+    pub to_crypto: String,  // ACL pattern
     pub from_amount: u64,
     pub pin: String,
+    pub device_fingerprint: Option<String>,
+    pub geo_location: Option<String>,
 }
 
 #[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
@@ -171,9 +179,11 @@ pub async fn buy_crypto(
     let request = BuyCryptoRequest {
         user_identifier: user_identifier.clone(),
         fiat_amount,
-        fiat_currency,
-        crypto_type,
+        currency: fiat_currency.code().to_string(),  // Convert enum to string
+        crypto_type: format!("{:?}", crypto_type),  // Convert enum to string
         pin,
+        device_fingerprint: None,
+        geo_location: None,
     };
     
     let response = Call::unbounded_wait(canister_id, "buy_crypto")
@@ -217,9 +227,11 @@ pub async fn sell_crypto(
     let request = SellCryptoRequest {
         user_identifier: user_identifier.clone(),
         crypto_amount,
-        crypto_type,
-        fiat_currency,
+        crypto_type: format!("{:?}", crypto_type),
+        currency: fiat_currency.code().to_string(),
         pin,
+        device_fingerprint: None,
+        geo_location: None,
     };
     
     let response = Call::unbounded_wait(canister_id, "sell_crypto")
@@ -261,8 +273,10 @@ pub async fn send_crypto(
         user_identifier: user_identifier.clone(),
         recipient: recipient.clone(),
         amount,
-        crypto_type,
+        crypto_type: format!("{:?}", crypto_type),
         pin,
+        device_fingerprint: None,
+        geo_location: None,
     };
     
     let response = Call::unbounded_wait(canister_id, "send_crypto")
@@ -338,10 +352,12 @@ pub async fn swap_crypto(
     
     let request = SwapCryptoRequest {
         user_identifier: user_identifier.clone(),
-        from_crypto,
-        to_crypto,
+        from_crypto: format!("{:?}", from_crypto),
+        to_crypto: format!("{:?}", to_crypto),
         from_amount,
         pin,
+        device_fingerprint: None,
+        geo_location: None,
     };
     
     let response = Call::unbounded_wait(canister_id, "swap_crypto")

@@ -48,9 +48,15 @@ pub async fn handle_send_usdc(text: &str, session: &mut UssdSession) -> (String,
                 }
             };
             
+            // Get user ID first
+            let user_profile = match crate::services::user_client::get_user_by_phone(session.phone_number.clone()).await {
+                Ok(profile) => profile,
+                Err(e) => return (format!("Error: {}\n\n0. Main Menu", e), false),
+            };
+            
             // Check USDC balance
             match crate::services::crypto_client::check_crypto_balance(
-                session.phone_number.clone(),
+                user_profile.id.clone(),
                 shared_types::CryptoType::CkUSDC
             ).await {
                 Ok(balance_e6) => {
@@ -94,8 +100,14 @@ pub async fn handle_send_usdc(text: &str, session: &mut UssdSession) -> (String,
             
             ic_cdk::println!("💵 Executing send_usdc: to={}, amount={} e6", recipient, amount_e6);
             
+            // Get user ID first
+            let user_profile = match crate::services::user_client::get_user_by_phone(session.phone_number.clone()).await {
+                Ok(profile) => profile,
+                Err(e) => return (format!("Error: {}\n\n0. Main Menu", e), false),
+            };
+            
             match crate::services::crypto_client::send_crypto(
-                session.phone_number.clone(),
+                user_profile.id.clone(),
                 recipient.clone(),
                 amount_e6,
                 shared_types::CryptoType::CkUSDC,

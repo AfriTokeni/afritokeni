@@ -55,10 +55,16 @@ pub async fn handle_buy_bitcoin(text: &str, session: &mut UssdSession) -> (Strin
             
             // Get user's currency from session
             let currency = session.get_data("currency").unwrap_or_else(|| "UGX".to_string());
-            
-            // Parse amount
-            let amount_f64 = amount_str.parse::<f64>().unwrap_or(0.0);
-            let amount_cents = (amount_f64 * 100.0) as u64;
+
+            // Parse and validate amount
+            let amount_cents = match amount_str.parse::<f64>() {
+                Ok(amt) if amt > 0.0 => (amt * 100.0) as u64,
+                _ => {
+                    return (format!("{}\n\n0. {}",
+                        TranslationService::translate("invalid_amount", lang),
+                        TranslationService::translate("main_menu", lang)), false);
+                }
+            };
             
             // Convert currency string to enum
             let currency_enum = shared_types::FiatCurrency::from_code(&currency)

@@ -44,7 +44,6 @@ pub mod language_flow_tests;
 pub mod main_menu_tests;
 pub mod stateless_ussd_tests;
 pub mod error_security_tests;
-pub mod debug_balance_test;
 
 /// Get the shared test environment
 /// This allows all tests to reuse the same canister deployments

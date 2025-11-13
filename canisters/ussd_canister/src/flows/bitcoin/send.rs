@@ -75,10 +75,10 @@ pub async fn handle_send_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
                 shared_types::CryptoType::CkBTC,
                 pin.to_string()
             ).await {
-                Ok(tx_id) => {
+                Ok(_tx_id) => {
                     let btc_sent = amount_sats as f64 / 100_000_000.0;
                     session.clear_data();
-                    (format!("{}\nSent {:.8} ckBTC to {}\n\n0. {}", 
+                    (format!("{}\nSent {:.8} ckBTC to {}\n\n0. {}",
                         TranslationService::translate("transaction_successful", lang),
                         btc_sent,
                         btc_address,

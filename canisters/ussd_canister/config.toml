@@ -38,3 +38,30 @@ username = "sandbox"
 api_key = "sandbox_api_key"
 api_url = "https://api.sandbox.africastalking.com/version1/messaging"
 is_sandbox = true
+
+[contact_info]
+# Support contact information displayed to users
+support_phone = "+256700000000"
+support_email = "support@afritokeni.com"
+website = "afritokeni.com"
+
+[ussd_defaults]
+# Default email domain for USSD users (who don't have email addresses)
+default_email_domain = "ussd.afritokeni.com"
+# Default currency for new users (fallback if auto-detection fails)
+default_currency = "UGX"
+
+[features]
+# Feature flags - toggle incomplete features
+enable_dao_voting = false
+enable_rate_checking = false
+enable_find_agent = false
+enable_transaction_history = false
+enable_language_switching = false
+
+[validation]
+# BTC address validation settings
+btc_address_min_length = 26
+btc_address_max_length = 62
+# Enable strict checksum validation (requires bitcoin library)
+btc_strict_checksum_validation = true

@@ -69,13 +69,16 @@ pub async fn handle_registration(session: &mut UssdSession, input: &str) -> (Str
             let first_name = session.get_data("first_name").unwrap_or_default();
             let last_name = session.get_data("last_name").unwrap_or_default();
             
-            // Register user (USSD users don't have email, User Canister will handle)
+            // Register user (USSD users don't have email, generate unique email)
+            let config = crate::config_loader::get_config();
+            let ussd_email = format!("{}@{}", session.phone_number.replace("+", ""), config.ussd_defaults.default_email_domain);
+
             match crate::services::user_client::register_user(
                 Some(session.phone_number.clone()),
                 None, // No principal for USSD users
                 first_name.clone(),
                 last_name.clone(),
-                "ussd@afritokeni.com".to_string(),
+                ussd_email,
                 pin.clone(),
                 currency.clone()
             ).await {
@@ -131,13 +134,16 @@ pub async fn handle_registration(session: &mut UssdSession, input: &str) -> (Str
             let first_name = session.get_data("first_name").unwrap_or_default();
             let last_name = session.get_data("last_name").unwrap_or_default();
             
-            // Register user (USSD users don't have email, User Canister will handle)
+            // Register user (USSD users don't have email, generate unique email)
+            let config = crate::config_loader::get_config();
+            let ussd_email = format!("{}@{}", session.phone_number.replace("+", ""), config.ussd_defaults.default_email_domain);
+
             match crate::services::user_client::register_user(
                 Some(session.phone_number.clone()),
                 None, // No principal for USSD users
                 first_name.clone(),
                 last_name.clone(),
-                "ussd@afritokeni.com".to_string(),
+                ussd_email,
                 pin.clone(),
                 currency.to_string()
             ).await {
@@ -409,16 +415,16 @@ pub async fn handle_usdc_menu(text: &str, session: &mut UssdSession) -> (String,
     if parts.len() > 2 {
         match parts.get(1) {
             Some(&"3") => {
-                // Buy USDC flow
-                return crate::flows::usdc::buy::handle_buy_usdc(text, session).await;
+                // Buy USD (ckUSDC) flow
+                return crate::flows::usd::buy::handle_buy_usdc(text, session).await;
             }
             Some(&"4") => {
-                // Sell USDC flow
-                return crate::flows::usdc::sell::handle_sell_usdc(text, session).await;
+                // Sell USD (ckUSDC) flow
+                return crate::flows::usd::sell::handle_sell_usdc(text, session).await;
             }
             Some(&"5") => {
-                // Send USDC flow
-                return crate::flows::usdc::send::handle_send_usdc(text, session).await;
+                // Send USD (ckUSDC) flow
+                return crate::flows::usd::send::handle_send_usdc(text, session).await;
             }
             _ => {}
         }
@@ -454,26 +460,26 @@ pub async fn handle_usdc_menu(text: &str, session: &mut UssdSession) -> (String,
                 TranslationService::translate("back_or_menu", lang)), true)
         }
         "2" if parts.len() == 2 => {
-            // USDC rate (when text is "3*2")
-            crate::flows::common::usdc_rate::handle_usdc_rate(text, session).await
+            // USD rate (when text is "3*2")
+            crate::flows::common::usd_rate::handle_usdc_rate(text, session).await
         }
         "3" if parts.len() == 2 => {
-            // Buy USDC - start the flow (when text is "3*3")
+            // Buy USD (ckUSDC) - start the flow (when text is "3*3")
             session.step = 0;
             session.current_menu = "buy_usdc".to_string();
-            crate::flows::usdc::buy::handle_buy_usdc(text, session).await
+            crate::flows::usd::buy::handle_buy_usdc(text, session).await
         }
         "4" if parts.len() == 2 => {
-            // Sell USDC (when text is "3*4")
+            // Sell USD (ckUSDC) (when text is "3*4")
             session.step = 0;
             session.current_menu = "sell_usdc".to_string();
-            crate::flows::usdc::sell::handle_sell_usdc(text, session).await
+            crate::flows::usd::sell::handle_sell_usdc(text, session).await
         }
         "5" if parts.len() == 2 => {
-            // Send USDC (when text is "3*5")
+            // Send USD (ckUSDC) (when text is "3*5")
             session.step = 0;
             session.current_menu = "send_usdc".to_string();
-            crate::flows::usdc::send::handle_send_usdc(text, session).await
+            crate::flows::usd::send::handle_send_usdc(text, session).await
         }
         _ => {
             (format!("{}\n\n{}", 

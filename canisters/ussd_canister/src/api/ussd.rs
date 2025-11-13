@@ -105,12 +105,15 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                 // PLAYGROUND MODE: Auto-register playground users with demo PIN (1234)
                 if !user_registered && session_id.starts_with("playground_") {
                     ic_cdk::println!("🎮 Playground mode detected - auto-registering demo user");
+                    let config = crate::config_loader::get_config();
+                    let ussd_email = format!("{}@{}", phone_number.replace("+", ""), config.ussd_defaults.default_email_domain);
+
                     match crate::services::user_client::register_user(
                         Some(phone_number.clone()),
                         None,
                         "Demo".to_string(),
                         "User".to_string(),
-                        "ussd@afritokeni.com".to_string(),
+                        ussd_email,
                         "1234".to_string(),
                         "UGX".to_string()
                     ).await {
@@ -225,10 +228,13 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                             // Help
                             ic_cdk::println!("ℹ️ Showing help");
                             let lang = crate::utils::translations::Language::from_code(&session.language);
-                            (format!("{}\n\n{}: +256-XXX-XXXX\n{}: afritokeni.com\n\n{}",
+                            let config = crate::config_loader::get_config();
+                            (format!("{}\n\n{}: {}\n{}: {}\n\n{}",
                                 crate::utils::translations::TranslationService::translate("for_support", lang),
                                 crate::utils::translations::TranslationService::translate("call", lang),
+                                config.contact_info.support_phone,
                                 crate::utils::translations::TranslationService::translate("visit", lang),
+                                config.contact_info.website,
                                 crate::utils::translations::TranslationService::translate("back_or_menu", lang)), true)
                         }
                         Some(&"7") => {

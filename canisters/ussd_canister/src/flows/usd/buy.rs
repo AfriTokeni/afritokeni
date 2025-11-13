@@ -41,14 +41,26 @@ pub async fn handle_buy_usdc(text: &str, session: &mut UssdSession) -> (String, 
         2 => {
             // Step 2: Verify PIN and execute
             let pin = parts.get(3).unwrap_or(&"");
-            let phone = session.phone_number.clone();
             let amount_str = parts.get(2).unwrap_or(&"");
+            
+            // Get user ID first
+            let user_profile = match crate::services::user_client::get_user_by_phone(session.phone_number.clone()).await {
+                Ok(profile) => profile,
+                Err(e) => return (format!("Error: {}\n\n0. {}", e, TranslationService::translate("main_menu", lang)), false),
+            };
             
             // Get user's currency from session
             let currency = session.get_data("currency").unwrap_or_else(|| "UGX".to_string());
-            
-            // Call Crypto Canister to buy USDC
-            let amount_cents = (amount_str.parse::<f64>().unwrap_or(0.0) * 100.0) as u64;
+
+            // Parse and validate amount
+            let amount_cents = match amount_str.parse::<f64>() {
+                Ok(amt) if amt > 0.0 => (amt * 100.0) as u64,
+                _ => {
+                    return (format!("{}\n\n0. {}",
+                        TranslationService::translate("invalid_amount", lang),
+                        TranslationService::translate("main_menu", lang)), false);
+                }
+            };
             
             let currency_enum = match shared_types::FiatCurrency::from_code(&currency) {
                 Some(c) => c,
@@ -56,7 +68,7 @@ pub async fn handle_buy_usdc(text: &str, session: &mut UssdSession) -> (String, 
             };
             
             match crate::services::crypto_client::buy_crypto(
-                phone.clone(),
+                user_profile.id.clone(),
                 amount_cents,
                 currency_enum,
                 shared_types::CryptoType::CkUSDC,
