@@ -29,55 +29,43 @@ fn set_exchange_canister_id(canister_id: Principal) {
 
 /// Set User Canister ID
 #[update]
-fn set_user_canister_id(canister_id: String) -> Result<(), String> {
-    let principal = Principal::from_text(&canister_id)
-        .map_err(|e| format!("Invalid principal: {:?}", e))?;
-    
+fn set_user_canister_id(principal: Principal) -> Result<(), String> {
     services::user_client::set_user_canister_id(principal);
-    ic_cdk::println!("✅ User Canister ID set to: {}", canister_id);
+    ic_cdk::println!("✅ User Canister ID set to: {}", principal);
     Ok(())
 }
 
 /// Set Wallet Canister ID
 #[update]
-fn set_wallet_canister_id(canister_id: String) -> Result<(), String> {
-    let principal = Principal::from_text(&canister_id)
-        .map_err(|e| format!("Invalid principal: {:?}", e))?;
-    
+fn set_wallet_canister_id(principal: Principal) -> Result<(), String> {
     services::wallet_client::set_wallet_canister_id(principal);
-    ic_cdk::println!("✅ Wallet Canister ID set to: {}", canister_id);
+    ic_cdk::println!("✅ Wallet Canister ID set to: {}", principal);
     Ok(())
 }
 
 /// Set Crypto Canister ID
 #[update]
-fn set_crypto_canister_id(canister_id: String) -> Result<(), String> {
-    let principal = Principal::from_text(&canister_id)
-        .map_err(|e| format!("Invalid principal: {:?}", e))?;
-    
+fn set_crypto_canister_id(principal: Principal) -> Result<(), String> {
     services::crypto_client::set_crypto_canister_id(principal);
-    ic_cdk::println!("✅ Crypto Canister ID set to: {}", canister_id);
+    ic_cdk::println!("✅ Crypto Canister ID set to: {}", principal);
     Ok(())
 }
 
 /// Set Agent Canister ID
 #[update]
-fn set_agent_canister_id(canister_id: String) -> Result<(), String> {
-    let principal = Principal::from_text(&canister_id)
-        .map_err(|e| format!("Invalid principal: {:?}", e))?;
-    
+fn set_agent_canister_id(principal: Principal) -> Result<(), String> {
     services::agent_client::set_agent_canister_id(principal);
-    ic_cdk::println!("✅ Agent Canister ID set to: {}", canister_id);
+    ic_cdk::println!("✅ Agent Canister ID set to: {}", principal);
     Ok(())
 }
 
 /// Configure all domain canisters at once (convenience function)
 #[update]
 fn configure_domain_canisters(
-    user_canister_id: String,
-    wallet_canister_id: String,
-    crypto_canister_id: String,
-    agent_canister_id: String,
+    user_canister_id: Principal,
+    wallet_canister_id: Principal,
+    crypto_canister_id: Principal,
+    agent_canister_id: Principal,
 ) -> Result<(), String> {
     set_user_canister_id(user_canister_id)?;
     set_wallet_canister_id(wallet_canister_id)?;

@@ -1,4 +1,4 @@
-use candid::{CandidType, Deserialize};
+use candid::{CandidType, Deserialize, Principal};
 use ic_cdk_macros::{init, query, update};
 
 mod logic;
@@ -11,6 +11,7 @@ use shared_types::{RegisterUserRequest, User, UserType, FiatCurrency, CreateUser
 /// User profile response (simplified for API)
 #[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct UserProfile {
+    pub id: String,
     pub phone_number: Option<String>,
     pub principal_id: Option<String>,
     pub first_name: String,
@@ -34,6 +35,7 @@ pub struct ProfileUpdates {
 impl From<User> for UserProfile {
     fn from(user: User) -> Self {
         UserProfile {
+            id: user.id,
             phone_number: user.phone_number,
             principal_id: user.principal_id,
             first_name: user.first_name,

@@ -76,15 +76,22 @@ pub struct TransferRequest {
     pub from_user_id: String,
     pub to_user_id: String,
     pub amount: u64,
-    pub currency: FiatCurrency,
+    pub currency: String,  // ACL pattern: accept string, convert to enum inside wallet_canister
     pub pin: String,
+    pub description: Option<String>,
 }
 
 #[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
 pub struct TransferResponse {
     pub transaction_id: String,
-    pub from_balance: u64,
-    pub to_balance: u64,
+    pub from_user_id: String,
+    pub to_user_id: String,
+    pub amount: u64,
+    pub fee: u64,
+    pub currency: String,
+    pub sender_new_balance: u64,
+    pub recipient_new_balance: u64,
+    pub timestamp: u64,
 }
 
 // ============================================================================
@@ -115,8 +122,9 @@ pub async fn transfer_fiat(
         from_user_id: from_user_id.clone(),
         to_user_id: to_user_id.clone(),
         amount,
-        currency,
+        currency: currency.code().to_string(),  // Convert enum to string (ACL pattern)
         pin,
+        description: None,
     };
     
     let response = Call::unbounded_wait(canister_id, "transfer_fiat")

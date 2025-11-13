@@ -357,10 +357,6 @@ impl TranslationService {
             ("cannot_swap_same_token", Language::Luganda) => "Tosobola kukyusa token y'emu",
             ("cannot_swap_same_token", Language::Swahili) => "Huwezi kubadilisha token sawa",
 
-            ("enter_amount", Language::English) => "Enter amount",
-            ("enter_amount", Language::Luganda) => "Yingiza omuwendo",
-            ("enter_amount", Language::Swahili) => "Weka kiasi",
-
             ("amount_must_be_greater_than_zero", Language::English) => "Amount must be greater than 0",
             ("amount_must_be_greater_than_zero", Language::Luganda) => "Omuwendo gulina okuba okusingawo 0",
             ("amount_must_be_greater_than_zero", Language::Swahili) => "Kiasi lazima kiwe zaidi ya 0",
@@ -436,10 +432,6 @@ impl TranslationService {
             ("agent", Language::English) => "Agent",
             ("agent", Language::Luganda) => "Agent",
             ("agent", Language::Swahili) => "Wakala",
-
-            ("rate", Language::English) => "Rate",
-            ("rate", Language::Luganda) => "Omuwendo",
-            ("rate", Language::Swahili) => "Bei",
 
             ("purchase_failed", Language::English) => "Purchase failed",
             ("purchase_failed", Language::Luganda) => "Okugula kulemeddwa",

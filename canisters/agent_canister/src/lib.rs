@@ -59,21 +59,18 @@ fn post_upgrade() {
 
 /// Set data canister ID (controller only)
 #[update]
-fn set_data_canister_id(canister_id: String) -> Result<(), String> {
+fn set_data_canister_id(principal: Principal) -> Result<(), String> {
     let caller = ic_cdk::api::msg_caller();
     if !ic_cdk::api::is_controller(&caller) {
         return Err("Only controller can set data canister ID".to_string());
     }
-    
-    let principal = Principal::from_text(&canister_id)
-        .map_err(|e| format!("Invalid principal: {}", e))?;
     
     config::set_data_canister_id(principal);
     
     audit::log_success(
         "set_data_canister_id",
         None,
-        format!("Data canister ID set to: {}", canister_id)
+        format!("Data canister ID set to: {}", principal)
     );
     
     Ok(())
@@ -81,21 +78,18 @@ fn set_data_canister_id(canister_id: String) -> Result<(), String> {
 
 /// Set user canister ID (controller only)
 #[update]
-fn set_user_canister_id(canister_id: String) -> Result<(), String> {
+fn set_user_canister_id(principal: Principal) -> Result<(), String> {
     let caller = ic_cdk::api::msg_caller();
     if !ic_cdk::api::is_controller(&caller) {
         return Err("Only controller can set user canister ID".to_string());
     }
-    
-    let principal = Principal::from_text(&canister_id)
-        .map_err(|e| format!("Invalid principal: {}", e))?;
     
     config::set_user_canister_id(principal);
     
     audit::log_success(
         "set_user_canister_id",
         None,
-        format!("User canister ID set to: {}", canister_id)
+        format!("User canister ID set to: {}", principal)
     );
     
     Ok(())
@@ -103,21 +97,18 @@ fn set_user_canister_id(canister_id: String) -> Result<(), String> {
 
 /// Set wallet canister ID (controller only)
 #[update]
-fn set_wallet_canister_id(canister_id: String) -> Result<(), String> {
+fn set_wallet_canister_id(principal: Principal) -> Result<(), String> {
     let caller = ic_cdk::api::msg_caller();
     if !ic_cdk::api::is_controller(&caller) {
         return Err("Only controller can set wallet canister ID".to_string());
     }
-    
-    let principal = Principal::from_text(&canister_id)
-        .map_err(|e| format!("Invalid principal: {}", e))?;
     
     config::set_wallet_canister_id(principal);
     
     audit::log_success(
         "set_wallet_canister_id",
         None,
-        format!("Wallet canister ID set to: {}", canister_id)
+        format!("Wallet canister ID set to: {}", principal)
     );
     
     Ok(())
@@ -125,21 +116,18 @@ fn set_wallet_canister_id(canister_id: String) -> Result<(), String> {
 
 /// Add authorized canister (controller only)
 #[update]
-fn add_authorized_canister(canister_id: String) -> Result<(), String> {
+fn add_authorized_canister(principal: Principal) -> Result<(), String> {
     let caller = ic_cdk::api::msg_caller();
     if !ic_cdk::api::is_controller(&caller) {
         return Err("Only controller can add authorized canisters".to_string());
     }
-    
-    let principal = Principal::from_text(&canister_id)
-        .map_err(|e| format!("Invalid principal: {}", e))?;
     
     config::add_authorized_canister(principal);
     
     audit::log_success(
         "add_authorized_canister",
         None,
-        format!("Authorized canister added: {}", canister_id)
+        format!("Authorized canister added: {}", principal)
     );
     
     Ok(())

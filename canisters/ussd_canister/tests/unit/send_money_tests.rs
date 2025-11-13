@@ -117,7 +117,9 @@ async fn test_send_money_step_3_successful_transfer() {
             last_name: "User".to_string(),
             email: "test@test.com".to_string(),
             preferred_currency: "UGX".to_string(),
+            kyc_status: "NotStarted".to_string(),
             created_at: 0,
+            last_active: 0,
         })
     });
     
@@ -130,8 +132,14 @@ async fn test_send_money_step_3_successful_transfer() {
         
         Ok(wallet_client::TransferResponse {
             transaction_id: "tx123".to_string(),
-            from_balance: 1_000_000, // 10000 UGX remaining
-            to_balance: 1_000_000,
+            from_user_id: "user1".to_string(),
+            to_user_id: "user2".to_string(),
+            amount: 1_000_000,
+            fee: 5_000,
+            currency: "UGX".to_string(),
+            sender_new_balance: 1_000_000,
+            recipient_new_balance: 1_000_000,
+            timestamp: 0,
         })
     });
     
@@ -160,7 +168,9 @@ async fn test_send_money_step_3_wrong_pin() {
             last_name: "User".to_string(),
             email: "test@test.com".to_string(),
             preferred_currency: "UGX".to_string(),
+            kyc_status: "NotStarted".to_string(),
             created_at: 0,
+            last_active: 0,
         })
     });
     

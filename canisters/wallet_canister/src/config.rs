@@ -60,6 +60,7 @@ thread_local! {
     static AUTHORIZED_CANISTERS: RefCell<Vec<Principal>> = RefCell::new(Vec::new());
     static DATA_CANISTER_ID: RefCell<Option<Principal>> = RefCell::new(None);
     static USER_CANISTER_ID: RefCell<Option<Principal>> = RefCell::new(None);
+    static TEST_MODE: RefCell<bool> = RefCell::new(false);
 }
 
 /// Initialize configuration from TOML
@@ -189,6 +190,12 @@ pub fn verify_authorized_caller() -> Result<(), String> {
         return Ok(());
     }
     
+    // Check if test mode is enabled
+    let test_mode = TEST_MODE.with(|mode| *mode.borrow());
+    if test_mode {
+        return Ok(());
+    }
+    
     // For testing: Allow anonymous if no authorized canisters are set
     let has_authorized = AUTHORIZED_CANISTERS.with(|canisters| {
         !canisters.borrow().is_empty()
@@ -209,6 +216,20 @@ pub fn verify_authorized_caller() -> Result<(), String> {
             ))
         }
     })
+}
+
+/// Enable test mode
+pub fn enable_test_mode() {
+    TEST_MODE.with(|mode| {
+        *mode.borrow_mut() = true;
+    });
+}
+
+/// Disable test mode
+pub fn disable_test_mode() {
+    TEST_MODE.with(|mode| {
+        *mode.borrow_mut() = false;
+    });
 }
 
 #[cfg(test)]

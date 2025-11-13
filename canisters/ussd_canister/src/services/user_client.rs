@@ -11,14 +11,16 @@ use std::cell::RefCell;
 
 #[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
 pub struct UserProfile {
+    pub id: String,
     pub phone_number: Option<String>,
     pub principal_id: Option<String>,
     pub first_name: String,
     pub last_name: String,
     pub email: String,
     pub preferred_currency: String,
-    pub id: String,
+    pub kyc_status: String,
     pub created_at: u64,
+    pub last_active: u64,
 }
 
 #[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]

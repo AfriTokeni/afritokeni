@@ -109,6 +109,26 @@ fn remove_authorized_canister(principal: Principal) -> Result<(), String> {
     Ok(())
 }
 
+/// Enable test mode (admin only)
+#[update]
+fn enable_test_mode() -> Result<(), String> {
+    if !ic_cdk::api::is_controller(&msg_caller()) {
+        return Err("Only controller can enable test mode".to_string());
+    }
+    config::enable_test_mode();
+    Ok(())
+}
+
+/// Disable test mode (admin only)
+#[update]
+fn disable_test_mode() -> Result<(), String> {
+    if !ic_cdk::api::is_controller(&msg_caller()) {
+        return Err("Only controller can disable test mode".to_string());
+    }
+    config::disable_test_mode();
+    Ok(())
+}
+
 // ============================================================================
 // FIAT TRANSFER ENDPOINTS
 // ============================================================================

@@ -17,14 +17,11 @@ thread_local! {
 
 /// Set data canister ID (admin only)
 #[ic_cdk_macros::update]
-pub fn set_data_canister_id(canister_id: String) -> Result<(), String> {
+pub fn set_data_canister_id(principal: Principal) -> Result<(), String> {
     let caller = ic_cdk::api::msg_caller();
     if !ic_cdk::api::is_controller(&caller) {
         return Err("Only controller can set canister IDs".to_string());
     }
-    
-    let principal = Principal::from_text(canister_id)
-        .map_err(|e| format!("Invalid principal: {}", e))?;
     
     DATA_CANISTER_ID.with(|id| {
         *id.borrow_mut() = Some(principal);
@@ -37,14 +34,11 @@ pub fn set_data_canister_id(canister_id: String) -> Result<(), String> {
 
 /// Add authorized canister (admin only)
 #[ic_cdk_macros::update]
-pub fn add_authorized_canister(canister_id: String) -> Result<(), String> {
+pub fn add_authorized_canister(principal: Principal) -> Result<(), String> {
     let caller = ic_cdk::api::msg_caller();
     if !ic_cdk::api::is_controller(&caller) {
         return Err("Only controller can authorize canisters".to_string());
     }
-    
-    let principal = Principal::from_text(canister_id)
-        .map_err(|e| format!("Invalid principal: {}", e))?;
     
     AUTHORIZED_CANISTERS.with(|canisters| {
         let mut canisters = canisters.borrow_mut();
