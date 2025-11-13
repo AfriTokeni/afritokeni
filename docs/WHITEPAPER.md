@@ -200,9 +200,9 @@ AfriTokeni provides **instant, low-cost crypto banking accessible via USSD** on 
 - Webhook processing
 - Multi-language support (English, Luganda, Swahili)
 
-### 3.2 Multi-Canister Architecture
+### 3.2 Domain-Driven Canister Architecture
 
-AfriTokeni uses a sophisticated multi-canister architecture for scalability, security, and revenue optimization:
+AfriTokeni uses a modern domain-driven architecture with specialized canisters for optimal scalability, security, and maintainability:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -220,38 +220,32 @@ AfriTokeni uses a sophisticated multi-canister architecture for scalability, sec
 └────────────────────────────┼───────────────────────────────────┘
                              ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                    BUSINESS LOGIC LAYER                         │
+│                    DOMAIN BUSINESS LOGIC LAYER                  │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  ┌──────────────────────────────────────────────────────┐      │
-│  │         BUSINESS LOGIC CANISTER                      │      │
-│  │  • All transaction flows & validation                │      │
-│  │  • Fraud detection & security                        │      │
-│  │  • User management & authentication                  │      │
-│  │  • Crypto operations (buy/sell/send)                 │      │
-│  │  • Money transfers & escrow                          │      │
-│  │  • Orchestrates all operations                       │      │
-│  └──────────────────────────────────────────────────────┘      │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │     USER     │  │    WALLET    │  │    CRYPTO    │          │
+│  │   CANISTER   │  │   CANISTER   │  │   CANISTER   │          │
+│  ├──────────────┤  ├──────────────┤  ├──────────────┤          │
+│  │ • Register   │  │ • Transfers  │  │ • Buy/Sell   │          │
+│  │ • Auth/PIN   │  │ • Balances   │  │ • Send BTC   │          │
+│  │ • Profiles   │  │ • Fraud Det. │  │ • Swap       │          │
+│  │ • Linking    │  │ • Escrow     │  │ • DEX Integ. │          │
+│  │ • 400KB      │  │ • 600KB      │  │ • 1.0MB      │          │
+│  └──────────────┘  └──────────────┘  └──────────────┘          │
 │         │                  │                  │                │
 │         └──────────────────┼──────────────────┘                │
 │                            │                                   │
-└────────────────────────────┼───────────────────────────────────┘
-                             ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                    COMMISSION & REVENUE LAYER                   │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐      │
-│  │   DEPOSIT     │  │  WITHDRAWAL   │  │   EXCHANGE    │      │
-│  │   CANISTER    │  │   CANISTER    │  │   CANISTER    │      │
-│  ├───────────────┤  ├───────────────┤  ├───────────────┤      │
-│  │ • 0.5% fee    │  │ • 0.5% fee    │  │ • 0.5% spread │      │
-│  │ • Agent 10%   │  │ • Agent 10%   │  │ • Sonic DEX   │      │
-│  │ • Track codes │  │ • Track codes │  │ • BTC↔USDC    │      │
-│  │ • Revenue     │  │ • Revenue     │  │ • Revenue     │      │
-│  └───────────────┘  └───────────────┘  └───────────────┘      │
-│         │                  │                  │                │
-│         └──────────────────┼──────────────────┘                │
+│  ┌────────────────────────────────────────────────────┐        │
+│  │              AGENT CANISTER                        │        │
+│  ├────────────────────────────────────────────────────┤        │
+│  │ • Deposits (cash → crypto)                         │        │
+│  │ • Withdrawals (crypto → cash)                      │        │
+│  │ • Agent commissions & settlements                  │        │
+│  │ • Multi-currency support (39 currencies)           │        │
+│  │ • Revenue tracking & reporting                     │        │
+│  │ • 700KB                                            │        │
+│  └────────────────────────────────────────────────────┘        │
 │                            │                                   │
 └────────────────────────────┼───────────────────────────────────┘
                              ↓
@@ -262,11 +256,13 @@ AfriTokeni uses a sophisticated multi-canister architecture for scalability, sec
 │  ┌──────────────────────────────────────────────────────┐      │
 │  │         DATA CANISTER (Pure CRUD)                    │      │
 │  │  • User profiles & authentication                    │      │
-│  │  • Fiat & crypto balances                            │      │
+│  │  • Fiat & crypto balances (39 currencies)            │      │
 │  │  • Transaction history                               │      │
 │  │  • Escrow metadata                                   │      │
-│  │  • Agent information                                 │      │
+│  │  • Deposit/withdrawal records                        │      │
+│  │  • Agent information & settlements                   │      │
 │  │  • NO business logic                                 │      │
+│  │  • 1.1MB                                             │      │
 │  └──────────────────────────────────────────────────────┘      │
 │                            │                                   │
 └────────────────────────────┼───────────────────────────────────┘
@@ -283,70 +279,112 @@ AfriTokeni uses a sophisticated multi-canister architecture for scalability, sec
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Benefits**:
+**Architecture Benefits**:
+- **Domain Separation**: Each canister handles one business domain
+- **Scalability**: 50% capacity headroom (vs 95% in old architecture)
+- **Maintainability**: Clear boundaries, single responsibility
+- **Security**: Enhanced fraud detection across all domains
+- **Performance**: Optimized inter-canister communication
 - **No AWS/Google Cloud**: Pure blockchain infrastructure
 - **Censorship Resistant**: No single point of failure
 - **Low Cost**: ~$0.01 per transaction
 - **Instant Finality**: <1 second confirmations
-- **Scalable**: Handles millions of transactions per day
-- **Revenue Optimized**: Dedicated commission canisters
-- **Stateless USSD**: No session storage needed
 
 ### 3.3 Canister Responsibilities
 
 #### USSD Canister (Presentation)
 - **Purpose**: Parse USSD input, format responses
+- **Size**: 1.7MB
 - **Stateless**: Africa's Talking manages session state
 - **Functions**: 
   - Parse text input (e.g., "1*256700123456*50000*1234")
-  - Call Business Logic Canister
+  - Call domain canisters (User, Wallet, Crypto, Agent)
   - Format CON/END responses
   - Multi-language support (English, Luganda, Swahili)
+  - Session reset functionality
 
-#### Business Logic Canister (Orchestration)
-- **Purpose**: All business rules and validation
+#### User Canister (Identity & Authentication)
+- **Purpose**: User management and authentication
+- **Size**: 400KB (20% capacity)
 - **Functions**:
-  - User registration & authentication
-  - Money transfers & validation
-  - Crypto operations (buy/sell/send)
-  - Fraud detection (10M max, 5M suspicious threshold)
-  - Escrow management
-  - Commission calculation
-  - Inter-canister orchestration
+  - User registration (phone/principal/both)
+  - PIN authentication with lockout protection
+  - PIN change with old PIN verification
+  - Profile management
+  - Account linking (phone ↔ principal)
+  - Audit logging (user-specific trails)
+- **Security**:
+  - Argon2 PIN hashing
+  - Exponential backoff after failed attempts
+  - Account takeover detection
 
-#### Deposit Canister (Commission)
-- **Purpose**: Cash deposit revenue tracking
-- **Commission**: 0.5% platform fee
-- **Agent Split**: 10% of platform fee
+#### Wallet Canister (Fiat Transfers)
+- **Purpose**: Fiat currency transfers and balances
+- **Size**: 600KB (30% capacity)
 - **Functions**:
-  - Create deposit requests
-  - Generate deposit codes (DEP000001, DEP000002, etc.)
-  - Track agent commissions
-  - Company wallet revenue
+  - P2P fiat transfers (39 African currencies)
+  - Balance queries and updates
+  - Transaction history
+  - Fiat escrow for crypto sales
+  - Transfer fee calculation (0.5%)
+- **Fraud Detection**:
+  - Rate limiting (global + per-operation)
+  - Amount thresholds (10M max, 5M suspicious)
+  - Velocity limits (1h and 24h)
+  - Risk scoring (0-100)
 
-#### Withdrawal Canister (Commission)
-- **Purpose**: Cash withdrawal revenue tracking
-- **Fees**: 0.5% platform + 10% agent fee
+#### Crypto Canister (Digital Assets)
+- **Purpose**: Cryptocurrency operations
+- **Size**: 1.0MB (50% capacity)
 - **Functions**:
-  - Create withdrawal requests
-  - Generate withdrawal codes (WTH000001, WTH000002, etc.)
-  - Track agent earnings
-  - Company wallet revenue
+  - Buy crypto (fiat → BTC/USDC)
+  - Sell crypto (BTC/USDC → fiat)
+  - Send crypto (external transfers)
+  - Swap crypto (BTC ↔ USDC via Sonic DEX)
+  - Crypto escrow management
+  - Balance queries
+  - Expired escrow cleanup
+- **Revenue**:
+  - 0.5% spread on swaps (100% to company)
+  - DEX integration: Sonic (3xwpq-ziaaa-aaaah-qcn4a-cai)
+- **Fraud Detection**:
+  - Device fingerprinting
+  - Geographic location tracking
+  - High-value transaction alerts
 
-#### Exchange Canister (Commission)
-- **Purpose**: Crypto swap revenue tracking
-- **Spread**: 0.5% (100% to company)
-- **DEX**: Sonic (3xwpq-ziaaa-aaaah-qcn4a-cai)
+#### Agent Canister (Cash On/Off Ramps)
+- **Purpose**: Agent network and cash operations
+- **Size**: 700KB (35% capacity)
 - **Functions**:
-  - BTC ↔ USDC swaps
-  - Spread calculation
-  - Company wallet revenue
+  - **Deposits**: Cash → crypto conversions
+    - Generate deposit codes (DEP000001, etc.)
+    - Track agent commissions (10% of 0.5% platform fee)
+    - Multi-currency support (39 currencies)
+  - **Withdrawals**: Crypto → cash conversions
+    - Generate withdrawal codes (WTH000001, etc.)
+    - Fee calculation (0.5% platform + 2-12% agent)
+    - Agent earnings tracking (90% of agent fee)
+  - **Settlements**: Monthly agent payouts
+    - Generate settlement reports
+    - Track paid/unpaid status
+    - Platform revenue reporting
+- **Multi-Currency**:
+  - Per-currency limits (min/max deposits/withdrawals)
+  - Currency-specific agent balances
+  - Exchange rate integration
 
 #### Data Canister (Storage)
-- **Purpose**: Pure CRUD operations
+- **Purpose**: Pure CRUD operations (no business logic)
+- **Size**: 1.1MB (55% capacity)
 - **Collections**:
   - `users`: User profiles and authentication
+  - `balances`: Fiat & crypto balances (39 currencies)
+  - `transactions`: Complete transaction history
+  - `escrows`: Crypto escrow metadata
+  - `deposits`: Deposit transaction records
+  - `withdrawals`: Withdrawal transaction records
   - `agents`: Agent network information
+  - `settlements`: Monthly settlement data
   - `transactions`: All financial transactions
   - `ckbtc_transactions`: ckBTC-specific operations
   - `ckusdc_transactions`: ckUSDC-specific operations

@@ -2,15 +2,11 @@
 members = [
     "canisters/shared_types",
     "canisters/data_canister",
-    "canisters/business_logic_canister",
-    "canisters/ussd_canister",
-    "canisters/deposit_canister",
-    "canisters/withdrawal_canister",
-    "canisters/exchange_canister",
     "canisters/user_canister",
     "canisters/wallet_canister",
     "canisters/crypto_canister",
     "canisters/agent_canister",
+    "canisters/ussd_canister",
 ]
 exclude = ["tests", "src/satellite"]
 resolver = "2"
