@@ -94,7 +94,8 @@ pub async fn create_deposit_request(request: CreateDepositRequest) -> Result<Cre
     }
     
     // Get or create agent activity for fraud detection
-    let agent_activity = fraud_detection::AgentActivity::new(request.agent_id.clone());
+    let now = ic_cdk::api::time();
+    let agent_activity = fraud_detection::AgentActivity::new(request.agent_id.clone(), now);
     
     // Fraud check
     let fraud_result = fraud_detection::check_deposit_fraud(&agent_activity, &request.user_id, request.amount);
@@ -120,9 +121,10 @@ pub async fn create_deposit_request(request: CreateDepositRequest) -> Result<Cre
     let fees = deposit_logic::calculate_deposit_fees(request.amount)?;
     
     // Generate deposit code
-    let deposit_id = ic_cdk::api::time() / 1_000_000; // Use timestamp as ID
+    let now = ic_cdk::api::time();
+    let deposit_id = now / 1_000_000; // Use timestamp as ID
     let agent_prefix = &request.agent_id[..std::cmp::min(6, request.agent_id.len())];
-    let deposit_code = deposit_logic::generate_deposit_code(deposit_id, agent_prefix);
+    let deposit_code = deposit_logic::generate_deposit_code(deposit_id, agent_prefix, now);
     
     // Calculate expiration (24 hours from now)
     let cfg = config::get_config();

@@ -124,7 +124,8 @@ pub async fn create_withdrawal_request(request: CreateWithdrawalRequest) -> Resu
     withdrawal_logic::validate_sufficient_balance(user_balance, request.amount, fees.total_fees)?;
     
     // Get or create agent activity for fraud detection
-    let agent_activity = fraud_detection::AgentActivity::new(request.agent_id.clone());
+    let now = ic_cdk::api::time();
+    let agent_activity = fraud_detection::AgentActivity::new(request.agent_id.clone(), now);
     
     // Fraud check
     let fraud_result = fraud_detection::check_withdrawal_fraud(&agent_activity, &request.user_id, request.amount);
@@ -147,9 +148,10 @@ pub async fn create_withdrawal_request(request: CreateWithdrawalRequest) -> Resu
     }
     
     // Generate withdrawal code
-    let withdrawal_id = ic_cdk::api::time() / 1_000_000; // Use timestamp as ID
+    let now = ic_cdk::api::time();
+    let withdrawal_id = now / 1_000_000; // Use timestamp as ID
     let agent_prefix = &request.agent_id[..std::cmp::min(6, request.agent_id.len())];
-    let withdrawal_code = withdrawal_logic::generate_withdrawal_code(withdrawal_id, agent_prefix);
+    let withdrawal_code = withdrawal_logic::generate_withdrawal_code(withdrawal_id, agent_prefix, now);
     
     // Calculate expiration (24 hours from now)
     let cfg = config::get_config();
@@ -263,7 +265,7 @@ pub async fn confirm_withdrawal(request: ConfirmWithdrawalRequest) -> Result<Con
             last_updated: now,
         });
     
-    agent_balance.total_withdrawals += withdrawal.amount;
+    agent_balance.total_withdrawals += 1;  // Increment count, not amount
     agent_balance.commission_earned += withdrawal.agent_keeps;
     agent_balance.last_updated = now;
     

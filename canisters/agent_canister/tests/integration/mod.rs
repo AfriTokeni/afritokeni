@@ -6,6 +6,83 @@ mod deposit_tests;
 mod withdrawal_tests;
 mod agent_balance_tests;
 mod settlement_tests;
+mod fraud_detection_tests;
+mod edge_case_tests;
+
+// ============================================================================
+// Shared Request/Response Types for Tests
+// ============================================================================
+
+#[derive(candid::CandidType, candid::Deserialize, Debug)]
+pub struct CreateDepositRequest {
+    pub user_id: String,
+    pub agent_id: String,
+    pub amount: u64,
+    pub currency: String,
+    pub pin: String,  // Changed from user_pin to match Candid interface
+}
+
+#[derive(candid::CandidType, candid::Deserialize, Debug)]
+pub struct CreateDepositResponse {
+    pub deposit_code: String,
+    pub amount: u64,
+    pub currency: String,
+    pub agent_commission: u64,  // Changed from commission to match actual response
+    pub net_to_user: u64,
+    pub expires_at: u64,
+}
+
+#[derive(candid::CandidType, candid::Deserialize, Debug, Clone)]
+pub struct ConfirmDepositRequest {
+    pub deposit_code: String,
+    pub agent_id: String,
+    pub agent_pin: String,
+}
+
+#[derive(candid::CandidType, candid::Deserialize, Debug)]
+pub struct ConfirmDepositResponse {
+    pub user_id: String,
+    pub amount: u64,
+    pub currency: String,
+    pub commission: u64,
+    pub user_balance_added: u64,
+    pub confirmed_at: u64,
+}
+
+#[derive(candid::CandidType, candid::Deserialize, Debug)]
+pub struct CreateWithdrawalRequest {
+    pub user_id: String,
+    pub agent_id: String,
+    pub amount: u64,
+    pub currency: String,
+    pub pin: String,  // Changed from user_pin to match Candid interface
+}
+
+#[derive(candid::CandidType, candid::Deserialize, Debug)]
+pub struct CreateWithdrawalResponse {
+    pub withdrawal_code: String,
+    pub amount: u64,
+    pub currency: String,
+    pub total_fees: u64,
+    pub net_to_user: u64,
+    pub expires_at: u64,
+}
+
+#[derive(candid::CandidType, candid::Deserialize, Debug, Clone)]
+pub struct ConfirmWithdrawalRequest {
+    pub withdrawal_code: String,
+    pub agent_id: String,
+    pub agent_pin: String,
+}
+
+#[derive(candid::CandidType, candid::Deserialize, Debug)]
+pub struct ConfirmWithdrawalResponse {
+    pub user_id: String,
+    pub amount: u64,
+    pub currency: String,
+    pub total_fees: u64,
+    pub confirmed_at: u64,
+}
 
 // ============================================================================
 // Test Environment Setup

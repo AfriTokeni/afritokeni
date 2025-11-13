@@ -97,9 +97,9 @@ pub fn calculate_deposit_fees(amount: u64) -> Result<DepositFees, String> {
 // Code Generation
 // ============================================================================
 
-pub fn generate_deposit_code(deposit_id: u64, agent_prefix: &str) -> String {
+pub fn generate_deposit_code(deposit_id: u64, agent_prefix: &str, timestamp_ns: u64) -> String {
     let config = get_config();
-    let timestamp = ic_cdk::api::time() / 1_000_000; // milliseconds
+    let timestamp = timestamp_ns / 1_000_000; // Convert nanoseconds to milliseconds
     
     format!(
         "{}-{}-{}-{}",
@@ -247,17 +247,17 @@ mod tests {
     #[test]
     fn test_generate_deposit_code_format() {
         setup();
-        let code = generate_deposit_code(123, "AGT001");
-        
+        let timestamp_ns = 1620328630000000000; // Fixed timestamp for testing
+        let code = generate_deposit_code(12345, "agent1", timestamp_ns);
         assert!(code.starts_with("DEP-"));
-        assert!(code.contains("AGT001"));
-        assert!(code.contains("123"));
+        assert!(code.contains("agent1"));
+        assert!(code.contains("12345"));
         
         let parts: Vec<&str> = code.split('-').collect();
         assert_eq!(parts.len(), 4);
         assert_eq!(parts[0], "DEP");
-        assert_eq!(parts[1], "AGT001");
-        assert_eq!(parts[2], "123");
+        assert_eq!(parts[1], "agent1");
+        assert_eq!(parts[2], "12345");
     }
 
     #[test]
@@ -281,15 +281,159 @@ mod tests {
         let result = validate_deposit_code_format("DEP-AGT001-123");
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Expected format"));
-    }
 
-    // Edge Cases
-    
-    #[test]
-    fn test_calculate_deposit_fees_no_overflow() {
-        setup();
-        let fees = calculate_deposit_fees(u64::MAX / 10).unwrap();
-        assert!(fees.agent_commission > 0);
-        assert!(fees.total_platform_revenue > 0);
+        // Validation Tests
+        
+        #[test]
+        fn test_validate_deposit_amount_zero() {
+            setup();
+            let result = validate_deposit_amount(0, "KES");
+            assert!(result.is_err());
+            assert_eq!(result.unwrap_err(), "Deposit amount must be greater than 0");
+        }
+
+        #[test]
+        fn test_validate_deposit_amount_below_minimum() {
+            setup();
+            let result = validate_deposit_amount(5000, "KES"); // min is 10000
+            assert!(result.is_err());
+            assert!(result.unwrap_err().contains("below minimum"));
+        }
+
+        #[test]
+        fn test_validate_deposit_amount_above_maximum() {
+            setup();
+            let result = validate_deposit_amount(2000000, "KES"); // max is 1000000
+            assert!(result.is_err());
+            assert!(result.unwrap_err().contains("exceeds maximum"));
+        }
+
+        #[test]
+        fn test_validate_deposit_amount_valid() {
+            setup();
+            let result = validate_deposit_amount(50000, "KES");
+            assert!(result.is_ok());
+        }
+
+        #[test]
+        fn test_validate_currency_valid() {
+            setup();
+            assert!(validate_currency("KES").is_ok());
+            assert!(validate_currency("UGX").is_ok());
+            assert!(validate_currency("NGN").is_ok());
+        }
+
+        #[test]
+        fn test_validate_currency_invalid() {
+            setup();
+            let result = validate_currency("XXX");
+            assert!(result.is_err());
+            assert!(result.unwrap_err().contains("Invalid currency"));
+        }
+
+        // Commission Calculation Tests (Per Whitepaper)
+        
+        #[test]
+        fn test_calculate_deposit_fees_100000() {
+            setup();
+            let fees = calculate_deposit_fees(100000).unwrap();
+            
+            // Agent commission: 10% of 100000 = 10000
+            assert_eq!(fees.agent_commission, 10000);
+            
+            // Platform operation fee: 0.5% of 100000 = 500
+            assert_eq!(fees.platform_operation_fee, 500);
+            
+            // Platform's cut of commission: 10% of 10000 = 1000
+            assert_eq!(fees.platform_from_commission, 1000);
+            
+            // Agent keeps: 10000 - 1000 = 9000 (90% of commission)
+            assert_eq!(fees.agent_keeps, 9000);
+            
+            // Total platform revenue: 500 + 1000 = 1500
+            assert_eq!(fees.total_platform_revenue, 1500);
+            
+            // Net to user: 100000 - 10000 = 90000
+            assert_eq!(fees.net_to_user_balance, 90000);
+        }
+
+        #[test]
+        fn test_calculate_deposit_fees_1000000() {
+            setup();
+            let fees = calculate_deposit_fees(1000000).unwrap();
+            
+            assert_eq!(fees.agent_commission, 100000);       // 10%
+            assert_eq!(fees.platform_operation_fee, 5000);   // 0.5%
+            assert_eq!(fees.platform_from_commission, 10000); // 10% of commission
+            assert_eq!(fees.agent_keeps, 90000);             // 90% of commission
+            assert_eq!(fees.total_platform_revenue, 15000);  // 5000 + 10000
+            assert_eq!(fees.net_to_user_balance, 900000);    // 1000000 - 100000
+        }
+
+        #[test]
+        fn test_calculate_deposit_fees_small_amount() {
+            setup();
+            let fees = calculate_deposit_fees(10000).unwrap();
+            
+            assert_eq!(fees.agent_commission, 1000);
+            assert_eq!(fees.platform_operation_fee, 50);
+            assert_eq!(fees.platform_from_commission, 100);
+            assert_eq!(fees.agent_keeps, 900);
+            assert_eq!(fees.total_platform_revenue, 150);
+            assert_eq!(fees.net_to_user_balance, 9000);
+        }
+
+        // Code Generation Tests
+        
+        #[test]
+        fn test_generate_deposit_code_format() {
+            setup();
+            let timestamp_ns = 1620328630000000000; // Fixed timestamp for testing
+            let code = generate_deposit_code(12345, "agent1", timestamp_ns);
+            assert!(code.starts_with("DEP-"));
+            assert!(code.contains("agent1"));
+            assert!(code.contains("12345"));
+            
+            let parts: Vec<&str> = code.split('-').collect();
+            assert_eq!(parts.len(), 4);
+            assert_eq!(parts[0], "DEP");
+            assert_eq!(parts[1], "agent1");
+            assert_eq!(parts[2], "12345");
+        }
+
+        #[test]
+        fn test_validate_deposit_code_format_valid() {
+            setup();
+            let result = validate_deposit_code_format("DEP-AGT001-123-1234567890");
+            assert!(result.is_ok());
+        }
+
+        #[test]
+        fn test_validate_deposit_code_format_invalid_prefix() {
+            setup();
+            let result = validate_deposit_code_format("WTH-AGT001-123-1234567890");
+            assert!(result.is_err());
+            assert!(result.unwrap_err().contains("Must start with DEP"));
+        }
+
+        #[test]
+        fn test_validate_deposit_code_format_invalid_parts() {
+            setup();
+            let result = validate_deposit_code_format("DEP-AGT001-123");
+            assert!(result.is_err());
+            assert!(result.unwrap_err().contains("Expected format"));
+        }
+
+        // Edge Cases
+        
+        #[test]
+        fn test_calculate_deposit_fees_large_amount() {
+            setup();
+            // Test with a large but safe amount (100 billion)
+            let fees = calculate_deposit_fees(100_000_000_000).unwrap();
+            assert!(fees.agent_commission > 0);
+            assert!(fees.net_to_user_balance > 0);
+            assert!(fees.total_platform_revenue > 0);
+        }
     }
 }

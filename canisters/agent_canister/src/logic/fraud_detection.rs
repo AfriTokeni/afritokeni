@@ -63,7 +63,7 @@ pub struct AgentActivity {
 }
 
 impl AgentActivity {
-    pub fn new(agent_id: String) -> Self {
+    pub fn new(agent_id: String, current_time_ns: u64) -> Self {
         Self {
             agent_id,
             deposits_today: 0,
@@ -73,13 +73,12 @@ impl AgentActivity {
             operations_last_hour: Vec::new(),
             operations_last_24h: Vec::new(),
             user_agent_pairs: HashMap::new(),
-            last_reset: ic_cdk::api::time(),
+            last_reset: current_time_ns,
         }
     }
 
     /// Reset daily counters if it's a new day
-    pub fn maybe_reset_daily(&mut self) {
-        let now = ic_cdk::api::time();
+    pub fn maybe_reset_daily(&mut self, now: u64) {
         let day_in_ns = 86400 * 1_000_000_000;
         
         if now - self.last_reset >= day_in_ns {
@@ -93,8 +92,7 @@ impl AgentActivity {
     }
 
     /// Clean up old timestamps from velocity tracking
-    pub fn cleanup_old_timestamps(&mut self) {
-        let now = ic_cdk::api::time();
+    pub fn cleanup_old_timestamps(&mut self, now: u64) {
         let config = get_config();
         
         let hour_ago = now.saturating_sub(config.fraud.velocity_check_window_1h * 1_000_000_000);
@@ -105,11 +103,9 @@ impl AgentActivity {
     }
 
     /// Record a new operation
-    pub fn record_operation(&mut self, user_id: &str, is_deposit: bool, amount: u64) {
-        let now = ic_cdk::api::time();
-        
-        self.maybe_reset_daily();
-        self.cleanup_old_timestamps();
+    pub fn record_operation(&mut self, user_id: &str, is_deposit: bool, amount: u64, now: u64) {
+        self.maybe_reset_daily(now);
+        self.cleanup_old_timestamps(now);
         
         if is_deposit {
             self.deposits_today += 1;
@@ -333,7 +329,7 @@ mod tests {
 
     #[test]
     fn test_agent_activity_new() {
-        let activity = AgentActivity::new("agent123".to_string());
+        let activity = AgentActivity::new("agent123".to_string(), 1620328630000000000);
         assert_eq!(activity.agent_id, "agent123");
         assert_eq!(activity.deposits_today, 0);
         assert_eq!(activity.withdrawals_today, 0);
@@ -341,8 +337,9 @@ mod tests {
 
     #[test]
     fn test_agent_activity_record_deposit() {
-        let mut activity = AgentActivity::new("agent123".to_string());
-        activity.record_operation("user456", true, 10000);
+        setup();
+        let mut activity = AgentActivity::new("agent123".to_string(), 1620328630000000000);
+        activity.record_operation("user456", true, 10000, 1620328630000000000);
         
         assert_eq!(activity.deposits_today, 1);
         assert_eq!(activity.deposit_volume_today, 10000);
@@ -351,8 +348,9 @@ mod tests {
 
     #[test]
     fn test_agent_activity_record_withdrawal() {
-        let mut activity = AgentActivity::new("agent123".to_string());
-        activity.record_operation("user456", false, 5000);
+        setup();
+        let mut activity = AgentActivity::new("agent123".to_string(), 1620328630000000000);
+        activity.record_operation("user456", false, 5000, 1620328630000000000);
         
         assert_eq!(activity.withdrawals_today, 1);
         assert_eq!(activity.withdrawal_volume_today, 5000);
@@ -362,14 +360,14 @@ mod tests {
     #[test]
     fn test_check_deposit_limit_ok() {
         setup();
-        let activity = AgentActivity::new("agent123".to_string());
+        let activity = AgentActivity::new("agent123".to_string(), 1620328630000000000);
         assert!(check_deposit_limit(&activity).is_ok());
     }
 
     #[test]
     fn test_check_deposit_limit_exceeded() {
         setup();
-        let mut activity = AgentActivity::new("agent123".to_string());
+        let mut activity = AgentActivity::new("agent123".to_string(), 1620328630000000000);
         activity.deposits_today = 101; // max is 100
         
         let result = check_deposit_limit(&activity);
@@ -380,14 +378,14 @@ mod tests {
     #[test]
     fn test_check_withdrawal_limit_ok() {
         setup();
-        let activity = AgentActivity::new("agent123".to_string());
+        let activity = AgentActivity::new("agent123".to_string(), 1620328630000000000);
         assert!(check_withdrawal_limit(&activity).is_ok());
     }
 
     #[test]
     fn test_check_withdrawal_limit_exceeded() {
         setup();
-        let mut activity = AgentActivity::new("agent123".to_string());
+        let mut activity = AgentActivity::new("agent123".to_string(), 1620328630000000000);
         activity.withdrawals_today = 51; // max is 50
         
         let result = check_withdrawal_limit(&activity);
@@ -398,14 +396,14 @@ mod tests {
     #[test]
     fn test_check_volume_limit_deposit_ok() {
         setup();
-        let activity = AgentActivity::new("agent123".to_string());
+        let activity = AgentActivity::new("agent123".to_string(), 1620328630000000000);
         assert!(check_volume_limit(&activity, 1000000, true).is_ok());
     }
 
     #[test]
     fn test_check_volume_limit_deposit_exceeded() {
         setup();
-        let mut activity = AgentActivity::new("agent123".to_string());
+        let mut activity = AgentActivity::new("agent123".to_string(), 1620328630000000000);
         activity.deposit_volume_today = 49000000;
         
         let result = check_volume_limit(&activity, 2000000, true);
@@ -416,8 +414,8 @@ mod tests {
     #[test]
     fn test_check_velocity_safe() {
         setup();
-        let mut activity = AgentActivity::new("agent123".to_string());
-        activity.operations_last_hour.push(ic_cdk::api::time());
+        let mut activity = AgentActivity::new("agent123".to_string(), 1620328630000000000);
+        activity.operations_last_hour.push(1620328630000000000);
         
         let result = check_velocity(&activity);
         assert!(!result.should_block);
@@ -427,7 +425,7 @@ mod tests {
     #[test]
     fn test_check_user_agent_patterns_safe() {
         setup();
-        let activity = AgentActivity::new("agent123".to_string());
+        let activity = AgentActivity::new("agent123".to_string(), 1620328630000000000);
         
         let result = check_user_agent_patterns(&activity, "user456");
         assert!(!result.should_block);
@@ -437,7 +435,7 @@ mod tests {
     #[test]
     fn test_check_user_agent_patterns_suspicious() {
         setup();
-        let mut activity = AgentActivity::new("agent123".to_string());
+        let mut activity = AgentActivity::new("agent123".to_string(), 1620328630000000000);
         activity.user_agent_pairs.insert("user456".to_string(), 11); // threshold is 10
         
         let result = check_user_agent_patterns(&activity, "user456");
@@ -449,7 +447,7 @@ mod tests {
     #[test]
     fn test_check_deposit_fraud_safe() {
         setup();
-        let activity = AgentActivity::new("agent123".to_string());
+        let activity = AgentActivity::new("agent123".to_string(), 1620328630000000000);
         
         let result = check_deposit_fraud(&activity, "user456", 10000);
         assert!(!result.should_block);
@@ -459,7 +457,7 @@ mod tests {
     #[test]
     fn test_check_withdrawal_fraud_safe() {
         setup();
-        let activity = AgentActivity::new("agent123".to_string());
+        let activity = AgentActivity::new("agent123".to_string(), 1620328630000000000);
         
         let result = check_withdrawal_fraud(&activity, "user456", 5000);
         assert!(!result.should_block);
