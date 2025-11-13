@@ -1,7 +1,7 @@
 // Crypto swap flow - Swap BTC ↔ USDC
 use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
-use crate::services::{business_logic, exchange};
+use crate::services::exchange;
 
 /// Handle crypto swap flow
 /// Steps: 0. Select from crypto → 1. Select to crypto → 2. Enter amount → 3. Show spread & confirm → 4. Enter PIN → 5. Execute swap
@@ -160,14 +160,32 @@ pub async fn handle_crypto_swap(text: &str, session: &mut UssdSession) -> (Strin
                 }
             };
             
-            match business_logic::swap_crypto(&phone, from_crypto, to_crypto, amount, pin).await {
+            let from_type = match from_crypto {
+                "CkBTC" => shared_types::CryptoType::CkBTC,
+                "CkUSDC" => shared_types::CryptoType::CkUSDC,
+                _ => return (format!("Invalid crypto type\n\n0. {}", TranslationService::translate("main_menu", lang)), false),
+            };
+            
+            let to_type = match to_crypto {
+                "CkBTC" => shared_types::CryptoType::CkBTC,
+                "CkUSDC" => shared_types::CryptoType::CkUSDC,
+                _ => return (format!("Invalid crypto type\n\n0. {}", TranslationService::translate("main_menu", lang)), false),
+            };
+            
+            match crate::services::crypto_client::swap_crypto(
+                phone.clone(),
+                from_type,
+                to_type,
+                amount,
+                pin.to_string()
+            ).await {
                 Ok(result) => {
                     session.clear_data();
-                    (format!("✅ {}!\n\n{}: {} {}\n{}: {} {}\n{}: {} {}\n{}: {}\n\n0. {}",
+                    (format!("✅ {}!\n\n{}: {} {}\n{}: {} {}\n{}: {} bps\n{}: {}\n\n0. {}",
                         TranslationService::translate("swap_successful", lang),
                         TranslationService::translate("swap_from", lang), result.from_amount, from_crypto,
                         TranslationService::translate("swap_to", lang), result.to_amount, to_crypto,
-                        TranslationService::translate("spread", lang), result.spread_amount, from_crypto,
+                        TranslationService::translate("spread", lang), result.spread_bps,
                         TranslationService::translate("rate", lang), result.exchange_rate,
                         TranslationService::translate("main_menu", lang)), false)
                 }

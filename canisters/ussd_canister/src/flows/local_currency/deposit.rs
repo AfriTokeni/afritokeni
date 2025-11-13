@@ -1,7 +1,6 @@
 // Deposit flow - Find agent and deposit cash
 use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
-use crate::services::business_logic;
 
 /// Handle deposit flow
 /// Steps: 0. Enter agent ID → 1. Enter amount → 2. Show commission & confirm → 3. Create request
@@ -58,15 +57,29 @@ pub async fn handle_deposit(text: &str, session: &mut UssdSession) -> (String, b
                 let amount: u64 = session.get_data("amount").unwrap_or_default().parse().unwrap_or(0);
                 let phone = session.phone_number.clone();
                 
-                match business_logic::create_deposit_request(&phone, &agent_id, amount).await {
+                let currency = session.get_data("currency").unwrap_or_else(|| "UGX".to_string());
+                let currency_enum = match shared_types::FiatCurrency::from_code(&currency) {
+                    Some(c) => c,
+                    None => return (format!("Invalid currency\n\n0. Main Menu"), false),
+                };
+                
+                match crate::services::agent_client::create_deposit_request(
+                    phone.clone(),
+                    agent_id.clone(),
+                    amount,
+                    currency_enum
+                ).await {
                     Ok(result) => {
                         session.clear_data();
-                        (format!("✅ Deposit Request Created!\n\n📋 CODE: {}\n\nShow this code to agent:\n{}\n\nAmount: {} UGX\nCommission: {} UGX\nYou'll receive: {} UGX\n\n0. Main Menu",
+                        (format!("✅ Deposit Request Created!\n\n📋 CODE: {}\n\nShow this code to agent:\n{}\n\nAmount: {} {}\nCommission: {} {}\nYou'll receive: {} {}\n\n0. Main Menu",
                             result.deposit_code,
                             result.deposit_code,
-                            result.amount_ugx,
-                            result.commission_ugx,
-                            result.net_amount), false)
+                            result.amount,
+                            currency,
+                            result.commission,
+                            currency,
+                            result.net_amount,
+                            currency), false)
                     }
                     Err(e) => {
                         session.clear_data();

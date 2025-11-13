@@ -47,18 +47,23 @@ pub async fn handle_buy_usdc(text: &str, session: &mut UssdSession) -> (String, 
             // Get user's currency from session
             let currency = session.get_data("currency").unwrap_or_else(|| "UGX".to_string());
             
-            // Call Business Logic to buy USDC
+            // Call Crypto Canister to buy USDC
             let amount_cents = (amount_str.parse::<f64>().unwrap_or(0.0) * 100.0) as u64;
             
-            match crate::services::business_logic::buy_crypto(
-                &phone,
+            let currency_enum = match shared_types::FiatCurrency::from_code(&currency) {
+                Some(c) => c,
+                None => return (format!("Invalid currency\n\n0. {}", TranslationService::translate("main_menu", lang)), false),
+            };
+            
+            match crate::services::crypto_client::buy_crypto(
+                phone.clone(),
                 amount_cents,
-                &currency,
-                crate::services::business_logic::CryptoType::CkUSDC,
-                pin
+                currency_enum,
+                shared_types::CryptoType::CkUSDC,
+                pin.to_string()
             ).await {
                 Ok(result) => {
-                    let usdc_amount = result.amount as f64 / 1_000_000.0;
+                    let usdc_amount = result.crypto_amount as f64 / 1_000_000.0;
                     let fiat_amount = amount_cents as f64 / 100.0;
                     
                     (format!("{}\nBought {:.2} ckUSDC for {:.2} {}\n\n0. {}", 

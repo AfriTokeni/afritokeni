@@ -1,0 +1,461 @@
+/// Crypto Canister Client
+/// Handles all cryptocurrency operations: buy, sell, send, swap, escrow
+use candid::Principal;
+use ic_cdk::call::Call;
+use shared_types::{CryptoType, FiatCurrency};
+use std::cell::RefCell;
+
+thread_local! {
+    static CRYPTO_CANISTER_ID: RefCell<Option<Principal>> = RefCell::new(None);
+}
+
+pub fn set_crypto_canister_id(canister_id: Principal) {
+    CRYPTO_CANISTER_ID.with(|id| {
+        *id.borrow_mut() = Some(canister_id);
+    });
+}
+
+pub fn get_crypto_canister_id() -> Result<Principal, String> {
+    CRYPTO_CANISTER_ID.with(|id| {
+        id.borrow()
+            .ok_or_else(|| "Crypto Canister ID not set".to_string())
+    })
+}
+
+// ============================================================================
+// REQUEST/RESPONSE TYPES
+// ============================================================================
+
+#[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
+pub struct BuyCryptoRequest {
+    pub user_identifier: String,
+    pub fiat_amount: u64,
+    pub fiat_currency: FiatCurrency,
+    pub crypto_type: CryptoType,
+    pub pin: String,
+}
+
+#[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
+pub struct BuyCryptoResponse {
+    pub transaction_id: String,
+    pub crypto_amount: u64,
+    pub fiat_amount: u64,
+    pub exchange_rate: f64,
+}
+
+#[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
+pub struct SellCryptoRequest {
+    pub user_identifier: String,
+    pub crypto_amount: u64,
+    pub crypto_type: CryptoType,
+    pub fiat_currency: FiatCurrency,
+    pub pin: String,
+}
+
+#[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
+pub struct SendCryptoRequest {
+    pub user_identifier: String,
+    pub recipient: String,
+    pub amount: u64,
+    pub crypto_type: CryptoType,
+    pub pin: String,
+}
+
+#[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
+pub struct SwapCryptoRequest {
+    pub user_identifier: String,
+    pub from_crypto: CryptoType,
+    pub to_crypto: CryptoType,
+    pub from_amount: u64,
+    pub pin: String,
+}
+
+#[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
+pub struct SwapCryptoResponse {
+    pub transaction_id: String,
+    pub from_amount: u64,
+    pub to_amount: u64,
+    pub exchange_rate: f64,
+    pub spread_bps: u64,
+}
+
+// ============================================================================
+// BUY/SELL OPERATIONS
+// ============================================================================
+
+/// Buy cryptocurrency with fiat
+pub async fn buy_crypto(
+    user_identifier: String,
+    fiat_amount: u64,
+    fiat_currency: FiatCurrency,
+    crypto_type: CryptoType,
+    pin: String,
+) -> Result<BuyCryptoResponse, String> {
+    let canister_id = get_crypto_canister_id()?;
+    
+    ic_cdk::println!("📤 [CRYPTO_CLIENT] Calling buy_crypto: user={}, amount={}, currency={:?}, type={:?}", 
+        user_identifier, fiat_amount, fiat_currency, crypto_type);
+    
+    let request = BuyCryptoRequest {
+        user_identifier: user_identifier.clone(),
+        fiat_amount,
+        fiat_currency,
+        crypto_type,
+        pin,
+    };
+    
+    let response = Call::unbounded_wait(canister_id, "buy_crypto")
+        .with_args(&(request,))
+        .await
+        .map_err(|e| format!("❌ [CRYPTO_CLIENT] Call failed: {:?}", e))?;
+    
+    let (result,): (Result<BuyCryptoResponse, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("❌ [CRYPTO_CLIENT] Decode failed: {}", e))?;
+    
+    match &result {
+        Ok(resp) => ic_cdk::println!("✅ [CRYPTO_CLIENT] Buy successful: tx_id={}, crypto_amount={}", 
+            resp.transaction_id, resp.crypto_amount),
+        Err(e) => ic_cdk::println!("❌ [CRYPTO_CLIENT] Buy failed: {}", e),
+    }
+    
+    result
+}
+
+/// Sell cryptocurrency for fiat
+pub async fn sell_crypto(
+    user_identifier: String,
+    crypto_amount: u64,
+    crypto_type: CryptoType,
+    fiat_currency: FiatCurrency,
+    pin: String,
+) -> Result<BuyCryptoResponse, String> {
+    let canister_id = get_crypto_canister_id()?;
+    
+    ic_cdk::println!("📤 [CRYPTO_CLIENT] Calling sell_crypto: user={}, amount={}, type={:?}, currency={:?}", 
+        user_identifier, crypto_amount, crypto_type, fiat_currency);
+    
+    let request = SellCryptoRequest {
+        user_identifier: user_identifier.clone(),
+        crypto_amount,
+        crypto_type,
+        fiat_currency,
+        pin,
+    };
+    
+    let response = Call::unbounded_wait(canister_id, "sell_crypto")
+        .with_args(&(request,))
+        .await
+        .map_err(|e| format!("❌ [CRYPTO_CLIENT] Call failed: {:?}", e))?;
+    
+    let (result,): (Result<BuyCryptoResponse, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("❌ [CRYPTO_CLIENT] Decode failed: {}", e))?;
+    
+    match &result {
+        Ok(resp) => ic_cdk::println!("✅ [CRYPTO_CLIENT] Sell successful: tx_id={}, fiat_amount={}", 
+            resp.transaction_id, resp.fiat_amount),
+        Err(e) => ic_cdk::println!("❌ [CRYPTO_CLIENT] Sell failed: {}", e),
+    }
+    
+    result
+}
+
+// ============================================================================
+// SEND & BALANCE OPERATIONS
+// ============================================================================
+
+/// Send cryptocurrency to another user or external address
+pub async fn send_crypto(
+    user_identifier: String,
+    recipient: String,
+    amount: u64,
+    crypto_type: CryptoType,
+    pin: String,
+) -> Result<String, String> {
+    let canister_id = get_crypto_canister_id()?;
+    
+    ic_cdk::println!("📤 [CRYPTO_CLIENT] Calling send_crypto: user={}, to={}, amount={}, type={:?}", 
+        user_identifier, recipient, amount, crypto_type);
+    
+    let request = SendCryptoRequest {
+        user_identifier: user_identifier.clone(),
+        recipient: recipient.clone(),
+        amount,
+        crypto_type,
+        pin,
+    };
+    
+    let response = Call::unbounded_wait(canister_id, "send_crypto")
+        .with_args(&(request,))
+        .await
+        .map_err(|e| format!("❌ [CRYPTO_CLIENT] Call failed: {:?}", e))?;
+    
+    let (result,): (Result<String, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("❌ [CRYPTO_CLIENT] Decode failed: {}", e))?;
+    
+    match &result {
+        Ok(tx_id) => ic_cdk::println!("✅ [CRYPTO_CLIENT] Send successful: tx_id={}", tx_id),
+        Err(e) => ic_cdk::println!("❌ [CRYPTO_CLIENT] Send failed: {}", e),
+    }
+    
+    result
+}
+
+/// Check crypto balance
+pub async fn check_crypto_balance(user_identifier: String, crypto_type: CryptoType) -> Result<u64, String> {
+    let canister_id = get_crypto_canister_id()?;
+    
+    // Convert CryptoType to string for the API
+    let crypto_type_str = match crypto_type {
+        CryptoType::CkBTC => "CkBTC",
+        CryptoType::CkUSDC => "CkUSDC",
+    };
+    
+    ic_cdk::println!("📤 [CRYPTO_CLIENT] Calling check_crypto_balance: user={}, type={}", 
+        user_identifier, crypto_type_str);
+    
+    let response = Call::unbounded_wait(canister_id, "check_crypto_balance")
+        .with_args(&(user_identifier.clone(), crypto_type_str.to_string()))
+        .await
+        .map_err(|e| format!("❌ [CRYPTO_CLIENT] Call failed: {:?}", e))?;
+    
+    let (result,): (Result<u64, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("❌ [CRYPTO_CLIENT] Decode failed: {}", e))?;
+    
+    match &result {
+        Ok(balance) => ic_cdk::println!("✅ [CRYPTO_CLIENT] Balance: {} = {}", user_identifier, balance),
+        Err(e) => ic_cdk::println!("❌ [CRYPTO_CLIENT] Check balance failed: {}", e),
+    }
+    
+    result
+}
+
+// ============================================================================
+// SWAP OPERATIONS
+// ============================================================================
+
+/// Swap between cryptocurrencies (BTC ↔ USDC)
+pub async fn swap_crypto(
+    user_identifier: String,
+    from_crypto: CryptoType,
+    to_crypto: CryptoType,
+    from_amount: u64,
+    pin: String,
+) -> Result<SwapCryptoResponse, String> {
+    let canister_id = get_crypto_canister_id()?;
+    
+    ic_cdk::println!("📤 [CRYPTO_CLIENT] Calling swap_crypto: user={}, from={:?}, to={:?}, amount={}", 
+        user_identifier, from_crypto, to_crypto, from_amount);
+    
+    let request = SwapCryptoRequest {
+        user_identifier: user_identifier.clone(),
+        from_crypto,
+        to_crypto,
+        from_amount,
+        pin,
+    };
+    
+    let response = Call::unbounded_wait(canister_id, "swap_crypto")
+        .with_args(&(request,))
+        .await
+        .map_err(|e| format!("❌ [CRYPTO_CLIENT] Call failed: {:?}", e))?;
+    
+    let (result,): (Result<SwapCryptoResponse, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("❌ [CRYPTO_CLIENT] Decode failed: {}", e))?;
+    
+    match &result {
+        Ok(resp) => ic_cdk::println!("✅ [CRYPTO_CLIENT] Swap successful: tx_id={}, to_amount={}", 
+            resp.transaction_id, resp.to_amount),
+        Err(e) => ic_cdk::println!("❌ [CRYPTO_CLIENT] Swap failed: {}", e),
+    }
+    
+    result
+}
+
+/// Get spread basis points (for displaying swap fees)
+pub async fn get_spread_basis_points() -> Result<u64, String> {
+    let canister_id = get_crypto_canister_id()?;
+    
+    ic_cdk::println!("📤 [CRYPTO_CLIENT] Calling get_spread_basis_points");
+    
+    let response = Call::unbounded_wait(canister_id, "get_spread_basis_points")
+        .with_args(&())
+        .await
+        .map_err(|e| format!("❌ [CRYPTO_CLIENT] Call failed: {:?}", e))?;
+    
+    let (spread_bps,): (u64,) = response
+        .candid_tuple()
+        .map_err(|e| format!("❌ [CRYPTO_CLIENT] Decode failed: {}", e))?;
+    
+    ic_cdk::println!("✅ [CRYPTO_CLIENT] Spread BPS: {}", spread_bps);
+    Ok(spread_bps)
+}
+
+// ============================================================================
+// ESCROW OPERATIONS (for crypto-to-cash with agents)
+// ============================================================================
+
+#[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
+pub struct CreateEscrowRequest {
+    pub user_identifier: String,
+    pub agent_id: String,
+    pub crypto_amount: u64,
+    pub crypto_type: CryptoType,
+    pub fiat_amount: u64,
+    pub fiat_currency: FiatCurrency,
+    pub pin: String,
+}
+
+#[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
+pub struct CreateEscrowResponse {
+    pub code: String,
+    pub expires_at: u64,
+}
+
+#[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
+pub struct VerifyEscrowRequest {
+    pub code: String,
+    pub agent_id: String,
+}
+
+#[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
+pub struct Escrow {
+    pub code: String,
+    pub user_id: String,
+    pub agent_id: String,
+    pub crypto_amount: u64,
+    pub crypto_type: CryptoType,
+    pub fiat_amount: u64,
+    pub fiat_currency: FiatCurrency,
+    pub created_at: u64,
+    pub expires_at: u64,
+    pub status: EscrowStatus,
+}
+
+#[derive(candid::CandidType, candid::Deserialize, Clone, Debug, PartialEq)]
+pub enum EscrowStatus {
+    Active,
+    Claimed,
+    Cancelled,
+    Expired,
+}
+
+/// Create escrow for crypto-to-cash transaction
+pub async fn create_escrow(
+    user_identifier: String,
+    agent_id: String,
+    crypto_amount: u64,
+    crypto_type: CryptoType,
+    fiat_amount: u64,
+    fiat_currency: FiatCurrency,
+    pin: String,
+) -> Result<CreateEscrowResponse, String> {
+    let canister_id = get_crypto_canister_id()?;
+    
+    ic_cdk::println!("📤 [CRYPTO_CLIENT] Calling create_escrow: user={}, agent={}, crypto_amount={}", 
+        user_identifier, agent_id, crypto_amount);
+    
+    let request = CreateEscrowRequest {
+        user_identifier: user_identifier.clone(),
+        agent_id: agent_id.clone(),
+        crypto_amount,
+        crypto_type,
+        fiat_amount,
+        fiat_currency,
+        pin,
+    };
+    
+    let response = Call::unbounded_wait(canister_id, "create_escrow")
+        .with_args(&(request,))
+        .await
+        .map_err(|e| format!("❌ [CRYPTO_CLIENT] Call failed: {:?}", e))?;
+    
+    let (result,): (Result<CreateEscrowResponse, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("❌ [CRYPTO_CLIENT] Decode failed: {}", e))?;
+    
+    match &result {
+        Ok(resp) => ic_cdk::println!("✅ [CRYPTO_CLIENT] Escrow created: code={}", resp.code),
+        Err(e) => ic_cdk::println!("❌ [CRYPTO_CLIENT] Create escrow failed: {}", e),
+    }
+    
+    result
+}
+
+/// Verify and claim escrow (agent side)
+pub async fn verify_escrow(code: String, agent_id: String) -> Result<String, String> {
+    let canister_id = get_crypto_canister_id()?;
+    
+    ic_cdk::println!("📤 [CRYPTO_CLIENT] Calling verify_escrow: code={}, agent={}", code, agent_id);
+    
+    let request = VerifyEscrowRequest {
+        code: code.clone(),
+        agent_id,
+    };
+    
+    let response = Call::unbounded_wait(canister_id, "verify_escrow")
+        .with_args(&(request,))
+        .await
+        .map_err(|e| format!("❌ [CRYPTO_CLIENT] Call failed: {:?}", e))?;
+    
+    let (result,): (Result<String, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("❌ [CRYPTO_CLIENT] Decode failed: {}", e))?;
+    
+    match &result {
+        Ok(msg) => ic_cdk::println!("✅ [CRYPTO_CLIENT] Escrow verified: {}", msg),
+        Err(e) => ic_cdk::println!("❌ [CRYPTO_CLIENT] Verify escrow failed: {}", e),
+    }
+    
+    result
+}
+
+/// Cancel escrow and refund crypto
+pub async fn cancel_escrow(code: String, user_id: String, pin: String) -> Result<(), String> {
+    let canister_id = get_crypto_canister_id()?;
+    
+    ic_cdk::println!("📤 [CRYPTO_CLIENT] Calling cancel_escrow: code={}, user={}", code, user_id);
+    
+    let response = Call::unbounded_wait(canister_id, "cancel_escrow")
+        .with_args(&(code.clone(), user_id, pin))
+        .await
+        .map_err(|e| format!("❌ [CRYPTO_CLIENT] Call failed: {:?}", e))?;
+    
+    let (result,): (Result<(), String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("❌ [CRYPTO_CLIENT] Decode failed: {}", e))?;
+    
+    match &result {
+        Ok(_) => ic_cdk::println!("✅ [CRYPTO_CLIENT] Escrow cancelled: {}", code),
+        Err(e) => ic_cdk::println!("❌ [CRYPTO_CLIENT] Cancel escrow failed: {}", e),
+    }
+    
+    result
+}
+
+/// Get escrow status
+pub async fn get_escrow_status(code: String) -> Result<Escrow, String> {
+    let canister_id = get_crypto_canister_id()?;
+    
+    ic_cdk::println!("📤 [CRYPTO_CLIENT] Calling get_escrow_status: code={}", code);
+    
+    let response = Call::unbounded_wait(canister_id, "get_escrow_status")
+        .with_args(&(code.clone(),))
+        .await
+        .map_err(|e| format!("❌ [CRYPTO_CLIENT] Call failed: {:?}", e))?;
+    
+    let (result,): (Result<Escrow, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("❌ [CRYPTO_CLIENT] Decode failed: {}", e))?;
+    
+    match &result {
+        Ok(escrow) => ic_cdk::println!("✅ [CRYPTO_CLIENT] Got escrow: {} (status={:?})", code, escrow.status),
+        Err(e) => ic_cdk::println!("❌ [CRYPTO_CLIENT] Get escrow status failed: {}", e),
+    }
+    
+    result
+}

@@ -97,24 +97,22 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                 ic_cdk::println!("🔍 Session state: menu='{}', step={}", session.current_menu, session.step);
                 
                 // CRITICAL: Check if user is registered (first-time user detection)
-                let mut user_registered = match crate::services::business_logic::user_exists(&phone_number).await {
-                    Ok(exists) => exists,
-                    Err(e) => {
-                        ic_cdk::println!("❌ Error checking user existence: {}", e);
-                        false // Assume not registered on error
-                    }
+                let mut user_registered = match crate::services::user_client::get_user_by_phone(phone_number.clone()).await {
+                    Ok(_) => true,
+                    Err(_) => false, // User doesn't exist
                 };
                 
                 // PLAYGROUND MODE: Auto-register playground users with demo PIN (1234)
                 if !user_registered && session_id.starts_with("playground_") {
                     ic_cdk::println!("🎮 Playground mode detected - auto-registering demo user");
-                    match crate::services::business_logic::register_user(
-                        &phone_number,
-                        "Demo",
-                        "User",
-                        "ussd@afritokeni.com",
-                        "1234",
-                        "UGX"
+                    match crate::services::user_client::register_user(
+                        Some(phone_number.clone()),
+                        None,
+                        "Demo".to_string(),
+                        "User".to_string(),
+                        "ussd@afritokeni.com".to_string(),
+                        "1234".to_string(),
+                        "UGX".to_string()
                     ).await {
                         Ok(user_id) => {
                             ic_cdk::println!("✅ Playground user auto-registered: {}", user_id);

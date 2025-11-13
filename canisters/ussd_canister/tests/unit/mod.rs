@@ -7,3 +7,6 @@ mod swap_step_test;
 
 // Request validation tests (previously misnamed as "integration")
 mod request_validation;
+
+// Flow tests
+mod send_money_tests;

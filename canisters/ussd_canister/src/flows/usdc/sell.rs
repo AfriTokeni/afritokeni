@@ -34,9 +34,12 @@ pub async fn handle_sell_usdc(text: &str, session: &mut UssdSession) -> (String,
             };
             
             // Check USDC balance
-            match crate::services::business_logic::get_balances(&session.phone_number).await {
-                Ok(balances) => {
-                    let usdc_balance = balances.ckusdc_balance as f64 / 1_000_000.0;
+            match crate::services::crypto_client::check_crypto_balance(
+                session.phone_number.clone(),
+                shared_types::CryptoType::CkUSDC
+            ).await {
+                Ok(balance_e6) => {
+                    let usdc_balance = balance_e6 as f64 / 1_000_000.0;
                     
                     if usdc_balance < amount_usdc {
                         return (format!("{}!\n{}: {:.2} USDC\n{}: {:.2} USDC\n\n{}", 
@@ -48,26 +51,13 @@ pub async fn handle_sell_usdc(text: &str, session: &mut UssdSession) -> (String,
                             TranslationService::translate("thank_you", lang)), false);
                     }
                     
-                    // Get current rate
-                    match crate::services::business_logic::get_usdc_rate(&currency).await {
-                        Ok(rate) => {
-                            let fiat_amount = amount_usdc * rate.rate_to_fiat;
-                            (format!("{}\n{}: {:.2} USDC\n{}: {} {:.2}\n\n{}", 
-                                TranslationService::translate("confirm_transaction", lang),
-                                TranslationService::translate("amount", lang),
-                                amount_usdc,
-                                TranslationService::translate("you_will_receive", lang),
-                                currency,
-                                fiat_amount,
-                                TranslationService::translate("enter_pin_4digit", lang)), true)
-                        }
-                        Err(e) => {
-                            (format!("{}: {}\n\n{}", 
-                                TranslationService::translate("error", lang),
-                                e,
-                                TranslationService::translate("back_or_menu", lang)), true)
-                        }
-                    }
+                    // Show confirmation (rate determined at execution)
+                    (format!("{}\n{}: {:.2} USDC\n{}\n\n{}", 
+                        TranslationService::translate("confirm_transaction", lang),
+                        TranslationService::translate("amount", lang),
+                        amount_usdc,
+                        TranslationService::translate("you_will_receive", lang),
+                        TranslationService::translate("enter_pin_4digit", lang)), true)
                 }
                 Err(e) => {
                     (format!("{}: {}\n\n{}", 
@@ -86,21 +76,27 @@ pub async fn handle_sell_usdc(text: &str, session: &mut UssdSession) -> (String,
             
             ic_cdk::println!("💵 Executing sell_usdc: amount={} e6", amount_e6);
             
-            match crate::services::business_logic::sell_usdc(
-                &session.phone_number,
+            let currency_enum = match shared_types::FiatCurrency::from_code(&currency) {
+                Some(c) => c,
+                None => return (format!("Invalid currency\n\n0. {}", TranslationService::translate("main_menu", lang)), false),
+            };
+            
+            match crate::services::crypto_client::sell_crypto(
+                session.phone_number.clone(),
                 amount_e6,
-                &currency,
-                pin
+                shared_types::CryptoType::CkUSDC,
+                currency_enum,
+                pin.to_string()
             ).await {
                 Ok(result) => {
-                    let new_balance = result.new_balance as f64 / 100.0;
+                    let fiat_received = result.fiat_amount as f64 / 100.0;
                     (format!("{}!\n{} {:.2} USDC\n{}: {} {:.2}\n\n{}", 
                         TranslationService::translate("transaction_successful", lang),
                         TranslationService::translate("sold", lang),
                         amount_usdc,
-                        TranslationService::translate("new_balance", lang),
+                        TranslationService::translate("received", lang),
                         currency,
-                        new_balance,
+                        fiat_received,
                         TranslationService::translate("thank_you", lang)), false)
                 }
                 Err(e) => {

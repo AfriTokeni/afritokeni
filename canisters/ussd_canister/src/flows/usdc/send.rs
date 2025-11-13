@@ -49,9 +49,12 @@ pub async fn handle_send_usdc(text: &str, session: &mut UssdSession) -> (String,
             };
             
             // Check USDC balance
-            match crate::services::business_logic::get_balances(&session.phone_number).await {
-                Ok(balances) => {
-                    let usdc_balance = balances.ckusdc_balance as f64 / 1_000_000.0;
+            match crate::services::crypto_client::check_crypto_balance(
+                session.phone_number.clone(),
+                shared_types::CryptoType::CkUSDC
+            ).await {
+                Ok(balance_e6) => {
+                    let usdc_balance = balance_e6 as f64 / 1_000_000.0;
                     
                     if usdc_balance < amount_usdc {
                         return (format!("{}!\n{}: {:.2} USDC\n{}: {:.2} USDC\n\n{}", 
@@ -91,22 +94,20 @@ pub async fn handle_send_usdc(text: &str, session: &mut UssdSession) -> (String,
             
             ic_cdk::println!("💵 Executing send_usdc: to={}, amount={} e6", recipient, amount_e6);
             
-            match crate::services::business_logic::send_usdc(
-                &session.phone_number,
-                &recipient,
+            match crate::services::crypto_client::send_crypto(
+                session.phone_number.clone(),
+                recipient.clone(),
                 amount_e6,
-                pin
+                shared_types::CryptoType::CkUSDC,
+                pin.to_string()
             ).await {
-                Ok(result) => {
-                    let new_balance = result.new_balance as f64 / 1_000_000.0;
-                    (format!("{}!\n{} {:.2} USDC {} {}\n{}: {:.2} USDC\n\n{}", 
+                Ok(_tx_id) => {
+                    (format!("{}!\n{} {:.2} USDC {} {}\n\n{}", 
                         TranslationService::translate("transaction_successful", lang),
                         TranslationService::translate("sent", lang),
                         amount_usdc,
                         TranslationService::translate("to", lang),
                         recipient,
-                        TranslationService::translate("new_balance", lang),
-                        new_balance,
                         TranslationService::translate("thank_you", lang)), false)
                 }
                 Err(e) => {

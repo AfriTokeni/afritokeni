@@ -1,7 +1,6 @@
 // Withdraw flow with PIN verification and commission display
 use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
-use crate::services::business_logic;
 
 /// Handle withdraw flow
 /// Steps: 0. Enter agent ID → 1. Enter amount → 2. Show fees & confirm → 3. Enter PIN → 4. Create request
@@ -31,12 +30,12 @@ pub async fn handle_withdraw(text: &str, session: &mut UssdSession) -> (String, 
             
             match amount_str.parse::<u64>() {
                 Ok(amount) => {
-                    // Get withdrawal fees from Business Logic
-                    match business_logic::get_withdrawal_fees(amount).await {
+                    // Get withdrawal fees from Agent Canister
+                    match crate::services::agent_client::get_withdrawal_fees(amount).await {
                         Ok(fees) => {
                             session.set_data("amount", &amount.to_string());
                             
-                            (format!("💰 Withdrawal Details:\n\nAmount: {} UGX\nPlatform fee (0.5%): {} UGX\nAgent fee (10%): {} UGX\nTotal fees: {} UGX\nYou receive: {} UGX\n\n1. Confirm\n2. Cancel",
+                            (format!("💰 Withdrawal Details:\n\nAmount: {}\nPlatform fee (0.5%): {}\nAgent fee (10%): {}\nTotal fees: {}\nYou receive: {}\n\n1. Confirm\n2. Cancel",
                                 fees.amount,
                                 fees.platform_fee,
                                 fees.agent_fee,
@@ -71,16 +70,32 @@ pub async fn handle_withdraw(text: &str, session: &mut UssdSession) -> (String, 
             let amount: u64 = session.get_data("amount").unwrap_or_default().parse().unwrap_or(0);
             let phone = session.phone_number.clone();
             
-            match business_logic::create_withdrawal_request(&phone, &agent_id, amount, pin).await {
+            let currency = session.get_data("currency").unwrap_or_else(|| "UGX".to_string());
+            let currency_enum = match shared_types::FiatCurrency::from_code(&currency) {
+                Some(c) => c,
+                None => return (format!("Invalid currency\n\n0. Main Menu"), false),
+            };
+            
+            match crate::services::agent_client::create_withdrawal_request(
+                phone.clone(),
+                agent_id.clone(),
+                amount,
+                currency_enum,
+                pin.to_string()
+            ).await {
                 Ok(result) => {
                     session.clear_data();
-                    (format!("✅ Withdrawal Request Created!\n\n📋 CODE: {}\n\nShow this code to agent:\n{}\n\nAmount: {} UGX\nPlatform fee: {} UGX\nAgent fee: {} UGX\nYou'll receive: {} UGX\n\n0. Main Menu",
+                    (format!("✅ Withdrawal Request Created!\n\n📋 CODE: {}\n\nShow this code to agent:\n{}\n\nAmount: {} {}\nPlatform fee: {} {}\nAgent fee: {} {}\nYou'll receive: {} {}\n\n0. Main Menu",
                         result.withdrawal_code,
                         result.withdrawal_code,
-                        result.amount_ugx,
-                        result.platform_fee_ugx,
-                        result.agent_fee_ugx,
-                        result.net_amount), false)
+                        result.amount,
+                        currency,
+                        result.platform_fee,
+                        currency,
+                        result.agent_fee,
+                        currency,
+                        result.net_amount,
+                        currency), false)
                 }
                 Err(e) => {
                     session.clear_data();

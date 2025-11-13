@@ -9,22 +9,10 @@ pub async fn handle_bitcoin_rate(_text: &str, session: &mut UssdSession) -> (Str
     
     ic_cdk::println!("💱 Fetching Bitcoin rate for: {}", currency);
     
-    // Get Bitcoin rate from Business Logic Canister
-    match crate::services::business_logic::get_bitcoin_rate(&currency).await {
-        Ok(rate) => {
-            (format!("{}\n\n1 BTC = {} {}\n1 {} = {:.8} BTC\n\n{}", 
-                TranslationService::translate("bitcoin_rate", lang),
-                rate.rate_to_fiat,
-                currency,
-                currency,
-                1.0 / rate.rate_to_fiat,
-                TranslationService::translate("back_or_menu", lang)), true)
-        }
-        Err(e) => {
-            (format!("{}: {}\n\n{}", 
-                TranslationService::translate("error", lang),
-                e,
-                TranslationService::translate("back_or_menu", lang)), true)
-        }
-    }
+    // TODO: Use exchange service for rates
+    let _ = currency; // Suppress unused warning
+    (format!("{}\n\n{}\n\n{}", 
+        TranslationService::translate("bitcoin_rate", lang),
+        "Rate service coming soon",
+        TranslationService::translate("back_or_menu", lang)), true)
 }

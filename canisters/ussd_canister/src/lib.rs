@@ -5,43 +5,15 @@ use candid::Principal;
 mod config_loader;
 mod api;
 pub mod core;
-mod flows;
-mod services;
+pub mod flows;
+pub mod logic;
+pub mod services;
 pub mod utils;
 
-/// Initialize USSD canister with Business Logic Canister ID
+/// Initialize USSD canister
 #[init]
-fn init(business_logic_canister_id: Option<String>) {
-    if let Some(canister_id) = business_logic_canister_id {
-        match Principal::from_text(&canister_id) {
-            Ok(principal) => {
-                services::business_logic::set_business_logic_canister_id(principal);
-                ic_cdk::println!("🔧 USSD canister initialized with Business Logic Canister: {}", canister_id);
-            }
-            Err(e) => {
-                ic_cdk::println!("❌ Invalid Business Logic Canister ID: {:?}", e);
-            }
-        }
-    } else {
-        ic_cdk::println!("🔧 USSD canister initialized - use set_business_logic_canister_id to configure");
-    }
-}
-
-/// Set Business Logic Canister ID (for manual configuration)
-#[update]
-fn set_business_logic_canister_id(canister_id: String) -> Result<(), String> {
-    let principal = Principal::from_text(&canister_id)
-        .map_err(|e| format!("Invalid principal: {:?}", e))?;
-    
-    services::business_logic::set_business_logic_canister_id(principal);
-    
-    ic_cdk::println!("✅ Business Logic Canister ID set to: {}", canister_id);
-    Ok(())
-}
-
-/// Get Business Logic Canister ID (delegates to business_logic module)
-pub fn get_business_logic_canister_id() -> Result<Principal, String> {
-    services::business_logic::get_business_logic_canister_id()
+fn init() {
+    ic_cdk::println!("🔧 USSD canister initialized - use configure_domain_canisters to set canister IDs");
 }
 
 /// Set Exchange Canister ID (for manual configuration)
@@ -49,6 +21,71 @@ pub fn get_business_logic_canister_id() -> Result<Principal, String> {
 fn set_exchange_canister_id(canister_id: Principal) {
     services::exchange::set_exchange_canister_id(canister_id);
     ic_cdk::println!("✅ Exchange Canister ID set");
+}
+
+// ============================================================================
+// DOMAIN CANISTER CONFIGURATION (NEW)
+// ============================================================================
+
+/// Set User Canister ID
+#[update]
+fn set_user_canister_id(canister_id: String) -> Result<(), String> {
+    let principal = Principal::from_text(&canister_id)
+        .map_err(|e| format!("Invalid principal: {:?}", e))?;
+    
+    services::user_client::set_user_canister_id(principal);
+    ic_cdk::println!("✅ User Canister ID set to: {}", canister_id);
+    Ok(())
+}
+
+/// Set Wallet Canister ID
+#[update]
+fn set_wallet_canister_id(canister_id: String) -> Result<(), String> {
+    let principal = Principal::from_text(&canister_id)
+        .map_err(|e| format!("Invalid principal: {:?}", e))?;
+    
+    services::wallet_client::set_wallet_canister_id(principal);
+    ic_cdk::println!("✅ Wallet Canister ID set to: {}", canister_id);
+    Ok(())
+}
+
+/// Set Crypto Canister ID
+#[update]
+fn set_crypto_canister_id(canister_id: String) -> Result<(), String> {
+    let principal = Principal::from_text(&canister_id)
+        .map_err(|e| format!("Invalid principal: {:?}", e))?;
+    
+    services::crypto_client::set_crypto_canister_id(principal);
+    ic_cdk::println!("✅ Crypto Canister ID set to: {}", canister_id);
+    Ok(())
+}
+
+/// Set Agent Canister ID
+#[update]
+fn set_agent_canister_id(canister_id: String) -> Result<(), String> {
+    let principal = Principal::from_text(&canister_id)
+        .map_err(|e| format!("Invalid principal: {:?}", e))?;
+    
+    services::agent_client::set_agent_canister_id(principal);
+    ic_cdk::println!("✅ Agent Canister ID set to: {}", canister_id);
+    Ok(())
+}
+
+/// Configure all domain canisters at once (convenience function)
+#[update]
+fn configure_domain_canisters(
+    user_canister_id: String,
+    wallet_canister_id: String,
+    crypto_canister_id: String,
+    agent_canister_id: String,
+) -> Result<(), String> {
+    set_user_canister_id(user_canister_id)?;
+    set_wallet_canister_id(wallet_canister_id)?;
+    set_crypto_canister_id(crypto_canister_id)?;
+    set_agent_canister_id(agent_canister_id)?;
+    
+    ic_cdk::println!("✅ All domain canisters configured successfully");
+    Ok(())
 }
 
 /// USSD endpoint for integration tests

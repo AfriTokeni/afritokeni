@@ -52,27 +52,41 @@ pub async fn handle_buy_bitcoin(text: &str, session: &mut UssdSession) -> (Strin
             let amount_f64 = amount_str.parse::<f64>().unwrap_or(0.0);
             let amount_cents = (amount_f64 * 100.0) as u64;
             
-            // Call Business Logic to buy Bitcoin
-            match crate::services::business_logic::buy_crypto(
-                &phone,
+            // Convert currency string to enum
+            let currency_enum = shared_types::FiatCurrency::from_code(&currency)
+                .ok_or_else(|| format!("Invalid currency: {}", currency));
+            
+            let currency_enum = match currency_enum {
+                Ok(c) => c,
+                Err(e) => {
+                    return (format!("{}: {}\n\n0. {}", 
+                        TranslationService::translate("error", lang),
+                        e,
+                        TranslationService::translate("main_menu", lang)), false);
+                }
+            };
+            
+            // Call Crypto Canister to buy Bitcoin
+            match crate::services::crypto_client::buy_crypto(
+                phone.clone(),
                 amount_cents,
-                &currency,
-                crate::services::business_logic::CryptoType::CkBTC,
-                pin
+                currency_enum,
+                shared_types::CryptoType::CkBTC,
+                pin.to_string()
             ).await {
                 Ok(tx_result) => {
-                    let btc_amount = (tx_result.amount as f64) / 100_000_000.0; // satoshis to BTC
-                    let new_balance = (tx_result.new_balance as f64) / 100.0;
+                    let btc_amount = (tx_result.crypto_amount as f64) / 100_000_000.0; // satoshis to BTC
+                    let fiat_spent = (tx_result.fiat_amount as f64) / 100.0;
                     
-                    (format!("{}\n{} {} {} {} {:.8} BTC\n{}: {} {}\n\n0. {}", 
+                    (format!("{}\n{} {} {} {} {:.8} BTC\n{}: {:.2} {}\n\n0. {}", 
                         TranslationService::translate("transaction_successful", lang),
                         TranslationService::translate("bought", lang),
-                        amount_f64,
+                        fiat_spent,
                         currency,
                         TranslationService::translate("worth_of", lang),
                         btc_amount,
-                        TranslationService::translate("new_balance", lang),
-                        new_balance,
+                        TranslationService::translate("exchange_rate", lang),
+                        tx_result.exchange_rate,
                         currency,
                         TranslationService::translate("main_menu", lang)), false)
                 }

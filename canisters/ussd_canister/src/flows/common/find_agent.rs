@@ -9,39 +9,10 @@ pub async fn handle_find_agent(_text: &str, session: &mut UssdSession) -> (Strin
     
     ic_cdk::println!("🔍 Finding agents for currency: {}", currency);
     
-    // Get user's location from their profile, then find nearby agents
-    // Business Logic Canister will use the user's registered location
-    match crate::services::business_logic::get_nearby_agents(&session.phone_number, &currency).await {
-        Ok(agents) => {
-            if agents.is_empty() {
-                return (format!("{}\n\n{}\n\n{}", 
-                    TranslationService::translate("find_agent", lang),
-                    TranslationService::translate("no_agents_found", lang),
-                    TranslationService::translate("back_or_menu", lang)), true);
-            }
-            
-            let mut response = format!("{} ({}):\n\n", 
-                TranslationService::translate("nearby_agents", lang),
-                agents.len());
-            
-            for (i, agent) in agents.iter().take(5).enumerate() {
-                response.push_str(&format!("{}. {}\n{}: {}\n{}: {}\n\n", 
-                    i + 1,
-                    agent.name,
-                    TranslationService::translate("phone", lang),
-                    agent.phone,
-                    TranslationService::translate("location", lang),
-                    agent.location));
-            }
-            
-            response.push_str(&TranslationService::translate("back_or_menu", lang));
-            (response, true)
-        }
-        Err(e) => {
-            (format!("{}: {}\n\n{}", 
-                TranslationService::translate("error", lang),
-                e,
-                TranslationService::translate("back_or_menu", lang)), true)
-        }
-    }
+    // TODO: Use agent_client::get_nearby_agents
+    let _ = currency; // Suppress unused warning
+    (format!("{}\n\n{}\n\n{}", 
+        TranslationService::translate("find_agent", lang),
+        "Agent search coming soon",
+        TranslationService::translate("back_or_menu", lang)), true)
 }

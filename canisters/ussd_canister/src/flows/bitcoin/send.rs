@@ -62,16 +62,16 @@ pub async fn handle_send_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
             // Amount is already in satoshis
             let amount_sats = amount_str.parse::<u64>().unwrap_or(0);
             
-            // Call Business Logic to send Bitcoin
-            match crate::services::business_logic::send_crypto(
-                &phone,
-                &btc_address,
+            // Call Crypto Canister to send Bitcoin
+            match crate::services::crypto_client::send_crypto(
+                phone.clone(),
+                btc_address.clone(),
                 amount_sats,
-                crate::services::business_logic::CryptoType::CkBTC,
-                pin
+                shared_types::CryptoType::CkBTC,
+                pin.to_string()
             ).await {
-                Ok(result) => {
-                    let btc_sent = result.amount as f64 / 100_000_000.0;
+                Ok(tx_id) => {
+                    let btc_sent = amount_sats as f64 / 100_000_000.0;
                     session.clear_data();
                     (format!("{}\nSent {:.8} ckBTC to {}\n\n0. {}", 
                         TranslationService::translate("transaction_successful", lang),
