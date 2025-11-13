@@ -195,9 +195,11 @@ mod tests {
 
     #[test]
     fn test_sanitize_input() {
-        assert_eq!(sanitize_input("1*2*3"), "123");
-        assert_eq!(sanitize_input("hello<script>"), "helloscript");
-        assert_eq!(sanitize_input("+256700"), "+256700");
+        assert_eq!(sanitize_input("1*2*3"), "1*2*3"); // * is allowed for USSD codes
+        assert_eq!(sanitize_input("hello<script>"), "helloscript"); // < and > removed
+        assert_eq!(sanitize_input("+256700"), "+256700"); // + allowed for phone numbers
+        assert_eq!(sanitize_input("123.45"), "123.45"); // . allowed for amounts
+        assert_eq!(sanitize_input("test@email"), "testemail"); // @ removed
     }
 
     #[test]
