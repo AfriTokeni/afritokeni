@@ -310,8 +310,8 @@ impl TestEnv {
     }
     
     /// Set fiat balance for testing (accepts phone number or user_id)
-    /// Amount is in base currency units (e.g., UGX), will be converted to cents internally
-    pub fn set_fiat_balance(&self, user_identifier: &str, currency: &str, amount_in_currency: u64) -> Result<(), String> {
+    /// Amount is in CENTS (e.g., 150_000 cents = 1,500 UGX)
+    pub fn set_fiat_balance(&self, user_identifier: &str, currency: &str, amount_in_cents: u64) -> Result<(), String> {
         // If it's a phone number, look up the user_id first
         let user_id = if user_identifier.starts_with('+') {
             match self.get_user(user_identifier) {
@@ -322,9 +322,6 @@ impl TestEnv {
         } else {
             user_identifier.to_string()
         };
-        
-        // Convert to cents (multiply by 100)
-        let amount_in_cents = amount_in_currency * 100;
         
         // Convert currency string to FiatCurrency enum
         let currency_enum = FiatCurrency::from_code(currency)

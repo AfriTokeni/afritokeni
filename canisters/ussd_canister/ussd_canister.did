@@ -1,0 +1,33 @@
+type HttpRequest = record {
+  url : text;
+  method : text;
+  body : blob;
+  headers : vec record { text; text };
+};
+type Result = variant { Ok; Err : text };
+service : () -> {
+  // Configure all domain canisters at once (convenience function)
+  configure_domain_canisters : (principal, principal, principal, principal) -> (
+      Result,
+    );
+  // HTTP request handler for GET requests (IC HTTP gateway)
+  http_request : (HttpRequest) -> () query;
+  // HTTP request handler for POST requests (IC HTTP gateway)
+  // Handles update calls that modify state
+  // Routes:
+  // - POST /api/ussd - USSD webhook handler
+  http_request_update : (HttpRequest) -> ();
+  // Set Agent Canister ID
+  set_agent_canister_id : (principal) -> (Result);
+  // Set Crypto Canister ID
+  set_crypto_canister_id : (principal) -> (Result);
+  // Set Exchange Canister ID (for manual configuration)
+  set_exchange_canister_id : (principal) -> ();
+  // Set User Canister ID
+  set_user_canister_id : (principal) -> (Result);
+  // Set Wallet Canister ID
+  set_wallet_canister_id : (principal) -> (Result);
+  // USSD endpoint for integration tests
+  // Returns (response_text, continue_session)
+  ussd : (text, text, text) -> (text, bool);
+}

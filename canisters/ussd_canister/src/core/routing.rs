@@ -244,22 +244,30 @@ pub async fn handle_local_currency_menu(text: &str, session: &mut UssdSession) -
         }
         "2" if parts.len() == 2 => {
             // Check balance (when text is "1*2")
+            // Get user ID first
+            let user_profile = match crate::services::user_client::get_user_by_phone(session.phone_number.clone()).await {
+                Ok(profile) => profile,
+                Err(_) => return (format!("{}\n\n{}", 
+                    TranslationService::translate("error", lang),
+                    TranslationService::translate("back_or_menu", lang)), true),
+            };
+            
             let currency_enum = match shared_types::FiatCurrency::from_code(&currency) {
                 Some(c) => c,
                 None => return (format!("Invalid currency\n\n{}", TranslationService::translate("back_or_menu", lang)), true),
             };
             
-            let fiat_balance = match crate::services::wallet_client::get_fiat_balance(session.phone_number.clone(), currency_enum).await {
+            let fiat_balance = match crate::services::wallet_client::get_fiat_balance(user_profile.id.clone(), currency_enum).await {
                 Ok(balance_cents) => balance_cents as f64 / 100.0,
                 Err(_) => 0.0,
             };
             
-            let ckbtc = match crate::services::crypto_client::check_crypto_balance(session.phone_number.clone(), shared_types::CryptoType::CkBTC).await {
+            let ckbtc = match crate::services::crypto_client::check_crypto_balance(user_profile.id.clone(), shared_types::CryptoType::CkBTC).await {
                 Ok(sats) => sats as f64 / 100_000_000.0,
                 Err(_) => 0.0,
             };
             
-            let ckusdc = match crate::services::crypto_client::check_crypto_balance(session.phone_number.clone(), shared_types::CryptoType::CkUSDC).await {
+            let ckusdc = match crate::services::crypto_client::check_crypto_balance(user_profile.id.clone(), shared_types::CryptoType::CkUSDC).await {
                 Ok(e6) => e6 as f64 / 1_000_000.0,
                 Err(_) => 0.0,
             };
