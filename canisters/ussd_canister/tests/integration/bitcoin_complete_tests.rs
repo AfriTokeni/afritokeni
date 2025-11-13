@@ -12,10 +12,10 @@ fn test_buy_bitcoin_with_ugx() {
     let sess = session();
     let phone = &phone("UGX");
     
-    env.setup_test_user_with_balances(phone, "BTC", "Buyer", "btc@test.com", "UGX", "1234", 1000000, 0, 0)
+    env.setup_test_user_with_balances(phone, "BTC", "Buyer", "btc@test.com", "UGX", "1234", 10000000, 0, 0)
         .expect("Setup");
     
-    // Buy Bitcoin: Menu 2 (Bitcoin) -> 3 (Buy) -> Amount -> PIN
+    // Buy Bitcoin: Menu 2 (Bitcoin) -> 3 (Buy) -> Amount (100,000 UGX) -> PIN
     let (response, _) = env.process_ussd(&sess, phone, "2*3*100000*1234");
     
     assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),

@@ -6,13 +6,40 @@ use crate::utils::translations::{Language, TranslationService};
 pub async fn handle_find_agent(_text: &str, session: &mut UssdSession) -> (String, bool) {
     let lang = Language::from_code(&session.language);
     let currency = session.get_data("currency").unwrap_or_else(|| "UGX".to_string());
-    
+
     ic_cdk::println!("🔍 Finding agents for currency: {}", currency);
-    
-    // TODO: Use agent_client::get_nearby_agents
-    let _ = currency; // Suppress unused warning
-    (format!("{}\n\n{}\n\n{}", 
-        TranslationService::translate("find_agent", lang),
-        "Agent search coming soon",
-        TranslationService::translate("back_or_menu", lang)), true)
+
+    // Get nearby agents from agent canister
+    match crate::services::agent_client::get_nearby_agents(currency.clone()).await {
+        Ok(agents) => {
+            if agents.is_empty() {
+                return (format!("{}\n\n{}\n\n{}",
+                    TranslationService::translate("find_agent", lang),
+                    TranslationService::translate("no_agents_available_now", lang),
+                    TranslationService::translate("back_or_menu", lang)), true);
+            }
+
+            let mut response = format!("{} ({})\n\n", TranslationService::translate("find_agent", lang), currency);
+
+            for (i, agent) in agents.iter().enumerate().take(5) {
+                response.push_str(&format!("{}. {}\n{}: {}\n{}: {}\n\n",
+                    i + 1,
+                    agent.name,
+                    TranslationService::translate("phone", lang),
+                    agent.phone,
+                    TranslationService::translate("location", lang),
+                    agent.location
+                ));
+            }
+
+            response.push_str(&format!("{}", TranslationService::translate("back_or_menu", lang)));
+            (response, true)
+        }
+        Err(e) => {
+            (format!("{}: {}\n\n{}",
+                TranslationService::translate("error", lang),
+                e,
+                TranslationService::translate("back_or_menu", lang)), true)
+        }
+    }
 }

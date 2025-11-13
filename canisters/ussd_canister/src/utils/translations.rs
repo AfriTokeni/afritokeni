@@ -1125,6 +1125,22 @@ impl TranslationService {
             ("no_transactions", Language::Luganda) => "Tewali nsimbi ezisindikiddwa",
             ("no_transactions", Language::Swahili) => "Hakuna miamala iliyopatikana",
 
+            ("no_agents_available_now", Language::English) => "No agents available at the moment",
+            ("no_agents_available_now", Language::Luganda) => "Tewali ba-agent kati",
+            ("no_agents_available_now", Language::Swahili) => "Hakuna mawakala kwa sasa",
+
+            ("live_rates_shown", Language::English) => "Live rates are shown when you buy/sell.",
+            ("live_rates_shown", Language::Luganda) => "Emiwendo egy'amazima giragibwa ng'ogula/otunda.",
+            ("live_rates_shown", Language::Swahili) => "Bei za sasa zinaonyeshwa unapununua/uza.",
+
+            ("rates_update_realtime", Language::English) => "Rates update in real-time from DEX.",
+            ("rates_update_realtime", Language::Luganda) => "Emiwendo gisasulwa mu budde obwennyini okuva ku DEX.",
+            ("rates_update_realtime", Language::Swahili) => "Bei zinasasishwa wakati halisi kutoka DEX.",
+
+            ("phone", Language::English) => "Phone",
+            ("phone", Language::Luganda) => "Essimu",
+            ("phone", Language::Swahili) => "Simu",
+
             ("to_start_using", Language::English) => "To start using AfriTokeni, send money or make a deposit through an agent",
             ("to_start_using", Language::Luganda) => "Okutandika okukozesa AfriTokeni, wereza ssente oba teeka ssente ng'oyita mu agent",
             ("to_start_using", Language::Swahili) => "Ili kuanza kutumia AfriTokeni, tuma pesa au fanya amana kupitia wakala",

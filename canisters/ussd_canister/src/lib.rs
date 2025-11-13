@@ -105,8 +105,25 @@ async fn ussd(session_id: String, phone_number: String, text: String) -> (String
 fn http_request(req: api::http::HttpRequest) {
     ic_cdk::println!("📥 http_request (query): {} {}", req.method, req.url);
     let response = api::http::route_request(req);
-    let bytes = candid::encode_one(&response).expect("Failed to encode response");
-    ic_cdk::api::msg_reply(&bytes);
+
+    match candid::encode_one(&response) {
+        Ok(bytes) => ic_cdk::api::msg_reply(&bytes),
+        Err(e) => {
+            ic_cdk::println!("❌ Failed to encode response: {}", e);
+            // Return HTTP 500 error response
+            let error_response = api::http::HttpResponse {
+                status_code: 500,
+                headers: vec![("Content-Type".to_string(), "text/plain".to_string())],
+                body: b"Internal Server Error: Failed to encode response".to_vec(),
+            };
+            if let Ok(error_bytes) = candid::encode_one(&error_response) {
+                ic_cdk::api::msg_reply(&error_bytes);
+            } else {
+                // Last resort - reply with empty bytes
+                ic_cdk::api::msg_reply(&[]);
+            }
+        }
+    }
 }
 
 /// HTTP request handler for POST requests (IC HTTP gateway)
@@ -117,8 +134,25 @@ fn http_request(req: api::http::HttpRequest) {
 async fn http_request_update(req: api::http::HttpRequest) {
     ic_cdk::println!("📥 http_request_update (update): {} {}", req.method, req.url);
     let response = api::http::route_request_async(req).await;
-    let bytes = candid::encode_one(&response).expect("Failed to encode response");
-    ic_cdk::api::msg_reply(&bytes);
+
+    match candid::encode_one(&response) {
+        Ok(bytes) => ic_cdk::api::msg_reply(&bytes),
+        Err(e) => {
+            ic_cdk::println!("❌ Failed to encode response: {}", e);
+            // Return HTTP 500 error response
+            let error_response = api::http::HttpResponse {
+                status_code: 500,
+                headers: vec![("Content-Type".to_string(), "text/plain".to_string())],
+                body: b"Internal Server Error: Failed to encode response".to_vec(),
+            };
+            if let Ok(error_bytes) = candid::encode_one(&error_response) {
+                ic_cdk::api::msg_reply(&error_bytes);
+            } else {
+                // Last resort - reply with empty bytes
+                ic_cdk::api::msg_reply(&[]);
+            }
+        }
+    }
 }
 
 // Export Candid interface

@@ -53,11 +53,11 @@ default_currency = "UGX"
 
 [features]
 # Feature flags - toggle incomplete features
-enable_dao_voting = false
-enable_rate_checking = false
-enable_find_agent = false
-enable_transaction_history = false
-enable_language_switching = false
+enable_dao_voting = false  # Requires SNS canister integration
+enable_rate_checking = true  # Shows info about dynamic rates
+enable_find_agent = true  # Calls agent_canister::get_nearby_agents
+enable_transaction_history = true  # Calls wallet_canister::get_transaction_history
+enable_language_switching = true  # Session-based language switching
 
 [validation]
 # BTC address validation settings
