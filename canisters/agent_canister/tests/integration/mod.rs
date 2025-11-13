@@ -8,6 +8,10 @@ mod agent_balance_tests;
 mod settlement_tests;
 mod fraud_detection_tests;
 mod edge_case_tests;
+mod multi_currency_tests;
+mod pin_security_tests;
+mod code_expiration_tests;
+mod concurrent_operations_tests;
 
 // ============================================================================
 // Shared Request/Response Types for Tests
