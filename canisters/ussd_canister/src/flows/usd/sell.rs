@@ -87,37 +87,57 @@ pub async fn handle_sell_usdc(text: &str, session: &mut UssdSession) -> (String,
             }
         }
         2 => {
-            // Step 2: Show preview and ask for confirmation
+            // Step 2: Verify PIN first
             // parts = [3, 4, amount, PIN]
             let amount_str = parts.get(2).unwrap_or(&"");
             let pin = parts.get(3).unwrap_or(&"");
 
             let amount_e6 = match amount_str.parse::<f64>() {
                 Ok(amt) if amt > 0.0 => (amt * 1_000_000.0) as u64,
-                _ => 0,
+                _ => {
+                    return (format!("{}\n\n{}",
+                        TranslationService::translate("invalid_amount", lang),
+                        TranslationService::translate("back_or_menu", lang)), true);
+                }
             };
             let amount_usdc = amount_e6 as f64 / 1_000_000.0;
 
-            // Store for next step
-            session.set_data("amount_e6", &amount_e6.to_string());
-            session.set_data("pin", pin);
+            // Get user profile to verify PIN
+            let user_profile = match crate::services::user_client::get_user_by_phone(session.phone_number.clone()).await {
+                Ok(profile) => profile,
+                Err(e) => return (format!("Error: {}\n\n0. Main Menu", e), false),
+            };
 
-            // TODO: Get actual exchange rate from crypto canister
-            // For now, show estimated values
-            (format!("💰 {}:
+            // Verify PIN BEFORE showing confirmation
+            match crate::services::user_client::verify_pin(user_profile.id.clone(), pin.to_string()).await {
+                Ok(true) => {
+                    // PIN is valid, store for next step and show confirmation
+                    session.set_data("amount_e6", &amount_e6.to_string());
+                    session.set_data("pin", pin);
+
+                    // TODO: Get actual exchange rate from crypto canister
+                    // For now, show estimated values
+                    (format!("💰 {}:
 
 {}: {:.2} USDC
 {}: ~{} (est)
 
 1. {}
 2. {}",
-                TranslationService::translate("confirm_transaction", lang),
-                TranslationService::translate("selling", lang),
-                amount_usdc,
-                TranslationService::translate("you_receive", lang),
-                currency,
-                TranslationService::translate("confirm", lang),
-                TranslationService::translate("cancel", lang)), true)
+                        TranslationService::translate("confirm_transaction", lang),
+                        TranslationService::translate("selling", lang),
+                        amount_usdc,
+                        TranslationService::translate("you_receive", lang),
+                        currency,
+                        TranslationService::translate("confirm", lang),
+                        TranslationService::translate("cancel", lang)), true)
+                }
+                Ok(false) | Err(_) => {
+                    (format!("{}\n\n{}",
+                        TranslationService::translate("incorrect_pin", lang),
+                        TranslationService::translate("back_or_menu", lang)), false)
+                }
+            }
         }
         3 => {
             // Step 3: Execute sell

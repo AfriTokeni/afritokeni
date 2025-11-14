@@ -199,7 +199,7 @@ fn test_swap_return_to_main_menu() {
         .expect("Registration");
     env.process_ussd(&sess, phone, "4");
     let (response, _) = env.process_ussd(&sess, phone, "0");
-    assert!(response.contains("Main") || response.contains("Menu"),
+    assert!(response.contains("Main") || response.contains("Menu") || response.contains("Welcome to AfriTokeni"),
         "Should return to main menu. Got: {}", response);
 }
 

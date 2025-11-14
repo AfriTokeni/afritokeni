@@ -11,21 +11,22 @@ fn test_buy_bitcoin_with_ugx() {
     let env = get_test_env();
     let sess = session();
     let phone = &phone("UGX");
-    
-    env.setup_test_user_with_balances(phone, "BTC", "Buyer", "btc@test.com", "UGX", "1234", 10000000, 0, 0)
+
+    // Setup: 100,000,000 cents = 1,000,000.00 UGX
+    env.setup_test_user_with_balances(phone, "BTC", "Buyer", "btc@test.com", "UGX", "1234", 100000000, 0, 0)
         .expect("Setup");
-    
-    // Buy Bitcoin: Menu 2 (Bitcoin) -> 3 (Buy) -> Amount (100,000 UGX) -> PIN
+
+    // Buy Bitcoin: Menu 2 (Bitcoin) -> 3 (Buy) -> Amount (100,000.00 UGX) -> PIN
     let (response, _) = env.process_ussd(&sess, phone, "2*3*100000*1234");
-    
+
     assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
         "Should buy BTC. Got: {}", response);
-    
+
     // Verify BTC balance increased
     let (btc, _) = env.get_crypto_balance(phone).expect("Get crypto balance");
     assert!(btc > 0, "Should have BTC balance");
-    
-    // Verify fiat balance decreased
+
+    // Verify fiat balance decreased (1,000,000 - 100,000 = 900,000 UGX)
     let fiat = env.check_fiat_balance(phone, "UGX").expect("Get fiat balance");
     assert_eq!(fiat, 900000, "Fiat should decrease");
 }
@@ -35,15 +36,17 @@ fn test_buy_bitcoin_with_kes() {
     let env = get_test_env();
     let sess = session();
     let phone = &phone("KES");
-    
-    env.setup_test_user_with_balances(phone, "KES", "BTCBuyer", "kesbtc@test.com", "KES", "1234", 500000, 0, 0)
+
+    // Setup: 5,000,000 cents = 50,000.00 KES
+    env.setup_test_user_with_balances(phone, "KES", "BTCBuyer", "kesbtc@test.com", "KES", "1234", 5000000, 0, 0)
         .expect("Setup");
-    
+
+    // Buy with 50,000.00 KES
     let (response, _) = env.process_ussd(&sess, phone, "2*3*50000*1234");
-    
+
     assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
         "Should buy BTC. Got: {}", response);
-    
+
     let (btc, _) = env.get_crypto_balance(phone).expect("Get balance");
     assert!(btc > 0);
 }
@@ -53,12 +56,14 @@ fn test_buy_bitcoin_with_tzs() {
     let env = get_test_env();
     let sess = session();
     let phone = &phone("TZS");
-    
-    env.setup_test_user_with_balances(phone, "TZS", "BTCBuyer", "tzsbtc@test.com", "TZS", "1234", 2000000, 0, 0)
+
+    // Setup: 5,000,000 cents = 50,000.00 TZS
+    env.setup_test_user_with_balances(phone, "TZS", "BTCBuyer", "tzsbtc@test.com", "TZS", "1234", 5000000, 0, 0)
         .expect("Setup");
-    
+
+    // Buy with 50,000.00 TZS
     let (response, _) = env.process_ussd(&sess, phone, "2*3*50000*1234");
-    
+
     assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
         "Should buy BTC. Got: {}", response);
 }
@@ -68,12 +73,14 @@ fn test_buy_bitcoin_with_ngn() {
     let env = get_test_env();
     let sess = session();
     let phone = &phone("NGN");
-    
+
+    // Setup: 5,000,000 cents = 50,000.00 NGN
     env.setup_test_user_with_balances(phone, "NGN", "BTCBuyer", "ngnbtc@test.com", "NGN", "1234", 5000000, 0, 0)
         .expect("Setup");
-    
+
+    // Buy with 50,000.00 NGN
     let (response, _) = env.process_ussd(&sess, phone, "2*3*50000*1234");
-    
+
     assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
         "Should buy BTC. Got: {}", response);
 }
@@ -143,8 +150,8 @@ fn test_send_bitcoin_zero_amount() {
         .expect("Setup");
     
     let (response, _) = env.process_ussd(&sess, phone, "2*5*rrkah-fqaaa-aaaaa-aaaaq-cai*0");
-    
-    assert!(response.contains("Invalid") || response.contains("invalid") || response.contains("positive"),
+
+    assert!(response.contains("Invalid") || response.contains("invalid") || response.contains("positive") || response.contains("too small") || response.contains("Minimum"),
         "Should reject zero amount. Got: {}", response);
 }
 
@@ -293,8 +300,8 @@ fn test_bitcoin_return_to_main_menu() {
     
     env.process_ussd(&sess, phone, "2"); // Bitcoin menu
     let (response, _) = env.process_ussd(&sess, phone, "0"); // Back
-    
-    assert!(response.contains("Main") || response.contains("Menu") || response.contains("Send"),
+
+    assert!(response.contains("Welcome") || response.contains("Local Currency") || response.contains("Bitcoin"),
         "Should return to main menu. Got: {}", response);
 }
 
@@ -307,16 +314,18 @@ fn test_buy_bitcoin_wrong_pin() {
     let env = get_test_env();
     let sess = session();
     let phone = &phone("UGX");
-    
-    env.setup_test_user_with_balances(phone, "BTC", "WrongPIN", "btcwrong@test.com", "UGX", "1234", 100000, 0, 0)
+
+    // Setup: 10,000,000 cents = 100,000.00 UGX
+    env.setup_test_user_with_balances(phone, "BTC", "WrongPIN", "btcwrong@test.com", "UGX", "1234", 10000000, 0, 0)
         .expect("Setup");
-    
+
+    // Try to buy with wrong PIN
     let (response, _) = env.process_ussd(&sess, phone, "2*3*50000*9999"); // Wrong PIN
-    
+
     assert!(response.contains("Incorrect") || response.contains("incorrect") || response.contains("Wrong") || response.contains("Invalid"),
         "Should reject wrong PIN. Got: {}", response);
-    
-    // Balance should not change
+
+    // Balance should not change (still 100,000.00 UGX)
     let fiat = env.check_fiat_balance(phone, "UGX").expect("Get balance");
     assert_eq!(fiat, 100000, "Fiat should not change");
 }

@@ -378,8 +378,20 @@ impl TestEnv {
     
     /// Set crypto balance for testing (ckBTC and ckUSDC)
     /// Uses the crypto_canister test-only endpoint set_crypto_balance_for_testing
-    pub fn set_crypto_balance(&self, user_id: &str, ckbtc: u64, ckusdc: u64) -> Result<(), String> {
-        let arg = encode_args((user_id.to_string(), ckbtc, ckusdc)).unwrap();
+    /// Accepts phone number or user_id
+    pub fn set_crypto_balance(&self, user_identifier: &str, ckbtc: u64, ckusdc: u64) -> Result<(), String> {
+        // If it's a phone number, look up the user_id first
+        let user_id = if user_identifier.starts_with('+') {
+            match self.get_user(user_identifier) {
+                Ok(Some(user)) => user.id,
+                Ok(None) => return Err(format!("User not found: {}", user_identifier)),
+                Err(e) => return Err(format!("Failed to look up user: {}", e)),
+            }
+        } else {
+            user_identifier.to_string()
+        };
+
+        let arg = encode_args((user_id, ckbtc, ckusdc)).unwrap();
         let response = self.pic.update_call(
             self.crypto_canister_id,
             Principal::anonymous(),
@@ -429,24 +441,34 @@ impl TestEnv {
         }
     }
     
-    /// Check fiat balance via business logic
-    /// Returns balance in base currency units (e.g., UGX), converted from cents
-    pub fn check_fiat_balance(&self, user_id: &str, currency: &str) -> Result<u64, String> {
+    /// Check fiat balance via business logic (accepts phone number or user_id)
+    /// Returns balance in CENTS (e.g., 100000 cents = 1000 UGX)
+    pub fn check_fiat_balance(&self, user_identifier: &str, currency: &str) -> Result<u64, String> {
+        // If it's a phone number, look up the user_id first
+        let user_id = if user_identifier.starts_with('+') {
+            match self.get_user(user_identifier) {
+                Ok(Some(user)) => user.id,
+                Ok(None) => return Err(format!("User not found: {}", user_identifier)),
+                Err(e) => return Err(e),
+            }
+        } else {
+            user_identifier.to_string()
+        };
+
         // Convert currency string to FiatCurrency enum
         let currency_enum = FiatCurrency::from_code(currency)
             .ok_or_else(|| format!("Invalid currency code: {}", currency))?;
-        
-        let arg = encode_args((user_id.to_string(), currency_enum)).unwrap();
+
+        let arg = encode_args((user_id, currency_enum)).unwrap();
         let response = self.pic.update_call(
             self.wallet_canister_id,
             Principal::anonymous(),
             "get_fiat_balance",
             arg,
         ).expect("check_fiat_balance call failed");
-        
+
         let balance_in_cents: Result<u64, String> = decode_one(&response).expect("Failed to decode");
-        // Convert from cents to currency units (divide by 100)
-        balance_in_cents.map(|cents| cents / 100)
+        balance_in_cents
     }
     
     /// Get crypto balance from data canister (accepts phone number or user_id)

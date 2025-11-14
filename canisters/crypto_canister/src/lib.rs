@@ -392,11 +392,18 @@ async fn buy_crypto(request: BuyCryptoRequest) -> Result<BuyCryptoResponse, Stri
     audit::log_success(
         "crypto_transferred_to_user",
         Some(request.user_identifier.clone()),
-        format!("Transferred {} {} to Principal {} | Block: {}", 
+        format!("Transferred {} {} to Principal {} | Block: {}",
             crypto_amount, crypto_type_str, user_principal, block_index)
     );
-    
-    // 9. Record transaction
+
+    // 9. Update crypto balance in data canister (for tracking purposes)
+    let (delta_btc, delta_usdc) = match crypto_type {
+        CryptoType::CkBTC => (crypto_amount as i64, 0i64),
+        CryptoType::CkUSDC => (0i64, crypto_amount as i64),
+    };
+    services::data_client::update_crypto_balance(&request.user_identifier, delta_btc, delta_usdc).await?;
+
+    // 10. Record transaction
     let timestamp = time();
     let transaction = Transaction {
         id: format!("buy-crypto-{}-{}", request.user_identifier, timestamp),
@@ -413,16 +420,16 @@ async fn buy_crypto(request: BuyCryptoRequest) -> Result<BuyCryptoResponse, Stri
     };
     
     services::data_client::store_transaction(&transaction).await?;
-    
-    // 10. Record transaction for velocity tracking
+
+    // 11. Record transaction for velocity tracking
     logic::fraud_detection::record_transaction(
         &request.user_identifier,
         request.fiat_amount,
         &request.currency,
         "buy_crypto",
     )?;
-    
-    // 11. Audit successful transaction
+
+    // 12. Audit successful transaction
     audit::log_success(
         "buy_crypto_completed",
         Some(request.user_identifier.clone()),
@@ -589,17 +596,24 @@ async fn sell_crypto(request: SellCryptoRequest) -> Result<BuyCryptoResponse, St
     audit::log_success(
         "crypto_transferred_from_user",
         Some(request.user_identifier.clone()),
-        format!("Transferred {} {} from Principal {} to reserve | Block: {}", 
+        format!("Transferred {} {} from Principal {} to reserve | Block: {}",
             request.crypto_amount, crypto_type_str, user_principal, transfer_block)
     );
-    
-    // 10. Add fiat to wallet (IOU system)
+
+    // 10. Update crypto balance in data canister (deduct sold crypto)
+    let (delta_btc, delta_usdc) = match crypto_type {
+        CryptoType::CkBTC => (-(request.crypto_amount as i64), 0i64),
+        CryptoType::CkUSDC => (0i64, -(request.crypto_amount as i64)),
+    };
+    services::data_client::update_crypto_balance(&request.user_identifier, delta_btc, delta_usdc).await?;
+
+    // 11. Add fiat to wallet (IOU system)
     let current_fiat_balance = services::wallet_client::get_fiat_balance(&request.user_identifier, fiat_currency).await?;
     let new_fiat_balance = current_fiat_balance.checked_add(fiat_amount)
         .ok_or("Fiat balance calculation would overflow")?;
     services::wallet_client::set_fiat_balance(&request.user_identifier, fiat_currency, new_fiat_balance).await?;
-    
-    // 11. Record transaction
+
+    // 12. Record transaction
     let timestamp = time();
     let transaction = Transaction {
         id: format!("sell-crypto-{}-{}", request.user_identifier, timestamp),
@@ -611,21 +625,21 @@ async fn sell_crypto(request: SellCryptoRequest) -> Result<BuyCryptoResponse, St
         status: TransactionStatus::Completed,
         created_at: timestamp,
         completed_at: Some(timestamp),
-        description: Some(format!("Sold {} {} for {} {} | Approval Block: {} | Transfer Block: {}", 
+        description: Some(format!("Sold {} {} for {} {} | Approval Block: {} | Transfer Block: {}",
             request.crypto_amount, crypto_type_str, fiat_amount, request.currency, approval_block, transfer_block)),
     };
-    
+
     services::data_client::store_transaction(&transaction).await?;
-    
-    // 12. Record transaction for velocity tracking
+
+    // 13. Record transaction for velocity tracking
     logic::fraud_detection::record_transaction(
         &request.user_identifier,
         fiat_amount,
         &request.currency,
         "sell_crypto",
     )?;
-    
-    // 13. Audit successful transaction
+
+    // 14. Audit successful transaction
     audit::log_success(
         "sell_crypto_completed",
         Some(request.user_identifier.clone()),
@@ -814,43 +828,40 @@ async fn check_crypto_balance(user_identifier: String, crypto_type: String) -> R
 /// Swap between cryptocurrencies
 #[update]
 async fn swap_crypto(request: SwapCryptoRequest) -> Result<SwapCryptoResponse, String> {
-    
+
     // Validate inputs
     logic::crypto_logic::validate_crypto_amount_positive(request.amount)?;
-    
+
     let from_crypto = parse_crypto_type(&request.from_crypto)?;
     let to_crypto = parse_crypto_type(&request.to_crypto)?;
     let from_crypto_str = format!("{:?}", from_crypto);
     let to_crypto_str = format!("{:?}", to_crypto);
-    
+
     if from_crypto == to_crypto {
         return Err("Cannot swap same cryptocurrency".to_string());
     }
-    
-    // 1. Verify user exists
-    let user_exists = services::user_client::user_exists(&request.user_identifier).await?;
-    if !user_exists {
-        return Err("User not found".to_string());
-    }
-    
+
+    // 1. Resolve user_identifier to user_id (handles phone/principal/user_id)
+    let user_id = services::user_client::resolve_user_id(&request.user_identifier).await?;
+
     // 2. Verify PIN
     let verified = services::user_client::verify_pin(&request.user_identifier, &request.pin).await?;
     if !verified {
         audit::log_failure(
             "failed_pin_swap_crypto",
-            Some(request.user_identifier.clone()),
+            Some(user_id.clone()),
             format!("Invalid PIN | Swap: {} {} to {} {}", request.amount, request.from_crypto, request.amount, request.to_crypto)
         );
         return Err("Invalid PIN".to_string());
     }
-    
-    // 3. Check balance
-    let (ckbtc_balance, ckusdc_balance) = services::data_client::get_crypto_balance(&request.user_identifier).await?;
+
+    // 3. Check balance (use user_id for data canister operations)
+    let (ckbtc_balance, ckusdc_balance) = services::data_client::get_crypto_balance(&user_id).await?;
     let from_balance = match from_crypto {
         CryptoType::CkBTC => ckbtc_balance,
         CryptoType::CkUSDC => ckusdc_balance,
     };
-    
+
     logic::crypto_logic::validate_sufficient_crypto_balance(from_balance, request.amount)?;
     
     // 4. Calculate spread
@@ -868,44 +879,44 @@ async fn swap_crypto(request: SwapCryptoRequest) -> Result<SwapCryptoResponse, S
         0.0
     };
     
-    // 7. Update balances
+    // 7. Update balances (use user_id for data canister operations)
     let (from_delta_btc, from_delta_usdc) = match from_crypto {
         CryptoType::CkBTC => (-(request.amount as i64), 0),
         CryptoType::CkUSDC => (0, -(request.amount as i64)),
     };
-    
+
     let (to_delta_btc, to_delta_usdc) = match to_crypto {
         CryptoType::CkBTC => (to_amount as i64, 0),
         CryptoType::CkUSDC => (0, to_amount as i64),
     };
-    
+
     let total_btc_delta = from_delta_btc + to_delta_btc;
     let total_usdc_delta = from_delta_usdc + to_delta_usdc;
-    
-    services::data_client::update_crypto_balance(&request.user_identifier, total_btc_delta, total_usdc_delta).await?;
-    
-    // 8. Record transaction
+
+    services::data_client::update_crypto_balance(&user_id, total_btc_delta, total_usdc_delta).await?;
+
+    // 8. Record transaction (use user_id for data canister operations)
     let timestamp = time();
     let transaction = Transaction {
-        id: format!("swap-crypto-{}-{}", request.user_identifier, timestamp),
+        id: format!("swap-crypto-{}-{}", user_id, timestamp),
         transaction_type: TransactionType::SwapCrypto,
-        from_user: Some(request.user_identifier.clone()),
-        to_user: Some(request.user_identifier.clone()),
+        from_user: Some(user_id.clone()),
+        to_user: Some(user_id.clone()),
         amount: request.amount,
         currency_type: CurrencyType::Crypto(from_crypto),
         status: TransactionStatus::Completed,
         created_at: timestamp,
         completed_at: Some(timestamp),
-        description: Some(format!("Swapped {} {} to {} {} (spread: {})", 
+        description: Some(format!("Swapped {} {} to {} {} (spread: {})",
             request.amount, request.from_crypto, to_amount, request.to_crypto, spread_amount)),
     };
-    
+
     services::data_client::store_transaction(&transaction).await?;
-    
+
     // 9. Audit successful swap
     audit::log_success(
         "swap_crypto_completed",
-        Some(request.user_identifier.clone()),
+        Some(user_id.clone()),
         format!("Swapped {} {} to {} {} | Exchange Rate: {} | Spread: {} | TX: {}",
             request.amount, from_crypto_str, to_amount, to_crypto_str, exchange_rate, spread_amount, transaction.id)
     );

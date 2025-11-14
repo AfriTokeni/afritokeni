@@ -28,31 +28,62 @@ pub async fn handle_send_usdc(text: &str, session: &mut UssdSession) -> (String,
             let address_raw = parts.get(2).unwrap_or(&"");
             let address = validation::sanitize_input(address_raw);
 
+            // Validate address format (IC Principal for ckUSDC)
             if !validation::is_valid_usdc_address(&address) {
-                return (format!("Invalid USDC address\n{}",
+                return (format!("Invalid USDC address format\n{}",
                     TranslationService::translate("try_again", lang)), true);
             }
 
             (format!("{} (ckUSDC):", TranslationService::translate("enter_amount", lang)), true)
         }
         2 => {
-            // Step 2: Validate amount (parts[3])
+            // Step 2: Validate amount and check balance (parts[3])
             // Text: "3*5*address*amount" -> parts[3]=amount
             let amount_str = parts.get(3).unwrap_or(&"");
 
-            match validation::parse_amount(amount_str) {
-                Ok(amount) => {
+            let amount_e6 = match validation::parse_amount(amount_str) {
+                Ok(amt) => (amt * 1_000_000.0) as u64, // Convert to micro-USDC (e6 format)
+                Err(e) => {
+                    return (format!("{}\n{}", e, TranslationService::translate("try_again", lang)), true);
+                }
+            };
+
+            // Get user profile to check balance
+            let user_profile = match crate::services::user_client::get_user_by_phone(session.phone_number.clone()).await {
+                Ok(profile) => profile,
+                Err(e) => return (format!("Error: {}\n\n0. Main Menu", e), false),
+            };
+
+            // Check USDC balance
+            match crate::services::crypto_client::check_crypto_balance(
+                user_profile.id.clone(),
+                shared_types::CryptoType::CkUSDC
+            ).await {
+                Ok(balance_e6) => {
+                    if balance_e6 < amount_e6 {
+                        return (format!("{}!\n{}: {:.2} USDC\n{}: {:.2} USDC\n\n{}",
+                            TranslationService::translate("insufficient_balance", lang),
+                            TranslationService::translate("your_balance", lang),
+                            balance_e6 as f64 / 1_000_000.0,
+                            TranslationService::translate("required", lang),
+                            amount_e6 as f64 / 1_000_000.0,
+                            TranslationService::translate("back_or_menu", lang)), true);
+                    }
+
                     let address = parts.get(2).unwrap_or(&"");
                     (format!("{}\n{}: {}\n{}: {} ckUSDC\n\n{}",
                         TranslationService::translate("confirm_transaction", lang),
                         TranslationService::translate("to", lang),
                         address,
                         TranslationService::translate("amount", lang),
-                        amount,
+                        amount_e6 as f64 / 1_000_000.0,
                         TranslationService::translate("enter_pin_confirm", lang)), true)
                 }
                 Err(e) => {
-                    (format!("{}\n{}", e, TranslationService::translate("try_again", lang)), true)
+                    (format!("{}: {}\n\n{}",
+                        TranslationService::translate("error", lang),
+                        e,
+                        TranslationService::translate("back_or_menu", lang)), true)
                 }
             }
         }

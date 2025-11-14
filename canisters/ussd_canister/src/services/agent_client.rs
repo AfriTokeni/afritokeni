@@ -76,7 +76,7 @@ pub struct CreateDepositRequest {
     pub user_id: String,
     pub agent_id: String,
     pub amount: u64,
-    pub currency: FiatCurrency,
+    pub currency: String,
 }
 
 #[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
@@ -93,7 +93,7 @@ pub struct CreateWithdrawalRequest {
     pub user_id: String,
     pub agent_id: String,
     pub amount: u64,
-    pub currency: FiatCurrency,
+    pub currency: String,
     pub pin: String,
 }
 
@@ -101,11 +101,10 @@ pub struct CreateWithdrawalRequest {
 pub struct CreateWithdrawalResponse {
     pub withdrawal_code: String,
     pub amount: u64,
-    pub platform_fee: u64,
-    pub agent_fee: u64,
+    pub currency: String,
     pub total_fees: u64,
-    pub net_amount: u64,
-    pub currency: FiatCurrency,
+    pub net_to_user: u64,
+    pub expires_at: u64,
 }
 
 #[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
@@ -151,10 +150,10 @@ pub async fn create_deposit_request(
         user_identifier, agent_id, amount, currency);
     
     let request = CreateDepositRequest {
-        user_id: user_identifier.clone(),
-        agent_id: agent_id.clone(),
         amount,
-        currency,
+        agent_id: agent_id.clone(),
+        currency: currency.code().to_string(),
+        user_id: user_identifier.clone(),
     };
     
     let response = Call::unbounded_wait(canister_id, "create_deposit_request")
@@ -251,7 +250,7 @@ pub async fn create_withdrawal_request(
         user_id: user_identifier.clone(),
         agent_id: agent_id.clone(),
         amount,
-        currency,
+        currency: currency.code().to_string(),
         pin,
     };
     
@@ -265,25 +264,31 @@ pub async fn create_withdrawal_request(
         .map_err(|e| format!("❌ [AGENT_CLIENT] Decode failed: {}", e))?;
     
     match &result {
-        Ok(resp) => ic_cdk::println!("✅ [AGENT_CLIENT] Withdrawal created: code={}, net={}", 
-            resp.withdrawal_code, resp.net_amount),
+        Ok(resp) => ic_cdk::println!("✅ [AGENT_CLIENT] Withdrawal created: code={}, net={}",
+            resp.withdrawal_code, resp.net_to_user),
         Err(e) => ic_cdk::println!("❌ [AGENT_CLIENT] Create withdrawal failed: {}", e),
     }
-    
+
     // Convert response to WithdrawalTransaction
-    result.map(|resp| WithdrawalTransaction {
-        id: "".to_string(),
-        user_id: user_identifier,
-        agent_id,
-        amount: resp.amount,
-        currency: resp.currency.code().to_string(),
-        status: shared_types::AgentTransactionStatus::Pending,
-        withdrawal_code: resp.withdrawal_code,
-        timestamp: 0,
-        agent_fee: resp.agent_fee,
-        agent_keeps: resp.agent_fee,
-        platform_revenue: resp.platform_fee,
-        confirmed_at: None,
+    result.map(|resp| {
+        // Calculate individual fees from total
+        let platform_fee = (resp.amount as f64 * 0.005).round() as u64;  // 0.5%
+        let agent_fee = (resp.amount as f64 * 0.10).round() as u64;      // 10%
+
+        WithdrawalTransaction {
+            id: "".to_string(),
+            user_id: user_identifier,
+            agent_id,
+            amount: resp.amount,
+            currency: resp.currency.clone(),
+            status: shared_types::AgentTransactionStatus::Pending,
+            withdrawal_code: resp.withdrawal_code,
+            timestamp: 0,
+            agent_fee,
+            agent_keeps: agent_fee,
+            platform_revenue: platform_fee,
+            confirmed_at: None,
+        }
     })
 }
 

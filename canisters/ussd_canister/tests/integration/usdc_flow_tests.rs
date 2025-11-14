@@ -136,12 +136,12 @@ fn test_send_usdc_insufficient_balance() {
     
     let session_id = "usdc_test_6";
     
-    // Try to send more than balance
-    let address = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb";
-    let input = format!("3*5*{}*100000000*6666", address); // Try to send 100 USDC
+    // Try to send more than balance (use valid IC Principal address)
+    let address = "rrkah-fqaaa-aaaaa-aaaaq-cai";
+    let input = format!("3*5*{}*100000000*6666", address); // Try to send 100 USDC (100,000,000 e6)
     let (response, _) = env.process_ussd(session_id, phone, &input);
-    
-    assert!(response.contains("Insufficient") || response.contains("balance") || response.contains("enough"), 
+
+    assert!(response.contains("Insufficient") || response.contains("insufficient") || response.contains("balance"),
         "Should show insufficient balance error. Got: {}", response);
 }
 

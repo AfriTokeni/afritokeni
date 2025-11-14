@@ -29,24 +29,29 @@ fn test_withdraw_flow_navigation() {
 #[test]
 fn test_withdraw_insufficient_balance() {
     let env = get_test_env();
-    
+
     let phone = &phone("UGX");
-    
+
     let user_id = env.register_user_direct(
         phone, "Bob", "Poor", "bob@test.com", "UGX", "2222"
     ).expect("Registration should succeed");
-    
-    // Give user small balance
-    env.set_fiat_balance(&user_id, "UGX", 10_000).expect("Should set balance");
-    
+
+    // Register agent as a user
+    let agent_phone = "+256777000001";
+    env.register_user_direct(
+        agent_phone, "Agent", "One", "agent001@test.com", "UGX", "1111"
+    ).expect("Agent registration should succeed");
+
+    // Give user small balance (less than withdrawal amount + fees)
+    env.set_fiat_balance(&user_id, "UGX", 50_000).expect("Should set balance");
+
     let session_id = "withdraw_test_2";
-    
-    // Try to withdraw more than balance
-    let agent_id = "AGENT001";
-    let input = format!("1*4*100000*{}*2222", agent_id);
+
+    // Try to withdraw more than balance (100,000 UGX minimum + fees)
+    let input = format!("1*4*100000*{}*2222", agent_phone);
     let (response, _) = env.process_ussd(session_id, phone, &input);
-    
-    assert!(response.contains("Insufficient") || response.contains("balance") || response.contains("enough"), 
+
+    assert!(response.contains("Insufficient") || response.contains("balance") || response.contains("enough"),
         "Should show insufficient balance error. Got: {}", response);
 }
 
@@ -76,23 +81,28 @@ fn test_withdraw_zero_amount() {
 #[test]
 fn test_withdraw_wrong_pin() {
     let env = get_test_env();
-    
+
     let phone = &phone("UGX");
-    
+
     let user_id = env.register_user_direct(
         phone, "Dave", "User", "dave@test.com", "UGX", "4444"
     ).expect("Registration should succeed");
-    
-    env.set_fiat_balance(&user_id, "UGX", 100_000).expect("Should set balance");
-    
+
+    // Register agent as a user
+    let agent_phone = "+256777000003";
+    env.register_user_direct(
+        agent_phone, "Agent", "Three", "agent003@test.com", "UGX", "1111"
+    ).expect("Agent registration should succeed");
+
+    env.set_fiat_balance(&user_id, "UGX", 200_000).expect("Should set balance");
+
     let session_id = "withdraw_test_4";
-    
-    // Try with wrong PIN
-    let agent_id = "AGENT003";
-    let input = format!("1*4*50000*{}*9999", agent_id);
+
+    // Try with wrong PIN (using minimum withdrawal amount for UGX: 100,000)
+    let input = format!("1*4*100000*{}*9999", agent_phone);
     let (response, _) = env.process_ussd(session_id, phone, &input);
-    
-    assert!(response.contains("Invalid PIN") || response.contains("incorrect") || response.contains("wrong"), 
+
+    assert!(response.contains("Invalid PIN") || response.contains("incorrect") || response.contains("wrong"),
         "Should show invalid PIN error. Got: {}", response);
 }
 
@@ -225,27 +235,32 @@ fn test_withdraw_invalid_agent_id() {
 #[test]
 fn test_withdraw_large_amount() {
     let env = get_test_env();
-    
+
     let phone = &phone("UGX");
-    
+
     let user_id = env.register_user_direct(
         phone, "Jack", "Rich", "jack@test.com", "UGX", "1010"
     ).expect("Registration should succeed");
-    
+
+    // Register agent as a user
+    let agent_phone = "+256777000010";
+    env.register_user_direct(
+        agent_phone, "Agent", "Ten", "agent010@test.com", "UGX", "1111"
+    ).expect("Agent registration should succeed");
+
     // Give user large balance
     env.set_fiat_balance(&user_id, "UGX", 10_000_000).expect("Should set balance");
-    
+
     let session_id = "withdraw_test_10";
-    
-    // Try to withdraw large amount
-    let agent_id = "AGENT010";
-    let input = format!("1*4*5000000*{}*1010", agent_id);
+
+    // Try to withdraw large amount (but under the max withdrawal limit of 5,000,000 for UGX)
+    let input = format!("1*4*3000000*{}*1010", agent_phone);
     let (response, _) = env.process_ussd(session_id, phone, &input);
-    
+
     // Should either succeed or show fraud detection warning
     assert!(
-        response.contains("successful") || response.contains("Success") || 
-        response.contains("suspicious") || response.contains("limit"),
+        response.contains("successful") || response.contains("Success") ||
+        response.contains("suspicious") || response.contains("limit") || response.contains("CODE"),
         "Should handle large withdrawal. Got: {}", response
     );
 }

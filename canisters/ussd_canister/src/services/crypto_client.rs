@@ -156,8 +156,9 @@ pub struct SwapCryptoResponse {
     pub transaction_id: String,
     pub from_amount: u64,
     pub to_amount: u64,
+    pub spread_amount: u64,
     pub exchange_rate: f64,
-    pub spread_bps: u64,
+    pub timestamp: u64,
 }
 
 #[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]

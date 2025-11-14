@@ -14,8 +14,30 @@ pub fn validate_crypto_address(address: &str, crypto_type: &str) -> Result<(), S
             }
         }
         "USDC" | "Ethereum" | "CkUSDC" => {
-            if !address.starts_with("0x") || address.len() != 42 {
-                return Err("Invalid Ethereum address format".to_string());
+            // ckUSDC on ICP uses IC Principal addresses, not Ethereum addresses
+            // IC Principal format: base32 with hyphens, ending in "-cai"
+            // Example: rrkah-fqaaa-aaaaa-aaaaq-cai
+            if address.len() < 10 || address.len() > 63 {
+                return Err("Invalid USDC address length".to_string());
+            }
+
+            // Must end with "-cai" for IC Principal or start with "0x" for Ethereum
+            if !address.ends_with("-cai") && !address.starts_with("0x") {
+                return Err("Invalid USDC address format (must be IC Principal ending in '-cai')".to_string());
+            }
+
+            // Additional validation for IC Principal format
+            if address.ends_with("-cai") {
+                // Check format: lowercase alphanumeric and hyphens only
+                if !address.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-') {
+                    return Err("Invalid IC Principal address format".to_string());
+                }
+
+                // Should have multiple segments separated by hyphens
+                let parts: Vec<&str> = address.split('-').collect();
+                if parts.len() < 3 {
+                    return Err("Invalid IC Principal address format".to_string());
+                }
             }
         }
         _ => return Err(format!("Unsupported crypto type: {}", crypto_type)),

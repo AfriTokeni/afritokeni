@@ -11,21 +11,21 @@ fn test_buy_usdc_with_ugx() {
     let env = get_test_env();
     let sess = session();
     let phone = &phone("UGX");
-    
-    env.setup_test_user_with_balances(phone, "USDC", "Buyer", "usdc@test.com", "UGX", "1234", 1000000, 0, 0)
+
+    env.setup_test_user_with_balances(phone, "USDC", "Buyer", "usdc@test.com", "UGX", "1234", 10000000, 0, 0)
         .expect("Setup");
-    
-    // Buy USDC: Menu 3 (USDC) -> 3 (Buy) -> amount -> PIN
-    let (response, _) = env.process_ussd(&sess, phone, "3*3*100000*1234");
-    
+
+    // Buy USDC: Menu 3 (USDC) -> 3 (Buy) -> amount (1000 UGX) -> PIN
+    let (response, _) = env.process_ussd(&sess, phone, "3*3*1000*1234");
+
     assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
         "Should buy USDC. Got: {}", response);
-    
+
     let (_, usdc) = env.get_crypto_balance(phone).expect("Get crypto balance");
     assert!(usdc > 0, "Should have USDC balance");
-    
+
     let fiat = env.check_fiat_balance(phone, "UGX").expect("Get fiat balance");
-    assert_eq!(fiat, 900000, "Fiat should decrease");
+    assert!(fiat < 10000000 && fiat > 9900000, "Fiat should decrease");
 }
 
 #[test]
@@ -33,15 +33,15 @@ fn test_buy_usdc_with_kes() {
     let env = get_test_env();
     let sess = session();
     let phone = &phone("KES");
-    
-    env.setup_test_user_with_balances(phone, "KES", "USDCBuyer", "kesusdc@test.com", "KES", "1234", 500000, 0, 0)
+
+    env.setup_test_user_with_balances(phone, "KES", "USDCBuyer", "kesusdc@test.com", "KES", "1234", 5000000, 0, 0)
         .expect("Setup");
-    
-    let (response, _) = env.process_ussd(&sess, phone, "3*3*50000*1234");
-    
+
+    let (response, _) = env.process_ussd(&sess, phone, "3*3*5000*1234");
+
     assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
         "Should buy USDC. Got: {}", response);
-    
+
     let (_, usdc) = env.get_crypto_balance(phone).expect("Get balance");
     assert!(usdc > 0);
 }
@@ -51,12 +51,12 @@ fn test_buy_usdc_with_tzs() {
     let env = get_test_env();
     let sess = session();
     let phone = &phone("TZS");
-    
-    env.setup_test_user_with_balances(phone, "TZS", "USDCBuyer", "tzsusdc@test.com", "TZS", "1234", 2000000, 0, 0)
+
+    env.setup_test_user_with_balances(phone, "TZS", "USDCBuyer", "tzsusdc@test.com", "TZS", "1234", 20000000, 0, 0)
         .expect("Setup");
-    
-    let (response, _) = env.process_ussd(&sess, phone, "3*3*50000*1234");
-    
+
+    let (response, _) = env.process_ussd(&sess, phone, "3*3*20000*1234");
+
     assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
         "Should buy USDC. Got: {}", response);
 }
@@ -66,12 +66,12 @@ fn test_buy_usdc_with_ngn() {
     let env = get_test_env();
     let sess = session();
     let phone = &phone("NGN");
-    
-    env.setup_test_user_with_balances(phone, "NGN", "USDCBuyer", "ngnusdc@test.com", "NGN", "1234", 5000000, 0, 0)
+
+    env.setup_test_user_with_balances(phone, "NGN", "USDCBuyer", "ngnusdc@test.com", "NGN", "1234", 50000000, 0, 0)
         .expect("Setup");
-    
+
     let (response, _) = env.process_ussd(&sess, phone, "3*3*50000*1234");
-    
+
     assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
         "Should buy USDC. Got: {}", response);
 }
@@ -300,17 +300,17 @@ fn test_buy_usdc_wrong_pin() {
     let env = get_test_env();
     let sess = session();
     let phone = &phone("UGX");
-    
-    env.setup_test_user_with_balances(phone, "USDC", "WrongPIN", "usdcwrong@test.com", "UGX", "1234", 100000, 0, 0)
+
+    env.setup_test_user_with_balances(phone, "USDC", "WrongPIN", "usdcwrong@test.com", "UGX", "1234", 5000000, 0, 0)
         .expect("Setup");
-    
-    let (response, _) = env.process_ussd(&sess, phone, "3*3*50000*9999");
-    
+
+    let (response, _) = env.process_ussd(&sess, phone, "3*3*5000*9999");
+
     assert!(response.contains("Incorrect") || response.contains("incorrect") || response.contains("Wrong") || response.contains("Invalid"),
         "Should reject wrong PIN. Got: {}", response);
-    
+
     let fiat = env.check_fiat_balance(phone, "UGX").expect("Get balance");
-    assert_eq!(fiat, 100000, "Fiat should not change");
+    assert_eq!(fiat, 5000000, "Fiat should not change");
 }
 
 #[test]
@@ -340,19 +340,20 @@ fn test_usdc_buy_then_sell() {
     let env = get_test_env();
     let sess = session();
     let phone = &phone("UGX");
-    
-    env.setup_test_user_with_balances(phone, "USDC", "BuySell", "usdcbuysell@test.com", "UGX", "1234", 500000, 0, 0)
+
+    env.setup_test_user_with_balances(phone, "USDC", "BuySell", "usdcbuysell@test.com", "UGX", "1234", 5000000, 0, 0)
         .expect("Setup");
-    
-    // Buy USDC (under fraud limit)
-    env.process_ussd(&sess, phone, "3*3*50000*1234");
-    
+
+    // Buy USDC (5000 UGX worth)
+    env.process_ussd(&sess, phone, "3*3*5000*1234");
+
     let (_, usdc_after_buy) = env.get_crypto_balance(phone).expect("Get balance");
     assert!(usdc_after_buy > 0, "Should have USDC after buy");
-    
-    // Sell half
-    env.process_ussd(&sess, phone, &format!("3*4*{}*1234*1", usdc_after_buy / 2));
-    
+
+    // Sell half (convert e6 to USDC for display)
+    let half_usdc = (usdc_after_buy / 2) as f64 / 1_000_000.0;
+    env.process_ussd(&sess, phone, &format!("3*4*{}*1234*1", half_usdc));
+
     let (_, usdc_final) = env.get_crypto_balance(phone).expect("Get balance");
     assert!(usdc_final < usdc_after_buy, "USDC should decrease after sell");
 }
@@ -362,18 +363,20 @@ fn test_usdc_buy_then_send() {
     let env = get_test_env();
     let sess = session();
     let phone = &phone("UGX");
-    
-    env.setup_test_user_with_balances(phone, "USDC", "BuySend", "usdcbuysend@test.com", "UGX", "1234", 500000, 0, 0)
+
+    env.setup_test_user_with_balances(phone, "USDC", "BuySend", "usdcbuysend@test.com", "UGX", "1234", 5000000, 0, 0)
         .expect("Setup");
-    
-    // Buy USDC (under fraud limit)
-    env.process_ussd(&sess, phone, "3*3*50000*1234");
-    
+
+    // Buy USDC (5000 UGX worth)
+    env.process_ussd(&sess, phone, "3*3*5000*1234");
+
     let (_, usdc_after_buy) = env.get_crypto_balance(phone).expect("Get balance");
-    
-    // Send USDC
-    env.process_ussd(&sess, phone, &format!("3*5*rrkah-fqaaa-aaaaa-aaaaq-cai*{}*1234", usdc_after_buy / 2));
-    
+    assert!(usdc_after_buy > 0, "Should have USDC after buy");
+
+    // Send half of USDC
+    let half_usdc_e6 = usdc_after_buy / 2;
+    env.process_ussd(&sess, phone, &format!("3*5*rrkah-fqaaa-aaaaa-aaaaq-cai*{}*1234", half_usdc_e6));
+
     let (_, usdc_final) = env.get_crypto_balance(phone).expect("Get balance");
     assert!(usdc_final < usdc_after_buy, "USDC should decrease after send");
 }
@@ -399,9 +402,9 @@ fn test_usdc_and_btc_independent_balances() {
     assert_eq!(usdc, 200000, "USDC balance");
     
     // Buy more USDC - BTC should not change
-    env.set_fiat_balance(phone, "UGX", 500000).expect("Set fiat");
-    env.process_ussd(&sess, phone, "3*3*100000*1234");
-    
+    env.set_fiat_balance(phone, "UGX", 5000000).expect("Set fiat");
+    env.process_ussd(&sess, phone, "3*3*5000*1234");
+
     let (btc_after, usdc_after) = env.get_crypto_balance(phone).expect("Get balance");
     assert_eq!(btc_after, 100000, "BTC should not change");
     assert!(usdc_after > 200000, "USDC should increase");

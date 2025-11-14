@@ -446,15 +446,25 @@ pub async fn handle_usdc_menu(text: &str, session: &mut UssdSession) -> (String,
         }
         "1" if parts.len() == 2 => {
             // Check balance (when text is "3*1")
+            // Get user ID first
+            let user_profile = match crate::services::user_client::get_user_by_phone(session.phone_number.clone()).await {
+                Ok(profile) => profile,
+                Err(_) => {
+                    return (format!("{}:\nckUSDC: 0.00\n\n{}",
+                        TranslationService::translate("usdc_balance", lang),
+                        TranslationService::translate("back_or_menu", lang)), true);
+                }
+            };
+
             let ckusdc = match crate::services::crypto_client::check_crypto_balance(
-                session.phone_number.clone(),
+                user_profile.id,
                 shared_types::CryptoType::CkUSDC
             ).await {
                 Ok(e6) => e6 as f64 / 1_000_000.0,
                 Err(_) => 0.0,
             };
-            
-            (format!("{}:\nckUSDC: {:.2}\n\n{}", 
+
+            (format!("{}:\nckUSDC: {:.2}\n\n{}",
                 TranslationService::translate("usdc_balance", lang),
                 ckusdc,
                 TranslationService::translate("back_or_menu", lang)), true)

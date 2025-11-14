@@ -27,7 +27,8 @@ pub async fn handle_crypto_swap(text: &str, session: &mut UssdSession) -> (Strin
 
     // Determine step based on text input (stateless)
     // parts: ["4"] = step 0, ["4","1"] = step 1, ["4","1","2"] = step 2, etc.
-    let step = if parts.len() <= 2 { 0 } else { parts.len() - 2 };
+    // Correct calculation: step = parts.len() - 1
+    let step = parts.len() - 1;
 
     ic_cdk::println!("🔄 Swap flow: parts={:?}, len={}, step={}", parts, parts.len(), step);
 
@@ -62,18 +63,13 @@ pub async fn handle_crypto_swap(text: &str, session: &mut UssdSession) -> (Strin
                 from_name), true)
         }
         2 => {
-            // Step 2: Validate same token swap and handle amount
+            // Step 2: To crypto selected, validate and ask for amount
             // Validate same-currency rejection early
-            if from_choice == to_choice && !from_choice.is_empty() {
+            if from_choice == to_choice && !from_choice.is_empty() && !to_choice.is_empty() {
                 session.clear_data();
                 return (format!("❌ {}\n\n0. {}",
                     TranslationService::translate("cannot_swap_same_token", lang),
                     TranslationService::translate("main_menu", lang)), false);
-            }
-
-            // If amount is provided in shorthand mode, show confirmation
-            if !amount_str.is_empty() {
-                return show_swap_confirmation(from_choice, to_choice, amount_str, lang).await;
             }
 
             // Interactive mode: ask for amount
@@ -88,7 +84,7 @@ pub async fn handle_crypto_swap(text: &str, session: &mut UssdSession) -> (Strin
                 from_name), true)
         }
         3 => {
-            // Step 3: Amount entered, show confirmation
+            // Step 3: Amount entered, show confirmation with spread
             show_swap_confirmation(from_choice, to_choice, amount_str, lang).await
         }
         4 => {
@@ -246,11 +242,11 @@ async fn execute_swap(
     ).await {
         Ok(result) => {
             session.clear_data();
-            (format!("✅ {}!\n\n{}: {} {}\n{}: {} {}\n{}: {} bps\n{}: {}\n\n0. {}",
+            (format!("✅ {}!\n\n{}: {} {}\n{}: {} {}\n{}: {}\n{}: {}\n\n0. {}",
                 TranslationService::translate("swap_successful", lang),
                 TranslationService::translate("swap_from", lang), result.from_amount, from_crypto,
                 TranslationService::translate("swap_to", lang), result.to_amount, to_crypto,
-                TranslationService::translate("spread", lang), result.spread_bps,
+                TranslationService::translate("spread", lang), result.spread_amount,
                 TranslationService::translate("rate", lang), result.exchange_rate,
                 TranslationService::translate("main_menu", lang)), false)
         }
