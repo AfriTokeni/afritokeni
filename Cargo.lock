@@ -1175,6 +1175,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "mock_icrc1_ledger"
+version = "0.1.0"
+dependencies = [
+ "candid",
+ "ic-cdk",
+ "ic-cdk-macros",
+ "serde",
+]
+
+[[package]]
 name = "mockall"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

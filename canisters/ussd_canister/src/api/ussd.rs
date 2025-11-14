@@ -166,8 +166,8 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                         session.current_menu = "main".to_string();
                         session.step = 0;
                         crate::core::routing::handle_main_menu("", &mut session).await
-                    } else if *last_input == "0" && parts.len() > 1 {
-                        // 0 = Back (go to parent menu - for now just go to main menu)
+                    } else if *last_input == "0" && parts.len() == 2 {
+                        // 0 = Back (only when it's a direct menu choice like "1*0", not "4*1*2*0" which is amount=0)
                         ic_cdk::println!("⬅️ Going back to main menu");
                         session.current_menu = "main".to_string();
                         session.step = 0;
@@ -182,47 +182,35 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                         let (menu_text, continues) = crate::core::routing::handle_main_menu(&text, &mut session).await;
                         (format!("{}{}", welcome_prefix, menu_text), continues)
                     } else {
-                        // Find the last "0" in the chain to determine context
-                        // After "0" (back), we're back at main menu level
-                        let last_zero_pos = parts.iter().rposition(|&p| p == "0");
-                        let routing_parts = if let Some(pos) = last_zero_pos {
-                            // Route based on parts AFTER the last "0"
-                            &parts[pos+1..]
-                        } else {
-                            // No "0" in chain, route normally
-                            &parts[..]
-                        };
+                        // Route based on the input parts
+                        ic_cdk::println!("🔍 Routing with parts: {:?}", parts);
                         
-                        // Build clean text for handlers (without the "0" and everything before it)
-                        let clean_text = routing_parts.join("*");
-                        ic_cdk::println!("🔍 Clean routing text: '{}' (from parts: {:?})", clean_text, routing_parts);
-                        
-                        // Route based on first part of routing context
-                        match routing_parts.get(0) {
+                        // Route based on first part
+                        match parts.get(0) {
                         Some(&"1") => {
                             // Local currency menu
                             ic_cdk::println!("✅ Routing to local_currency");
-                            crate::core::routing::handle_local_currency_menu(&clean_text, &mut session).await
+                            crate::core::routing::handle_local_currency_menu(&text, &mut session).await
                         }
                         Some(&"2") => {
                             // Bitcoin menu
                             ic_cdk::println!("✅ Routing to bitcoin");
-                            crate::core::routing::handle_bitcoin_menu(&clean_text, &mut session).await
+                            crate::core::routing::handle_bitcoin_menu(&text, &mut session).await
                         }
                         Some(&"3") => {
                             // USDC menu
                             ic_cdk::println!("✅ Routing to usdc");
-                            crate::core::routing::handle_usdc_menu(&clean_text, &mut session).await
+                            crate::core::routing::handle_usdc_menu(&text, &mut session).await
                         }
                         Some(&"4") => {
                             // Swap Crypto
                             ic_cdk::println!("✅ Routing to swap crypto");
-                            crate::flows::crypto::swap::handle_crypto_swap(&clean_text, &mut session).await
+                            crate::flows::crypto::swap::handle_crypto_swap(&text, &mut session).await
                         }
                         Some(&"5") => {
                             // DAO menu
                             ic_cdk::println!("✅ Routing to dao");
-                            crate::core::routing::handle_dao_menu(&clean_text, &mut session).await
+                            crate::core::routing::handle_dao_menu(&text, &mut session).await
                         }
                         Some(&"6") => {
                             // Help
@@ -240,12 +228,12 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                         Some(&"7") => {
                             // Language menu
                             ic_cdk::println!("✅ Routing to language");
-                            crate::core::routing::handle_language_menu(&clean_text, &mut session).await
+                            crate::core::routing::handle_language_menu(&text, &mut session).await
                         }
                         _ => {
                             // Unknown, show main menu
                             ic_cdk::println!("❓ Unknown input, showing main menu");
-                            crate::core::routing::handle_main_menu(&clean_text, &mut session).await
+                            crate::core::routing::handle_main_menu(&text, &mut session).await
                         }
                         }
                     }

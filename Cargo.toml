@@ -7,6 +7,7 @@ members = [
     "canisters/crypto_canister",
     "canisters/agent_canister",
     "canisters/ussd_canister",
+    "canisters/mock_icrc1_ledger",
 ]
 exclude = ["tests", "src/satellite"]
 resolver = "2"

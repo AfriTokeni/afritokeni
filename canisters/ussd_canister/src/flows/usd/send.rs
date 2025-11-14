@@ -4,136 +4,107 @@ use crate::utils::translations::{Language, TranslationService};
 use crate::utils::validation;
 
 /// Handle send USDC flow
-/// Steps: 0. Enter recipient → 1. Enter amount → 2. Enter PIN → 3. Execute
+/// Supports both interactive and shorthand modes:
+/// - Interactive: 3*5 -> address -> amount -> PIN
+/// - Shorthand: 3*5*ADDRESS*AMOUNT*PIN
 pub async fn handle_send_usdc(text: &str, session: &mut UssdSession) -> (String, bool) {
     let lang = Language::from_code(&session.language);
     let parts: Vec<&str> = text.split('*').collect();
-    
+
     let step = if parts.len() <= 2 { 0 } else { parts.len() - 2 };
-    
+
     ic_cdk::println!("💵 Send USDC flow: step={}, parts={:?}", step, parts);
-    
+
     match step {
         0 => {
-            // Step 0: Ask for recipient phone
-            (format!("{}\n{}\n{}\n\n{}", 
+            // Step 0: Ask for USDC address
+            (format!("{}\n{}",
                 TranslationService::translate("send_usdc", lang),
-                TranslationService::translate("enter_recipient_phone", lang),
-                TranslationService::translate("phone_format_example", lang),
-                TranslationService::translate("back_or_menu", lang)), true)
+                TranslationService::translate("enter_usdc_address", lang)), true)
         }
         1 => {
-            // Step 1: Validate recipient and ask for amount
-            let recipient_raw = parts.get(2).unwrap_or(&"");
-            let recipient = validation::sanitize_input(recipient_raw);
-            
-            if !validation::is_valid_phone(&recipient) {
-                return (format!("{}\n{}\n{}\n\n{}", 
-                    TranslationService::translate("invalid_phone", lang),
-                    TranslationService::translate("enter_recipient_phone", lang),
-                    TranslationService::translate("phone_format_example", lang),
-                    TranslationService::translate("back_or_menu", lang)), true);
+            // Step 1: Validate USDC address (parts[2])
+            // Text: "3*5*address" -> parts[0]=3, parts[1]=5, parts[2]=address
+            let address_raw = parts.get(2).unwrap_or(&"");
+            let address = validation::sanitize_input(address_raw);
+
+            if !validation::is_valid_usdc_address(&address) {
+                return (format!("Invalid USDC address\n{}",
+                    TranslationService::translate("try_again", lang)), true);
             }
-            
-            (format!("{} (USDC):", TranslationService::translate("enter_amount", lang)), true)
+
+            (format!("{} (ckUSDC):", TranslationService::translate("enter_amount", lang)), true)
         }
         2 => {
-            // Step 2: Validate amount, check balance, ask for PIN
+            // Step 2: Validate amount (parts[3])
+            // Text: "3*5*address*amount" -> parts[3]=amount
             let amount_str = parts.get(3).unwrap_or(&"");
-            
-            let amount_usdc = match validation::parse_amount(amount_str) {
-                Ok(amt) => amt,
-                Err(e) => {
-                    return (format!("{}\n{} (USDC):", e, TranslationService::translate("enter_amount", lang)), true);
-                }
-            };
-            
-            // Get user ID first
-            let user_profile = match crate::services::user_client::get_user_by_phone(session.phone_number.clone()).await {
-                Ok(profile) => profile,
-                Err(e) => return (format!("Error: {}\n\n0. Main Menu", e), false),
-            };
-            
-            // Check USDC balance
-            match crate::services::crypto_client::check_crypto_balance(
-                user_profile.id.clone(),
-                shared_types::CryptoType::CkUSDC
-            ).await {
-                Ok(balance_e6) => {
-                    let usdc_balance = balance_e6 as f64 / 1_000_000.0;
-                    
-                    if usdc_balance < amount_usdc {
-                        return (format!("{}!\n{}: {:.2} USDC\n{}: {:.2} USDC\n\n{}", 
-                            TranslationService::translate("insufficient_balance", lang),
-                            TranslationService::translate("your_balance", lang),
-                            usdc_balance,
-                            TranslationService::translate("required", lang),
-                            amount_usdc,
-                            TranslationService::translate("thank_you", lang)), false);
-                    }
-                    
-                    let recipient = parts.get(2).unwrap_or(&"");
-                    (format!("{}\n{}: {}\n{}: {:.2} USDC\n\n{}", 
+
+            match validation::parse_amount(amount_str) {
+                Ok(amount) => {
+                    let address = parts.get(2).unwrap_or(&"");
+                    (format!("{}\n{}: {}\n{}: {} ckUSDC\n\n{}",
                         TranslationService::translate("confirm_transaction", lang),
                         TranslationService::translate("to", lang),
-                        recipient,
+                        address,
                         TranslationService::translate("amount", lang),
-                        amount_usdc,
-                        TranslationService::translate("enter_pin_4digit", lang)), true)
+                        amount,
+                        TranslationService::translate("enter_pin_confirm", lang)), true)
                 }
                 Err(e) => {
-                    (format!("{}: {}\n\n{}", 
-                        TranslationService::translate("error", lang),
-                        e,
-                        TranslationService::translate("back_or_menu", lang)), true)
+                    (format!("{}\n{}", e, TranslationService::translate("try_again", lang)), true)
                 }
             }
         }
         3 => {
-            // Step 3: Execute send
+            // Step 3: Verify PIN and execute real ckUSDC transfer
+            // parts: [0]=3, [1]=5, [2]=address, [3]=amount, [4]=PIN
             let pin = parts.get(4).unwrap_or(&"");
-            let recipient = parts.get(2).unwrap_or(&"").to_string();
+            let usdc_address = parts.get(2).unwrap_or(&"").to_string();
             let amount_str = parts.get(3).unwrap_or(&"").to_string();
             // Amount is already in e6 (micro-USDC)
             let amount_e6 = amount_str.parse::<u64>().unwrap_or(0);
-            let amount_usdc = amount_e6 as f64 / 1_000_000.0;
-            
-            ic_cdk::println!("💵 Executing send_usdc: to={}, amount={} e6", recipient, amount_e6);
-            
+
             // Get user ID first
             let user_profile = match crate::services::user_client::get_user_by_phone(session.phone_number.clone()).await {
                 Ok(profile) => profile,
                 Err(e) => return (format!("Error: {}\n\n0. Main Menu", e), false),
             };
-            
+
+            // Call Crypto Canister to send USDC
             match crate::services::crypto_client::send_crypto(
                 user_profile.id.clone(),
-                recipient.clone(),
+                usdc_address.clone(),
                 amount_e6,
                 shared_types::CryptoType::CkUSDC,
                 pin.to_string()
             ).await {
                 Ok(_tx_id) => {
-                    (format!("{}!\n{} {:.2} USDC {} {}\n\n{}", 
+                    let usdc_sent = amount_e6 as f64 / 1_000_000.0;
+                    session.clear_data();
+                    (format!("{}\nSent {:.2} ckUSDC to {}\n\n0. {}",
                         TranslationService::translate("transaction_successful", lang),
-                        TranslationService::translate("sent", lang),
-                        amount_usdc,
-                        TranslationService::translate("to", lang),
-                        recipient,
-                        TranslationService::translate("thank_you", lang)), false)
+                        usdc_sent,
+                        usdc_address,
+                        TranslationService::translate("main_menu", lang)), false)
+                }
+                Err(e) if e.contains("PIN") => {
+                    session.clear_data();
+                    (format!("{}\n{}",
+                        TranslationService::translate("incorrect_pin", lang),
+                        TranslationService::translate("try_again", lang)), true)
                 }
                 Err(e) => {
-                    (format!("{}: {}\n\n{}", 
-                        TranslationService::translate("transaction_failed", lang),
-                        e,
-                        TranslationService::translate("thank_you", lang)), false)
+                    session.clear_data();
+                    (format!("Transfer failed: {}\n\n0. {}", e, TranslationService::translate("main_menu", lang)), false)
                 }
             }
         }
         _ => {
-            (format!("{}\n\n{}", 
-                TranslationService::translate("invalid_selection", lang),
-                TranslationService::translate("back_or_menu", lang)), true)
+            session.clear_data();
+            session.current_menu = String::new();
+            session.step = 0;
+            (TranslationService::translate("invalid_selection", lang).to_string(), true)
         }
     }
 }

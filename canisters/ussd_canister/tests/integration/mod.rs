@@ -125,6 +125,8 @@ pub struct TestEnv {
     pub crypto_canister_id: Principal,
     pub agent_canister_id: Principal,
     pub data_canister_id: Principal,
+    pub ckbtc_ledger_id: Principal,
+    pub ckusdc_ledger_id: Principal,
     // Keep for backward compatibility during migration
     #[allow(dead_code)]
     pub business_logic_canister_id: Principal,
@@ -164,6 +166,10 @@ impl TestEnv {
             workspace_root.join("target/wasm32-unknown-unknown/release/data_canister.wasm")
         ).expect("data_canister WASM not found");
         
+        let mock_ledger_wasm = std::fs::read(
+            workspace_root.join("target/wasm32-unknown-unknown/release/mock_icrc1_ledger.wasm")
+        ).expect("mock_icrc1_ledger WASM not found");
+        
         // Install data canister first
         let data_canister_id = pic.create_canister();
         pic.add_cycles(data_canister_id, 2_000_000_000_000);
@@ -189,6 +195,16 @@ impl TestEnv {
         let agent_canister_id = pic.create_canister();
         pic.add_cycles(agent_canister_id, 2_000_000_000_000);
         pic.install_canister(agent_canister_id, agent_wasm, vec![], None);
+        
+        // Install mock ckBTC ledger
+        let ckbtc_ledger_id = pic.create_canister();
+        pic.add_cycles(ckbtc_ledger_id, 2_000_000_000_000);
+        pic.install_canister(ckbtc_ledger_id, mock_ledger_wasm.clone(), vec![], None);
+        
+        // Install mock ckUSDC ledger
+        let ckusdc_ledger_id = pic.create_canister();
+        pic.add_cycles(ckusdc_ledger_id, 2_000_000_000_000);
+        pic.install_canister(ckusdc_ledger_id, mock_ledger_wasm, vec![], None);
         
         // Configure domain canisters with data canister ID (as Principal)
         let data_id_arg = encode_one(data_canister_id).unwrap();
@@ -224,6 +240,25 @@ impl TestEnv {
         pic.update_call(crypto_canister_id, Principal::anonymous(), "enable_test_mode", encode_args(()).unwrap()).expect("Failed to enable test mode on crypto_canister");
         pic.update_call(agent_canister_id, Principal::anonymous(), "enable_test_mode", encode_args(()).unwrap()).expect("Failed to enable test mode on agent_canister");
         
+        // Configure crypto canister with mock ledger IDs
+        pic.update_call(crypto_canister_id, Principal::anonymous(), "set_ckbtc_ledger_id", encode_one(ckbtc_ledger_id).unwrap()).expect("Failed to set ckBTC ledger ID");
+        pic.update_call(crypto_canister_id, Principal::anonymous(), "set_ckusdc_ledger_id", encode_one(ckusdc_ledger_id).unwrap()).expect("Failed to set ckUSDC ledger ID");
+        
+        // Fund platform reserve accounts in mock ledgers (100 BTC and 10M USDC)
+        // Platform reserve uses subaccount [1, 0, 0, ..., 0]
+        #[derive(CandidType, Deserialize, Clone)]
+        struct Account { owner: Principal, subaccount: Option<Vec<u8>> }
+        let mut reserve_subaccount = vec![0u8; 32];
+        reserve_subaccount[0] = 1;
+        let reserve_account = Account {
+            owner: crypto_canister_id,
+            subaccount: Some(reserve_subaccount),
+        };
+        let btc_reserve_balance = 10_000_000_000u64; // 100 BTC in satoshis
+        let usdc_reserve_balance = 1_000_000_000_000u64; // 10M USDC in cents
+        pic.update_call(ckbtc_ledger_id, Principal::anonymous(), "set_balance_for_testing", encode_args((reserve_account.clone(), btc_reserve_balance)).unwrap()).expect("Failed to fund ckBTC reserve");
+        pic.update_call(ckusdc_ledger_id, Principal::anonymous(), "set_balance_for_testing", encode_args((reserve_account, usdc_reserve_balance)).unwrap()).expect("Failed to fund ckUSDC reserve");
+        
         // Authorize domain canisters to call data_canister
         pic.update_call(data_canister_id, Principal::anonymous(), "add_authorized_canister", encode_one(user_canister_id.to_text()).unwrap()).ok();
         pic.update_call(data_canister_id, Principal::anonymous(), "add_authorized_canister", encode_one(wallet_canister_id.to_text()).unwrap()).ok();
@@ -238,6 +273,8 @@ impl TestEnv {
             crypto_canister_id,
             agent_canister_id,
             data_canister_id,
+            ckbtc_ledger_id,
+            ckusdc_ledger_id,
             business_logic_canister_id: user_canister_id, // Backward compatibility
         }
     }
@@ -339,13 +376,18 @@ impl TestEnv {
         decode_one(&response).expect("Failed to decode")
     }
     
-    /// Set crypto balance for testing
-    /// NOTE: crypto_canister doesn't have a test helper method yet
-    /// Tests that need this will need to use buy_crypto instead
-    pub fn set_crypto_balance(&self, _user_id: &str, _ckbtc: u64, _ckusdc: u64) -> Result<(), String> {
-        // TODO: Implement set_crypto_balance_for_testing in crypto_canister
-        // For now, tests should use buy_crypto to set balances
-        Ok(())
+    /// Set crypto balance for testing (ckBTC and ckUSDC)
+    /// Uses the crypto_canister test-only endpoint set_crypto_balance_for_testing
+    pub fn set_crypto_balance(&self, user_id: &str, ckbtc: u64, ckusdc: u64) -> Result<(), String> {
+        let arg = encode_args((user_id.to_string(), ckbtc, ckusdc)).unwrap();
+        let response = self.pic.update_call(
+            self.crypto_canister_id,
+            Principal::anonymous(),
+            "set_crypto_balance_for_testing",
+            arg,
+        ).map_err(|e| format!("set_crypto_balance_for_testing call failed: {:?}", e))?;
+
+        decode_one(&response).expect("Failed to decode set_crypto_balance_for_testing response")
     }
     
     /// Get user by ID or phone

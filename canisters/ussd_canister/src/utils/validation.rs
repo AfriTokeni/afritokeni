@@ -157,6 +157,37 @@ fn validate_bech32_address(address: &str) -> bool {
     data.chars().all(|c| valid_chars.contains(c))
 }
 
+/// Validate USDC/IC Principal address
+/// ckUSDC uses IC Principal addresses (not Ethereum addresses)
+pub fn is_valid_usdc_address(address: &str) -> bool {
+    // IC Principal format: base32 with hyphens, ending in "-cai"
+    // Example: rrkah-fqaaa-aaaaa-aaaaq-cai
+
+    // Basic checks
+    if address.is_empty() || address.len() < 10 || address.len() > 63 {
+        return false;
+    }
+
+    // Must end with "-cai"
+    if !address.ends_with("-cai") {
+        return false;
+    }
+
+    // Check format: lowercase alphanumeric and hyphens only
+    if !address.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-') {
+        return false;
+    }
+
+    // Should have multiple segments separated by hyphens
+    let parts: Vec<&str> = address.split('-').collect();
+    if parts.len() < 3 {
+        return false;
+    }
+
+    // Each part should be 5 characters (except possibly the last "-cai")
+    parts.iter().all(|part| part.len() == 3 || part.len() == 5)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

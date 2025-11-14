@@ -257,6 +257,14 @@ impl TranslationService {
             ("enter_amount", Language::Luganda) => "Yingiza omuwendo",
             ("enter_amount", Language::Swahili) => "Weka kiasi",
 
+            ("enter_btc_address", Language::English) => "Enter BTC address",
+            ("enter_btc_address", Language::Luganda) => "Yingiza endagiriro ya BTC",
+            ("enter_btc_address", Language::Swahili) => "Weka anwani ya BTC",
+
+            ("enter_usdc_address", Language::English) => "Enter USDC address",
+            ("enter_usdc_address", Language::Luganda) => "Yingiza endagiriro ya USDC",
+            ("enter_usdc_address", Language::Swahili) => "Weka anwani ya USDC",
+
             ("enter_pin_4digit", Language::English) => "Enter your 4-digit PIN",
             ("enter_pin_4digit", Language::Luganda) => "Yingiza PIN yo ey'ennamba 4",
             ("enter_pin_4digit", Language::Swahili) => "Weka PIN yako ya nambari 4",
@@ -357,7 +365,7 @@ impl TranslationService {
             ("cannot_swap_same_token", Language::Luganda) => "Tosobola kukyusa token y'emu",
             ("cannot_swap_same_token", Language::Swahili) => "Huwezi kubadilisha token sawa",
 
-            ("amount_must_be_greater_than_zero", Language::English) => "Amount must be greater than 0",
+            ("amount_must_be_greater_than_zero", Language::English) => "Invalid amount. Please enter a positive number greater than 0",
             ("amount_must_be_greater_than_zero", Language::Luganda) => "Omuwendo gulina okuba okusingawo 0",
             ("amount_must_be_greater_than_zero", Language::Swahili) => "Kiasi lazima kiwe zaidi ya 0",
 

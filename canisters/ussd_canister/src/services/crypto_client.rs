@@ -134,7 +134,7 @@ pub struct SellCryptoRequest {
 #[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
 pub struct SendCryptoRequest {
     pub user_identifier: String,
-    pub recipient: String,
+    pub to_address: String,
     pub amount: u64,
     pub crypto_type: String,  // ACL pattern
     pub pin: String,
@@ -147,10 +147,8 @@ pub struct SwapCryptoRequest {
     pub user_identifier: String,
     pub from_crypto: String,  // ACL pattern
     pub to_crypto: String,  // ACL pattern
-    pub from_amount: u64,
+    pub amount: u64,
     pub pin: String,
-    pub device_fingerprint: Option<String>,
-    pub geo_location: Option<String>,
 }
 
 #[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
@@ -366,7 +364,7 @@ pub async fn send_crypto(
     
     let request = SendCryptoRequest {
         user_identifier: user_identifier.clone(),
-        recipient: recipient.clone(),
+        to_address: recipient.clone(),
         amount,
         crypto_type: format!("{:?}", crypto_type),
         pin,
@@ -449,10 +447,8 @@ pub async fn swap_crypto(
         user_identifier: user_identifier.clone(),
         from_crypto: format!("{:?}", from_crypto),
         to_crypto: format!("{:?}", to_crypto),
-        from_amount,
+        amount: from_amount,
         pin,
-        device_fingerprint: None,
-        geo_location: None,
     };
     
     let response = Call::unbounded_wait(canister_id, "swap_crypto")

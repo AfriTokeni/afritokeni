@@ -190,6 +190,26 @@ fn add_authorized_canister(principal: Principal) -> Result<(), String> {
     Ok(())
 }
 
+/// Set ckBTC ledger ID (admin only, for testing)
+#[update]
+fn set_ckbtc_ledger_id(principal: Principal) -> Result<(), String> {
+    if !ic_cdk::api::is_controller(&caller()) {
+        return Err("Only controller can set ckBTC ledger ID".to_string());
+    }
+    config::set_ckbtc_ledger_id(principal);
+    Ok(())
+}
+
+/// Set ckUSDC ledger ID (admin only, for testing)
+#[update]
+fn set_ckusdc_ledger_id(principal: Principal) -> Result<(), String> {
+    if !ic_cdk::api::is_controller(&caller()) {
+        return Err("Only controller can set ckUSDC ledger ID".to_string());
+    }
+    config::set_ckusdc_ledger_id(principal);
+    Ok(())
+}
+
 /// Enable test mode (admin only)
 #[update]
 fn enable_test_mode() -> Result<(), String> {
@@ -208,6 +228,30 @@ fn disable_test_mode() -> Result<(), String> {
     }
     config::disable_test_mode();
     Ok(())
+}
+
+/// Test-only helper: set crypto balances directly for a user
+/// This is ONLY allowed in test mode and is used by PocketIC integration tests
+#[update]
+async fn set_crypto_balance_for_testing(
+    user_identifier: String,
+    ckbtc: u64,
+    ckusdc: u64,
+) -> Result<(), String> {
+    // Guard: only in test mode
+    if !config::is_test_mode() {
+        return Err("set_crypto_balance_for_testing only allowed in test mode".to_string());
+    }
+
+    // Read current balances
+    let (current_btc, current_usdc) = services::data_client::get_crypto_balance(&user_identifier).await?;
+
+    // Compute deltas as signed i64
+    let delta_btc: i64 = ckbtc as i64 - current_btc as i64;
+    let delta_usdc: i64 = ckusdc as i64 - current_usdc as i64;
+
+    // Apply deltas via normal balance update mechanism
+    services::data_client::update_crypto_balance(&user_identifier, delta_btc, delta_usdc).await
 }
 
 // ============================================================================

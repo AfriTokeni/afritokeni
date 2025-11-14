@@ -16,15 +16,8 @@ fn init() {
     ic_cdk::println!("🔧 USSD canister initialized - use configure_domain_canisters to set canister IDs");
 }
 
-/// Set Exchange Canister ID (for manual configuration)
-#[update]
-fn set_exchange_canister_id(canister_id: Principal) {
-    services::exchange::set_exchange_canister_id(canister_id);
-    ic_cdk::println!("✅ Exchange Canister ID set");
-}
-
 // ============================================================================
-// DOMAIN CANISTER CONFIGURATION (NEW)
+// DOMAIN CANISTER CONFIGURATION
 // ============================================================================
 
 /// Set User Canister ID
