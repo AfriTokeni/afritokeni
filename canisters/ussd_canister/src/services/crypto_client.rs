@@ -23,6 +23,7 @@ lazy_static::lazy_static! {
     static ref MOCK_SEND_CRYPTO: Mutex<Option<Box<dyn Fn(String, String, u64, CryptoType, String) -> Result<String, String> + Send>>> = Mutex::new(None);
     static ref MOCK_SWAP_CRYPTO: Mutex<Option<Box<dyn Fn(String, CryptoType, CryptoType, u64, String) -> Result<SwapCryptoResponse, String> + Send>>> = Mutex::new(None);
     static ref MOCK_CHECK_CRYPTO_BALANCE: Mutex<Option<Box<dyn Fn(String, CryptoType) -> Result<u64, String> + Send>>> = Mutex::new(None);
+    static ref MOCK_APPROVE_CRYPTO_SPENDING: Mutex<Option<Box<dyn Fn(String, u64, CryptoType, String) -> Result<u64, String> + Send>>> = Mutex::new(None);
 }
 
 #[cfg(any(test, feature = "test-utils"))]
@@ -66,12 +67,21 @@ where
 }
 
 #[cfg(any(test, feature = "test-utils"))]
+pub fn set_mock_approve_crypto_spending<F>(mock: F)
+where
+    F: Fn(String, u64, CryptoType, String) -> Result<u64, String> + Send + 'static,
+{
+    *MOCK_APPROVE_CRYPTO_SPENDING.lock().unwrap() = Some(Box::new(mock));
+}
+
+#[cfg(any(test, feature = "test-utils"))]
 pub fn clear_mocks() {
     *MOCK_BUY_CRYPTO.lock().unwrap() = None;
     *MOCK_SELL_CRYPTO.lock().unwrap() = None;
     *MOCK_SEND_CRYPTO.lock().unwrap() = None;
     *MOCK_SWAP_CRYPTO.lock().unwrap() = None;
     *MOCK_CHECK_CRYPTO_BALANCE.lock().unwrap() = None;
+    *MOCK_APPROVE_CRYPTO_SPENDING.lock().unwrap() = None;
 }
 
 pub fn set_crypto_canister_id(canister_id: Principal) {
@@ -150,6 +160,14 @@ pub struct SwapCryptoResponse {
     pub to_amount: u64,
     pub exchange_rate: f64,
     pub spread_bps: u64,
+}
+
+#[derive(candid::CandidType, candid::Deserialize, Clone, Debug)]
+pub struct ApproveCryptoRequest {
+    pub user_identifier: String,
+    pub crypto_amount: u64,
+    pub crypto_type: String,
+    pub pin: String,
 }
 
 // ============================================================================
@@ -247,6 +265,83 @@ pub async fn sell_crypto(
         Ok(resp) => ic_cdk::println!("✅ [CRYPTO_CLIENT] Sell successful: tx_id={}, fiat_amount={}", 
             resp.transaction_id, resp.fiat_amount),
         Err(e) => ic_cdk::println!("❌ [CRYPTO_CLIENT] Sell failed: {}", e),
+    }
+    
+    result
+}
+
+/// Approve platform to spend user's crypto (ICRC-2 step 1)
+pub async fn approve_crypto_spending(
+    user_identifier: String,
+    crypto_amount: u64,
+    crypto_type: CryptoType,
+    pin: String,
+) -> Result<u64, String> {
+    #[cfg(any(test, feature = "test-utils"))]
+    {
+        if let Some(mock) = MOCK_APPROVE_CRYPTO_SPENDING.lock().unwrap().as_ref() {
+            return mock(user_identifier, crypto_amount, crypto_type, pin);
+        }
+    }
+    
+    let canister_id = get_crypto_canister_id()?;
+    
+    shared_types::audit::log_inter_canister_call(
+        "crypto_canister",
+        "approve_crypto_spending",
+        Some(user_identifier.clone())
+    );
+    
+    ic_cdk::println!("📤 [CRYPTO_CLIENT] Calling approve_crypto_spending: user={}, amount={}, type={:?}", 
+        user_identifier, crypto_amount, crypto_type);
+    
+    let request = ApproveCryptoRequest {
+        user_identifier: user_identifier.clone(),
+        crypto_amount,
+        crypto_type: format!("{:?}", crypto_type),
+        pin,
+    };
+    
+    let response = Call::unbounded_wait(canister_id, "approve_crypto_spending")
+        .with_args(&(request,))
+        .await
+        .map_err(|e| {
+            shared_types::audit::log_failure(
+                "approve_crypto_spending",
+                Some(user_identifier.clone()),
+                format!("Call failed: {:?}", e)
+            );
+            format!("❌ [CRYPTO_CLIENT] Call failed: {:?}", e)
+        })?;
+    
+    let (result,): (Result<u64, String>,) = response
+        .candid_tuple()
+        .map_err(|e| {
+            shared_types::audit::log_failure(
+                "approve_crypto_spending",
+                Some(user_identifier.clone()),
+                format!("Decode failed: {}", e)
+            );
+            format!("❌ [CRYPTO_CLIENT] Decode failed: {}", e)
+        })?;
+    
+    match &result {
+        Ok(approval_id) => {
+            shared_types::audit::log_success(
+                "approve_crypto_spending",
+                Some(user_identifier.clone()),
+                format!("Approved {} {:?}, approval_id={}", crypto_amount, crypto_type, approval_id)
+            );
+            ic_cdk::println!("✅ [CRYPTO_CLIENT] Approval successful: approval_id={}", approval_id);
+        }
+        Err(e) => {
+            shared_types::audit::log_failure(
+                "approve_crypto_spending",
+                Some(user_identifier),
+                format!("Approval failed: {}", e)
+            );
+            ic_cdk::println!("❌ [CRYPTO_CLIENT] Approval failed: {}", e);
+        }
     }
     
     result

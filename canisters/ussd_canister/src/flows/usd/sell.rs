@@ -3,8 +3,8 @@ use crate::core::session::UssdSession;
 use crate::utils::translations::{Language, TranslationService};
 use crate::utils::validation;
 
-/// Handle sell USDC flow
-/// Steps: 0. Enter amount → 1. Enter PIN → 2. Execute
+/// Handle sell USDC flow with confirmation
+/// Steps: 0. Enter amount → 1. Enter PIN & show preview → 2. Confirm → 3. Execute
 pub async fn handle_sell_usdc(text: &str, session: &mut UssdSession) -> (String, bool) {
     let lang = Language::from_code(&session.language);
     let parts: Vec<&str> = text.split('*').collect();
@@ -23,8 +23,8 @@ pub async fn handle_sell_usdc(text: &str, session: &mut UssdSession) -> (String,
                 TranslationService::translate("back_or_menu", lang)), true)
         }
         1 => {
-            // Step 1: Validate amount, check balance, ask for PIN
-            let amount_str = parts.get(2).unwrap_or(&"");
+            // Step 1: Validate amount, check balance, ask for PIN to approve
+            let amount_str = parts.get(3).unwrap_or(&"");
             
             let amount_usdc = match validation::parse_amount(amount_str) {
                 Ok(amt) => amt,
@@ -57,12 +57,12 @@ pub async fn handle_sell_usdc(text: &str, session: &mut UssdSession) -> (String,
                             TranslationService::translate("thank_you", lang)), false);
                     }
                     
-                    // Show confirmation (rate determined at execution)
-                    (format!("{}\n{}: {:.2} USDC\n{}\n\n{}", 
-                        TranslationService::translate("confirm_transaction", lang),
-                        TranslationService::translate("amount", lang),
+                    // Store amount for next step
+                    session.set_data("amount_e6", &((amount_usdc * 1_000_000.0) as u64).to_string());
+                    
+                    (format!("{} {:.2} USDC\n{}", 
+                        TranslationService::translate("selling", lang),
                         amount_usdc,
-                        TranslationService::translate("you_will_receive", lang),
                         TranslationService::translate("enter_pin_4digit", lang)), true)
                 }
                 Err(e) => {
@@ -74,39 +74,79 @@ pub async fn handle_sell_usdc(text: &str, session: &mut UssdSession) -> (String,
             }
         }
         2 => {
-            // Step 2: Execute sell
+            // Step 2: Show preview and ask for confirmation
+            let amount_str = parts.get(2).unwrap_or(&"");
             let pin = parts.get(3).unwrap_or(&"");
-            let amount_str = parts.get(2).unwrap_or(&"").to_string();
-
-            // Parse and validate amount
+            
             let amount_e6 = match amount_str.parse::<f64>() {
                 Ok(amt) if amt > 0.0 => (amt * 1_000_000.0) as u64,
-                _ => {
-                    return (format!("{}\n\n{}",
-                        TranslationService::translate("invalid_amount", lang),
-                        TranslationService::translate("thank_you", lang)), false);
-                }
+                _ => 0,
+            };
+            let amount_usdc = amount_e6 as f64 / 1_000_000.0;
+            
+            // Store for next step
+            session.set_data("amount_e6", &amount_e6.to_string());
+            session.set_data("pin", pin);
+            
+            (format!("💰 {}:
+
+{}: {:.2} USDC
+{}: ~{} (est)
+
+1. {}
+2. {}",
+                TranslationService::translate("confirm_transaction", lang),
+                TranslationService::translate("selling", lang),
+                amount_usdc,
+                TranslationService::translate("you_receive", lang),
+                currency,
+                TranslationService::translate("confirm", lang),
+                TranslationService::translate("cancel", lang)), true)
+        }
+        3 => {
+            // Step 3: Execute sell
+            let confirmation = parts.get(4).unwrap_or(&"");
+            
+            if confirmation != &"1" {
+                return (format!("{}\n\n0. {}",
+                    TranslationService::translate("transaction_cancelled", lang),
+                    TranslationService::translate("main_menu", lang)), false);
+            }
+            
+            // Get amount and PIN from parts (stateless USSD) or session (stateful)
+            let amount_e6 = if let Some(amt_str) = parts.get(2) {
+                amt_str.parse::<f64>().ok()
+                    .map(|amt| (amt * 1_000_000.0) as u64)
+                    .unwrap_or(0)
+            } else {
+                session.get_data("amount_e6")
+                    .and_then(|v| v.parse::<u64>().ok())
+                    .unwrap_or(0)
             };
             
-            ic_cdk::println!("💵 Executing sell_usdc: amount={} e6", amount_e6);
+            let pin = parts.get(3)
+                .map(|s| s.to_string())
+                .or_else(|| session.get_data("pin"))
+                .unwrap_or_default();
             
-            let currency_enum = match shared_types::FiatCurrency::from_code(&currency) {
-                Some(c) => c,
-                None => return (format!("Invalid currency\n\n0. {}", TranslationService::translate("main_menu", lang)), false),
-            };
-            
-            // Get user ID first
             let user_profile = match crate::services::user_client::get_user_by_phone(session.phone_number.clone()).await {
                 Ok(profile) => profile,
                 Err(e) => return (format!("Error: {}\n\n0. Main Menu", e), false),
             };
+            
+            let currency_enum = match shared_types::FiatCurrency::from_code(&currency) {
+                Some(c) => c,
+                None => return (format!("Error: Invalid currency\n\n0. Main Menu"), false),
+            };
+            
+            ic_cdk::println!("💵 Executing sell_usdc: amount={} e6", amount_e6);
             
             match crate::services::crypto_client::sell_crypto(
                 user_profile.id.clone(),
                 amount_e6,
                 shared_types::CryptoType::CkUSDC,
                 currency_enum,
-                pin.to_string()
+                pin
             ).await {
                 Ok(result) => {
                     let fiat_received = result.fiat_amount as f64 / 100.0;
@@ -121,7 +161,7 @@ pub async fn handle_sell_usdc(text: &str, session: &mut UssdSession) -> (String,
                         TranslationService::translate("thank_you", lang)), false)
                 }
                 Err(e) => {
-                    (format!("{}: {}\n\n{}", 
+                    (format!("{}: {}\n\n{}",
                         TranslationService::translate("transaction_failed", lang),
                         e,
                         TranslationService::translate("thank_you", lang)), false)

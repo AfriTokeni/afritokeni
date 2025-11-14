@@ -158,9 +158,9 @@ fn test_sell_usdc_to_ugx() {
     env.setup_test_user_with_balances(phone, "USDC", "Seller", "usdcsell@test.com", "UGX", "1234", 0, 0, 200000)
         .expect("Setup");
     
-    // Sell USDC: Menu 3 -> 4 (Sell) -> amount in USDC -> PIN
+    // Sell USDC: Menu 3 -> 4 (Sell) -> amount in USDC -> PIN -> Confirm
     // 0.1 USDC = 100,000 e6
-    let (response, _) = env.process_ussd(&sess, phone, "3*4*0.1*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "3*4*0.1*1234*1");
     
     assert!(response.contains("success") || response.contains("Success") || response.contains("sold"),
         "Should sell USDC. Got: {}", response);
@@ -181,7 +181,7 @@ fn test_sell_usdc_insufficient_usdc() {
     env.setup_test_user_with_balances(phone, "USDC", "NoBalance", "usdcno@test.com", "UGX", "1234", 0, 0, 0)
         .expect("Setup");
     
-    let (response, _) = env.process_ussd(&sess, phone, "3*4*0.1*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "3*4*0.1*1234*1");
     
     assert!(response.contains("Insufficient") || response.contains("insufficient"),
         "Should reject. Got: {}", response);
@@ -196,7 +196,7 @@ fn test_sell_usdc_all_balance() {
     env.setup_test_user_with_balances(phone, "USDC", "SellAll", "usdcall@test.com", "UGX", "1234", 0, 0, 150000)
         .expect("Setup");
     
-    let (response, _) = env.process_ussd(&sess, phone, "3*4*0.15*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "3*4*0.15*1234*1");
     
     assert!(response.contains("success") || response.contains("Success") || response.contains("sold"),
         "Should sell USDC. Got: {}", response);
@@ -351,7 +351,7 @@ fn test_usdc_buy_then_sell() {
     assert!(usdc_after_buy > 0, "Should have USDC after buy");
     
     // Sell half
-    env.process_ussd(&sess, phone, &format!("3*4*{}*1234", usdc_after_buy / 2));
+    env.process_ussd(&sess, phone, &format!("3*4*{}*1234*1", usdc_after_buy / 2));
     
     let (_, usdc_final) = env.get_crypto_balance(phone).expect("Get balance");
     assert!(usdc_final < usdc_after_buy, "USDC should decrease after sell");

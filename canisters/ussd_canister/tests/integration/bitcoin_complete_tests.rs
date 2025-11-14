@@ -161,9 +161,9 @@ fn test_sell_bitcoin_to_ugx() {
     env.setup_test_user_with_balances(phone, "BTC", "Seller", "btcsell@test.com", "UGX", "1234", 0, 200000, 0)
         .expect("Setup");
     
-    // Sell Bitcoin: Menu 2 -> 4 (Sell) -> amount in BTC -> PIN
+    // Sell Bitcoin: Menu 2 -> 4 (Sell) -> amount in BTC -> PIN -> Confirm
     // 0.001 BTC = 100,000 sats
-    let (response, _) = env.process_ussd(&sess, phone, "2*4*0.001*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "2*4*0.001*1234*1");
     
     assert!(response.contains("success") || response.contains("Success") || response.contains("sold"),
         "Should sell BTC. Got: {}", response);
@@ -187,7 +187,7 @@ fn test_sell_bitcoin_insufficient_btc() {
         .expect("Setup");
     // No BTC balance
     
-    let (response, _) = env.process_ussd(&sess, phone, "2*4*0.001*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "2*4*0.001*1234*1");
     
     assert!(response.contains("Insufficient") || response.contains("insufficient"),
         "Should reject. Got: {}", response);
@@ -202,7 +202,7 @@ fn test_sell_bitcoin_all_balance() {
     env.setup_test_user_with_balances(phone, "BTC", "SellAll", "btcall@test.com", "UGX", "1234", 0, 150000, 0)
         .expect("Setup");
     
-    let (response, _) = env.process_ussd(&sess, phone, "2*4*0.0015*1234");
+    let (response, _) = env.process_ussd(&sess, phone, "2*4*0.0015*1234*1");
     
     assert!(response.contains("success") || response.contains("Success"));
     
@@ -385,7 +385,7 @@ fn test_bitcoin_buy_then_sell() {
     assert!(btc_after_buy > 0, "Should have BTC after buy");
     
     // Sell half
-    env.process_ussd(&sess, phone, &format!("2*4*{}*1234", btc_after_buy / 2));
+    env.process_ussd(&sess, phone, &format!("2*4*{}*1234*1", btc_after_buy / 2));
     
     // Check final balance
     let (btc_final, _) = env.get_crypto_balance(phone).expect("Get balance");

@@ -1158,8 +1158,33 @@ impl TranslationService {
             ("error_retrieving_history", Language::Swahili) => "Kosa katika kupata historia ya muamala.",
 
             ("thank_you_using_afritokeni", Language::English) => "Thank you for using AfriTokeni!",
-            ("thank_you_using_afritokeni", Language::Luganda) => "Webale okukozesa AfriTokeni!",
+            ("thank_you_using_afritokeni", Language::Luganda) => "Weebale okukozesa AfriTokeni!",
             ("thank_you_using_afritokeni", Language::Swahili) => "Asante kwa kutumia AfriTokeni!",
+            
+            // ICRC-2 Approval Flow
+            ("approval_successful", Language::English) => "Approval Successful",
+            ("approval_successful", Language::Luganda) => "Okukkiriza Kuwangudde",
+            ("approval_successful", Language::Swahili) => "Idhini Imefanikiwa",
+            
+            ("approved", Language::English) => "Approved",
+            ("approved", Language::Luganda) => "Kikkiriziddwa",
+            ("approved", Language::Swahili) => "Imeidhinishwa",
+            
+            ("confirm_sale", Language::English) => "Confirm Sale",
+            ("confirm_sale", Language::Luganda) => "Kakasa Okutunda",
+            ("confirm_sale", Language::Swahili) => "Thibitisha Mauzo",
+            
+            ("yes_sell", Language::English) => "Yes, Sell",
+            ("yes_sell", Language::Luganda) => "Ye, Tunda",
+            ("yes_sell", Language::Swahili) => "Ndiyo, Uza",
+            
+            ("no_cancel", Language::English) => "No, Cancel",
+            ("no_cancel", Language::Luganda) => "Nedda, Sazaamu",
+            ("no_cancel", Language::Swahili) => "Hapana, Ghairi",
+            
+            ("approval_failed", Language::English) => "Approval Failed",
+            ("approval_failed", Language::Luganda) => "Okukkiriza Kulemeddwa",
+            ("approval_failed", Language::Swahili) => "Idhini Imeshindwa",
             
             // Default fallback - return empty string for unknown keys
             _ => "",

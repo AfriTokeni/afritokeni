@@ -1,10 +1,18 @@
 use candid::CandidType;
-use ic_cdk::api::time;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::collections::HashMap;
 
 const SESSION_TIMEOUT_NANOS: u64 = 5 * 60 * 1_000_000_000; // 5 minutes in nanoseconds
+
+// Mock time for tests
+#[cfg(not(test))]
+use ic_cdk::api::time;
+
+#[cfg(test)]
+fn time() -> u64 {
+    1731574800000000000 // Fixed timestamp for tests
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug, CandidType)]
 pub struct UssdSession {
