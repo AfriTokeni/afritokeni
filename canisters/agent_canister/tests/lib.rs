@@ -1,8 +1,11 @@
 // ============================================================================
-// Agent Canister Integration Tests
+// Agent Canister Tests
 // ============================================================================
-// Tests using PocketIC for real inter-canister communication
+// Unit tests and integration tests using PocketIC
 // ============================================================================
+
+#[cfg(test)]
+mod unit;
 
 #[cfg(test)]
 mod integration;

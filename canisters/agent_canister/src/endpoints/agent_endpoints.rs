@@ -24,7 +24,27 @@ pub struct AgentBalanceResponse {
     pub commission_earned: u64,
     pub commission_paid: u64,
     pub commission_pending: u64,
+    pub outstanding_balance: i64,
+    pub credit_limit: u64,
     pub last_settlement_date: Option<u64>,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct SetAgentTierRequest {
+    pub agent_id: String,
+    pub currency: String,
+    pub tier: shared_types::AgentTier,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct AgentCreditStatus {
+    pub agent_id: String,
+    pub currency: String,
+    pub tier: shared_types::AgentTier,
+    pub credit_limit: u64,
+    pub outstanding_balance: i64,
+    pub available_credit: u64,
+    pub credit_utilization_percent: f64,
 }
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
@@ -61,6 +81,8 @@ async fn get_agent_balance(agent_id: String, currency: String) -> Result<AgentBa
         commission_earned: balance.commission_earned,
         commission_paid: balance.commission_paid,
         commission_pending,
+        outstanding_balance: balance.outstanding_balance,
+        credit_limit: balance.credit_limit,
         last_settlement_date: balance.last_settlement_date,
     })
 }
@@ -87,6 +109,8 @@ pub async fn get_agent_all_balances(agent_id: String) -> Result<Vec<AgentBalance
                 commission_earned: balance.commission_earned,
                 commission_paid: balance.commission_paid,
                 commission_pending,
+                outstanding_balance: balance.outstanding_balance,
+                credit_limit: balance.credit_limit,
                 last_settlement_date: balance.last_settlement_date,
             }
         })
@@ -118,6 +142,8 @@ pub async fn get_all_agent_balances() -> Result<Vec<AgentBalanceResponse>, Strin
                 commission_earned: balance.commission_earned,
                 commission_paid: balance.commission_paid,
                 commission_pending,
+                outstanding_balance: balance.outstanding_balance,
+                credit_limit: balance.credit_limit,
                 last_settlement_date: balance.last_settlement_date,
             }
         })
@@ -127,10 +153,242 @@ pub async fn get_all_agent_balances() -> Result<Vec<AgentBalanceResponse>, Strin
 }
 
 // ============================================================================
+// Agent Tier & Credit Management
+// ============================================================================
+
+/// Set agent tier and update credit limit (admin only)
+#[update]
+pub async fn set_agent_tier(request: SetAgentTierRequest) -> Result<AgentCreditStatus, String> {
+    let caller = ic_cdk::api::msg_caller();
+    if !ic_cdk::api::is_controller(&caller) {
+        return Err("Unauthorized: Controller access required".to_string());
+    }
+    
+    let new_credit_limit = request.tier.default_credit_limit();
+    
+    // Get or create agent balance
+    let mut balance = data_client::get_agent_balance(&request.agent_id, &request.currency).await?
+        .unwrap_or_else(|| shared_types::AgentBalance {
+            agent_id: request.agent_id.clone(),
+            currency: request.currency.clone(),
+            total_deposits: 0,
+            total_withdrawals: 0,
+            commission_earned: 0,
+            commission_paid: 0,
+            outstanding_balance: 0,
+            credit_limit: new_credit_limit,
+            last_settlement_date: None,
+            last_updated: ic_cdk::api::time(),
+        });
+    
+    balance.credit_limit = new_credit_limit;
+    balance.last_updated = ic_cdk::api::time();
+    
+    data_client::update_agent_balance(balance.clone()).await?;
+    
+    audit::log_success(
+        "set_agent_tier",
+        Some(request.agent_id.clone()),
+        format!("Tier set to {:?}, credit limit: {} {}", request.tier, new_credit_limit, request.currency)
+    );
+    
+    let available_credit = if balance.outstanding_balance < 0 {
+        new_credit_limit.saturating_sub(balance.outstanding_balance.unsigned_abs())
+    } else {
+        new_credit_limit
+    };
+    
+    let utilization = if new_credit_limit > 0 {
+        (balance.outstanding_balance.unsigned_abs() as f64 / new_credit_limit as f64) * 100.0
+    } else {
+        0.0
+    };
+    
+    Ok(AgentCreditStatus {
+        agent_id: request.agent_id,
+        currency: request.currency,
+        tier: request.tier,
+        credit_limit: new_credit_limit,
+        outstanding_balance: balance.outstanding_balance,
+        available_credit,
+        credit_utilization_percent: utilization,
+    })
+}
+
+/// Get agent credit status
+#[update]
+pub async fn get_agent_credit_status(agent_id: String, currency: String) -> Result<AgentCreditStatus, String> {
+    if !config::is_authorized() {
+        return Err("Unauthorized".to_string());
+    }
+    
+    let balance = data_client::get_agent_balance(&agent_id, &currency).await?
+        .ok_or_else(|| format!("No balance found for agent {} in currency {}", agent_id, currency))?;
+    
+    // Determine tier based on credit limit
+    let tier = if balance.credit_limit >= shared_types::AgentTier::Premium.default_credit_limit() {
+        shared_types::AgentTier::Premium
+    } else if balance.credit_limit >= shared_types::AgentTier::Trusted.default_credit_limit() {
+        shared_types::AgentTier::Trusted
+    } else {
+        shared_types::AgentTier::New
+    };
+    
+    let available_credit = if balance.outstanding_balance < 0 {
+        balance.credit_limit.saturating_sub(balance.outstanding_balance.unsigned_abs())
+    } else {
+        balance.credit_limit
+    };
+    
+    let utilization = if balance.credit_limit > 0 {
+        (balance.outstanding_balance.unsigned_abs() as f64 / balance.credit_limit as f64) * 100.0
+    } else {
+        0.0
+    };
+    
+    Ok(AgentCreditStatus {
+        agent_id: balance.agent_id,
+        currency: balance.currency,
+        tier,
+        credit_limit: balance.credit_limit,
+        outstanding_balance: balance.outstanding_balance,
+        available_credit,
+        credit_utilization_percent: utilization,
+    })
+}
+
+/// Check if agent can process a deposit (has available credit)
+#[update]
+pub async fn check_agent_credit_available(
+    agent_id: String,
+    currency: String,
+    amount: u64,
+) -> Result<bool, String> {
+    if !config::is_authorized() {
+        return Err("Unauthorized".to_string());
+    }
+    
+    let balance = data_client::get_agent_balance(&agent_id, &currency).await?
+        .ok_or_else(|| format!("No balance found for agent {} in currency {}", agent_id, currency))?;
+    
+    // Calculate what outstanding balance would be after this deposit
+    let new_outstanding = balance.outstanding_balance - (amount as i64);
+    
+    // Check if new outstanding balance would exceed credit limit
+    let would_exceed = new_outstanding.unsigned_abs() > balance.credit_limit;
+    
+    Ok(!would_exceed)
+}
+
+// ============================================================================
 // Settlement Management
 // ============================================================================
 
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct WeeklySettlement {
+    pub week: String,  // Format: "2025-W46"
+    pub agent_id: String,
+    pub currency: String,
+    pub outstanding_balance: i64,  // Negative = agent owes platform, Positive = platform owes agent
+    pub settlement_amount: u64,    // Absolute amount to settle
+    pub settlement_direction: String,  // "agent_to_platform" or "platform_to_agent"
+    pub paid: bool,
+    pub paid_at: Option<u64>,
+}
+
+/// Generate weekly settlements for all agents (admin only)
+#[update]
+pub async fn generate_weekly_settlements(week: String) -> Result<Vec<WeeklySettlement>, String> {
+    let caller = ic_cdk::api::msg_caller();
+    if !ic_cdk::api::is_controller(&caller) {
+        return Err("Unauthorized: Controller access required".to_string());
+    }
+    
+    // Validate week format (YYYY-Www)
+    if !week.contains("-W") || week.len() != 8 {
+        return Err("Invalid week format. Expected: YYYY-Www (e.g., 2025-W46)".to_string());
+    }
+    
+    audit::log_success("generate_weekly_settlements", None, format!("Generating settlements for week: {}", week));
+    
+    let all_balances = data_client::get_all_agent_balances().await?;
+    let mut settlements = Vec::new();
+    
+    for balance in all_balances {
+        // Only create settlement if there's an outstanding balance
+        if balance.outstanding_balance != 0 {
+            let (settlement_amount, settlement_direction) = if balance.outstanding_balance < 0 {
+                (balance.outstanding_balance.unsigned_abs(), "agent_to_platform".to_string())
+            } else {
+                (balance.outstanding_balance as u64, "platform_to_agent".to_string())
+            };
+            
+            let settlement = WeeklySettlement {
+                week: week.clone(),
+                agent_id: balance.agent_id.clone(),
+                currency: balance.currency.clone(),
+                outstanding_balance: balance.outstanding_balance,
+                settlement_amount,
+                settlement_direction: settlement_direction.clone(),
+                paid: false,
+                paid_at: None,
+            };
+            
+            settlements.push(settlement);
+            
+            audit::log_success(
+                "weekly_settlement_created",
+                Some(balance.agent_id),
+                format!("Settlement: {} {} {}, amount: {}", 
+                    week, balance.currency, settlement_direction, settlement_amount)
+            );
+        }
+    }
+    
+    audit::log_success(
+        "generate_weekly_settlements",
+        None,
+        format!("Generated {} settlements for week {}", settlements.len(), week)
+    );
+    
+    Ok(settlements)
+}
+
+/// Process weekly settlement payment (admin only)
+#[update]
+pub async fn process_weekly_settlement(
+    agent_id: String,
+    currency: String,
+    week: String,
+) -> Result<(), String> {
+    let caller = ic_cdk::api::msg_caller();
+    if !ic_cdk::api::is_controller(&caller) {
+        return Err("Unauthorized: Controller access required".to_string());
+    }
+    
+    let mut balance = data_client::get_agent_balance(&agent_id, &currency).await?
+        .ok_or_else(|| format!("Agent balance not found: {} {}", agent_id, currency))?;
+    
+    let settlement_amount = balance.outstanding_balance;
+    
+    // Reset outstanding balance to 0
+    balance.outstanding_balance = 0;
+    balance.last_settlement_date = Some(ic_cdk::api::time());
+    balance.last_updated = ic_cdk::api::time();
+    
+    data_client::update_agent_balance(balance).await?;
+    
+    audit::log_success(
+        "process_weekly_settlement",
+        Some(agent_id.clone()),
+        format!("Settlement processed: week={}, currency={}, amount={}", week, currency, settlement_amount)
+    );
+    
+    Ok(())
+}
+
 /// Generate monthly settlements for all agents (admin only)
+/// DEPRECATED: Use generate_weekly_settlements instead
 #[update]
 pub async fn generate_monthly_settlements(month: String) -> Result<Vec<SettlementResponse>, String> {
     // Only controller can generate settlements

@@ -219,7 +219,7 @@ pub async fn confirm_deposit(request: ConfirmDepositRequest) -> Result<ConfirmDe
     let net_amount = deposit.amount - deposit.agent_commission;
     wallet_client::add_fiat_balance(&deposit.user_id, net_amount, &deposit.currency).await?;
     
-    // Update agent balance
+    // Update agent balance (CREDIT SYSTEM)
     let _agent_balance_key = format!("{}:{}", deposit.agent_id, deposit.currency);
     let mut agent_balance = data_client::get_agent_balance(&deposit.agent_id, &deposit.currency).await?
         .unwrap_or_else(|| shared_types::AgentBalance {
@@ -229,13 +229,29 @@ pub async fn confirm_deposit(request: ConfirmDepositRequest) -> Result<ConfirmDe
             total_withdrawals: 0,
             commission_earned: 0,
             commission_paid: 0,
+            outstanding_balance: 0,  // NEW: starts at 0
+            credit_limit: shared_types::AgentTier::New.default_credit_limit(),  // NEW: default to New tier (1M)
             last_settlement_date: None,
             last_updated: now,
         });
     
     agent_balance.total_deposits += deposit.amount;
     agent_balance.commission_earned += deposit.agent_keeps;
+    
+    // NEW: Agent owes platform (outstanding_balance decreases)
+    // Agent credited user's fiat balance but hasn't sent cash to platform yet
+    agent_balance.outstanding_balance -= net_amount as i64;
+    
     agent_balance.last_updated = now;
+    
+    // NEW: Check if agent exceeded credit limit
+    if agent_balance.outstanding_balance.abs() as u64 > agent_balance.credit_limit {
+        return Err(format!(
+            "Agent credit limit exceeded. Outstanding: {}, Limit: {}. Agent must settle before processing more deposits.",
+            agent_balance.outstanding_balance.abs(),
+            agent_balance.credit_limit
+        ));
+    }
     
     data_client::update_agent_balance(agent_balance).await?;
     

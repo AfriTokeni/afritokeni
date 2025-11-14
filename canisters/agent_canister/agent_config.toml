@@ -77,7 +77,29 @@ min_deposit = 10000
 min_withdrawal = 10000
 
 # ============================================================================
-# SETTLEMENT CONFIGURATION
+# AGENT CREDIT SYSTEM (NON-CUSTODIAL)
+# ============================================================================
+# Agents operate on credit - no upfront deposits required
+# Credit limits based on tier, settled weekly
+
+[credit.tiers]
+# New agent credit limit (in currency units, e.g., UGX)
+new_agent_limit = 1_000_000      # 1M UGX for new agents
+# Trusted agent credit limit
+trusted_agent_limit = 5_000_000  # 5M UGX for trusted agents
+# Premium agent credit limit
+premium_agent_limit = 10_000_000 # 10M UGX for premium agents
+
+[credit.settlement]
+# Settlement frequency (weekly, not monthly)
+settlement_frequency = "weekly"
+# Settlement day of week (1 = Monday, 7 = Sunday)
+settlement_day_of_week = 1  # Monday
+# Minimum outstanding balance to trigger settlement (in currency units)
+min_settlement_balance = 50_000  # 500 in currency units
+
+# ============================================================================
+# SETTLEMENT CONFIGURATION (DEPRECATED - Use credit.settlement instead)
 # ============================================================================
 
 [settlement]

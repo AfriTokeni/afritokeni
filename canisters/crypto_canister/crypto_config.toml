@@ -33,6 +33,16 @@ default_tolerance = 100
 # Maximum allowed slippage (500 = 5%)
 max_tolerance = 500
 
+[reserve]
+# Platform reserve management configuration
+# Target allocation percentages
+target_ckbtc_percent = 50.0
+target_ckusdc_percent = 50.0
+# Rebalance if deviation exceeds this threshold
+rebalance_threshold_percent = 10.0
+# Slippage tolerance for rebalancing swaps (basis points)
+rebalance_slippage_tolerance_bp = 500  # 5%
+
 [tokens]
 # Token Canister IDs and configuration
 

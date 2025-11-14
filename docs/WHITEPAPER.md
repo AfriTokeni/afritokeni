@@ -1,9 +1,19 @@
 # AfriTokeni Whitepaper
 ## SMS-Accessible Crypto Banking for Africa
 
-**Version 1.5 | October 2025**
+**Version 2.0 | November 2025**
 
-**Latest Update**: Full trilingual USSD interface (English, Luganda, Swahili) with session reset and enhanced UX
+**Latest Update**: Non-Custodial Architecture with Agent Credit System
+
+### Key Changes in v2.0:
+- ✅ **Truly Non-Custodial**: Users own crypto on ckBTC/ckUSDC ledgers via Principal IDs
+- ✅ **Agent Credit System**: Agents get tiered credit limits (1M/5M/10M), NO upfront deposits required
+- ✅ **Platform as Market Maker**: Sells crypto from reserve, NOT as custodian
+- ✅ **ICRC-2 Integration**: User-controlled crypto transfers via approval mechanism
+- ✅ **Sonic DEX Integration**: On-chain BTC↔USDC swaps for users
+- ✅ **39 African Currencies**: Full multi-currency support across the continent
+- ✅ **Weekly Settlements**: Agent balance reconciliation every Monday
+- ✅ **Revenue-Based Reserve Growth**: Start small ($10K), grow from 0.5% fees
 
 ---
 
@@ -231,6 +241,7 @@ AfriTokeni uses a modern domain-driven architecture with specialized canisters f
 │  │ • Auth/PIN   │  │ • Balances   │  │ • Send BTC   │          │
 │  │ • Profiles   │  │ • Fraud Det. │  │ • Swap       │          │
 │  │ • Linking    │  │ • Escrow     │  │ • DEX Integ. │          │
+│  │ • Principal  │  │ • Fiat Ops   │  │ • ICRC-2     │          │
 │  │ • 400KB      │  │ • 600KB      │  │ • 1.0MB      │          │
 │  └──────────────┘  └──────────────┘  └──────────────┘          │
 │         │                  │                  │                │
@@ -239,9 +250,11 @@ AfriTokeni uses a modern domain-driven architecture with specialized canisters f
 │  ┌────────────────────────────────────────────────────┐        │
 │  │              AGENT CANISTER                        │        │
 │  ├────────────────────────────────────────────────────┤        │
-│  │ • Deposits (cash → crypto)                         │        │
-│  │ • Withdrawals (crypto → cash)                      │        │
-│  │ • Agent commissions & settlements                  │        │
+│  │ • Credit-based float system (NO upfront deposits)  │        │
+│  │ • Tiered credit limits (1M/5M/10M per currency)    │        │
+│  │ • Weekly settlements                               │        │
+│  │ • Deposits (cash → fiat IOU)                       │        │
+│  │ • Withdrawals (fiat IOU → cash)                    │        │
 │  │ • Multi-currency support (39 currencies)           │        │
 │  │ • Revenue tracking & reporting                     │        │
 │  │ • 700KB                                            │        │
@@ -256,11 +269,12 @@ AfriTokeni uses a modern domain-driven architecture with specialized canisters f
 │  ┌──────────────────────────────────────────────────────┐      │
 │  │         DATA CANISTER (Pure CRUD)                    │      │
 │  │  • User profiles & authentication                    │      │
-│  │  • Fiat & crypto balances (39 currencies)            │      │
+│  │  • Fiat balances (39 currencies - IOUs)             │      │
+│  │  • Crypto balance tracking (NOT custody)            │      │
 │  │  • Transaction history                               │      │
 │  │  • Escrow metadata                                   │      │
 │  │  • Deposit/withdrawal records                        │      │
-│  │  • Agent information & settlements                   │      │
+│  │  • Agent credit & settlement tracking                │      │
 │  │  • NO business logic                                 │      │
 │  │  • 1.1MB                                             │      │
 │  └──────────────────────────────────────────────────────┘      │
@@ -268,12 +282,16 @@ AfriTokeni uses a modern domain-driven architecture with specialized canisters f
 └────────────────────────────┼───────────────────────────────────┘
                              ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                    BLOCKCHAIN LAYER                             │
+│                    BLOCKCHAIN LAYER (NON-CUSTODIAL)             │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌──────────┐ │
 │  │   ckBTC    │  │   ckUSDC   │  │   Sonic    │  │   SNS    │ │
 │  │   Ledger   │  │   Ledger   │  │    DEX     │  │   DAO    │ │
+│  │            │  │            │  │            │  │          │ │
+│  │ Users own  │  │ Users own  │  │ BTC↔USDC   │  │Governance│ │
+│  │ crypto on  │  │ crypto on  │  │ swaps      │  │          │ │
+│  │ Principal  │  │ Principal  │  │            │  │          │ │
 │  └────────────┘  └────────────┘  └────────────┘  └──────────┘ │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -429,9 +447,12 @@ AfriTokeni provides three types of assets to meet different user needs:
 **Purpose**: Daily transactions and cash services
 
 **Supported Currencies**: 39 African currencies
-- Nigeria (NGN), Kenya (KES), Ghana (GHS), South Africa (ZAR)
-- Uganda (UGX), Tanzania (TZS), Rwanda (RWF), Ethiopia (ETB)
-- And 31 more across the continent
+- **East Africa**: UGX (Uganda), KES (Kenya), TZS (Tanzania), RWF (Rwanda), BIF (Burundi), ETB (Ethiopia), SOS (Somalia), ERN (Eritrea), DJF (Djibouti), SSP (South Sudan)
+- **West Africa**: NGN (Nigeria), GHS (Ghana), XOF (West African CFA), GMD (Gambia), SLL (Sierra Leone), LRD (Liberia), CVE (Cape Verde)
+- **Southern Africa**: ZAR (South Africa), NAD (Namibia), BWP (Botswana), LSL (Lesotho), SZL (Eswatini), MWK (Malawi), ZMW (Zambia)
+- **Central Africa**: XAF (Central African CFA), CDF (DR Congo), AOA (Angola)
+- **North Africa**: EGP (Egypt), DZD (Algeria), TND (Tunisia), LYD (Libya), MAD (Morocco), SDG (Sudan), MRU (Mauritania)
+- **Indian Ocean**: MUR (Mauritius), SCR (Seychelles), KMF (Comoros), MGA (Madagascar), STN (São Tomé)
 
 **Use Cases**:
 - Sending money to family/friends
@@ -439,11 +460,11 @@ AfriTokeni provides three types of assets to meet different user needs:
 - Receiving payments
 - Cash deposits/withdrawals via agents
 
-**How It Works**:
-- Digital balances stored in Juno
-- Backed by agent liquidity pools
-- Real-time exchange rates
-- Instant transfers between users
+**How It Works (NON-CUSTODIAL MODEL)**:
+- **Fiat Balances**: IOUs stored in Data Canister (NOT real custody)
+- **Agent Credit System**: Agents get credit limits, NOT required to deposit upfront
+- **Real-time exchange rates**: Via external APIs (ExchangeRate-API)
+- **Instant transfers**: Between users within same currency
 
 ### 4.2 ckBTC (ICP Bitcoin)
 
@@ -518,9 +539,212 @@ Many Africans want crypto benefits (speed, low fees, accessibility) WITHOUT Bitc
 | **Speed** | Instant | Instant | Instant |
 | **Fees** | 2.5-12% | ~$0.01 | ~$0.01 |
 | **Volatility** | Moderate | High | None |
+| **Custody** | IOU (canister) | Non-custodial (user's Principal) | Non-custodial (user's Principal) |
 | **Use Case** | Daily transactions | Bitcoin exposure | Stable savings |
 | **USSD Access** | ✅ Yes | ✅ Yes | ✅ Yes |
 | **Cash Exchange** | ✅ Via agents | ✅ Via agents | ✅ Via agents |
+
+---
+
+## 4.5 Non-Custodial Architecture: How It Works
+
+AfriTokeni is **truly non-custodial** for cryptocurrency. Users own their crypto directly on ckBTC/ckUSDC ledgers via their Principal IDs.
+
+### The Three-Layer Model
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    LAYER 1: FIAT (IOU)                      │
+├─────────────────────────────────────────────────────────────┤
+│  User deposits 100,000 UGX cash with Agent                  │
+│  → Agent credits 95,000 UGX to user's account (IOU)         │
+│  → Agent owes platform 95,000 UGX (credit system)           │
+│  → Agent keeps 5,000 UGX commission + has 95,000 UGX cash   │
+│                                                              │
+│  Storage: Data Canister (just a number in database)         │
+│  Custody: Platform (IOU system)                             │
+└─────────────────────────────────────────────────────────────┘
+                             ↓
+┌─────────────────────────────────────────────────────────────┐
+│              LAYER 2: FIAT → CRYPTO CONVERSION              │
+├─────────────────────────────────────────────────────────────┤
+│  User wants to buy ckBTC with 95,000 UGX                    │
+│  → Platform calculates: 95,000 UGX = 0.00001 BTC            │
+│  → Platform deducts 95,000 UGX from user's fiat balance     │
+│  → Platform transfers 0.00001 ckBTC from reserve            │
+│     TO user's Principal on ckBTC ledger                     │
+│                                                              │
+│  Platform Role: Market maker (NOT custodian)                │
+│  User Result: Owns real ckBTC on-chain ✅                   │
+└─────────────────────────────────────────────────────────────┘
+                             ↓
+┌─────────────────────────────────────────────────────────────┐
+│           LAYER 3: CRYPTO (NON-CUSTODIAL)                   │
+├─────────────────────────────────────────────────────────────┤
+│  User owns 0.00001 ckBTC on ckBTC ledger                    │
+│  → Stored at user's Principal ID (e.g., abc123-xyz...)      │
+│  → Platform CANNOT access without user approval (ICRC-2)    │
+│  → User can send to ANY Principal/address                   │
+│  → User can swap via Sonic DEX (BTC ↔ USDC)                 │
+│                                                              │
+│  Storage: ckBTC Ledger (ICP blockchain)                     │
+│  Custody: USER (non-custodial) ✅                           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Complete User Flows
+
+#### Flow 1: BUY Crypto (Fiat → Crypto)
+
+```
+1. User deposits 100,000 UGX cash with Agent John
+   ├─ Agent credits 95,000 UGX to user (5% commission)
+   ├─ Agent's outstanding_balance: -95,000 UGX (owes platform)
+   └─ Agent has 95,000 UGX cash in hand
+
+2. User initiates "Buy ckBTC" via USSD
+   ├─ User: *229# → 2 (Bitcoin) → 3 (Buy Bitcoin)
+   ├─ User enters: 95,000 UGX
+   └─ Platform calculates: 95,000 UGX = 0.00001 BTC (via exchange rate API)
+
+3. Platform executes purchase
+   ├─ Deducts 95,000 UGX from user's fiat balance (IOU)
+   ├─ Transfers 0.00001 ckBTC from platform reserve
+   │  TO user's Principal on ckBTC ledger (ICRC-1 transfer)
+   └─ User now owns ckBTC on-chain ✅
+
+4. Agent settlement (weekly)
+   ├─ Agent owes platform 95,000 UGX
+   ├─ Agent sends 95,000 UGX to platform bank account
+   └─ Platform resets agent's outstanding_balance to 0
+```
+
+**Key Points**:
+- ✅ User owns crypto on ckBTC ledger (non-custodial)
+- ✅ Agent doesn't need upfront deposit (credit system)
+- ✅ Platform acts as market maker (sells from reserve)
+- ✅ No Sonic DEX needed (fiat not on-chain)
+
+#### Flow 2: SELL Crypto (Crypto → Fiat)
+
+```
+1. User owns 0.00001 ckBTC on ckBTC ledger
+   └─ Stored at user's Principal ID
+
+2. User initiates "Sell ckBTC" via USSD
+   ├─ User: *229# → 2 (Bitcoin) → 4 (Sell Bitcoin)
+   ├─ User enters: 0.00001 BTC
+   └─ Platform calculates: 0.00001 BTC = 95,000 UGX
+
+3. User approves platform via ICRC-2
+   ├─ Platform calls icrc2_approve() on behalf of user
+   ├─ User confirms via PIN
+   └─ Platform authorized to transfer user's ckBTC
+
+4. Platform executes sale
+   ├─ Platform calls icrc2_transfer_from()
+   ├─ Transfers 0.00001 ckBTC from user's Principal
+   │  TO platform reserve
+   ├─ Platform credits 95,000 UGX to user's fiat balance (IOU)
+   └─ Agent's outstanding_balance: +95,000 UGX (platform owes agent)
+
+5. User withdraws cash from Agent
+   ├─ User shows withdrawal code to Agent
+   ├─ Agent gives 95,000 UGX cash to user
+   └─ Agent's outstanding_balance decreases by 95,000 UGX
+```
+
+**Key Points**:
+- ✅ User controls crypto via ICRC-2 approval (non-custodial)
+- ✅ Platform buys crypto to reserve (market maker)
+- ✅ Agent pays cash from their own funds (credit system)
+
+#### Flow 3: SWAP Crypto (ckBTC ↔ ckUSDC via Sonic DEX)
+
+```
+1. User owns 0.00001 ckBTC on ckBTC ledger
+   └─ Wants to swap to ckUSDC (stable value)
+
+2. User initiates "Swap to USDC" via USSD
+   ├─ User: *229# → 2 (Bitcoin) → 6 (Swap)
+   ├─ User enters: 0.00001 BTC
+   └─ Platform calculates: 0.00001 BTC = $42.50 USDC
+
+3. User approves platform via ICRC-2
+   ├─ Platform calls icrc2_approve() on ckBTC ledger
+   ├─ User confirms via PIN
+   └─ Platform authorized to transfer user's ckBTC
+
+4. Platform routes to Sonic DEX
+   ├─ Platform calls Sonic: swapExactTokensForTokens()
+   ├─ Sonic swaps 0.00001 ckBTC → $42.50 ckUSDC
+   ├─ ckUSDC sent directly to user's Principal
+   └─ User now owns ckUSDC on-chain ✅
+
+5. Platform takes 0.5% spread
+   ├─ User receives: $42.29 USDC (after 0.5% fee)
+   └─ Platform revenue: $0.21 USDC
+```
+
+**Key Points**:
+- ✅ Fully on-chain swap via Sonic DEX
+- ✅ User controls both sides via ICRC-2
+- ✅ Platform is just a router (non-custodial)
+
+### Agent Credit System Details
+
+**Tiered Credit Limits** (per currency):
+
+| Agent Tier | Credit Limit | Requirements |
+|-----------|-------------|--------------|
+| **New** | 1,000,000 UGX | KYC verified, background check |
+| **Trusted** | 5,000,000 UGX | 3+ months, 100+ transactions, 95%+ rating |
+| **Premium** | 10,000,000 UGX | 6+ months, 500+ transactions, 98%+ rating |
+
+**Settlement Schedule**:
+- **Frequency**: Weekly (every Monday)
+- **Process**: Agent sends net balance to platform bank account
+- **Tracking**: Real-time outstanding balance monitoring
+- **Suspension**: Auto-suspend if credit limit reached
+
+**Example Agent Lifecycle**:
+
+```
+Week 1:
+├─ Agent processes 10M UGX in deposits
+├─ Outstanding balance: -10M UGX (owes platform)
+├─ Agent has 10M UGX cash in hand
+└─ Earns 500K UGX in commissions
+
+Week 1 Settlement:
+├─ Agent sends 10M UGX to platform bank
+├─ Outstanding balance reset to 0
+└─ Agent keeps 500K UGX commission
+
+Week 2:
+├─ Agent processes 15M UGX in deposits
+├─ Agent processes 5M UGX in withdrawals
+├─ Net: -10M UGX outstanding
+└─ Continues operating (under 10M limit)
+```
+
+### Platform Reserve Management
+
+**Initial Reserve** (Revenue-based growth):
+- Start small: $10,000 worth of ckBTC + ckUSDC
+- Grow from fees: 0.5% on all crypto operations
+- Rebalance via Sonic: Maintain 50/50 BTC/USDC ratio
+
+**Reserve Rebalancing**:
+```
+Current Reserve:
+├─ ckBTC: 0.5 BTC ($47,500)
+└─ ckUSDC: $30,000
+
+Too much BTC demand:
+├─ Platform swaps $10,000 ckUSDC → ckBTC via Sonic
+└─ New balance: 0.71 BTC + $20,000 USDC
+```
 
 ---
 

@@ -414,8 +414,42 @@ pub struct AgentBalance {
     pub total_withdrawals: u64,
     pub commission_earned: u64,
     pub commission_paid: u64,
+    pub outstanding_balance: i64,  // NEW: Can be negative (owes platform) or positive (platform owes agent)
+    pub credit_limit: u64,          // NEW: Maximum negative outstanding balance allowed
     pub last_settlement_date: Option<u64>,
     pub last_updated: u64,
+}
+
+/// Agent tier determines credit limit
+#[derive(CandidType, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub enum AgentTier {
+    New,       // 1M credit limit
+    Trusted,   // 5M credit limit
+    Premium,   // 10M credit limit
+}
+
+impl AgentTier {
+    /// Get default credit limit for this tier
+    /// NOTE: Actual limits should be loaded from agent_config.toml
+    /// These are fallback values only
+    pub fn default_credit_limit(&self) -> u64 {
+        match self {
+            AgentTier::New => 1_000_000,      // 1M - matches agent_config.toml
+            AgentTier::Trusted => 5_000_000,  // 5M - matches agent_config.toml
+            AgentTier::Premium => 10_000_000, // 10M - matches agent_config.toml
+        }
+    }
+}
+
+/// Agent credit configuration per currency
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct AgentCreditConfig {
+    pub agent_id: String,
+    pub currency: String,
+    pub tier: AgentTier,
+    pub credit_limit: u64,
+    pub created_at: u64,
+    pub updated_at: u64,
 }
 
 // ============================================================================

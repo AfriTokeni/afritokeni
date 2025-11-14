@@ -1,6 +1,24 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
+
+// Use mock time in tests, real time in production
+#[cfg(not(test))]
 use ic_cdk::api::time;
+
+#[cfg(test)]
+thread_local! {
+    static MOCK_TIME: RefCell<u64> = RefCell::new(1731574800000000000); // Nov 14, 2025, 9:00 AM UTC
+}
+
+#[cfg(test)]
+fn time() -> u64 {
+    MOCK_TIME.with(|t| {
+        let current = *t.borrow();
+        // Auto-increment by 1 second each call to simulate time passing
+        *t.borrow_mut() += 1_000_000_000;
+        current
+    })
+}
 
 // ============================================================================
 // TYPES
@@ -570,17 +588,19 @@ mod tests {
         // Record failed attempts
         for _ in 0..3 {
             record_failed_pin_attempt(user_id).unwrap();
+            // Advance time past backoff period (4 minutes after 3rd attempt)
+            MOCK_TIME.with(|t| *t.borrow_mut() += 300_000_000_000); // +5 minutes
         }
         
-        // Should still be allowed (under max)
+        // Should still be allowed (under max, and past backoff)
         assert!(check_pin_attempts_allowed(user_id).is_ok());
         
-        // Record more failures
+        // Record more failures to reach max
         for _ in 0..2 {
             record_failed_pin_attempt(user_id).unwrap();
         }
         
-        // Should be blocked now
+        // Should be blocked now (5 attempts = max)
         assert!(check_pin_attempts_allowed(user_id).is_err());
     }
     

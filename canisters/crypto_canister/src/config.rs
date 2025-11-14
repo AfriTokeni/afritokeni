@@ -11,6 +11,7 @@ const CONFIG_TOML: &str = include_str!("../crypto_config.toml");
 pub struct CryptoConfig {
     pub fees: FeesConfig,
     pub exchange: ExchangeConfig,
+    pub reserve: ReserveConfig,
     pub tokens: TokensConfig,
     pub escrow: EscrowConfig,
     pub company_wallet: CompanyWalletConfig,
@@ -51,6 +52,14 @@ pub struct IcpSwapConfig {
 pub struct SlippageConfig {
     pub default_tolerance: u64,
     pub max_tolerance: u64,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct ReserveConfig {
+    pub target_ckbtc_percent: f64,
+    pub target_ckusdc_percent: f64,
+    pub rebalance_threshold_percent: f64,
+    pub rebalance_slippage_tolerance_bp: u64,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -138,6 +147,8 @@ thread_local! {
     static DATA_CANISTER_ID: RefCell<Option<Principal>> = RefCell::new(None);
     static USER_CANISTER_ID: RefCell<Option<Principal>> = RefCell::new(None);
     static WALLET_CANISTER_ID: RefCell<Option<Principal>> = RefCell::new(None);
+    static CKBTC_LEDGER_ID: RefCell<Option<Principal>> = RefCell::new(None);
+    static CKUSDC_LEDGER_ID: RefCell<Option<Principal>> = RefCell::new(None);
     static AUTHORIZED_CANISTERS: RefCell<Vec<Principal>> = RefCell::new(Vec::new());
     static TEST_MODE: RefCell<bool> = RefCell::new(false);
 }
@@ -194,6 +205,22 @@ pub fn get_wallet_canister_id() -> Result<Principal, String> {
         id.borrow()
             .ok_or_else(|| "Wallet canister ID not set".to_string())
     })
+}
+
+pub fn set_ckbtc_ledger_id(principal: Principal) {
+    CKBTC_LEDGER_ID.with(|id| *id.borrow_mut() = Some(principal));
+}
+
+pub fn get_ckbtc_ledger_id() -> Option<Principal> {
+    CKBTC_LEDGER_ID.with(|id| *id.borrow())
+}
+
+pub fn set_ckusdc_ledger_id(principal: Principal) {
+    CKUSDC_LEDGER_ID.with(|id| *id.borrow_mut() = Some(principal));
+}
+
+pub fn get_ckusdc_ledger_id() -> Option<Principal> {
+    CKUSDC_LEDGER_ID.with(|id| *id.borrow())
 }
 
 // ============================================================================

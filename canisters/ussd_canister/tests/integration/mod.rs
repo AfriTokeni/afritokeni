@@ -8,6 +8,7 @@ use lazy_static::lazy_static;
 /// User profile response from user_canister
 #[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct UserProfile {
+    pub id: String,
     pub phone_number: Option<String>,
     pub principal_id: Option<String>,
     pub first_name: String,
@@ -364,7 +365,7 @@ impl TestEnv {
             Ok(profile) => {
                 // Convert UserProfile to User
                 Ok(Some(User {
-                    id: "".to_string(), // Not available in UserProfile
+                    id: profile.id,
                     user_type: UserType::User, // Default
                     preferred_currency: FiatCurrency::from_code(&profile.preferred_currency).unwrap_or(FiatCurrency::UGX),
                     created_at: profile.created_at,
@@ -418,17 +419,30 @@ impl TestEnv {
         } else {
             user_identifier.to_string()
         };
-        
-        let arg = encode_one(user_id).unwrap();
-        let response = self.pic.query_call(
+
+        // Get BTC balance
+        let btc_arg = encode_args((user_id.clone(), "CkBTC".to_string())).unwrap();
+        let btc_response = self.pic.update_call(
             self.crypto_canister_id,
             Principal::anonymous(),
-            "get_crypto_balance",
-            arg,
-        ).expect("get_crypto_balance call failed");
-        
-        let balance: Result<CryptoBalance, String> = decode_one(&response).expect("Failed to decode");
-        balance.map(|b| (b.ckbtc, b.ckusdc))
+            "check_crypto_balance",
+            btc_arg,
+        ).expect("check_crypto_balance (BTC) call failed");
+
+        let btc_balance: Result<u64, String> = decode_one(&btc_response).expect("Failed to decode BTC balance");
+
+        // Get USDC balance
+        let usdc_arg = encode_args((user_id.clone(), "CkUSDC".to_string())).unwrap();
+        let usdc_response = self.pic.update_call(
+            self.crypto_canister_id,
+            Principal::anonymous(),
+            "check_crypto_balance",
+            usdc_arg,
+        ).expect("check_crypto_balance (USDC) call failed");
+
+        let usdc_balance: Result<u64, String> = decode_one(&usdc_response).expect("Failed to decode USDC balance");
+
+        Ok((btc_balance?, usdc_balance?))
     }
     
     /// Setup test user with initial balances - ONE FUNCTION TO RULE THEM ALL

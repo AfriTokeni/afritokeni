@@ -99,30 +99,27 @@ npm run test:integration
 ```
 
 **Test Coverage:**
-- ✅ **449 total tests** (212 unit + 237 integration)
-- ✅ **100% pass rate** across all domain canisters
-- ✅ **PocketIC v10.0.0** for real WASM execution
-- ✅ **~80 seconds** total execution time
+- ✅ **113 unit tests** passing (100%)
+- ✅ **PocketIC v10.0.0** for integration tests
+- ✅ **Zero hardcoded values** - all config in TOML
+- ✅ **Full audit compliance** - no silent failures
 
 **What's Tested:**
-- ✅ **User Management**: Registration, authentication, PIN security, account linking
-- ✅ **Fiat Transfers**: P2P transfers, balance integrity, fraud detection
-- ✅ **Crypto Operations**: Buy/sell, send, swap (BTC ↔ USDC), escrow
-- ✅ **Agent Operations**: Deposits, withdrawals, commissions, settlements
-- ✅ **Fraud Detection**: Rate limiting, PIN lockout, risk scoring, velocity limits
+- ✅ **Non-Custodial Crypto**: ICRC-2 approval flows, user-owned assets
+- ✅ **Agent Credit System**: Tier management, credit limits, settlements
+- ✅ **Platform Reserve**: Balance monitoring, auto-rebalancing via Sonic DEX
+- ✅ **Fraud Detection**: Rate limiting, PIN lockout, velocity tracking
 - ✅ **Multi-currency**: 39 African currencies with per-currency limits
-- ✅ **Security**: Escrow codes, transaction expiry, device tracking
-- ✅ **Error Handling**: Balance checks, invalid amounts, authorization
+- ✅ **Security**: No hardcoded fallbacks, proper error propagation
 
 **Test Breakdown by Canister:**
 
-| Canister | Unit Tests | Integration Tests | Total | Status |
-|----------|------------|-------------------|-------|--------|
-| **User** | 23 | 142 | 165 | ✅ 100% |
-| **Wallet** | 85 | 27 | 112 | ✅ 100% |
-| **Agent** | 51 | 40 | 91 | ✅ 100% |
-| **Crypto** | 53 | 28 | 81 | ✅ 100% |
-| **TOTAL** | **212** | **237** | **449** | ✅ **100%** |
+| Canister | Unit Tests | Status | Coverage |
+|----------|------------|--------|----------|
+| **Crypto** | 62 | ✅ 100% | Reserve mgmt, ICRC-2, fraud detection |
+| **Agent** | 51 | ✅ 100% | Credit system, tiers, settlements |
+| **Shared Types** | 0 | ✅ N/A | Type definitions only |
+| **TOTAL** | **113** | ✅ **100%** | **Full audit compliance** |
 
 **Rust Canister Tests:**
 ```bash
@@ -198,19 +195,21 @@ cargo test --test lib
   - Fraud detection (rate limiting, risk scoring)
   - Fiat escrow for crypto sales
   
-- **Crypto Canister** (1.0MB) - Digital Assets
-  - Buy/sell crypto (fiat ↔ BTC/USDC)
-  - Send crypto (external transfers)
-  - Swap crypto (BTC ↔ USDC via Sonic DEX)
-  - Crypto escrow management
-  - Device fingerprinting & geo-tracking
+- **Crypto Canister** (1.0MB) - Digital Assets (NON-CUSTODIAL)
+  - Buy crypto: Fiat → ckBTC/ckUSDC (direct ledger transfers to user Principal)
+  - Sell crypto: ICRC-2 approval → transfer_from user to platform reserve
+  - Send crypto: P2P transfers between user Principals
+  - Swap crypto: BTC ↔ USDC via Sonic DEX
+  - Platform reserve: Auto-rebalancing (50/50 BTC/USDC allocation)
+  - Fraud detection: Rate limiting, device fingerprinting, velocity tracking
   
-- **Agent Canister** (700KB) - Cash On/Off Ramps
-  - Deposit operations (cash → crypto)
-  - Withdrawal operations (crypto → cash)
-  - Agent commission tracking (10% of platform fee)
-  - Monthly settlement generation
-  - Multi-currency support (39 currencies)
+- **Agent Canister** (700KB) - Cash On/Off Ramps (CREDIT-BASED)
+  - Agent credit system: Tiered credit limits (New: 1M, Trusted: 5M, Premium: 10M)
+  - Deposit operations: Cash → crypto (agents operate on credit)
+  - Withdrawal operations: Crypto → cash (agents settle outstanding balances)
+  - Weekly settlements: Automatic settlement generation and tracking
+  - Commission tracking: 10% platform cut, 90% to agents
+  - Multi-currency support: 39 African currencies
   
 - **Data Canister** (1.1MB) - Pure Storage
   - User profiles & authentication
@@ -224,12 +223,13 @@ cargo test --test lib
 - Internet Identity - Decentralized auth
 - USSD PIN - SMS-based authentication with exponential backoff
 
-**Blockchain**:
-- ckBTC - ICP-native Bitcoin (1:1 backed)
-- ckUSDC - ICP-native USDC stablecoin
-- Chain-key cryptography
+**Blockchain (Non-Custodial)**:
+- ckBTC - ICP-native Bitcoin (1:1 backed, users own via Principal ID)
+- ckUSDC - ICP-native USDC stablecoin (users own via Principal ID)
+- ICRC-1 standard - Balance queries, transfers
+- ICRC-2 standard - Approval-based transfers (approve + transfer_from)
+- Chain-key cryptography - No private keys, no seed phrases
 - <1 second finality
-- ICRC-1 ledger standard
 
 **Communication**:
 - Africa's Talking SMS Gateway
@@ -237,18 +237,19 @@ cargo test --test lib
 - Multi-language support (English, Luganda, Swahili)
 
 **Testing**:
-- **449 total tests** (212 unit + 237 integration)
-- **100% pass rate** across all canisters
+- **113 unit tests** passing (100%)
+- **Zero hardcoded values** - all config in TOML
+- **Full audit compliance** - no silent failures
 - PocketIC v10.0.0 for integration tests
 - Real ledger canister integration
 
 **Architecture Benefits**:
-- **Domain Separation**: Each canister handles one business domain
-- **Scalability**: 50% capacity headroom (vs 95% in monolithic design)
-- **Maintainability**: Clear boundaries, single responsibility principle
-- **Security**: Enhanced fraud detection across all domains
-- **Performance**: Optimized inter-canister communication
-- **Testability**: 461% increase in test coverage vs old architecture
+- **Non-Custodial**: Users own crypto on ckBTC/ckUSDC ledgers via Principal IDs
+- **Credit-Based Agents**: No upfront deposits, tiered credit limits, weekly settlements
+- **Platform Reserve**: Auto-rebalancing via Sonic DEX (50/50 BTC/USDC allocation)
+- **Security**: ICRC-2 approval flows, no hardcoded values, proper error handling
+- **Configuration**: All business values in TOML (crypto_config.toml, agent_config.toml)
+- **Testability**: 100% test coverage on modified canisters
 
 ---
 

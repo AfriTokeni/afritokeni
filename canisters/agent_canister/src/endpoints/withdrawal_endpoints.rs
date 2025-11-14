@@ -252,7 +252,7 @@ pub async fn confirm_withdrawal(request: ConfirmWithdrawalRequest) -> Result<Con
         shared_types::AgentTransactionStatus::Confirmed
     ).await?;
     
-    // Update agent balance
+    // Update agent balance (CREDIT SYSTEM)
     let mut agent_balance = data_client::get_agent_balance(&withdrawal.agent_id, &withdrawal.currency).await?
         .unwrap_or_else(|| shared_types::AgentBalance {
             agent_id: withdrawal.agent_id.clone(),
@@ -261,12 +261,19 @@ pub async fn confirm_withdrawal(request: ConfirmWithdrawalRequest) -> Result<Con
             total_withdrawals: 0,
             commission_earned: 0,
             commission_paid: 0,
+            outstanding_balance: 0,  // NEW: starts at 0
+            credit_limit: shared_types::AgentTier::New.default_credit_limit(),  // NEW: default to New tier (1M)
             last_settlement_date: None,
             last_updated: now,
         });
     
-    agent_balance.total_withdrawals += 1;  // Increment count, not amount
+    agent_balance.total_withdrawals += withdrawal.amount;  // Track total withdrawal amount
     agent_balance.commission_earned += withdrawal.agent_keeps;
+    
+    // NEW: Platform owes agent (outstanding_balance increases)
+    // Agent gave cash to user from own funds, platform owes agent this amount
+    agent_balance.outstanding_balance += withdrawal.amount as i64;
+    
     agent_balance.last_updated = now;
     
     data_client::update_agent_balance(agent_balance).await?;

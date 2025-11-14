@@ -327,19 +327,32 @@ async fn buy_crypto(request: BuyCryptoRequest) -> Result<BuyCryptoResponse, Stri
         0.0
     };
     
-    // 6. Deduct fiat from wallet
+    // 6. Deduct fiat from wallet (IOU system)
     let new_fiat_balance = fiat_balance.checked_sub(request.fiat_amount)
         .ok_or("Fiat balance calculation would underflow")?;
     services::wallet_client::set_fiat_balance(&request.user_identifier, fiat_currency, new_fiat_balance).await?;
     
-    // 7. Add crypto to user's balance
-    let (ckbtc_delta, ckusdc_delta) = match crypto_type {
-        CryptoType::CkBTC => (crypto_amount as i64, 0),
-        CryptoType::CkUSDC => (0, crypto_amount as i64),
-    };
-    services::data_client::update_crypto_balance(&request.user_identifier, ckbtc_delta, ckusdc_delta).await?;
+    // 7. Get user's Principal ID for non-custodial transfer
+    let user_principal = services::ledger_client::get_user_principal(&request.user_identifier).await?;
     
-    // 8. Record transaction
+    // 8. Transfer crypto from platform reserve to user's Principal (NON-CUSTODIAL)
+    let block_index = match crypto_type {
+        CryptoType::CkBTC => {
+            services::ledger_client::transfer_ckbtc_to_user(user_principal, crypto_amount).await?
+        },
+        CryptoType::CkUSDC => {
+            services::ledger_client::transfer_ckusdc_to_user(user_principal, crypto_amount).await?
+        },
+    };
+    
+    audit::log_success(
+        "crypto_transferred_to_user",
+        Some(request.user_identifier.clone()),
+        format!("Transferred {} {} to Principal {} | Block: {}", 
+            crypto_amount, crypto_type_str, user_principal, block_index)
+    );
+    
+    // 9. Record transaction
     let timestamp = time();
     let transaction = Transaction {
         id: format!("buy-crypto-{}-{}", request.user_identifier, timestamp),
@@ -351,13 +364,13 @@ async fn buy_crypto(request: BuyCryptoRequest) -> Result<BuyCryptoResponse, Stri
         status: TransactionStatus::Completed,
         created_at: timestamp,
         completed_at: Some(timestamp),
-        description: Some(format!("Bought {} {} for {} {}", 
-            crypto_amount, crypto_type_str, request.fiat_amount, request.currency)),
+        description: Some(format!("Bought {} {} for {} {} | Block: {}", 
+            crypto_amount, crypto_type_str, request.fiat_amount, request.currency, block_index)),
     };
     
     services::data_client::store_transaction(&transaction).await?;
     
-    // 9. Record transaction for velocity tracking
+    // 10. Record transaction for velocity tracking
     logic::fraud_detection::record_transaction(
         &request.user_identifier,
         request.fiat_amount,
@@ -365,13 +378,13 @@ async fn buy_crypto(request: BuyCryptoRequest) -> Result<BuyCryptoResponse, Stri
         "buy_crypto",
     )?;
     
-    // 10. Audit successful transaction
+    // 11. Audit successful transaction
     audit::log_success(
         "buy_crypto_completed",
         Some(request.user_identifier.clone()),
-        format!("Bought {} {} for {} {} | Exchange Rate: {} | TX: {}",
+        format!("Bought {} {} for {} {} | Exchange Rate: {} | Block: {} | TX: {}",
             crypto_amount, crypto_type_str, request.fiat_amount, request.currency,
-            exchange_rate, transaction.id)
+            exchange_rate, block_index, transaction.id)
     );
     
     Ok(BuyCryptoResponse {
@@ -428,11 +441,13 @@ async fn sell_crypto(request: SellCryptoRequest) -> Result<BuyCryptoResponse, St
         return Err("Operation rate limit exceeded. Please try again later".to_string());
     }
     
-    // 5. Check crypto balance
-    let (ckbtc_balance, ckusdc_balance) = services::data_client::get_crypto_balance(&request.user_identifier).await?;
+    // 5. Get user's Principal ID for non-custodial transfer
+    let user_principal = services::ledger_client::get_user_principal(&request.user_identifier).await?;
+    
+    // 6. Check crypto balance on ledger (NON-CUSTODIAL)
     let crypto_balance = match crypto_type {
-        CryptoType::CkBTC => ckbtc_balance,
-        CryptoType::CkUSDC => ckusdc_balance,
+        CryptoType::CkBTC => services::ledger_client::get_user_ckbtc_balance(user_principal).await?,
+        CryptoType::CkUSDC => services::ledger_client::get_user_ckusdc_balance(user_principal).await?,
     };
     
     logic::crypto_logic::validate_sufficient_crypto_balance(crypto_balance, request.crypto_amount)?;
@@ -500,20 +515,47 @@ async fn sell_crypto(request: SellCryptoRequest) -> Result<BuyCryptoResponse, St
         );
     }
     
-    // 8. Deduct crypto from user's balance
-    let (ckbtc_delta, ckusdc_delta) = match crypto_type {
-        CryptoType::CkBTC => (-(request.crypto_amount as i64), 0),
-        CryptoType::CkUSDC => (0, -(request.crypto_amount as i64)),
+    // 8. Approve platform to spend user's crypto (ICRC-2)
+    let approval_block = match crypto_type {
+        CryptoType::CkBTC => {
+            services::ledger_client::approve_ckbtc_spending(user_principal, request.crypto_amount).await?
+        },
+        CryptoType::CkUSDC => {
+            services::ledger_client::approve_ckusdc_spending(user_principal, request.crypto_amount).await?
+        },
     };
-    services::data_client::update_crypto_balance(&request.user_identifier, ckbtc_delta, ckusdc_delta).await?;
     
-    // 7. Add fiat to wallet
+    audit::log_success(
+        "crypto_approval_granted",
+        Some(request.user_identifier.clone()),
+        format!("User approved {} {} spending | Block: {}", 
+            request.crypto_amount, crypto_type_str, approval_block)
+    );
+    
+    // 9. Transfer crypto from user to platform reserve (ICRC-2 transfer_from)
+    let transfer_block = match crypto_type {
+        CryptoType::CkBTC => {
+            services::ledger_client::transfer_from_ckbtc(user_principal, request.crypto_amount).await?
+        },
+        CryptoType::CkUSDC => {
+            services::ledger_client::transfer_from_ckusdc(user_principal, request.crypto_amount).await?
+        },
+    };
+    
+    audit::log_success(
+        "crypto_transferred_from_user",
+        Some(request.user_identifier.clone()),
+        format!("Transferred {} {} from Principal {} to reserve | Block: {}", 
+            request.crypto_amount, crypto_type_str, user_principal, transfer_block)
+    );
+    
+    // 10. Add fiat to wallet (IOU system)
     let current_fiat_balance = services::wallet_client::get_fiat_balance(&request.user_identifier, fiat_currency).await?;
     let new_fiat_balance = current_fiat_balance.checked_add(fiat_amount)
         .ok_or("Fiat balance calculation would overflow")?;
     services::wallet_client::set_fiat_balance(&request.user_identifier, fiat_currency, new_fiat_balance).await?;
     
-    // 8. Record transaction
+    // 11. Record transaction
     let timestamp = time();
     let transaction = Transaction {
         id: format!("sell-crypto-{}-{}", request.user_identifier, timestamp),
@@ -525,13 +567,13 @@ async fn sell_crypto(request: SellCryptoRequest) -> Result<BuyCryptoResponse, St
         status: TransactionStatus::Completed,
         created_at: timestamp,
         completed_at: Some(timestamp),
-        description: Some(format!("Sold {} {} for {} {}", 
-            request.crypto_amount, crypto_type_str, fiat_amount, request.currency)),
+        description: Some(format!("Sold {} {} for {} {} | Approval Block: {} | Transfer Block: {}", 
+            request.crypto_amount, crypto_type_str, fiat_amount, request.currency, approval_block, transfer_block)),
     };
     
     services::data_client::store_transaction(&transaction).await?;
     
-    // 9. Record transaction for velocity tracking
+    // 12. Record transaction for velocity tracking
     logic::fraud_detection::record_transaction(
         &request.user_identifier,
         fiat_amount,
@@ -539,13 +581,13 @@ async fn sell_crypto(request: SellCryptoRequest) -> Result<BuyCryptoResponse, St
         "sell_crypto",
     )?;
     
-    // 10. Audit successful transaction
+    // 13. Audit successful transaction
     audit::log_success(
         "sell_crypto_completed",
         Some(request.user_identifier.clone()),
-        format!("Sold {} {} for {} {} | Exchange Rate: {} | TX: {}",
+        format!("Sold {} {} for {} {} | Exchange Rate: {} | Approval Block: {} | Transfer Block: {} | TX: {}",
             request.crypto_amount, crypto_type_str, fiat_amount, request.currency,
-            exchange_rate, transaction.id)
+            exchange_rate, approval_block, transfer_block, transaction.id)
     );
     
     Ok(BuyCryptoResponse {
@@ -1201,6 +1243,40 @@ async fn cleanup_expired_escrows() -> Result<CleanupResult, String> {
         total_refunded_btc,
         total_refunded_usdc,
     })
+}
+
+// ============================================================================
+// PLATFORM RESERVE MANAGEMENT
+// ============================================================================
+
+/// Get platform reserve balances (admin only)
+#[update]
+async fn get_reserve_balance(btc_price_usd: f64) -> Result<services::reserve_manager::ReserveBalance, String> {
+    let caller = ic_cdk::api::msg_caller();
+    if !ic_cdk::api::is_controller(&caller) {
+        return Err("Unauthorized: Controller access required".to_string());
+    }
+    
+    if btc_price_usd <= 0.0 {
+        return Err("Invalid BTC price. Must be greater than 0".to_string());
+    }
+    
+    services::reserve_manager::get_reserve_balance_with_price(btc_price_usd).await
+}
+
+/// Rebalance platform reserve to maintain 50/50 BTC/USDC allocation (admin only)
+#[update]
+async fn rebalance_reserve(btc_price_usd: f64) -> Result<services::reserve_manager::RebalanceResult, String> {
+    let caller = ic_cdk::api::msg_caller();
+    if !ic_cdk::api::is_controller(&caller) {
+        return Err("Unauthorized: Controller access required".to_string());
+    }
+    
+    if btc_price_usd <= 0.0 {
+        return Err("Invalid BTC price. Must be greater than 0".to_string());
+    }
+    
+    services::reserve_manager::rebalance_reserve(btc_price_usd).await
 }
 
 // ============================================================================

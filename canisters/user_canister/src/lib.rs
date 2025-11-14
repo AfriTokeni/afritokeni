@@ -389,11 +389,21 @@ fn get_user_by_principal(_principal: String) -> Result<UserProfile, String> {
 #[update]
 async fn get_user_by_principal_update(principal: String) -> Result<UserProfile, String> {
     config::verify_authorized_caller()?;
-    
+
     let user = services::data_client::get_user_by_principal(&principal).await?
         .ok_or_else(|| format!("User with principal {} not found", principal))?;
-    
+
     Ok(UserProfile::from(user))
+}
+
+/// Get user's principal ID by user_id (canister only - for ICRC-1 ledger operations)
+#[update]
+async fn get_user_principal(user_id: String) -> Result<Option<String>, String> {
+    config::verify_authorized_caller()?;
+
+    let user = services::data_client::get_user(&user_id).await?;
+
+    Ok(user.and_then(|u| u.principal_id))
 }
 
 // ============================================================================
