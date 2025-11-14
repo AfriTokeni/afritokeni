@@ -528,15 +528,18 @@ impl TestEnv {
         let user_principal = Principal::from_text(&profile.principal_id.ok_or("User has no principal")?)
             .map_err(|e| format!("Invalid principal: {:?}", e))?;
 
+        #[derive(CandidType, Deserialize, Clone)]
+        struct Account { owner: Principal, subaccount: Option<Vec<u8>> }
+
+        // Always set up ckBTC allowance (even if balance is 0, user might buy crypto later)
+        let btc_account = Account {
+            owner: user_principal,
+            subaccount: None,
+        };
+
         // Fund ckBTC ledger balance if needed
         if btc_amount > 0 {
-            #[derive(CandidType, Deserialize, Clone)]
-            struct Account { owner: Principal, subaccount: Option<Vec<u8>> }
-            let btc_account = Account {
-                owner: user_principal,
-                subaccount: None,
-            };
-            let arg = encode_args((btc_account, btc_amount)).unwrap();
+            let arg = encode_args((btc_account.clone(), btc_amount)).unwrap();
             self.pic.update_call(
                 self.ckbtc_ledger_id,
                 Principal::anonymous(),
@@ -545,15 +548,32 @@ impl TestEnv {
             ).map_err(|e| format!("Failed to fund ckBTC ledger: {:?}", e))?;
         }
 
+        // Pre-approve crypto canister to spend user's ckBTC (for sell operations)
+        // The crypto canister uses ICRC-2 approve+transferFrom pattern
+        // Set a generous allowance (1 BTC = 100M sats) so tests don't need to worry about it
+        let spender_account = Account {
+            owner: self.crypto_canister_id,
+            subaccount: Some(vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), // Platform reserve subaccount
+        };
+        let allowance_amount = if btc_amount > 0 { btc_amount * 2 } else { 100_000_000 }; // 2x balance or 1 BTC default
+        eprintln!("🔧 TEST SETUP: Setting ckBTC allowance for {} (btc_amount={}, allowance={})", user_id, btc_amount, allowance_amount);
+        let allowance_arg = encode_args((btc_account, spender_account, allowance_amount)).unwrap();
+        self.pic.update_call(
+            self.ckbtc_ledger_id,
+            Principal::anonymous(),
+            "set_allowance_for_testing",
+            allowance_arg,
+        ).map_err(|e| format!("Failed to set ckBTC allowance: {:?}", e))?;
+
+        // Always set up ckUSDC allowance (even if balance is 0, user might buy crypto later)
+        let usdc_account = Account {
+            owner: user_principal,
+            subaccount: None,
+        };
+
         // Fund ckUSDC ledger balance if needed
         if usdc_amount > 0 {
-            #[derive(CandidType, Deserialize, Clone)]
-            struct Account { owner: Principal, subaccount: Option<Vec<u8>> }
-            let usdc_account = Account {
-                owner: user_principal,
-                subaccount: None,
-            };
-            let arg = encode_args((usdc_account, usdc_amount)).unwrap();
+            let arg = encode_args((usdc_account.clone(), usdc_amount)).unwrap();
             self.pic.update_call(
                 self.ckusdc_ledger_id,
                 Principal::anonymous(),
@@ -561,6 +581,22 @@ impl TestEnv {
                 arg,
             ).map_err(|e| format!("Failed to fund ckUSDC ledger: {:?}", e))?;
         }
+
+        // Pre-approve crypto canister to spend user's ckUSDC (for sell operations)
+        // The crypto canister uses ICRC-2 approve+transferFrom pattern
+        // Set a generous allowance (1M USDC) so tests don't need to worry about it
+        let spender_account = Account {
+            owner: self.crypto_canister_id,
+            subaccount: Some(vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), // Platform reserve subaccount
+        };
+        let allowance_amount = if usdc_amount > 0 { usdc_amount * 2 } else { 1_000_000_000_000 }; // 2x balance or 1M USDC default
+        let allowance_arg = encode_args((usdc_account, spender_account, allowance_amount)).unwrap();
+        self.pic.update_call(
+            self.ckusdc_ledger_id,
+            Principal::anonymous(),
+            "set_allowance_for_testing",
+            allowance_arg,
+        ).map_err(|e| format!("Failed to set ckUSDC allowance: {:?}", e))?;
 
         Ok(())
     }
@@ -597,10 +633,9 @@ impl TestEnv {
         self.set_crypto_balance(&user_id, btc_balance, usdc_balance)?;
 
         // Step 5: Fund user ledger balances (so they can sell/transfer crypto)
-        // This ensures the mock ledgers have actual balances that match data_canister
-        if btc_balance > 0 || usdc_balance > 0 {
-            self.fund_user_ledger_balances(&user_id, btc_balance, usdc_balance)?;
-        }
+        // This ensures the mock ledgers have actual balances AND allowances that match data_canister
+        // ALWAYS call this, even if balances are 0, to set up allowances for future buy-then-sell operations
+        self.fund_user_ledger_balances(&user_id, btc_balance, usdc_balance)?;
 
         Ok(user_id)
     }

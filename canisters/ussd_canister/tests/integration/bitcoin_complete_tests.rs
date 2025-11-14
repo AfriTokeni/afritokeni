@@ -164,21 +164,22 @@ fn test_sell_bitcoin_to_ugx() {
     let env = get_test_env();
     let sess = session();
     let phone = &phone("UGX");
-    
+
+    // Setup: 200,000 sats = 0.002 BTC
     env.setup_test_user_with_balances(phone, "BTC", "Seller", "btcsell@test.com", "UGX", "1234", 0, 200000, 0)
         .expect("Setup");
-    
+
     // Sell Bitcoin: Menu 2 -> 4 (Sell) -> amount in BTC -> PIN -> Confirm
     // 0.001 BTC = 100,000 sats
     let (response, _) = env.process_ussd(&sess, phone, "2*4*0.001*1234*1");
-    
+
     assert!(response.contains("success") || response.contains("Success") || response.contains("sold"),
         "Should sell BTC. Got: {}", response);
-    
-    // Verify BTC decreased
+
+    // Verify BTC decreased (200,000 - 100,000 = 100,000)
     let (btc, _) = env.get_crypto_balance(phone).expect("Get balance");
     assert_eq!(btc, 100000, "BTC should decrease by 100,000 sats");
-    
+
     // Verify fiat increased
     let fiat = env.check_fiat_balance(phone, "UGX").expect("Get fiat");
     assert!(fiat > 0, "Fiat should increase");
@@ -205,14 +206,17 @@ fn test_sell_bitcoin_all_balance() {
     let env = get_test_env();
     let sess = session();
     let phone = &phone("UGX");
-    
+
+    // Setup: 150,000 sats = 0.0015 BTC
     env.setup_test_user_with_balances(phone, "BTC", "SellAll", "btcall@test.com", "UGX", "1234", 0, 150000, 0)
         .expect("Setup");
-    
+
+    // Sell all BTC: 0.0015 BTC = 150,000 sats
     let (response, _) = env.process_ussd(&sess, phone, "2*4*0.0015*1234*1");
-    
-    assert!(response.contains("success") || response.contains("Success"));
-    
+
+    assert!(response.contains("success") || response.contains("Success") || response.contains("sold"),
+        "Should sell all BTC. Got: {}", response);
+
     let (btc, _) = env.get_crypto_balance(phone).expect("Get balance");
     assert_eq!(btc, 0, "Should have 0 BTC");
 }
@@ -382,20 +386,22 @@ fn test_bitcoin_buy_then_sell() {
     let env = get_test_env();
     let sess = session();
     let phone = &phone("UGX");
-    
-    env.setup_test_user_with_balances(phone, "BTC", "BuySell", "btcbuysell@test.com", "UGX", "1234", 500000, 0, 0)
+
+    // Setup: 5,000,000 cents = 50,000.00 UGX
+    env.setup_test_user_with_balances(phone, "BTC", "BuySell", "btcbuysell@test.com", "UGX", "1234", 5000000, 0, 0)
         .expect("Setup");
-    
-    // Buy Bitcoin (under fraud limit of 100,000 UGX)
-    env.process_ussd(&sess, phone, "2*3*50000*1234");
-    
+
+    // Buy Bitcoin with 5,000.00 UGX (under fraud limit)
+    env.process_ussd(&sess, phone, "2*3*5000*1234");
+
     // Check BTC balance
     let (btc_after_buy, _) = env.get_crypto_balance(phone).expect("Get balance");
     assert!(btc_after_buy > 0, "Should have BTC after buy");
-    
-    // Sell half
-    env.process_ussd(&sess, phone, &format!("2*4*{}*1234*1", btc_after_buy / 2));
-    
+
+    // Sell half (convert sats to BTC for sell command)
+    let btc_to_sell = (btc_after_buy / 2) as f64 / 100_000_000.0;
+    env.process_ussd(&sess, phone, &format!("2*4*{:.8}*1234*1", btc_to_sell));
+
     // Check final balance
     let (btc_final, _) = env.get_crypto_balance(phone).expect("Get balance");
     assert!(btc_final < btc_after_buy, "BTC should decrease after sell");
@@ -406,18 +412,20 @@ fn test_bitcoin_buy_then_send() {
     let env = get_test_env();
     let sess = session();
     let phone = &phone("UGX");
-    
-    env.setup_test_user_with_balances(phone, "BTC", "BuySend", "btcbuysend@test.com", "UGX", "1234", 500000, 0, 0)
+
+    // Setup: 5,000,000 cents = 50,000.00 UGX
+    env.setup_test_user_with_balances(phone, "BTC", "BuySend", "btcbuysend@test.com", "UGX", "1234", 5000000, 0, 0)
         .expect("Setup");
-    
-    // Buy Bitcoin (under fraud limit of 100,000 UGX)
-    env.process_ussd(&sess, phone, "2*3*50000*1234");
-    
+
+    // Buy Bitcoin with 5,000.00 UGX (under fraud limit)
+    env.process_ussd(&sess, phone, "2*3*5000*1234");
+
     let (btc_after_buy, _) = env.get_crypto_balance(phone).expect("Get balance");
-    
-    // Send Bitcoin
+    assert!(btc_after_buy > 0, "Should have BTC after buy");
+
+    // Send Bitcoin (send flow expects satoshis)
     env.process_ussd(&sess, phone, &format!("2*5*bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh*{}*1234", btc_after_buy / 2));
-    
+
     let (btc_final, _) = env.get_crypto_balance(phone).expect("Get balance");
     assert!(btc_final < btc_after_buy, "BTC should decrease after send");
 }

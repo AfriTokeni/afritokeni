@@ -145,13 +145,15 @@ pub async fn get_user_principal(user_id: &str) -> Result<Principal, String> {
     // Query user_canister to get the principal_id for this user
     let user_canister_id = config::get_user_canister_id()?;
 
-    let (principal_opt,): (Option<String>,) = call(
+    let (principal_result,): (Result<Option<String>, String>,) = call(
         user_canister_id,
         "get_user_principal",
         (user_id.to_string(),)
     )
     .await
     .map_err(|e| format!("Failed to get user principal: {:?}", e))?;
+
+    let principal_opt = principal_result?;
 
     // In production, a missing principal is a hard error.
     // In test mode, allow a safe fallback so integration tests can run

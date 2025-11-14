@@ -114,27 +114,47 @@ pub async fn handle_sell_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
             }
         }
         2 => {
-            // Step 2: Show preview and ask for confirmation
+            // Step 2: Verify PIN first
             let pin = param_3;
 
             let amount_sats = match amount_str.parse::<f64>() {
                 Ok(amt) if amt > 0.0 => (amt * 100_000_000.0) as u64,
-                _ => 0,
+                _ => {
+                    return (format!("{}\n\n{}",
+                        TranslationService::translate("invalid_amount", lang),
+                        TranslationService::translate("back_or_menu", lang)), true);
+                }
             };
             let amount_btc = amount_sats as f64 / 100_000_000.0;
 
-            // Store for next step
-            session.set_data("amount_sats", &amount_sats.to_string());
-            session.set_data("pin", pin);
+            // Get user profile to verify PIN
+            let user_profile = match crate::services::user_client::get_user_by_phone(session.phone_number.clone()).await {
+                Ok(profile) => profile,
+                Err(e) => return (format!("Error: {}\n\n0. Main Menu", e), false),
+            };
 
-            (format!("💰 {}:\n\n{}: {:.8} BTC\n{}: ~{} (est)\n\n1. {}\n2. {}",
-                TranslationService::translate("confirm_transaction", lang),
-                TranslationService::translate("selling", lang),
-                amount_btc,
-                TranslationService::translate("you_receive", lang),
-                currency,
-                TranslationService::translate("confirm", lang),
-                TranslationService::translate("cancel", lang)), true)
+            // Verify PIN BEFORE showing confirmation
+            match crate::services::user_client::verify_pin(user_profile.id.clone(), pin.to_string()).await {
+                Ok(true) => {
+                    // PIN is valid, store for next step and show confirmation
+                    session.set_data("amount_sats", &amount_sats.to_string());
+                    session.set_data("pin", pin);
+
+                    (format!("💰 {}:\n\n{}: {:.8} BTC\n{}: ~{} (est)\n\n1. {}\n2. {}",
+                        TranslationService::translate("confirm_transaction", lang),
+                        TranslationService::translate("selling", lang),
+                        amount_btc,
+                        TranslationService::translate("you_receive", lang),
+                        currency,
+                        TranslationService::translate("confirm", lang),
+                        TranslationService::translate("cancel", lang)), true)
+                }
+                Ok(false) | Err(_) => {
+                    (format!("{}\n\n{}",
+                        TranslationService::translate("incorrect_pin", lang),
+                        TranslationService::translate("back_or_menu", lang)), false)
+                }
+            }
         }
         3 => {
             // Step 3: Execute sell after confirmation

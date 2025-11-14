@@ -65,3 +65,13 @@ btc_address_min_length = 26
 btc_address_max_length = 62
 # Enable strict checksum validation (requires bitcoin library)
 btc_strict_checksum_validation = true
+
+[playground]
+# Playground mode for frontend testing
+enabled = true
+# Session ID prefix that triggers playground mode
+session_id_prefix = "playground_"
+# Default PIN for playground users (WARNING: only for testing!)
+default_pin = "1234"
+# Default currency for playground users
+default_currency = "UGX"

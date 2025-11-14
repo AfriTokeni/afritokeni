@@ -3,6 +3,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use ic_cdk::api::time;
 use crate::config_loader::get_config;
+use crate::utils::constants::NANOS_PER_SECOND;
 
 #[derive(Debug, Clone)]
 struct RateLimitEntry {
@@ -34,11 +35,18 @@ pub fn check_rate_limit(_phone_number: &str) -> bool {
 
         let config = get_config();
         let current_time = time();
-        let window_nanos = config.rate_limiting.rate_limit_window_seconds * 1_000_000_000;
+        let window_nanos = config.rate_limiting.rate_limit_window_seconds * NANOS_PER_SECOND;
         let max_requests = config.rate_limiting.max_requests_per_minute;
 
         RATE_LIMITS.with(|limits| {
             let mut limits_map = limits.borrow_mut();
+
+            // Lazy cleanup: Remove entries older than 2x the window (deterministic)
+            // This happens during normal request processing, so it's safe
+            let cleanup_threshold = window_nanos * 2;
+            limits_map.retain(|_, entry| {
+                current_time.saturating_sub(entry.window_start) < cleanup_threshold
+            });
 
             match limits_map.get_mut(_phone_number) {
                 Some(entry) => {
@@ -74,18 +82,16 @@ pub fn check_rate_limit(_phone_number: &str) -> bool {
     }
 }
 
-/// Clean up old rate limit entries (call periodically)
+/// Clean up old rate limit entries
+///
+/// DEPRECATED: This function is no longer needed as cleanup now happens
+/// lazily during rate limit checks. Lazy cleanup is deterministic because
+/// it happens during request processing (update calls) rather than heartbeats.
+///
+/// Kept for backwards compatibility but can be safely removed.
+#[deprecated(note = "Cleanup now happens lazily in check_rate_limit()")]
 pub fn cleanup_old_entries() {
-    let config = get_config();
-    let current_time = time();
-    let window_nanos = config.rate_limiting.rate_limit_window_seconds * 1_000_000_000;
-    
-    RATE_LIMITS.with(|limits| {
-        let mut limits_map = limits.borrow_mut();
-        limits_map.retain(|_, entry| {
-            current_time - entry.window_start < window_nanos * 2
-        });
-    });
+    // No-op: cleanup now happens lazily in check_rate_limit()
 }
 
 #[cfg(test)]

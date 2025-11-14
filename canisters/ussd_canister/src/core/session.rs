@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-const SESSION_TIMEOUT_NANOS: u64 = 5 * 60 * 1_000_000_000; // 5 minutes in nanoseconds
+use crate::utils::constants::SESSION_TIMEOUT_NANOS;
 
 // Mock time for tests
 #[cfg(not(test))]

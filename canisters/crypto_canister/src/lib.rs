@@ -566,23 +566,11 @@ async fn sell_crypto(request: SellCryptoRequest) -> Result<BuyCryptoResponse, St
         );
     }
     
-    // 8. Approve platform to spend user's crypto (ICRC-2)
-    let approval_block = match crypto_type {
-        CryptoType::CkBTC => {
-            services::ledger_client::approve_ckbtc_spending(user_principal, request.crypto_amount).await?
-        },
-        CryptoType::CkUSDC => {
-            services::ledger_client::approve_ckusdc_spending(user_principal, request.crypto_amount).await?
-        },
-    };
-    
-    audit::log_success(
-        "crypto_approval_granted",
-        Some(request.user_identifier.clone()),
-        format!("User approved {} {} spending | Block: {}", 
-            request.crypto_amount, crypto_type_str, approval_block)
-    );
-    
+    // 8. SKIP approval step - user must have pre-approved spending (via web UI or test setup)
+    // The crypto canister cannot call icrc2_approve on behalf of the user without delegation.
+    // In production, users approve via web wallet before using USSD.
+    // In tests, allowances are pre-set via set_allowance_for_testing.
+
     // 9. Transfer crypto from user to platform reserve (ICRC-2 transfer_from)
     let transfer_block = match crypto_type {
         CryptoType::CkBTC => {
@@ -625,8 +613,8 @@ async fn sell_crypto(request: SellCryptoRequest) -> Result<BuyCryptoResponse, St
         status: TransactionStatus::Completed,
         created_at: timestamp,
         completed_at: Some(timestamp),
-        description: Some(format!("Sold {} {} for {} {} | Approval Block: {} | Transfer Block: {}",
-            request.crypto_amount, crypto_type_str, fiat_amount, request.currency, approval_block, transfer_block)),
+        description: Some(format!("Sold {} {} for {} {} | Transfer Block: {}",
+            request.crypto_amount, crypto_type_str, fiat_amount, request.currency, transfer_block)),
     };
 
     services::data_client::store_transaction(&transaction).await?;
@@ -643,9 +631,9 @@ async fn sell_crypto(request: SellCryptoRequest) -> Result<BuyCryptoResponse, St
     audit::log_success(
         "sell_crypto_completed",
         Some(request.user_identifier.clone()),
-        format!("Sold {} {} for {} {} | Exchange Rate: {} | Approval Block: {} | Transfer Block: {} | TX: {}",
+        format!("Sold {} {} for {} {} | Exchange Rate: {} | Transfer Block: {} | TX: {}",
             request.crypto_amount, crypto_type_str, fiat_amount, request.currency,
-            exchange_rate, approval_block, transfer_block, transaction.id)
+            exchange_rate, transfer_block, transaction.id)
     );
     
     Ok(BuyCryptoResponse {

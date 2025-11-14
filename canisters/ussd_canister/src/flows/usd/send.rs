@@ -41,10 +41,13 @@ pub async fn handle_send_usdc(text: &str, session: &mut UssdSession) -> (String,
             // Text: "3*5*address*amount" -> parts[3]=amount
             let amount_str = parts.get(3).unwrap_or(&"");
 
-            let amount_e6 = match validation::parse_amount(amount_str) {
-                Ok(amt) => (amt * 1_000_000.0) as u64, // Convert to micro-USDC (e6 format)
-                Err(e) => {
-                    return (format!("{}\n{}", e, TranslationService::translate("try_again", lang)), true);
+            // Parse amount in e6 units (micro-USDC), consistent with Bitcoin flow (satoshis)
+            let amount_e6 = match amount_str.parse::<u64>() {
+                Ok(amt) if amt > 0 => amt,
+                Ok(_) | Err(_) => {
+                    return (format!("{}\n{}",
+                        TranslationService::translate("invalid_amount", lang),
+                        TranslationService::translate("try_again", lang)), true);
                 }
             };
 
@@ -93,7 +96,8 @@ pub async fn handle_send_usdc(text: &str, session: &mut UssdSession) -> (String,
             let pin = parts.get(4).unwrap_or(&"");
             let usdc_address = parts.get(2).unwrap_or(&"").to_string();
             let amount_str = parts.get(3).unwrap_or(&"").to_string();
-            // Amount is already in e6 (micro-USDC)
+
+            // Parse amount in e6 units (micro-USDC), consistent with Bitcoin flow (satoshis)
             let amount_e6 = amount_str.parse::<u64>().unwrap_or(0);
 
             // Get user ID first

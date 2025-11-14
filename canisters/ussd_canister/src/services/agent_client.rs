@@ -4,6 +4,7 @@ use candid::Principal;
 use ic_cdk::call::Call;
 use shared_types::{FiatCurrency, DepositTransaction, WithdrawalTransaction};
 use std::cell::RefCell;
+use crate::logic::agent_logic::calculate_withdrawal_fees;
 
 thread_local! {
     static AGENT_CANISTER_ID: RefCell<Option<Principal>> = RefCell::new(None);
@@ -271,9 +272,8 @@ pub async fn create_withdrawal_request(
 
     // Convert response to WithdrawalTransaction
     result.map(|resp| {
-        // Calculate individual fees from total
-        let platform_fee = (resp.amount as f64 * 0.005).round() as u64;  // 0.5%
-        let agent_fee = (resp.amount as f64 * 0.10).round() as u64;      // 10%
+        // Calculate individual fees using shared logic
+        let fees = calculate_withdrawal_fees(resp.amount);
 
         WithdrawalTransaction {
             id: "".to_string(),
@@ -284,9 +284,9 @@ pub async fn create_withdrawal_request(
             status: shared_types::AgentTransactionStatus::Pending,
             withdrawal_code: resp.withdrawal_code,
             timestamp: 0,
-            agent_fee,
-            agent_keeps: agent_fee,
-            platform_revenue: platform_fee,
+            agent_fee: fees.agent_fee,
+            agent_keeps: fees.agent_fee,
+            platform_revenue: fees.platform_fee,
             confirmed_at: None,
         }
     })

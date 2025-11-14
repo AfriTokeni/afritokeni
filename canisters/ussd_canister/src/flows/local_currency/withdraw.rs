@@ -1,21 +1,48 @@
 // Withdraw flow with PIN verification and commission display
 use crate::core::session::UssdSession;
+use crate::logic::agent_logic::calculate_withdrawal_fees;
+use crate::utils::constants::{MIN_WITHDRAWAL_AMOUNT_UGX, MAX_WITHDRAWAL_AMOUNT_UGX};
 use crate::utils::translations::{Language, TranslationService};
 
 /// Handle withdraw flow
 /// Supports both interactive and shorthand inputs:
-/// - Interactive: "1*4" → agent → amount → confirm → PIN
-/// - Shorthand: "1*4*AGENT001*50000*1234" (skips confirmation)
+/// - Interactive: "1*4" → amount → agent → confirm → PIN
+/// - Shorthand: "1*4*amount*agent*pin" (skips confirmation)
+/// - Continued: When in session, just the current input (e.g., "50000")
 pub async fn handle_withdraw(text: &str, session: &mut UssdSession) -> (String, bool) {
     let lang = Language::from_code(&session.language);
     let parts: Vec<&str> = text.split('*').collect();
 
-    // Extract params (after "1*4" prefix)
-    // Flow order: 1*4 → AMOUNT → AGENT → PIN
-    let amount_opt = parts.get(2).map(|s| s.trim()).filter(|s| !s.is_empty());
-    let agent_id_opt = parts.get(3).map(|s| s.trim()).filter(|s| !s.is_empty());
-    let param_4 = parts.get(4).map(|s| s.trim()).filter(|s| !s.is_empty());
-    let param_5 = parts.get(5).map(|s| s.trim()).filter(|s| !s.is_empty());
+    // Check if this is a continued session or fresh start
+    let is_fresh_start = parts.get(0) == Some(&"1") && parts.get(1) == Some(&"4");
+
+    // Store session data in variables that live long enough
+    let stored_amount = session.get_data("amount");
+    let stored_agent = session.get_data("agent_id");
+
+    // Extract params differently based on mode
+    let (amount_opt, agent_id_opt, param_4, param_5) = if is_fresh_start {
+        // Fresh start: "1*4*amount*agent*confirmation*pin"
+        (
+            parts.get(2).map(|s| s.trim()).filter(|s| !s.is_empty()),
+            parts.get(3).map(|s| s.trim()).filter(|s| !s.is_empty()),
+            parts.get(4).map(|s| s.trim()).filter(|s| !s.is_empty()),
+            parts.get(5).map(|s| s.trim()).filter(|s| !s.is_empty()),
+        )
+    } else {
+        // Continued session: user just sends the next value
+        // Determine what the current input represents based on what's already stored
+        if stored_amount.is_none() {
+            // No amount yet, current input is amount
+            (Some(text.trim()), None, None, None)
+        } else if stored_agent.is_none() {
+            // Have amount, need agent
+            (stored_amount.as_ref().map(|s| s.as_str()), Some(text.trim()), None, None)
+        } else {
+            // Have amount and agent, current input is confirmation or PIN
+            (stored_amount.as_ref().map(|s| s.as_str()), stored_agent.as_ref().map(|s| s.as_str()), Some(text.trim()), None)
+        }
+    };
 
     // Determine PIN location:
     // - If param_4 is "1" or "2", it's confirmation → PIN is in param_5
@@ -45,42 +72,54 @@ pub async fn handle_withdraw(text: &str, session: &mut UssdSession) -> (String, 
             "Enter amount (UGX):"), true);
     }
 
+    // Validate amount before proceeding
+    let amount = match amount_opt.unwrap().parse::<u64>() {
+        Ok(a) if a == 0 => {
+            return (format!("❌ Invalid amount: must be a positive number greater than 0.\n\nTry again:"), true);
+        }
+        Ok(a) if a < MIN_WITHDRAWAL_AMOUNT_UGX => {
+            return (format!("❌ Minimum withdrawal amount is {}.\n\nTry again:", MIN_WITHDRAWAL_AMOUNT_UGX), true);
+        }
+        Ok(a) if a > MAX_WITHDRAWAL_AMOUNT_UGX => {
+            return (format!("❌ Maximum withdrawal amount is {}.\n\nTry again:", MAX_WITHDRAWAL_AMOUNT_UGX), true);
+        }
+        Ok(a) => a,
+        Err(_) => {
+            return (format!("❌ Invalid amount. Please enter a valid number.\n\nTry again:"), true);
+        }
+    };
+
+    // Store validated amount
+    session.set_data("amount", &amount.to_string());
+
     // Step 1: Have amount, need agent
     if agent_id_opt.is_none() {
-        session.set_data("amount", amount_opt.unwrap());
         return (format!("Enter agent ID:"), true);
     }
 
+    // Validate agent ID
+    let agent_id = agent_id_opt.unwrap();
+    if agent_id.is_empty() {
+        return (format!("❌ Invalid agent ID. Agent ID cannot be empty.\n\nEnter agent ID:"), true);
+    }
+
+    // Store agent ID
+    session.set_data("agent_id", agent_id);
+
     // Step 2: Have amount + agent, show fees and confirmation
     if confirmation.is_none() && pin_opt.is_none() {
-        let amount_str = amount_opt.unwrap();
-
-        match amount_str.parse::<u64>() {
-            Ok(amount) => {
-                if amount == 0 {
-                    return (format!("❌ Amount must be greater than 0.\n\nTry again"), true);
-                }
-
-                // Get withdrawal fees from Agent Canister
-                match crate::services::agent_client::get_withdrawal_fees(amount).await {
-                    Ok(fees) => {
-                        session.set_data("amount", &amount.to_string());
-                        session.set_data("agent_id", agent_id_opt.unwrap());
-
-                        (format!("💰 Withdrawal Details:\n\nAmount: {}\nPlatform fee (0.5%): {}\nAgent fee (10%): {}\nTotal fees: {}\nYou receive: {}\n\n1. Confirm\n2. Cancel",
-                            fees.amount,
-                            fees.platform_fee,
-                            fees.agent_fee,
-                            fees.total_fees,
-                            fees.net_amount), true)
-                    }
-                    Err(e) => {
-                        (format!("❌ Error calculating fees: {}\n\nTry again", e), true)
-                    }
-                }
+        // Get withdrawal fees from Agent Canister
+        match crate::services::agent_client::get_withdrawal_fees(amount).await {
+            Ok(fees) => {
+                (format!("💰 Withdrawal Details:\n\nAmount: {}\nPlatform fee (0.5%): {}\nAgent fee (10%): {}\nTotal fees: {}\nYou receive: {}\n\n1. Confirm\n2. Cancel",
+                    fees.amount,
+                    fees.platform_fee,
+                    fees.agent_fee,
+                    fees.total_fees,
+                    fees.net_amount), true)
             }
-            Err(_) => {
-                (format!("Invalid amount. Please try again."), true)
+            Err(e) => {
+                (format!("❌ Error calculating fees: {}\n\nTry again", e), true)
             }
         }
     }
@@ -97,7 +136,7 @@ pub async fn handle_withdraw(text: &str, session: &mut UssdSession) -> (String, 
     }
     // Step 4: Have amount + agent + confirmation + PIN, execute
     else if let (Some(_), Some(_), Some(pin)) = (amount_opt, agent_id_opt, pin_opt) {
-        // Get values from session (stored in step 2)
+        // Get values from session (stored in earlier steps)
         let amount_str = session.get_data("amount").unwrap_or_else(|| amount_opt.unwrap().to_string());
         let agent_id = session.get_data("agent_id").unwrap_or_else(|| agent_id_opt.unwrap().to_string());
 
@@ -178,19 +217,18 @@ async fn execute_withdrawal(
     ).await {
         Ok(result) => {
             session.clear_data();
-            // Calculate fees for display
-            let platform_fee = (result.amount as f64 * 0.005).round() as u64;
-            let agent_fee = (result.amount as f64 * 0.10).round() as u64;
-            let net_amount = result.amount - platform_fee - agent_fee;
+            // Calculate fees for display using shared logic
+            let fees = calculate_withdrawal_fees(result.amount);
+            let net_amount = result.amount - fees.platform_fee - fees.agent_fee;
 
             (format!("✅ Withdrawal Request Created!\n\n📋 CODE: {}\n\nShow this code to agent:\n{}\n\nAmount: {} {}\nPlatform fee: {} {}\nAgent fee: {} {}\nYou'll receive: {} {}\n\n0. Main Menu",
                 result.withdrawal_code,
                 result.withdrawal_code,
                 result.amount,
                 currency,
-                platform_fee,
+                fees.platform_fee,
                 currency,
-                agent_fee,
+                fees.agent_fee,
                 currency,
                 net_amount,
                 currency), false)

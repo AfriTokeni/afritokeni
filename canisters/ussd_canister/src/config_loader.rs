@@ -14,6 +14,7 @@ pub struct Config {
     pub ussd_defaults: UssdDefaultsConfig,
     pub features: FeaturesConfig,
     pub validation: ValidationConfig,
+    pub playground: PlaygroundConfig,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -100,6 +101,15 @@ pub struct ValidationConfig {
     pub btc_strict_checksum_validation: bool,
 }
 
+#[derive(Debug, Deserialize, Clone)]
+#[allow(dead_code)]
+pub struct PlaygroundConfig {
+    pub enabled: bool,
+    pub session_id_prefix: String,
+    pub default_pin: String,
+    pub default_currency: String,
+}
+
 // Default config for when TOML parsing fails (e.g., in tests)
 fn get_default_config() -> Config {
     Config {
@@ -156,6 +166,12 @@ fn get_default_config() -> Config {
             btc_address_min_length: 26,
             btc_address_max_length: 62,
             btc_strict_checksum_validation: false, // Default to false for tests
+        },
+        playground: PlaygroundConfig {
+            enabled: true,
+            session_id_prefix: "playground_".to_string(),
+            default_pin: "1234".to_string(),
+            default_currency: "UGX".to_string(),
         },
     }
 }

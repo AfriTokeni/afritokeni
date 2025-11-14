@@ -1,6 +1,8 @@
 /// Pure validation logic for USSD inputs
 /// No I/O, no async, no IC calls - fully testable
 
+use crate::utils::constants::MAX_VALIDATION_AMOUNT;
+
 /// Validates phone number format
 pub fn validate_phone_format(phone: &str) -> Result<(), String> {
     if phone.is_empty() {
@@ -33,7 +35,7 @@ pub fn parse_and_validate_amount(amount_str: &str) -> Result<f64, String> {
         return Err("Amount must be greater than zero".to_string());
     }
     
-    if amount > 100_000_000.0 {
+    if amount > MAX_VALIDATION_AMOUNT {
         return Err("Amount too large".to_string());
     }
     

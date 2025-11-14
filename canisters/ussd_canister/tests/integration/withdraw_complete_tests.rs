@@ -92,11 +92,13 @@ fn test_withdraw_insufficient_balance() {
     let sess = session();
     let phone = &phone("UGX");
 
-    env.setup_test_user_with_balances(phone, "Withdraw", "NoMoney", "withdrawno@test.com", "UGX", "1234", 10000, 0, 0)
+    // Give user small balance that's not enough for minimum withdrawal + fees
+    // Minimum withdrawal is 100000, with fees it needs ~110500
+    env.setup_test_user_with_balances(phone, "Withdraw", "NoMoney", "withdrawno@test.com", "UGX", "1234", 50000, 0, 0)
         .expect("Setup");
 
     let agent_id = env.register_agent("AGENT005").expect("Agent registration");
-    let input = format!("1*4*50000*{}*1234", agent_id);
+    let input = format!("1*4*100000*{}*1234", agent_id);
     let (response, _) = env.process_ussd(&sess, phone, &input);
 
     assert!(response.contains("Insufficient") || response.contains("insufficient"),
@@ -111,10 +113,9 @@ fn test_withdraw_zero_balance() {
 
     env.setup_test_user_with_balances(phone, "Withdraw", "ZeroBalance", "withdrawzero@test.com", "UGX", "1234", 0, 0, 0)
         .expect("Setup");
-    // No balance set
 
     let agent_id = env.register_agent("AGENT006").expect("Agent registration");
-    let input = format!("1*4*10000*{}*1234", agent_id);
+    let input = format!("1*4*100000*{}*1234", agent_id);
     let (response, _) = env.process_ussd(&sess, phone, &input);
 
     assert!(response.contains("Insufficient") || response.contains("insufficient") || response.contains("balance"),
@@ -167,8 +168,8 @@ fn test_withdraw_below_minimum() {
         .expect("Setup");
     
     env.process_ussd(&sess, phone, "1*4");
-    let (response, _) = env.process_ussd(&sess, phone, "5"); // Below minimum (10)
-    
+    let (response, _) = env.process_ussd(&sess, phone, "50000"); // Below minimum (100,000)
+
     assert!(response.contains("Minimum") || response.contains("minimum") || response.contains("too small"),
         "Should reject below minimum. Got: {}", response);
 }
@@ -199,11 +200,11 @@ fn test_withdraw_wrong_pin() {
     let sess = session();
     let phone = &phone("UGX");
 
-    env.setup_test_user_with_balances(phone, "Withdraw", "WrongPIN", "withdrawwrong@test.com", "UGX", "1234", 100000, 0, 0)
+    env.setup_test_user_with_balances(phone, "Withdraw", "WrongPIN", "withdrawwrong@test.com", "UGX", "1234", 200000, 0, 0)
         .expect("Setup");
 
     let agent_id = env.register_agent("AGENT007").expect("Agent registration");
-    let input = format!("1*4*50000*{}*9999", agent_id); // Wrong PIN
+    let input = format!("1*4*100000*{}*9999", agent_id); // Wrong PIN
     let (response, _) = env.process_ussd(&sess, phone, &input);
 
     assert!(response.contains("Incorrect") || response.contains("incorrect") || response.contains("Wrong") || response.contains("Invalid PIN"),
@@ -211,7 +212,7 @@ fn test_withdraw_wrong_pin() {
 
     // Balance should not change
     let balance = env.check_fiat_balance(phone, "UGX").expect("Get balance");
-    assert_eq!(balance, 100000, "Balance should not change on wrong PIN");
+    assert_eq!(balance, 200000, "Balance should not change on wrong PIN");
 }
 
 // ============================================================================
@@ -228,10 +229,10 @@ fn test_withdraw_empty_agent_id() {
         .expect("Setup");
     
     env.process_ussd(&sess, phone, "1*4");
-    env.process_ussd(&sess, phone, "50000");
+    env.process_ussd(&sess, phone, "100000");
     let (response, _) = env.process_ussd(&sess, phone, ""); // Empty agent ID
-    
-    assert!(response.contains("Invalid") || response.contains("invalid") || response.contains("Agent") || response.contains("agent"),
+
+    assert!(response.contains("Invalid") || response.contains("invalid") || response.contains("Agent") || response.contains("agent") || response.contains("empty"),
         "Should reject empty agent ID. Got: {}", response);
 }
 
@@ -261,11 +262,14 @@ fn test_withdraw_minimum_amount() {
     let sess = session();
     let phone = &phone("UGX");
 
-    env.setup_test_user_with_balances(phone, "Withdraw", "MinAmt", "withdrawminamt@test.com", "UGX", "1234", 10000, 0, 0)
+    // Balance must cover withdrawal amount + fees
+    // For 100000 UGX: platform fee (0.5%) = 500, agent fee (10%) = 10000
+    // Total needed: 100000 + 500 + 10000 = 110500
+    env.setup_test_user_with_balances(phone, "Withdraw", "MinAmt", "withdrawminamt@test.com", "UGX", "1234", 110500, 0, 0)
         .expect("Setup");
 
     let agent_id = env.register_agent("AGENT008").expect("Agent registration");
-    let input = format!("1*4*10*{}*1234", agent_id);
+    let input = format!("1*4*100000*{}*1234", agent_id);
     let (response, _) = env.process_ussd(&sess, phone, &input);
 
     assert!(response.contains("Withdrawal Request Created") || response.contains("CODE:"),
@@ -278,7 +282,10 @@ fn test_withdraw_maximum_amount() {
     let sess = session();
     let phone = &phone("UGX");
 
-    env.setup_test_user_with_balances(phone, "Withdraw", "MaxAmt", "withdrawmaxamt@test.com", "UGX", "1234", 1000000, 0, 0)
+    // Balance must cover withdrawal amount + fees
+    // For 1000000 UGX: platform fee (0.5%) = 5000, agent fee (10%) = 100000
+    // Total needed: 1000000 + 5000 + 100000 = 1105000
+    env.setup_test_user_with_balances(phone, "Withdraw", "MaxAmt", "withdrawmaxamt@test.com", "UGX", "1234", 1105000, 0, 0)
         .expect("Setup");
 
     let agent_id = env.register_agent("AGENT009").expect("Agent registration");
@@ -400,8 +407,8 @@ fn test_withdraw_return_to_main_menu() {
     
     env.process_ussd(&sess, phone, "1*4");
     let (response, _) = env.process_ussd(&sess, phone, "0"); // Back
-    
-    assert!(response.contains("Main") || response.contains("Menu") || response.contains("Send"),
+
+    assert!(response.contains("Main") || response.contains("Menu") || response.contains("Send") || response.contains("Welcome to AfriTokeni"),
         "Should return to main menu. Got: {}", response);
 }
 
@@ -421,16 +428,18 @@ fn test_withdraw_with_different_agents() {
     let agent_a = env.register_agent("AGENT_A").expect("Agent A registration");
     let agent_b = env.register_agent("AGENT_B").expect("Agent B registration");
 
-    // Withdraw with Agent A
+    // Withdraw with Agent A: 100000 + fees (500 + 10000) = 110500
     let input_a = format!("1*4*100000*{}*1234", agent_a);
     env.process_ussd(&sess, phone, &input_a);
 
-    // Withdraw with Agent B
+    // Withdraw with Agent B: 100000 + fees (500 + 10000) = 110500
     let input_b = format!("1*4*100000*{}*1234", agent_b);
     env.process_ussd(&sess, phone, &input_b);
 
+    // Total deducted: 110500 + 110500 = 221000
+    // Remaining: 500000 - 221000 = 279000
     let balance = env.check_fiat_balance(phone, "UGX").expect("Get balance");
-    assert_eq!(balance, 300000, "Should have 300000 left");
+    assert_eq!(balance, 279000, "Should have 279000 left after two withdrawals");
 }
 
 #[test]

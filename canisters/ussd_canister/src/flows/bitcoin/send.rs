@@ -46,20 +46,62 @@ pub async fn handle_send_bitcoin(text: &str, session: &mut UssdSession) -> (Stri
             (format!("{} (ckBTC):", TranslationService::translate("enter_amount", lang)), true)
         }
         2 => {
-            // Step 2: Validate amount and ask for PIN
-            match validation::parse_amount(amount_str) {
-                Ok(amount) => {
+            // Step 2: Validate amount, check balance, and ask for PIN
+            // Amount can be in satoshis (integer) or BTC (decimal)
+            let amount_sats = if let Ok(sats) = amount_str.parse::<u64>() {
+                // Integer format: satoshis
+                sats
+            } else if let Ok(btc) = validation::parse_amount(amount_str) {
+                // Decimal format: BTC -> convert to satoshis
+                (btc * 100_000_000.0) as u64
+            } else {
+                return (format!("{}\n{}",
+                    TranslationService::translate("invalid_amount", lang),
+                    TranslationService::translate("try_again", lang)), true);
+            };
+
+            if amount_sats == 0 {
+                return (format!("{}\n{}",
+                    TranslationService::translate("invalid_amount", lang),
+                    TranslationService::translate("try_again", lang)), true);
+            }
+
+            // Get user profile to check balance
+            let user_profile = match crate::services::user_client::get_user_by_phone(session.phone_number.clone()).await {
+                Ok(profile) => profile,
+                Err(e) => return (format!("Error: {}\n\n0. Main Menu", e), false),
+            };
+
+            // Check BTC balance
+            match crate::services::crypto_client::check_crypto_balance(
+                user_profile.id.clone(),
+                shared_types::CryptoType::CkBTC
+            ).await {
+                Ok(balance_sats) => {
+                    if balance_sats < amount_sats {
+                        return (format!("{}!\n{}: {:.8} BTC\n{}: {:.8} BTC\n\n{}",
+                            TranslationService::translate("insufficient_balance", lang),
+                            TranslationService::translate("your_balance", lang),
+                            balance_sats as f64 / 100_000_000.0,
+                            TranslationService::translate("required", lang),
+                            amount_sats as f64 / 100_000_000.0,
+                            TranslationService::translate("back_or_menu", lang)), true);
+                    }
+
                     let address = parts.get(2).unwrap_or(&"");
                     (format!("{}\n{}: {}\n{}: {} ckBTC\n\n{}",
                         TranslationService::translate("confirm_transaction", lang),
                         TranslationService::translate("to", lang),
                         address,
                         TranslationService::translate("amount", lang),
-                        amount,
+                        amount_sats as f64 / 100_000_000.0,
                         TranslationService::translate("enter_pin_confirm", lang)), true)
                 }
                 Err(e) => {
-                    (format!("{}\n{}", e, TranslationService::translate("try_again", lang)), true)
+                    (format!("{}: {}\n\n{}",
+                        TranslationService::translate("error", lang),
+                        e,
+                        TranslationService::translate("back_or_menu", lang)), true)
                 }
             }
         }

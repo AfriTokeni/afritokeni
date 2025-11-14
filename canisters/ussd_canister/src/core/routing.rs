@@ -232,12 +232,14 @@ pub async fn handle_local_currency_menu(text: &str, session: &mut UssdSession) -
     let last_input = parts.last().unwrap_or(&"");
     let currency = session.get_data("currency").unwrap_or_else(|| "UGX".to_string());
     
+    ic_cdk::println!("🔍 Matching on last_input='{}', parts.len()={}", last_input, parts.len());
+
     match *last_input {
         "1" if parts.len() == 1 => {
-            // Show Local Currency menu (when text is just "1")
-            let menu = format!("{} ({})\n{}\n1. {}\n2. {}\n3. {}\n4. {}\n5. {}\n6. {}\n\n{}",
+            // Show local currency menu (when text is just "1")
+            ic_cdk::println!("✅ Showing local currency submenu");
+            let menu = format!("{}\n{}\n1. {}\n2. {}\n3. {}\n4. {}\n5. {}\n6. {}\n\n{}",
                 TranslationService::translate("local_currency_menu", lang),
-                currency,
                 TranslationService::translate("please_select_option", lang),
                 TranslationService::translate("send_money", lang),
                 TranslationService::translate("check_balance", lang),
@@ -536,25 +538,36 @@ pub async fn handle_dao_menu(text: &str, session: &mut UssdSession) -> (String, 
 /// Handle language menu
 pub async fn handle_language_menu(text: &str, session: &mut UssdSession) -> (String, bool) {
     let lang = Language::from_code(&session.language);
-    
+
     let parts: Vec<&str> = text.split('*').collect();
     let choice = parts.last().unwrap_or(&"");
-    
-    // Helper to show language menu
-    let show_menu = || -> (String, bool) {
-        let menu = format!("{}\n1. {}\n2. {}\n3. {}\n\n{}",
-            TranslationService::translate("select_language", lang),
-            TranslationService::translate("english", lang),
-            TranslationService::translate("luganda", lang),
-            TranslationService::translate("swahili", lang),
-            TranslationService::translate("back_or_menu", lang));
-        (menu, true)
-    };
-    
+
+    ic_cdk::println!("🔍 [LANGUAGE] text='{}', parts={:?}, len={}, choice='{}'", text, parts, parts.len(), choice);
+
     match *choice {
-        "6" | "9" => {
-            // Show language menu (when text is "6" or user presses "9" to repeat menu)
-            show_menu()
+        "7" if parts.len() == 1 => {
+            // Show language menu (when text is "7" from main menu)
+            // Set current_menu so next input is routed back here
+            session.current_menu = "language".to_string();
+            ic_cdk::println!("✅ Set current_menu to: language");
+
+            let menu = format!("{}\n1. {}\n2. {}\n3. {}\n\n{}",
+                TranslationService::translate("select_language", lang),
+                TranslationService::translate("english", lang),
+                TranslationService::translate("luganda", lang),
+                TranslationService::translate("swahili", lang),
+                TranslationService::translate("back_or_menu", lang));
+            (menu, true)
+        }
+        "9" => {
+            // Repeat menu (when user presses "9" to repeat menu)
+            let menu = format!("{}\n1. {}\n2. {}\n3. {}\n\n{}",
+                TranslationService::translate("select_language", lang),
+                TranslationService::translate("english", lang),
+                TranslationService::translate("luganda", lang),
+                TranslationService::translate("swahili", lang),
+                TranslationService::translate("back_or_menu", lang));
+            (menu, true)
         }
         "1" => {
             // Set English
@@ -564,8 +577,11 @@ pub async fn handle_language_menu(text: &str, session: &mut UssdSession) -> (Str
             // Language is saved in session and persists across USSD session
             // NOTE: Permanent user profile language preference requires user_canister ProfileUpdates extension
             ic_cdk::println!("✅ Language set for session: en");
-            
-            (format!("{}\n\n{}", 
+
+            // Reset menu state
+            session.current_menu = "main".to_string();
+
+            (format!("{}\n\n{}",
                 TranslationService::translate("language_set", new_lang),
                 TranslationService::translate("back_or_menu", new_lang)), true)
         }
@@ -577,8 +593,11 @@ pub async fn handle_language_menu(text: &str, session: &mut UssdSession) -> (Str
             // Language is saved in session and persists across USSD session
             // NOTE: Permanent user profile language preference requires user_canister ProfileUpdates extension
             ic_cdk::println!("✅ Language set for session: lg");
-            
-            (format!("{}\n\n{}", 
+
+            // Reset menu state
+            session.current_menu = "main".to_string();
+
+            (format!("{}\n\n{}",
                 TranslationService::translate("language_set", new_lang),
                 TranslationService::translate("back_or_menu", new_lang)), true)
         }
@@ -590,13 +609,16 @@ pub async fn handle_language_menu(text: &str, session: &mut UssdSession) -> (Str
             // Language is saved in session and persists across USSD session
             // NOTE: Permanent user profile language preference requires user_canister ProfileUpdates extension
             ic_cdk::println!("✅ Language set for session: sw");
-            
-            (format!("{}\n\n{}", 
+
+            // Reset menu state
+            session.current_menu = "main".to_string();
+
+            (format!("{}\n\n{}",
                 TranslationService::translate("language_set", new_lang),
                 TranslationService::translate("back_or_menu", new_lang)), true)
         }
         _ => {
-            (format!("{}\n\n{}", 
+            (format!("{}\n\n{}",
                 TranslationService::translate("invalid_option", lang),
                 TranslationService::translate("back_or_menu", lang)), true)
         }

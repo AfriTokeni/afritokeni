@@ -23,19 +23,26 @@ fn test_main_menu_display() {
 #[test]
 fn test_navigate_to_send_money() {
     let env = get_test_env();
-    
+
     let phone = &phone("UGX");
     let session_id = "menu_test_2";
-    
+
     env.setup_test_user_with_balances(phone, "Send", "User", "send@test.com", "UGX", "1234", 0, 0, 0)
         .expect("Setup");
-    
-    // Navigate to send money (option 1)
+
+    // Navigate to local currency menu (option 1)
     let (response, continue_session) = env.process_ussd(session_id, phone, "1");
-    
+
     assert!(continue_session, "Session should continue");
-    assert!(response.contains("phone") || response.contains("recipient") || response.contains("number"),
-        "Should ask for recipient. Got: {}", response);
+    assert!(response.contains("Local Currency") || response.contains("Send Money") || response.contains("Check Balance"),
+        "Should show local currency menu. Got: {}", response);
+
+    // Then navigate to send money (option 1*1)
+    let (response2, continue_session2) = env.process_ussd(session_id, phone, "1*1");
+
+    assert!(continue_session2, "Session should continue");
+    assert!(response2.contains("phone") || response2.contains("recipient") || response2.contains("number"),
+        "Should ask for recipient. Got: {}", response2);
 }
 
 #[test]

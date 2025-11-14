@@ -74,12 +74,7 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
         let message = crate::utils::translations::TranslationService::translate("rate_limit_exceeded", lang);
         return make_error_response(429, message);
     }
-    
-    // Periodically clean up old rate limit entries (every ~10th request)
-    if ic_cdk::api::time() % 10 == 0 {
-        crate::utils::rate_limit::cleanup_old_entries();
-    }
-    
+
     // Log the request
     ic_cdk::println!(
         "📱 USSD Request - Session: {}, Phone: {}, Text: '{}', JSON: {}",
@@ -96,16 +91,16 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
             Ok(mut session) => {
                 ic_cdk::println!("🔍 Session state: menu='{}', step={}", session.current_menu, session.step);
                 
-                // CRITICAL: Check if user is registered (first-time user detection)
+                // Check if user is registered (first-time user detection)
                 let mut user_registered = match crate::services::user_client::get_user_by_phone(phone_number.clone()).await {
                     Ok(_) => true,
                     Err(_) => false, // User doesn't exist
                 };
-                
-                // PLAYGROUND MODE: Auto-register playground users with demo PIN (1234)
-                if !user_registered && session_id.starts_with("playground_") {
+
+                // PLAYGROUND MODE: Auto-register playground users (configured via config.toml)
+                let config = crate::config_loader::get_config();
+                if !user_registered && config.playground.enabled && session_id.starts_with(&config.playground.session_id_prefix) {
                     ic_cdk::println!("🎮 Playground mode detected - auto-registering demo user");
-                    let config = crate::config_loader::get_config();
                     let ussd_email = format!("{}@{}", phone_number.replace("+", ""), config.ussd_defaults.default_email_domain);
 
                     match crate::services::user_client::register_user(
@@ -114,8 +109,8 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                         "Demo".to_string(),
                         "User".to_string(),
                         ussd_email,
-                        "1234".to_string(),
-                        "UGX".to_string()
+                        config.playground.default_pin.clone(),
+                        config.playground.default_currency.clone()
                     ).await {
                         Ok(user_id) => {
                             ic_cdk::println!("✅ Playground user auto-registered: {}", user_id);
@@ -132,7 +127,7 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                         }
                     }
                 }
-                
+
                 // Route based on user registration status
                 let (response_text, continue_session) = if !user_registered {
                     // New user - handle registration flow
@@ -157,7 +152,7 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                     // User is registered, route normally
                     let parts: Vec<&str> = text.split('*').collect();
                     ic_cdk::println!("🔍 Routing: text='{}', parts={:?}", text, parts);
-                    
+
                     // Check for universal navigation commands (last input)
                     let last_input = parts.last().unwrap_or(&"");
                     if *last_input == "9" && parts.len() == 1 {
@@ -165,13 +160,39 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                         ic_cdk::println!("🏠 Returning to main menu");
                         session.current_menu = "main".to_string();
                         session.step = 0;
+                        session.clear_data();
                         crate::core::routing::handle_main_menu("", &mut session).await
-                    } else if *last_input == "0" && parts.len() == 2 {
-                        // 0 = Back (only when it's a direct menu choice like "1*0", not "4*1*2*0" which is amount=0)
-                        ic_cdk::println!("⬅️ Going back to main menu");
+                    } else if *last_input == "0" && parts.len() == 1 && session.step == 0 {
+                        // 0 = Back to main menu from submenu (only when at menu level, not collecting input)
+                        ic_cdk::println!("⬅️ Navigation: Back to main menu (0 pressed)");
                         session.current_menu = "main".to_string();
                         session.step = 0;
+                        session.clear_data();
                         crate::core::routing::handle_main_menu("", &mut session).await
+                    } else if !session.current_menu.is_empty() && session.current_menu != "main" {
+                        // Session is in an active flow - route to that flow's handler (even if text is empty)
+                        ic_cdk::println!("🔄 Continuing flow: menu='{}', step={}", session.current_menu, session.step);
+                        match session.current_menu.as_str() {
+                            "send_money" => crate::flows::local_currency::send_money::handle_send_money(&text, &mut session).await,
+                            "deposit" => crate::flows::local_currency::deposit::handle_deposit(&text, &mut session).await,
+                            "withdraw" => crate::flows::local_currency::withdraw::handle_withdraw(&text, &mut session).await,
+                            "buy_bitcoin" => crate::flows::bitcoin::buy::handle_buy_bitcoin(&text, &mut session).await,
+                            "sell_bitcoin" => crate::flows::bitcoin::sell::handle_sell_bitcoin(&text, &mut session).await,
+                            "send_bitcoin" => crate::flows::bitcoin::send::handle_send_bitcoin(&text, &mut session).await,
+                            "buy_usdc" => crate::flows::usd::buy::handle_buy_usdc(&text, &mut session).await,
+                            "sell_usdc" => crate::flows::usd::sell::handle_sell_usdc(&text, &mut session).await,
+                            "send_usdc" => crate::flows::usd::send::handle_send_usdc(&text, &mut session).await,
+                            "swap_crypto" => crate::flows::crypto::swap::handle_crypto_swap(&text, &mut session).await,
+                            "dao" => crate::core::routing::handle_dao_menu(&text, &mut session).await,
+                            "language" => crate::core::routing::handle_language_menu(&text, &mut session).await,
+                            _ => {
+                                // Unknown flow, reset to main menu
+                                ic_cdk::println!("⚠️ Unknown flow: {}, resetting to main", session.current_menu);
+                                session.current_menu = "main".to_string();
+                                session.step = 0;
+                                crate::core::routing::handle_main_menu("", &mut session).await
+                            }
+                        }
                     } else if text.is_empty() {
                         // Show main menu when no input - with welcome message for first visit
                         let welcome_prefix = if session_id.starts_with("playground_") {
@@ -184,7 +205,7 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                     } else {
                         // Route based on the input parts
                         ic_cdk::println!("🔍 Routing with parts: {:?}", parts);
-                        
+
                         // Route based on first part
                         match parts.get(0) {
                         Some(&"1") => {
@@ -229,6 +250,16 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                             // Language menu
                             ic_cdk::println!("✅ Routing to language");
                             crate::core::routing::handle_language_menu(&text, &mut session).await
+                        }
+                        Some(&"0") if parts.len() == 1 || parts.len() == 2 => {
+                            // 0 = Back to main menu (when not in active flow)
+                            // parts.len() == 1: User enters "0" from main menu
+                            // parts.len() == 2: User at submenu level enters "X*0"
+                            ic_cdk::println!("⬅️ Going back to main menu");
+                            session.current_menu = "main".to_string();
+                            session.step = 0;
+                            session.clear_data();
+                            crate::core::routing::handle_main_menu("", &mut session).await
                         }
                         _ => {
                             // Invalid menu option - show error

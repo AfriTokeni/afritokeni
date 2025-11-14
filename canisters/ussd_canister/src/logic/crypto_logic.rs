@@ -2,6 +2,7 @@
 /// No I/O, no async, no IC calls - fully testable
 
 use crate::logic::validation;
+use crate::utils::constants::{SATOSHIS_PER_BTC, E6_PER_USDC};
 
 /// Parse USSD input and determine current step
 pub fn determine_step(text: &str) -> usize {
@@ -38,22 +39,22 @@ pub fn extract_pin_send(text: &str) -> Option<String> {
 
 /// Convert BTC amount to satoshis
 pub fn btc_to_satoshis(btc: f64) -> u64 {
-    (btc * 100_000_000.0).round() as u64
+    (btc * SATOSHIS_PER_BTC).round() as u64
 }
 
 /// Convert satoshis to BTC
 pub fn satoshis_to_btc(sats: u64) -> f64 {
-    sats as f64 / 100_000_000.0
+    sats as f64 / SATOSHIS_PER_BTC
 }
 
 /// Convert USDC amount to e6 (6 decimals)
 pub fn usdc_to_e6(usdc: f64) -> u64 {
-    (usdc * 1_000_000.0).round() as u64
+    (usdc * E6_PER_USDC).round() as u64
 }
 
 /// Convert e6 to USDC
 pub fn e6_to_usdc(e6: u64) -> f64 {
-    e6 as f64 / 1_000_000.0
+    e6 as f64 / E6_PER_USDC
 }
 
 /// Validate buy crypto step (amount + PIN)

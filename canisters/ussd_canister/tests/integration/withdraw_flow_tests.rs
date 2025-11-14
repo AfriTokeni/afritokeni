@@ -125,10 +125,10 @@ fn test_withdraw_requires_agent_id() {
     let (response, continue_session) = env.process_ussd(session_id, phone, "1*4");
     assert!(continue_session, "Should start withdraw flow");
     
-    // After entering amount, should ask for agent ID
-    let (response, continue_session) = env.process_ussd(session_id, phone, "1*4*50000");
+    // After entering amount (use 100000, the minimum for UGX), should ask for agent ID
+    let (response, continue_session) = env.process_ussd(session_id, phone, "1*4*100000");
     assert!(continue_session, "Should continue to ask for agent");
-    assert!(response.contains("agent") || response.contains("Agent") || response.contains("code"), 
+    assert!(response.contains("agent") || response.contains("Agent") || response.contains("code"),
         "Should ask for agent ID. Got: {}", response);
 }
 
@@ -223,12 +223,12 @@ fn test_withdraw_invalid_agent_id() {
     
     let session_id = "withdraw_test_9";
     
-    // Try with empty agent ID
-    let input = "1*4*50000**9999";
+    // Try with empty agent ID (use 100000, the minimum for UGX)
+    let input = "1*4*100000**9999";
     let (response, _) = env.process_ussd(session_id, phone, input);
-    
+
     // Should show error about agent ID
-    assert!(response.contains("agent") || response.contains("Agent") || response.contains("Invalid") || response.contains("required"), 
+    assert!(response.contains("agent") || response.contains("Agent") || response.contains("Invalid") || response.contains("required"),
         "Should show agent ID error. Got: {}", response);
 }
 

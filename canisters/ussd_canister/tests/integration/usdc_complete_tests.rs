@@ -25,7 +25,7 @@ fn test_buy_usdc_with_ugx() {
     assert!(usdc > 0, "Should have USDC balance");
 
     let fiat = env.check_fiat_balance(phone, "UGX").expect("Get fiat balance");
-    assert!(fiat < 10000000 && fiat > 9900000, "Fiat should decrease");
+    assert_eq!(fiat, 9900000, "Fiat should decrease to 9,900,000 cents after buying 1000 UGX worth of USDC");
 }
 
 #[test]

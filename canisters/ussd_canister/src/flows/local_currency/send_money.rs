@@ -1,5 +1,6 @@
 // Send Money flow with PIN verification
 use crate::core::session::UssdSession;
+use crate::logic::send_money_logic::calculate_transfer_fee;
 use crate::utils::translations::{Language, TranslationService};
 use crate::utils::validation;
 
@@ -57,8 +58,8 @@ pub async fn handle_send_money(text: &str, session: &mut UssdSession) -> (String
                 }
             };
             
-            // Calculate fee (0.5% platform fee)
-            let fee = (amount_f64 * 0.005).round();
+            // Calculate fee using shared logic (0.5% platform fee)
+            let fee = calculate_transfer_fee(amount_f64);
             let total_required = amount_f64 + fee;
             
             // Get user ID first
