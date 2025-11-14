@@ -3,14 +3,36 @@ use crate::config_loader::get_config;
 use sha2::{Digest, Sha256};
 
 /// Validate phone number format
+/// Validates African country codes: Kenya (+254), Uganda (+256), Tanzania (+255)
 pub fn is_valid_phone(phone: &str) -> bool {
     // Must start with + and be 10-15 digits
     if !phone.starts_with('+') {
         return false;
     }
-    
+
     let digits = &phone[1..];
-    digits.len() >= 10 && digits.len() <= 15 && digits.chars().all(|c| c.is_numeric())
+
+    // Check basic format
+    if digits.len() < 10 || digits.len() > 15 || !digits.chars().all(|c| c.is_numeric()) {
+        return false;
+    }
+
+    // Validate African country codes
+    // Kenya: +254, Uganda: +256, Tanzania: +255
+    // Rwanda: +250, Burundi: +257, South Sudan: +211
+    // Ethiopia: +251, Somalia: +252
+    let valid_country_codes = [
+        "254", // Kenya
+        "255", // Tanzania
+        "256", // Uganda
+        "250", // Rwanda
+        "257", // Burundi
+        "211", // South Sudan
+        "251", // Ethiopia
+        "252", // Somalia
+    ];
+
+    valid_country_codes.iter().any(|code| digits.starts_with(code))
 }
 
 /// Validate PIN format (4 digits)

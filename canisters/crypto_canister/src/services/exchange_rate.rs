@@ -141,6 +141,7 @@ fn get_mock_fiat_rate(currency_code: &str) -> Result<f64, String> {
         "KES" => 1.0 / 150.0,    // 1 USD = 150 KES
         "TZS" => 1.0 / 2500.0,   // 1 USD = 2500 TZS
         "RWF" => 1.0 / 1300.0,   // 1 USD = 1300 RWF
+        "NGN" => 1.0 / 1500.0,   // 1 USD = 1500 NGN
         "GHS" => 1.0 / 12.0,     // 1 USD = 12 GHS
         "ZAR" => 1.0 / 18.0,     // 1 USD = 18 ZAR
         _ => return Err(format!("Unsupported currency for mock: {}", currency_code)),

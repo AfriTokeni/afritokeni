@@ -508,6 +508,62 @@ impl TestEnv {
 
         Ok((btc_balance?, usdc_balance?))
     }
+
+    /// Fund user ledger balances in mock ledgers (for sell/transfer operations)
+    /// This sets the actual ledger balance to match the data_canister balance
+    pub fn fund_user_ledger_balances(&self, user_id: &str, btc_amount: u64, usdc_amount: u64) -> Result<(), String> {
+        // Get user's principal from user_canister
+        let user_arg = encode_one(user_id.to_string()).unwrap();
+        let user_response = self.pic.update_call(
+            self.user_canister_id,
+            Principal::anonymous(),
+            "get_user_profile_update",
+            user_arg,
+        ).map_err(|e| format!("Failed to get user profile: {:?}", e))?;
+
+        let profile_result: Result<UserProfile, String> = decode_one(&user_response)
+            .map_err(|e| format!("Failed to decode user profile: {:?}", e))?;
+        let profile = profile_result?;
+
+        let user_principal = Principal::from_text(&profile.principal_id.ok_or("User has no principal")?)
+            .map_err(|e| format!("Invalid principal: {:?}", e))?;
+
+        // Fund ckBTC ledger balance if needed
+        if btc_amount > 0 {
+            #[derive(CandidType, Deserialize, Clone)]
+            struct Account { owner: Principal, subaccount: Option<Vec<u8>> }
+            let btc_account = Account {
+                owner: user_principal,
+                subaccount: None,
+            };
+            let arg = encode_args((btc_account, btc_amount)).unwrap();
+            self.pic.update_call(
+                self.ckbtc_ledger_id,
+                Principal::anonymous(),
+                "set_balance_for_testing",
+                arg,
+            ).map_err(|e| format!("Failed to fund ckBTC ledger: {:?}", e))?;
+        }
+
+        // Fund ckUSDC ledger balance if needed
+        if usdc_amount > 0 {
+            #[derive(CandidType, Deserialize, Clone)]
+            struct Account { owner: Principal, subaccount: Option<Vec<u8>> }
+            let usdc_account = Account {
+                owner: user_principal,
+                subaccount: None,
+            };
+            let arg = encode_args((usdc_account, usdc_amount)).unwrap();
+            self.pic.update_call(
+                self.ckusdc_ledger_id,
+                Principal::anonymous(),
+                "set_balance_for_testing",
+                arg,
+            ).map_err(|e| format!("Failed to fund ckUSDC ledger: {:?}", e))?;
+        }
+
+        Ok(())
+    }
     
     /// Setup test user with initial balances - ONE FUNCTION TO RULE THEM ALL
     /// This is the ONLY method tests should use - completely idempotent
@@ -525,7 +581,7 @@ impl TestEnv {
     ) -> Result<String, String> {
         // Step 1: Register user (idempotent)
         let user_id = self.register_user_direct(phone, first_name, last_name, email, currency, pin)?;
-        
+
         // Step 2: Reset ALL currencies EXCEPT the one we're about to set
         let all_test_currencies = vec!["UGX", "KES", "TZS", "RWF", "NGN", "GHS", "ZAR"];
         for curr in all_test_currencies {
@@ -533,13 +589,46 @@ impl TestEnv {
                 let _ = self.set_fiat_balance(phone, curr, 0);
             }
         }
-        
+
         // Step 3: Set the currency we care about (use user_id, not phone!)
         self.set_fiat_balance(&user_id, currency, fiat_balance)?;
-        
+
         // Step 4: Set crypto balances (use user_id, not phone!)
         self.set_crypto_balance(&user_id, btc_balance, usdc_balance)?;
-        
+
+        // Step 5: Fund user ledger balances (so they can sell/transfer crypto)
+        // This ensures the mock ledgers have actual balances that match data_canister
+        if btc_balance > 0 || usdc_balance > 0 {
+            self.fund_user_ledger_balances(&user_id, btc_balance, usdc_balance)?;
+        }
+
+        Ok(user_id)
+    }
+
+    /// Register agent for withdrawal tests
+    /// Agents are just users - returns the user_id which should be used as agent_id
+    /// Idempotent - returns existing user_id if agent already registered
+    pub fn register_agent(&self, agent_name: &str) -> Result<String, String> {
+        // Create unique phone number for agent based on name hash
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
+        let mut hasher = DefaultHasher::new();
+        agent_name.hash(&mut hasher);
+        let hash = hasher.finish();
+        let phone_suffix = format!("{:06}", hash % 1_000_000);
+        let agent_phone = format!("+256788{}", phone_suffix);
+
+        // Register agent as a user (idempotent)
+        let user_id = self.register_user_direct(
+            &agent_phone,
+            "Agent",
+            agent_name,
+            &format!("{}@agent.test", agent_name.to_lowercase()),
+            "UGX",
+            "1111" // Default agent PIN
+        )?;
+
         Ok(user_id)
     }
 }

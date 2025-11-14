@@ -26,9 +26,9 @@ fn test_buy_bitcoin_with_ugx() {
     let (btc, _) = env.get_crypto_balance(phone).expect("Get crypto balance");
     assert!(btc > 0, "Should have BTC balance");
 
-    // Verify fiat balance decreased (1,000,000 - 100,000 = 900,000 UGX)
+    // Verify fiat balance decreased (100,000,000 cents - 10,000,000 cents = 90,000,000 cents)
     let fiat = env.check_fiat_balance(phone, "UGX").expect("Get fiat balance");
-    assert_eq!(fiat, 900000, "Fiat should decrease");
+    assert_eq!(fiat, 90000000, "Fiat should decrease to 90,000,000 cents (900,000.00 UGX)");
 }
 
 #[test]
@@ -325,9 +325,9 @@ fn test_buy_bitcoin_wrong_pin() {
     assert!(response.contains("Incorrect") || response.contains("incorrect") || response.contains("Wrong") || response.contains("Invalid"),
         "Should reject wrong PIN. Got: {}", response);
 
-    // Balance should not change (still 100,000.00 UGX)
+    // Balance should not change (still 10,000,000 cents = 100,000.00 UGX)
     let fiat = env.check_fiat_balance(phone, "UGX").expect("Get balance");
-    assert_eq!(fiat, 100000, "Fiat should not change");
+    assert_eq!(fiat, 10000000, "Fiat should not change");
 }
 
 #[test]

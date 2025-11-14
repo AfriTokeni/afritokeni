@@ -17,8 +17,8 @@ fn test_send_money_flow_complete() {
         receiver_phone, "Bob", "Receiver", "bob@test.com", "UGX", "2222"
     ).expect("Receiver registration should succeed");
     
-    // Give sender balance
-    env.set_fiat_balance(&sender_id, "UGX", 100_000).expect("Should set balance");
+    // Give sender balance (in cents: 10,000,000 cents = 100,000 UGX)
+    env.set_fiat_balance(&sender_id, "UGX", 10_000_000).expect("Should set balance");
     
     let session_id = "send_money_1";
     
@@ -57,11 +57,14 @@ fn test_send_money_flow_complete() {
     // Verify balances changed
     let sender_balance = env.check_fiat_balance(&sender_id, "UGX")
         .expect("Should check sender balance");
-    assert_eq!(sender_balance, 50_000, "Sender should have 50,000 left");
-    
+    // Sender sent 50,000 UGX (5,000,000 cents) + 0.5% fee (25,000 cents) = 5,025,000 cents deducted
+    // Started with 10,000,000 cents, left with 4,975,000 cents
+    assert_eq!(sender_balance, 4_975_000, "Sender should have 4,975,000 cents left (49,750 UGX)");
+
     let receiver_balance = env.check_fiat_balance(receiver_phone, "UGX")
         .expect("Should check receiver balance");
-    assert_eq!(receiver_balance, 50_000, "Receiver should have 50,000");
+    // Receiver got 50,000 UGX = 5,000,000 cents
+    assert_eq!(receiver_balance, 5_000_000, "Receiver should have 5,000,000 cents (50,000 UGX)");
 }
 
 #[test]

@@ -4,13 +4,17 @@ use super::*;
 #[test]
 fn test_language_menu_navigation() {
     let env = get_test_env();
-    
+
     let phone = &phone("UGX");
     let session_id = "lang_test_1";
-    
-    // Navigate to language menu (Main menu -> 8 or similar)
-    let (response, continue_session) = env.process_ussd(session_id, phone, "8");
-    
+
+    // Register user first
+    env.setup_test_user_with_balances(phone, "Lang", "Test", "lang@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
+
+    // Navigate to language menu (Main menu -> 7 for Language)
+    let (response, continue_session) = env.process_ussd(session_id, phone, "7");
+
     assert!(continue_session, "Session should continue");
     assert!(response.contains("Language") || response.contains("English") || response.contains("Luganda"),
         "Should show language options. Got: {}", response);
@@ -19,14 +23,18 @@ fn test_language_menu_navigation() {
 #[test]
 fn test_select_english() {
     let env = get_test_env();
-    
+
     let phone = &phone("UGX");
     let session_id = "lang_test_2";
-    
-    // Navigate to language menu and select English
-    env.process_ussd(session_id, phone, "8");
+
+    // Register user first
+    env.setup_test_user_with_balances(phone, "English", "User", "english@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
+
+    // Navigate to language menu and select English (7 for language menu)
+    env.process_ussd(session_id, phone, "7");
     let (response, _) = env.process_ussd(session_id, phone, "1");
-    
+
     assert!(response.contains("English") || response.contains("selected") || response.contains("Main"),
         "Should confirm English selection. Got: {}", response);
 }
@@ -117,15 +125,19 @@ fn test_all_menus_have_translations() {
 #[test]
 fn test_language_menu_structure() {
     let env = get_test_env();
-    
+
     let phone = &phone("UGX");
     let session_id = "lang_test_8";
-    
-    // Navigate to language menu
-    let (response, continue_session) = env.process_ussd(session_id, phone, "8");
-    
+
+    // Register user first
+    env.setup_test_user_with_balances(phone, "Structure", "Test", "structure@test.com", "UGX", "1234", 0, 0, 0)
+        .expect("Setup");
+
+    // Navigate to language menu (7 for Language)
+    let (response, continue_session) = env.process_ussd(session_id, phone, "7");
+
     assert!(continue_session, "Session should continue");
-    
+
     // Should list at least 3 languages
     assert!(response.contains("1") && response.contains("2") && response.contains("3"),
         "Should show numbered language options. Got: {}", response);

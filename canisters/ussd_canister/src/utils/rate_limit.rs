@@ -16,61 +16,62 @@ thread_local! {
 
 /// Check if request is rate limited
 /// Returns true if allowed, false if rate limited
-pub fn check_rate_limit(phone_number: &str) -> bool {
-    // Skip rate limiting in test mode (Rust unit tests)
-    #[cfg(test)]
+pub fn check_rate_limit(_phone_number: &str) -> bool {
+    // Always allow in test mode (both cargo test --lib and cargo test --test)
+    // The 'test' cfg is set for --lib tests, 'test-utils' feature is set for integration tests
+    #[cfg(any(test, feature = "test-utils"))]
     {
         return true;
     }
-    
-    // Skip rate limiting for integration tests (test phone numbers)
-    // Integration tests use phone numbers starting with +254700
-    #[cfg(not(test))]
+
+    #[cfg(not(any(test, feature = "test-utils")))]
     {
-        if phone_number.starts_with("+254700") || phone_number.starts_with("254700") {
+        // Skip rate limiting for integration tests (test phone numbers)
+        // Integration tests use phone numbers starting with +254700
+        if _phone_number.starts_with("+254700") || _phone_number.starts_with("254700") {
             return true;
         }
-    }
-    
-    let config = get_config();
-    let current_time = time();
-    let window_nanos = config.rate_limiting.rate_limit_window_seconds * 1_000_000_000;
-    let max_requests = config.rate_limiting.max_requests_per_minute;
-    
-    RATE_LIMITS.with(|limits| {
-        let mut limits_map = limits.borrow_mut();
-        
-        match limits_map.get_mut(phone_number) {
-            Some(entry) => {
-                // Check if we're still in the same window
-                if current_time - entry.window_start < window_nanos {
-                    // Same window - check count
-                    if entry.count >= max_requests {
-                        ic_cdk::println!("🚫 Rate limit exceeded for {}", phone_number);
-                        return false;
+
+        let config = get_config();
+        let current_time = time();
+        let window_nanos = config.rate_limiting.rate_limit_window_seconds * 1_000_000_000;
+        let max_requests = config.rate_limiting.max_requests_per_minute;
+
+        RATE_LIMITS.with(|limits| {
+            let mut limits_map = limits.borrow_mut();
+
+            match limits_map.get_mut(_phone_number) {
+                Some(entry) => {
+                    // Check if we're still in the same window
+                    if current_time - entry.window_start < window_nanos {
+                        // Same window - check count
+                        if entry.count >= max_requests {
+                            ic_cdk::println!("🚫 Rate limit exceeded for {}", _phone_number);
+                            return false;
+                        }
+                        entry.count += 1;
+                        true
+                    } else {
+                        // New window - reset
+                        entry.count = 1;
+                        entry.window_start = current_time;
+                        true
                     }
-                    entry.count += 1;
-                    true
-                } else {
-                    // New window - reset
-                    entry.count = 1;
-                    entry.window_start = current_time;
+                }
+                None => {
+                    // First request from this number
+                    limits_map.insert(
+                        _phone_number.to_string(),
+                        RateLimitEntry {
+                            count: 1,
+                            window_start: current_time,
+                        },
+                    );
                     true
                 }
             }
-            None => {
-                // First request from this number
-                limits_map.insert(
-                    phone_number.to_string(),
-                    RateLimitEntry {
-                        count: 1,
-                        window_start: current_time,
-                    },
-                );
-                true
-            }
-        }
-    })
+        })
+    }
 }
 
 /// Clean up old rate limit entries (call periodically)

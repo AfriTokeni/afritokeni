@@ -231,9 +231,13 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                             crate::core::routing::handle_language_menu(&text, &mut session).await
                         }
                         _ => {
-                            // Unknown, show main menu
-                            ic_cdk::println!("❓ Unknown input, showing main menu");
-                            crate::core::routing::handle_main_menu(&text, &mut session).await
+                            // Invalid menu option - show error
+                            ic_cdk::println!("❓ Invalid menu option: {}", parts.get(0).unwrap_or(&""));
+                            let lang = crate::utils::translations::Language::from_code(&session.language);
+                            let error_msg = format!("{}\n\n{}",
+                                crate::utils::translations::TranslationService::translate("invalid_option", lang),
+                                crate::utils::translations::TranslationService::get_main_menu(lang, &session.get_data("currency").unwrap_or_else(|| "UGX".to_string())));
+                            (error_msg, true)
                         }
                         }
                     }
