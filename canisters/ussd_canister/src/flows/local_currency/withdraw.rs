@@ -19,14 +19,6 @@ pub async fn handle_withdraw(text: &str, session: &mut UssdSession) -> (String, 
     let stored_amount = session.get_data("amount");
     let stored_agent = session.get_data("agent_id");
 
-    // Check for cancellation FIRST (user entered "0" to go back)
-    if text == "0" && !is_fresh_start && stored_amount.is_none() && stored_agent.is_none() {
-        session.clear_data();
-        session.current_menu = "main".to_string();
-        session.step = 0;
-        return (format!("Withdrawal cancelled\n\n0. Main Menu"), false);
-    }
-
     // Extract params differently based on mode
     let (amount_opt, agent_id_opt, param_4, param_5) = if is_fresh_start {
         // Fresh start: "1*4*amount*agent*confirmation*pin"

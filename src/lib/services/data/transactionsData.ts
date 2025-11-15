@@ -10,8 +10,7 @@
  * - agentOperationsService (deposits/withdrawals)
  */
 
-// These imports are for future production mode implementation
-import { dataCanisterService as _dataCanisterService } from "$lib/services/icp/canisters/dataCanisterService";
+import { dataCanisterService } from "$lib/services/icp/canisters/dataCanisterService";
 import type { Transaction as CanisterTransaction } from "$/declarations/data_canister/data_canister.did.d.ts";
 
 export interface Transaction {
@@ -28,9 +27,8 @@ export interface Transaction {
 
 /**
  * Transform canister TransactionType to frontend string
- * Reserved for future production mode implementation
  */
-function _transformTransactionType(
+function transformTransactionType(
   canisterType: CanisterTransaction["transaction_type"],
 ): string {
   if ("TransferFiat" in canisterType) return "transfer";
@@ -49,9 +47,8 @@ function _transformTransactionType(
 
 /**
  * Transform canister TransactionStatus to frontend string
- * Reserved for future production mode implementation
  */
-function _transformTransactionStatus(
+function transformTransactionStatus(
   canisterStatus: CanisterTransaction["status"],
 ): string {
   if ("Completed" in canisterStatus) return "completed";
@@ -63,9 +60,8 @@ function _transformTransactionStatus(
 
 /**
  * Transform canister CurrencyType to frontend string
- * Reserved for future production mode implementation
  */
-function _transformCurrencyType(
+function transformCurrencyType(
   currencyType: CanisterTransaction["currency_type"],
 ): string {
   if ("Fiat" in currencyType && currencyType.Fiat) {
@@ -81,6 +77,25 @@ function _transformCurrencyType(
     if ("CkUSD" in cryptoType) return "ckUSD";
   }
   return "unknown";
+}
+
+/**
+ * Transform canister Transaction to frontend Transaction
+ */
+function transformCanisterTransaction(
+  canisterTx: CanisterTransaction,
+): Transaction {
+  return {
+    id: canisterTx.id,
+    type: transformTransactionType(canisterTx.transaction_type),
+    amount: Number(canisterTx.amount),
+    currency: transformCurrencyType(canisterTx.currency_type),
+    status: transformTransactionStatus(canisterTx.status),
+    timestamp: Number(canisterTx.created_at) / 1_000_000, // Convert nanoseconds to milliseconds
+    fromUser: canisterTx.from_user.length > 0 ? canisterTx.from_user[0] : undefined,
+    toUser: canisterTx.to_user.length > 0 ? canisterTx.to_user[0] : undefined,
+    description: canisterTx.description.length > 0 ? canisterTx.description[0] : undefined,
+  };
 }
 
 /**
@@ -118,13 +133,19 @@ export async function fetchTransactions(
     }
   }
 
-  // Production mode: Frontend cannot call data_canister directly
-  // data_canister only accepts calls from authorized canisters (user_canister, wallet_canister, etc.)
-  // For production, transactions should be fetched via domain canister endpoints
-  console.warn(
-    "Production mode transaction fetching not yet implemented. Enable demo mode or implement via domain canister.",
-  );
-  return [];
+  // Production mode: Fetch from data_canister via get_my_transactions
+  // This is a public query endpoint that checks the caller's principal
+  try {
+    const limit = maxTransactions ? BigInt(maxTransactions) : undefined;
+    const canisterTransactions = await dataCanisterService.getMyTransactions(limit);
+
+    // Transform canister transactions to frontend format
+    return canisterTransactions.map(transformCanisterTransaction);
+  } catch (error) {
+    console.error("Failed to fetch transactions from data_canister:", error);
+    // Graceful fallback: return empty array
+    return [];
+  }
 }
 
 /**

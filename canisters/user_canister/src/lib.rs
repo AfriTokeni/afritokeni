@@ -488,16 +488,21 @@ fn get_user_by_principal(_principal: String) -> Result<UserProfile, String> {
     Err("Query calls cannot make inter-canister calls. Use update call instead.".to_string())
 }
 
-/// Get user by principal ID (update version for inter-canister calls)
+/// Get user by principal ID (update version for inter-canister calls and user access)
 ///
 /// # Arguments
 /// * `principal` - Principal ID string
 ///
 /// # Returns
 /// User profile if found, error if not found
+///
+/// # Access Control
+/// - Any authenticated user (to get their own profile)
+/// - Authorized canisters (to get any user's profile)
+/// - Controller (admin access)
 #[update]
 async fn get_user_by_principal_update(principal: String) -> Result<UserProfile, String> {
-    config::verify_authorized_caller()?;
+    config::verify_caller_is_authenticated()?;
 
     let user = services::data_client::get_user_by_principal(&principal).await?
         .ok_or_else(|| "User not found".to_string())?;

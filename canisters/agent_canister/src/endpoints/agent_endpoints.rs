@@ -574,11 +574,13 @@ pub async fn get_platform_statistics() -> Result<PlatformStatistics, String> {
 /// The created agent profile
 ///
 /// # Access Control
-/// Authorized canisters only (USSD/Web) or controller
+/// - Any authenticated user (to create their own agent profile)
+/// - Authorized canisters (to create agent profiles for users)
+/// - Controller (admin access)
 #[update]
 async fn create_agent_profile(request: shared_types::CreateAgentProfileRequest) -> Result<shared_types::AgentProfile, String> {
-    if !config::is_authorized() {
-        return Err("Unauthorized".to_string());
+    if !config::is_authenticated() {
+        return Err("Authentication required. Please sign in with Internet Identity.".to_string());
     }
 
     let profile = data_client::create_agent_profile(request.clone()).await?;

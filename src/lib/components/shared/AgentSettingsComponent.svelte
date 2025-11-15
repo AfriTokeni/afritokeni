@@ -220,7 +220,10 @@
       } else if (currentPrincipalId) {
         // Production mode - only status updates are currently supported
         // Update agent status via AgentService
-        await AgentService.updateAgentStatus(currentPrincipalId, settings.status);
+        await AgentService.updateAgentStatus(
+          currentPrincipalId,
+          settings.status,
+        );
 
         console.log(
           "⚠️  Agent status updated. Other settings changes are not yet persisted (detailed settings storage coming soon)",

@@ -187,21 +187,57 @@ pub fn add_authorized_canister(canister_id: Principal) {
 
 pub fn is_authorized() -> bool {
     let caller = ic_cdk::api::msg_caller();
-    
+
     // Controller is always authorized
     if ic_cdk::api::is_controller(&caller) {
         return true;
     }
-    
+
     // Check if test mode is enabled
     if TEST_MODE.with(|tm| *tm.borrow()) {
         return true;
     }
-    
+
     // Check if caller is in authorized list
     AUTHORIZED_CANISTERS.with(|canisters| {
         canisters.borrow().contains(&caller)
     })
+}
+
+/// Verify caller is authenticated (not anonymous)
+///
+/// Use this for public endpoints that should be callable by any authenticated user,
+/// but not by the anonymous principal (to prevent spam/abuse).
+///
+/// # Authorization Levels
+/// 1. Controller - Always allowed
+/// 2. Test mode - All callers allowed
+/// 3. Authenticated users - Any non-anonymous principal
+/// 4. Anonymous principal - BLOCKED
+///
+/// # Returns
+/// * `true` if caller is authenticated
+/// * `false` if caller is anonymous
+pub fn is_authenticated() -> bool {
+    let caller = ic_cdk::api::msg_caller();
+
+    // Controllers always authorized
+    if ic_cdk::api::is_controller(&caller) {
+        return true;
+    }
+
+    // Check if test mode is enabled
+    if TEST_MODE.with(|tm| *tm.borrow()) {
+        return true;
+    }
+
+    // Block anonymous principal (2vxsx-fae)
+    if caller == Principal::anonymous() {
+        return false;
+    }
+
+    // All other authenticated principals are allowed
+    true
 }
 
 pub fn enable_test_mode() {

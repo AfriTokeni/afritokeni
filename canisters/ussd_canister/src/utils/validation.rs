@@ -134,19 +134,24 @@ pub fn is_valid_amount(amount_str: &str) -> bool {
 /// Validate transaction amount (f64 version for internal use)
 pub fn is_valid_amount_f64(amount: f64) -> Result<(), String> {
     let config = get_config();
-    
+
+    // Reject negative amounts (critical security check)
+    if amount <= 0.0 {
+        return Err("Amount must be positive".to_string());
+    }
+
     if amount < config.transaction_limits.min_amount_kes {
         return Err(format!("Amount too small. Minimum is {} KES", config.transaction_limits.min_amount_kes));
     }
-    
+
     if amount > config.transaction_limits.max_amount_kes {
         return Err(format!("Amount too large. Maximum is {} KES", config.transaction_limits.max_amount_kes));
     }
-    
+
     if amount.is_nan() || amount.is_infinite() {
         return Err("Invalid amount".to_string());
     }
-    
+
     Ok(())
 }
 
@@ -233,10 +238,15 @@ pub fn sanitize_input(input: &str) -> String {
                 filtered.push(c);
             }
         } else if c == '-' {
-            // Keep hyphen only if surrounded by alphanumeric
+            // Keep hyphen if:
+            // 1. Surrounded by alphanumeric (for Principal addresses like "aaaaa-aa")
+            // 2. Immediately followed by a digit (for negative numbers like "-5000")
+            //    We KEEP negative numbers so validation can properly REJECT them
             let prev_is_alnum = i > 0 && chars.get(i - 1).map(|ch| ch.is_alphanumeric()).unwrap_or(false);
             let next_is_alnum = chars.get(i + 1).map(|ch| ch.is_alphanumeric()).unwrap_or(false);
-            if prev_is_alnum && next_is_alnum {
+            let next_is_digit = chars.get(i + 1).map(|ch| ch.is_numeric()).unwrap_or(false);
+
+            if (prev_is_alnum && next_is_alnum) || next_is_digit {
                 filtered.push(c);
             }
         }
@@ -407,6 +417,10 @@ mod tests {
         assert_eq!(parse_amount("100.50").unwrap(), 100.5);
         assert!(parse_amount("abc").is_err());
         assert!(parse_amount("5").is_err()); // Too small
+        // Test negative amounts are rejected (CRITICAL security check)
+        assert!(parse_amount("-5000").is_err(), "Should reject negative amounts");
+        assert!(parse_amount("-100").is_err(), "Should reject negative amounts");
+        assert!(parse_amount("0").is_err(), "Should reject zero");
     }
 
     #[test]
@@ -417,6 +431,9 @@ mod tests {
         assert_eq!(sanitize_input("123.45"), "123.45"); // . allowed for amounts
         assert_eq!(sanitize_input("test@email"), "testemail"); // @ removed
         assert_eq!(sanitize_input("user_123456"), "user_123456"); // _ allowed for user IDs
+        // Test negative numbers are preserved (so validation can reject them)
+        assert_eq!(sanitize_input("-5000"), "-5000"); // Minus followed by digits kept
+        assert_eq!(sanitize_input("1*1*+256*-5000*1234"), "1*1*+256*-5000*1234"); // USSD input with negative amount
     }
 
     #[test]
