@@ -57,7 +57,9 @@
         const data = await fetch("/data/demo/proposals.json");
         if (data.ok) {
           const allProposals = await data.json();
-          proposals = maxProposals ? allProposals.slice(0, maxProposals) : allProposals;
+          proposals = maxProposals
+            ? allProposals.slice(0, maxProposals)
+            : allProposals;
         } else {
           proposals = [];
         }
@@ -121,10 +123,10 @@
       {#if onCreateProposal}
         <button
           onclick={onCreateProposal}
-          disabled={userTokenBalance < DAO_CONFIG.MIN_PROPOSAL_STAKE}
+          disabled={userTokenBalance < DAO_CONFIG.MIN_TOKENS_TO_PROPOSE}
           class="flex items-center gap-1.5 rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
-          title={userTokenBalance < DAO_CONFIG.MIN_PROPOSAL_STAKE
-            ? `Need ${DAO_CONFIG.MIN_PROPOSAL_STAKE} AFRI to create proposal`
+          title={userTokenBalance < DAO_CONFIG.MIN_TOKENS_TO_PROPOSE
+            ? `Need ${DAO_CONFIG.MIN_TOKENS_TO_PROPOSE} AFRI to create proposal`
             : "Create new proposal"}
         >
           <Plus class="h-4 w-4 shrink-0" />
@@ -179,7 +181,7 @@
       </p>
 
       {#if onCreateProposal}
-        {#if userTokenBalance >= DAO_CONFIG.MIN_PROPOSAL_STAKE}
+        {#if userTokenBalance >= DAO_CONFIG.MIN_TOKENS_TO_PROPOSE}
           <button
             onclick={onCreateProposal}
             class="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700"
@@ -193,7 +195,7 @@
           >
             <p class="text-sm text-yellow-800">
               <strong
-                >Need {DAO_CONFIG.MIN_PROPOSAL_STAKE} AFRI tokens</strong
+                >Need {DAO_CONFIG.MIN_TOKENS_TO_PROPOSE} AFRI tokens</strong
               > to create a proposal
             </p>
             <p class="mt-1 text-xs text-yellow-700">

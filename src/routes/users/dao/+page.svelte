@@ -38,14 +38,17 @@
       if ($demoMode) {
         // Demo mode: update localStorage via demoProposals store
         demoProposals.vote(proposalId, choice, tokenBalance);
-        console.log(`✅ Voted ${choice.toUpperCase()} with ${tokenBalance.toLocaleString()} AFRI tokens (Demo Mode)`);
+        console.log(
+          `✅ Voted ${choice.toUpperCase()} with ${tokenBalance.toLocaleString()} AFRI tokens (Demo Mode)`,
+        );
         toast.show(
           "success",
           `Vote recorded: ${choice.toUpperCase()} (${tokenBalance.toLocaleString()} AFRI)`,
         );
       } else {
         // Production mode: SNS voting not yet implemented
-        const errorMsg = "SNS voting not yet implemented. Please use Demo Mode for testing governance features.";
+        const errorMsg =
+          "SNS voting not yet implemented. Please use Demo Mode for testing governance features.";
         console.error("❌", errorMsg);
         toast.show("error", errorMsg);
       }
