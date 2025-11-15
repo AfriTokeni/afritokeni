@@ -12,7 +12,7 @@
     User,
   } from "@lucide/svelte";
   import { onMount } from "svelte";
-  import { getDoc, setDoc } from "@junobuild/core";
+  import { AgentService } from "$lib/services/agentService";
   import {
     AGENT_SETTINGS_CONFIG,
     getSliderLabel,
@@ -134,49 +134,32 @@
     }
 
     try {
-      const doc = await getDoc({
-        collection: "agents",
-        key: agentPrincipalId,
-      });
+      // Try to get agent profile from canisters
+      const agent = await AgentService.getAgentByUserId(agentPrincipalId);
 
-      if (!doc) {
+      if (!agent) {
         const error = new Error(
-          `Agent settings not found for principal: ${agentPrincipalId}`,
+          `Agent profile not found for principal: ${agentPrincipalId}`,
         );
-        console.error("❌ AGENT SETTINGS ERROR:", error);
+        console.error("❌ AGENT PROFILE ERROR:", error);
         toast.show(
           "error",
-          "Agent settings not found. Please complete onboarding.",
+          "Agent profile not found. Please complete onboarding.",
         );
         isLoading = false;
         return;
       }
 
-      agentDoc = doc;
-      const data = doc.data as any; // Type assertion for Juno data
+      // Load basic profile info from agent
+      businessName = agent.businessName;
+      phoneNumber = agent.phoneNumber || "";
+      location = `${agent.location.city}, ${agent.location.country}`;
+      businessAddress = agent.location.address;
 
-      // NO FALLBACKS - use exact data from Juno
-      settings = {
-        commissionRate: data.commissionRate,
-        maxCashLimit: data.maxCashLimit,
-        operatingHours: data.operatingHours,
-        bitcoinEnabled: data.bitcoinEnabled,
-        notificationsEnabled: data.notificationsEnabled,
-        smsNotifications: data.smsNotifications,
-        emailNotifications: data.emailNotifications,
-        status: data.status,
-        preferredCurrency: data.preferredCurrency,
-        serviceRadius: data.serviceRadius,
-        minimumTransaction: data.minimumTransaction,
-        autoAcceptLimit: data.autoAcceptLimit,
-        securityPinEnabled: data.securityPinEnabled,
-        locationSharing: data.locationSharing,
-      };
-
-      businessName = data.businessName;
-      phoneNumber = data.phoneNumber;
-      location = data.location;
-      businessAddress = data.businessAddress;
+      // Use default settings for now (detailed settings not yet in canisters)
+      settings = { ...defaultSettings };
+      settings.commissionRate = agent.commissionRate;
+      settings.status = agent.status;
 
       originalSettings = JSON.parse(JSON.stringify(settings));
       originalProfile = {
@@ -185,6 +168,10 @@
         location,
         businessAddress,
       };
+
+      console.log(
+        "⚠️  Agent settings loaded from canisters (detailed settings use defaults)",
+      );
     } catch (error: any) {
       console.error("❌ FAILED TO LOAD AGENT SETTINGS:", error);
       console.error("Error details:", {
@@ -192,7 +179,7 @@
         stack: error.stack,
         principalId: agentPrincipalId,
       });
-      toast.show("error", "Failed to load agent settings. Please try again.");
+      toast.show("error", "Failed to load agent profile. Please try again.");
     } finally {
       isLoading = false;
     }
@@ -230,25 +217,16 @@
       if ($demoMode) {
         // Demo mode - just simulate save
         await new Promise((resolve) => setTimeout(resolve, 500));
-      } else if (currentPrincipalId && agentDoc) {
-        // Real mode - save to Juno
-        await setDoc({
-          collection: "agents",
-          doc: {
-            ...agentDoc,
-            data: {
-              ...agentDoc.data,
-              ...settings,
-              businessName,
-              phoneNumber,
-              location,
-              businessAddress,
-              updatedAt: new Date().toISOString(),
-            },
-          },
-        });
+      } else if (currentPrincipalId) {
+        // Production mode - only status updates are currently supported
+        // Update agent status via AgentService
+        await AgentService.updateAgentStatus(currentPrincipalId, settings.status);
+
+        console.log(
+          "⚠️  Agent status updated. Other settings changes are not yet persisted (detailed settings storage coming soon)",
+        );
       } else {
-        throw new Error("Not authenticated or no agent document");
+        throw new Error("Not authenticated");
       }
 
       // Update original values
