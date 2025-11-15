@@ -1341,15 +1341,22 @@ async fn verify_escrow(request: VerifyEscrowRequest) -> Result<String, String> {
 /// Cancel escrow (user only)
 #[update]
 async fn cancel_escrow(code: String, user_id: String, pin: String) -> Result<(), String> {
-    
+    // CRITICAL: Check authorization first
+    check_caller_authorized()?;
+
+    // Initialize timeout protection
+    let timer = logic::timeout::TransactionTimer::new("cancel_escrow");
+
     // 1. Get escrow
+    timer.check_timeout()?;
     let escrow = services::data_client::get_escrow(&code).await?;
-    
+
     // 2. Validate ownership
     logic::escrow_logic::validate_user_owns_escrow(&escrow.user_id, &user_id)?;
     logic::escrow_logic::validate_escrow_active(escrow.status)?;
-    
+
     // 3. Verify PIN
+    timer.check_timeout()?;
     let verified = services::user_client::verify_pin(&user_id, &pin).await?;
     if !verified {
         audit::log_failure(
@@ -1359,15 +1366,18 @@ async fn cancel_escrow(code: String, user_id: String, pin: String) -> Result<(),
         );
         return Err("Invalid PIN".to_string());
     }
-    
+
     // 4. Refund crypto to user
+    timer.check_timeout()?;
     let (ckbtc_delta, ckusdc_delta) = logic::escrow_logic::calculate_escrow_refund_delta(escrow.amount, escrow.crypto_type);
     services::data_client::update_crypto_balance(&user_id, ckbtc_delta, ckusdc_delta).await?;
-    
+
     // 5. Update escrow status
+    timer.check_timeout()?;
     services::data_client::update_escrow_status(&code, EscrowStatus::Cancelled).await?;
-    
+
     // 6. Record transaction
+    timer.check_timeout()?;
     let timestamp = time();
     let transaction = Transaction {
         id: format!("escrow-cancel-{}-{}", code, timestamp),
@@ -1381,7 +1391,7 @@ async fn cancel_escrow(code: String, user_id: String, pin: String) -> Result<(),
         completed_at: Some(timestamp),
         description: Some(format!("Escrow {} cancelled by user", code)),
     };
-    
+
     services::data_client::store_transaction(&transaction).await?;
     
     // 7. Audit successful escrow cancellation
