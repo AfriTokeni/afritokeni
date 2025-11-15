@@ -52,6 +52,6 @@ export default defineConfig({
     runner: {
       type: "docker"
     },
-    satellite: {}
+    skylab: {}
   }
 });
