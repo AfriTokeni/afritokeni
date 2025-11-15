@@ -274,13 +274,16 @@ fn test_only_controller_can_set_data_canister_id() {
     pic.add_cycles(user_canister_id, 2_000_000_000_000);
     pic.install_canister(user_canister_id, user_wasm, vec![], None);
 
+    // Get the actual controller principal
+    let controller = pic.get_controllers(user_canister_id)[0];
+
     let mock_principal = Principal::from_text("aaaaa-aa").unwrap();
 
-    // Controller (anonymous in PocketIC) should be able to set
+    // Controller should be able to set
     let config_arg = encode_one(mock_principal).unwrap();
     let result = pic.update_call(
         user_canister_id,
-        Principal::anonymous(),
+        controller,
         "set_data_canister_id",
         config_arg.clone(),
     );
@@ -316,13 +319,16 @@ fn test_only_controller_can_add_authorized_canister() {
     pic.add_cycles(user_canister_id, 2_000_000_000_000);
     pic.install_canister(user_canister_id, user_wasm, vec![], None);
 
+    // Get the actual controller principal
+    let controller = pic.get_controllers(user_canister_id)[0];
+
     let mock_principal = Principal::from_text("aaaaa-aa").unwrap();
 
     // Controller should be able to add
     let auth_arg = encode_one(mock_principal).unwrap();
     let result = pic.update_call(
         user_canister_id,
-        Principal::anonymous(),
+        controller,
         "add_authorized_canister",
         auth_arg.clone(),
     );
@@ -358,11 +364,14 @@ fn test_only_controller_can_enable_test_mode() {
     pic.add_cycles(user_canister_id, 2_000_000_000_000);
     pic.install_canister(user_canister_id, user_wasm, vec![], None);
 
+    // Get the actual controller principal
+    let controller = pic.get_controllers(user_canister_id)[0];
+
     // Controller should be able to enable test mode
     let test_arg = encode_one(()).unwrap();
     let result = pic.update_call(
         user_canister_id,
-        Principal::anonymous(),
+        controller,
         "enable_test_mode",
         test_arg.clone(),
     );
@@ -412,11 +421,15 @@ fn create_env_without_test_mode() -> TestEnv {
     pic.add_cycles(user_canister_id, 2_000_000_000_000);
     pic.install_canister(user_canister_id, user_wasm, vec![], None);
 
+    // Get the actual controller principals
+    let user_controller = pic.get_controllers(user_canister_id)[0];
+    let data_controller = pic.get_controllers(data_canister_id)[0];
+
     // Configure data canister ID
     let config_arg = encode_args((data_canister_id,)).unwrap();
     pic.update_call(
         user_canister_id,
-        Principal::anonymous(),
+        user_controller,
         "set_data_canister_id",
         config_arg,
     ).expect("Failed to configure data canister ID");
@@ -426,7 +439,7 @@ fn create_env_without_test_mode() -> TestEnv {
     let auth_arg = encode_one(auth_canister).unwrap();
     pic.update_call(
         user_canister_id,
-        Principal::anonymous(),
+        user_controller,
         "add_authorized_canister",
         auth_arg,
     ).expect("Failed to add authorized canister");
@@ -435,7 +448,7 @@ fn create_env_without_test_mode() -> TestEnv {
     let auth_arg = encode_one(user_canister_id.to_text()).unwrap();
     pic.update_call(
         data_canister_id,
-        Principal::anonymous(),
+        data_controller,
         "add_authorized_canister",
         auth_arg,
     ).expect("Failed to authorize user canister");

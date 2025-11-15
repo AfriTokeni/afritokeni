@@ -9,9 +9,9 @@ use super::*;
 fn test_user_registration_logged() {
     let env = TestEnv::new();
 
-    // Register a user
+    // Register a user (phone number deliberately doesn't contain PIN "1234")
     let user_id = env.register_user(
-        Some("+256700123456".to_string()),
+        Some("+256700987650".to_string()),
         None,
         "John",
         "Doe",
@@ -44,7 +44,7 @@ fn test_user_registration_logged() {
     assert_eq!(entry.success, true, "Registration should be marked as success");
     assert!(entry.details.contains("John"), "Details should contain first name");
     assert!(entry.details.contains("Doe"), "Details should contain last name");
-    assert!(entry.details.contains("+256700123456"), "Details should contain phone");
+    assert!(entry.details.contains("+256700987650"), "Details should contain phone");
     assert!(entry.details.contains("UGX"), "Details should contain currency");
 
     // Should NOT contain PIN
@@ -96,9 +96,9 @@ fn test_failed_registration_logged() {
 fn test_pin_verification_logged() {
     let env = TestEnv::new();
 
-    // Register user
+    // Register user (phone number deliberately doesn't contain PIN "1234")
     env.register_user(
-        Some("+256700123456".to_string()),
+        Some("+256700987650".to_string()),
         None,
         "Test",
         "User",
@@ -108,7 +108,7 @@ fn test_pin_verification_logged() {
     ).expect("Registration should succeed");
 
     // Verify PIN (correct)
-    let verified = env.verify_pin("+256700123456", "1234")
+    let verified = env.verify_pin("+256700987650", "1234")
         .expect("verify_pin should succeed");
     assert!(verified);
 
@@ -141,9 +141,9 @@ fn test_pin_verification_logged() {
 fn test_failed_pin_verification_logged() {
     let env = TestEnv::new();
 
-    // Register user
+    // Register user (phone number deliberately doesn't contain PIN "1234" or "9999")
     env.register_user(
-        Some("+256700123456".to_string()),
+        Some("+256700876500".to_string()),
         None,
         "Test",
         "User",
@@ -153,7 +153,7 @@ fn test_failed_pin_verification_logged() {
     ).expect("Registration should succeed");
 
     // Try wrong PIN
-    let verified = env.verify_pin("+256700123456", "9999")
+    let verified = env.verify_pin("+256700876500", "9999")
         .expect("verify_pin should succeed");
     assert!(!verified);
 
@@ -185,9 +185,9 @@ fn test_failed_pin_verification_logged() {
 fn test_pin_change_logged() {
     let env = TestEnv::new();
 
-    // Register user
+    // Register user (phone number deliberately doesn't contain PINs "1234" or "5678")
     env.register_user(
-        Some("+256700123456".to_string()),
+        Some("+256700909000".to_string()),
         None,
         "Test",
         "User",
@@ -197,7 +197,7 @@ fn test_pin_change_logged() {
     ).expect("Registration should succeed");
 
     // Change PIN
-    env.change_pin("+256700123456", "1234", "5678")
+    env.change_pin("+256700909000", "1234", "5678")
         .expect("PIN change should succeed");
 
     // Get audit log
@@ -442,11 +442,12 @@ fn test_audit_log_filtering_by_action() {
     for i in 1..=3 {
         let phone = format!("+25670011111{}", i);
         let email = format!("user{}@example.com", i);
+        let last_name = format!("User{}", i); // Use 2+ character last name
         env.register_user(
             Some(phone),
             None,
             "User",
-            &i.to_string(),
+            &last_name,
             &email,
             "UGX",
             "1234",
@@ -535,11 +536,12 @@ fn test_audit_stats() {
     for i in 1..=2 {
         let phone = format!("+25670011111{}", i);
         let email = format!("user{}@example.com", i);
+        let last_name = format!("User{}", i); // Use 2+ character last name
         env.register_user(
             Some(phone.clone()),
             None,
             "User",
-            &i.to_string(),
+            &last_name,
             &email,
             "UGX",
             "1234",

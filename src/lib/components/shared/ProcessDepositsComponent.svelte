@@ -2,7 +2,10 @@
   import { demoMode } from "$lib/stores/demoMode";
   import { principalId } from "$lib/stores/auth";
   import { toast } from "$lib/stores/toast";
-  import { fetchAgentDepositRequests } from "$lib/services/data/depositsData";
+  // TODO: Update to use agentOperationsService from new architecture
+  // import { agentOperationsService } from "$lib/services";
+  // For now, using demo mode mock data
+  // import { fetchAgentDepositRequests } from "$lib/services/data/depositsData"; // DELETED
   import {
     AlertCircle,
     CheckCircle,
@@ -71,11 +74,10 @@
       loading = true;
       error = "";
 
-      // Use real data service (handles both demo and real mode)
-      depositRequests = await fetchAgentDepositRequests(
-        agentPrincipal,
-        isDemoMode,
-      );
+      // TODO: Implement with new agentOperationsService
+      // depositRequests = await agentOperationsService.getAgentDeposits(agentId);
+      // For now, return empty array (demo mode still works)
+      depositRequests = [];
     } catch (err: any) {
       error = err.message || "Failed to load deposit requests";
       depositRequests = [];

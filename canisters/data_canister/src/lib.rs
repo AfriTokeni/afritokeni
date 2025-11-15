@@ -33,6 +33,8 @@ pub struct DataCanisterState {
     deposit_transactions: HashMap<String, DepositTransaction>,  // key: deposit_code
     withdrawal_transactions: HashMap<String, WithdrawalTransaction>,  // key: withdrawal_code
     agent_balances: HashMap<String, AgentBalance>,  // key: "agent_id:currency"
+    // Agent reviews (added to replace Juno storage)
+    agent_reviews: HashMap<String, shared_types::AgentReview>,  // key: review_id
 }
 
 impl DataCanisterState {
@@ -1190,6 +1192,210 @@ async fn store_agent_activity(activity: shared_types::AgentActivity) -> Result<s
     })
 }
 
+// ============================================================================
+// Agent Review Operations
+// ============================================================================
+
+/// Create agent review
+///
+/// # Arguments
+/// * `request` - Review creation request with agent_id, user_id, rating, comment
+///
+/// # Returns
+/// The created review with generated ID and timestamp
+///
+/// # Access Control
+/// Canister-only endpoint (called by agent_canister or user_canister)
+#[update]
+async fn create_review(request: shared_types::CreateReviewRequest) -> Result<shared_types::AgentReview, String> {
+    verify_canister_access()?;
+
+    // Validate rating (1-5)
+    if request.rating < 1 || request.rating > 5 {
+        return Err("Rating must be between 1 and 5".to_string());
+    }
+
+    // Validate comment length
+    if request.comment.is_empty() {
+        return Err("Comment cannot be empty".to_string());
+    }
+    if request.comment.len() > 500 {
+        return Err("Comment too long (max 500 characters)".to_string());
+    }
+
+    STATE.with(|state| {
+        let mut state = state.borrow_mut();
+
+        // Generate review ID
+        let review_id = format!("review_{}", ic_cdk::api::time());
+
+        let review = shared_types::AgentReview {
+            id: review_id.clone(),
+            agent_id: request.agent_id,
+            user_id: request.user_id,
+            user_name: request.user_name,
+            rating: request.rating,
+            comment: request.comment,
+            created_at: ic_cdk::api::time() / 1_000_000_000, // Convert to seconds
+            verified_transaction: request.verified_transaction,
+        };
+
+        state.agent_reviews.insert(review_id, review.clone());
+
+        Ok(review)
+    })
+}
+
+/// Get all reviews for an agent
+///
+/// # Arguments
+/// * `agent_id` - Agent ID to get reviews for
+///
+/// # Returns
+/// List of reviews for the agent, sorted by most recent first
+///
+/// # Access Control
+/// Public query (anyone can read reviews)
+#[query]
+fn get_agent_reviews(agent_id: String) -> Result<Vec<shared_types::AgentReview>, String> {
+    STATE.with(|state| {
+        let state = state.borrow();
+
+        let mut reviews: Vec<shared_types::AgentReview> = state.agent_reviews
+            .values()
+            .filter(|r| r.agent_id == agent_id)
+            .cloned()
+            .collect();
+
+        // Sort by most recent first
+        reviews.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+
+        Ok(reviews)
+    })
+}
+
+/// Get reviews by rating for an agent
+///
+/// # Arguments
+/// * `agent_id` - Agent ID to get reviews for
+/// * `rating` - Filter by specific rating (1-5)
+///
+/// # Returns
+/// List of reviews matching the rating, sorted by most recent first
+///
+/// # Access Control
+/// Public query (anyone can read reviews)
+#[query]
+fn get_agent_reviews_by_rating(agent_id: String, rating: u8) -> Result<Vec<shared_types::AgentReview>, String> {
+    if rating < 1 || rating > 5 {
+        return Err("Rating must be between 1 and 5".to_string());
+    }
+
+    STATE.with(|state| {
+        let state = state.borrow();
+
+        let mut reviews: Vec<shared_types::AgentReview> = state.agent_reviews
+            .values()
+            .filter(|r| r.agent_id == agent_id && r.rating == rating)
+            .cloned()
+            .collect();
+
+        // Sort by most recent first
+        reviews.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+
+        Ok(reviews)
+    })
+}
+
+/// Get verified reviews for an agent (linked to actual transactions)
+///
+/// # Arguments
+/// * `agent_id` - Agent ID to get verified reviews for
+///
+/// # Returns
+/// List of verified reviews (with transaction IDs), sorted by most recent first
+///
+/// # Access Control
+/// Public query (anyone can read reviews)
+#[query]
+fn get_verified_reviews(agent_id: String) -> Result<Vec<shared_types::AgentReview>, String> {
+    STATE.with(|state| {
+        let state = state.borrow();
+
+        let mut reviews: Vec<shared_types::AgentReview> = state.agent_reviews
+            .values()
+            .filter(|r| r.agent_id == agent_id && r.verified_transaction.is_some())
+            .cloned()
+            .collect();
+
+        // Sort by most recent first
+        reviews.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+
+        Ok(reviews)
+    })
+}
+
+/// Get average rating for an agent
+///
+/// # Arguments
+/// * `agent_id` - Agent ID to calculate rating for
+///
+/// # Returns
+/// Average rating (0.0 if no reviews) and total review count
+///
+/// # Access Control
+/// Public query (anyone can read reviews)
+#[query]
+fn get_agent_rating(agent_id: String) -> Result<(f32, usize), String> {
+    STATE.with(|state| {
+        let state = state.borrow();
+
+        let reviews: Vec<&shared_types::AgentReview> = state.agent_reviews
+            .values()
+            .filter(|r| r.agent_id == agent_id)
+            .collect();
+
+        let count = reviews.len();
+
+        if count == 0 {
+            return Ok((0.0, 0));
+        }
+
+        let sum: u32 = reviews.iter().map(|r| r.rating as u32).sum();
+        let average = sum as f32 / count as f32;
+
+        Ok((average, count))
+    })
+}
+
+/// Delete review (admin only - for moderation)
+///
+/// # Arguments
+/// * `review_id` - ID of review to delete
+///
+/// # Returns
+/// Success or error
+///
+/// # Access Control
+/// Controller only (for content moderation)
+#[update]
+async fn delete_review(review_id: String) -> Result<(), String> {
+    // Only controller can delete reviews
+    if !ic_cdk::api::is_controller(&msg_caller()) {
+        return Err("Only controller can delete reviews".to_string());
+    }
+
+    STATE.with(|state| {
+        let mut state = state.borrow_mut();
+
+        if state.agent_reviews.remove(&review_id).is_some() {
+            Ok(())
+        } else {
+            Err("Review not found".to_string())
+        }
+    })
+}
+
 // Export Candid interface
 ic_cdk::export_candid!();
 
@@ -1200,7 +1406,6 @@ ic_cdk::export_candid!();
 #[cfg(test)]
 mod tests {
     use super::*;
-    use models::*;
 
     // ============================================================================
     // Fiat Currency Tests - Normal Cases

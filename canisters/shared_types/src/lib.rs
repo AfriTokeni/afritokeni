@@ -600,3 +600,31 @@ pub struct ClaimEscrowRequest {
     pub code: String,
     pub agent_id: String,
 }
+
+// ============================================================================
+// Agent Review Models - SHARED BETWEEN ALL CANISTERS
+// ============================================================================
+
+/// Agent review record
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct AgentReview {
+    pub id: String,
+    pub agent_id: String,
+    pub user_id: String,
+    pub user_name: String,
+    pub rating: u8, // 1-5 stars
+    pub comment: String,
+    pub created_at: u64,
+    pub verified_transaction: Option<String>, // Optional: transaction ID if review is linked to verified transaction
+}
+
+/// Request to create agent review
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct CreateReviewRequest {
+    pub agent_id: String,
+    pub user_id: String,
+    pub user_name: String,
+    pub rating: u8,
+    pub comment: String,
+    pub verified_transaction: Option<String>,
+}

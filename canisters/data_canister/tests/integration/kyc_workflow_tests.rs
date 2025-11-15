@@ -8,7 +8,7 @@
 ///
 /// CRITICAL for compliance and regulatory requirements.
 
-use candid::{encode_one, decode_one, Principal};
+use candid::{encode_one, encode_args, decode_one, Principal};
 use pocket_ic::PocketIc;
 use shared_types::{CreateUserRequest, KYCStatus};
 
@@ -33,7 +33,7 @@ fn setup_canister() -> (PocketIc, Principal) {
     pic.install_canister(
         canister_id,
         wasm,
-        encode_one(None::<(Option<String>, Option<String>)>).unwrap(),
+        encode_args((None::<String>, None::<String>)).unwrap(),
         None,
     );
 
@@ -41,13 +41,23 @@ fn setup_canister() -> (PocketIc, Principal) {
 }
 
 fn create_test_user(pic: &PocketIc, canister_id: Principal, phone: &str, email: &str) -> String {
+    // Generate a unique principal based on the phone number to avoid conflicts
+    let unique_bytes = phone.as_bytes();
+    let mut principal_bytes = vec![0u8; 29];
+    for (i, &b) in unique_bytes.iter().enumerate() {
+        if i < 29 {
+            principal_bytes[i] = b;
+        }
+    }
+    let unique_principal = Principal::from_slice(&principal_bytes);
+
     let user_request = CreateUserRequest {
         user_type_str: "User".to_string(),
         preferred_currency_str: "UGX".to_string(),
         email: email.to_string(),
         first_name: "Test".to_string(),
         last_name: "User".to_string(),
-        principal_id: Some(Principal::anonymous().to_text()),
+        principal_id: Some(unique_principal.to_text()),
         phone_number: Some(phone.to_string()),
     };
 
@@ -93,7 +103,7 @@ fn test_kyc_status_transition_to_pending() {
         canister_id,
         Principal::anonymous(),
         "update_kyc_status",
-        encode_one((user_id.clone(), KYCStatus::Pending)).unwrap(),
+        encode_args((user_id.clone(), KYCStatus::Pending)).unwrap(),
     );
 
     assert!(update_result.is_ok(), "Failed to update KYC status to Pending");
@@ -123,14 +133,14 @@ fn test_kyc_status_transition_to_approved() {
         canister_id,
         Principal::anonymous(),
         "update_kyc_status",
-        encode_one((user_id.clone(), KYCStatus::Pending)).unwrap(),
+        encode_args((user_id.clone(), KYCStatus::Pending)).unwrap(),
     ).unwrap();
 
     let update_result = pic.update_call(
         canister_id,
         Principal::anonymous(),
         "update_kyc_status",
-        encode_one((user_id.clone(), KYCStatus::Approved)).unwrap(),
+        encode_args((user_id.clone(), KYCStatus::Approved)).unwrap(),
     );
 
     assert!(update_result.is_ok(), "Failed to approve KYC");
@@ -160,14 +170,14 @@ fn test_kyc_status_transition_to_rejected() {
         canister_id,
         Principal::anonymous(),
         "update_kyc_status",
-        encode_one((user_id.clone(), KYCStatus::Pending)).unwrap(),
+        encode_args((user_id.clone(), KYCStatus::Pending)).unwrap(),
     ).unwrap();
 
     let update_result = pic.update_call(
         canister_id,
         Principal::anonymous(),
         "update_kyc_status",
-        encode_one((user_id.clone(), KYCStatus::Rejected)).unwrap(),
+        encode_args((user_id.clone(), KYCStatus::Rejected)).unwrap(),
     );
 
     assert!(update_result.is_ok(), "Failed to reject KYC");
@@ -197,14 +207,14 @@ fn test_kyc_status_can_be_resubmitted_after_rejection() {
         canister_id,
         Principal::anonymous(),
         "update_kyc_status",
-        encode_one((user_id.clone(), KYCStatus::Pending)).unwrap(),
+        encode_args((user_id.clone(), KYCStatus::Pending)).unwrap(),
     ).unwrap();
 
     pic.update_call(
         canister_id,
         Principal::anonymous(),
         "update_kyc_status",
-        encode_one((user_id.clone(), KYCStatus::Rejected)).unwrap(),
+        encode_args((user_id.clone(), KYCStatus::Rejected)).unwrap(),
     ).unwrap();
 
     // Resubmit KYC
@@ -212,7 +222,7 @@ fn test_kyc_status_can_be_resubmitted_after_rejection() {
         canister_id,
         Principal::anonymous(),
         "update_kyc_status",
-        encode_one((user_id.clone(), KYCStatus::Pending)).unwrap(),
+        encode_args((user_id.clone(), KYCStatus::Pending)).unwrap(),
     );
 
     assert!(resubmit_result.is_ok(), "Should be able to resubmit KYC after rejection");
@@ -246,7 +256,7 @@ fn test_kyc_status_for_multiple_users() {
         canister_id,
         Principal::anonymous(),
         "update_kyc_status",
-        encode_one((user1_id.clone(), KYCStatus::Approved)).unwrap(),
+        encode_args((user1_id.clone(), KYCStatus::Approved)).unwrap(),
     ).unwrap();
 
     // User 2: Pending
@@ -254,7 +264,7 @@ fn test_kyc_status_for_multiple_users() {
         canister_id,
         Principal::anonymous(),
         "update_kyc_status",
-        encode_one((user2_id.clone(), KYCStatus::Pending)).unwrap(),
+        encode_args((user2_id.clone(), KYCStatus::Pending)).unwrap(),
     ).unwrap();
 
     // User 3: Rejected
@@ -262,7 +272,7 @@ fn test_kyc_status_for_multiple_users() {
         canister_id,
         Principal::anonymous(),
         "update_kyc_status",
-        encode_one((user3_id.clone(), KYCStatus::Rejected)).unwrap(),
+        encode_args((user3_id.clone(), KYCStatus::Rejected)).unwrap(),
     ).unwrap();
 
     // Verify all statuses are independent
@@ -304,7 +314,7 @@ fn test_kyc_status_persists_across_multiple_queries() {
         canister_id,
         Principal::anonymous(),
         "update_kyc_status",
-        encode_one((user_id.clone(), KYCStatus::Approved)).unwrap(),
+        encode_args((user_id.clone(), KYCStatus::Approved)).unwrap(),
     ).unwrap();
 
     // Query multiple times to ensure consistency
@@ -332,7 +342,7 @@ fn test_kyc_update_for_nonexistent_user() {
         canister_id,
         Principal::anonymous(),
         "update_kyc_status",
-        encode_one(("nonexistent_user".to_string(), KYCStatus::Approved)).unwrap(),
+        encode_args(("nonexistent_user".to_string(), KYCStatus::Approved)).unwrap(),
     );
 
     // Should fail
@@ -352,7 +362,7 @@ fn test_kyc_workflow_with_balance_operations() {
         canister_id,
         Principal::anonymous(),
         "set_fiat_balance",
-        encode_one((user_id.clone(), "UGX".to_string(), 100000u64)).unwrap(),
+        encode_args((user_id.clone(), "UGX".to_string(), 100000u64)).unwrap(),
     );
     assert!(set_balance.is_ok());
 
@@ -361,7 +371,7 @@ fn test_kyc_workflow_with_balance_operations() {
         canister_id,
         Principal::anonymous(),
         "update_kyc_status",
-        encode_one((user_id.clone(), KYCStatus::Approved)).unwrap(),
+        encode_args((user_id.clone(), KYCStatus::Approved)).unwrap(),
     ).unwrap();
 
     // Verify user has both balance and KYC approved
@@ -380,7 +390,7 @@ fn test_kyc_workflow_with_balance_operations() {
         canister_id,
         Principal::anonymous(),
         "get_fiat_balance",
-        encode_one((user_id, shared_types::FiatCurrency::UGX)).unwrap(),
+        encode_args((user_id, shared_types::FiatCurrency::UGX)).unwrap(),
     ).unwrap();
 
     let balance: Result<u64, String> = decode_one(&get_balance).unwrap();
@@ -417,14 +427,14 @@ fn test_agent_user_kyc_workflow() {
         canister_id,
         Principal::anonymous(),
         "update_kyc_status",
-        encode_one((agent_id.clone(), KYCStatus::Pending)).unwrap(),
+        encode_args((agent_id.clone(), KYCStatus::Pending)).unwrap(),
     ).unwrap();
 
     pic.update_call(
         canister_id,
         Principal::anonymous(),
         "update_kyc_status",
-        encode_one((agent_id.clone(), KYCStatus::Approved)).unwrap(),
+        encode_args((agent_id.clone(), KYCStatus::Approved)).unwrap(),
     ).unwrap();
 
     // Verify agent KYC approved
@@ -450,7 +460,7 @@ fn test_kyc_status_direct_transition_not_started_to_approved() {
         canister_id,
         Principal::anonymous(),
         "update_kyc_status",
-        encode_one((user_id.clone(), KYCStatus::Approved)).unwrap(),
+        encode_args((user_id.clone(), KYCStatus::Approved)).unwrap(),
     );
 
     assert!(update_result.is_ok(), "Should allow direct transition to Approved");

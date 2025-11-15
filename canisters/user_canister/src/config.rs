@@ -164,13 +164,6 @@ pub fn verify_authorized_caller() -> Result<(), String> {
     }
 
     // Check if caller is in authorized list
-    let has_authorized = AUTHORIZED_CANISTERS.with(|c| !c.borrow().is_empty());
-
-    if !has_authorized {
-        // No authorized canisters configured yet, allow all
-        return Ok(());
-    }
-
     AUTHORIZED_CANISTERS.with(|canisters| {
         if canisters.borrow().contains(&caller) {
             Ok(())

@@ -1,128 +1,139 @@
 /**
- * Transactions Data Service
+ * Transaction Data Service (Demo Mode Only)
  *
- * Pure data fetching functions for user transactions.
- * NO store imports - accepts isDemoMode as parameter.
- * Called by encapsulated components that manage their own store subscriptions.
+ * Loads transaction demo data and provides UI formatting helpers.
+ * NO BUSINESS LOGIC - For UI display only.
+ *
+ * For real operations, use:
+ * - walletService (fiat transfers)
+ * - cryptoService (crypto transfers)
+ * - agentOperationsService (deposits/withdrawals)
  */
 
-import { listDocs } from "@junobuild/core";
+export interface Transaction {
+  id: string;
+  type: string;
+  amount: number;
+  currency: string;
+  status: string;
+  timestamp: number;
+  fromUser?: string;
+  toUser?: string;
+  description?: string;
+}
 
 /**
- * Fetch user transactions
- *
- * @param principalId - User's principal ID (for Juno lookup)
- * @param isDemoMode - Whether to use demo data or real backend
- * @param limit - Maximum number of transactions to fetch
- * @returns Array of transactions
+ * Fetch transactions from demo data
  */
-export async function fetchTransactions(
-  principalId: string | null,
-  isDemoMode: boolean,
-  limit: number = 50,
-): Promise<any[]> {
-  if (isDemoMode) {
-    try {
-      const response = await fetch("/data/demo/transactions.json");
-      if (!response.ok) {
-        throw new Error("Failed to fetch demo data");
-      }
-      const data = await response.json();
-      // Handle both array and object with user-transactions key
-      const transactions = Array.isArray(data)
-        ? data
-        : data["user-transactions"] || [];
-      return transactions.slice(0, limit);
-    } catch (error) {
-      console.error("Failed to fetch demo transactions:", error);
-      return [];
-    }
-  }
-
-  // Real mode: query Juno datastore
-  if (!principalId) {
-    console.warn("No principal ID provided for transactions query");
-    return [];
-  }
-
+export async function fetchTransactions(): Promise<Transaction[]> {
   try {
-    // Fetch transactions from Juno collection
-    const result = await listDocs({
-      collection: "transactions",
-      filter: {
-        matcher: {
-          key: principalId,
-        },
-      },
-    });
-
-    if (!result || !result.items) {
-      console.warn("No transactions found in Juno for principal:", principalId);
-      return [];
+    const response = await fetch("/data/demo/transactions.json");
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch demo transactions: ${response.statusText}`,
+      );
     }
-
-    // Sort by date (most recent first) and limit
-    const transactions = result.items
-      .map((item: any) => item.data)
-      .sort((a: any, b: any) => {
-        const dateA = new Date(a.createdAt || a.timestamp || 0).getTime();
-        const dateB = new Date(b.createdAt || b.timestamp || 0).getTime();
-        return dateB - dateA;
-      })
-      .slice(0, limit);
-
-    return transactions;
+    return await response.json();
   } catch (error) {
-    console.error("Failed to fetch transactions from Juno:", error);
+    console.error("Error loading demo transactions:", error);
     return [];
   }
 }
 
 /**
- * Get transaction type icon/color info
+ * UI helper: Get icon name for transaction type
+ */
+export function getTransactionIcon(type: string): string {
+  const iconMap: Record<string, string> = {
+    deposit: "arrow-down-circle",
+    withdrawal: "arrow-up-circle",
+    transfer: "arrow-right-left",
+    buy: "shopping-cart",
+    sell: "banknote",
+    send: "send",
+    receive: "inbox",
+  };
+  return iconMap[type.toLowerCase()] || "circle";
+}
+
+/**
+ * UI helper: Get color for transaction type
+ */
+export function getTransactionColor(type: string): string {
+  const colorMap: Record<string, string> = {
+    deposit: "text-green-600",
+    withdrawal: "text-red-600",
+    transfer: "text-blue-600",
+    buy: "text-purple-600",
+    sell: "text-orange-600",
+    send: "text-blue-600",
+    receive: "text-green-600",
+  };
+  return colorMap[type.toLowerCase()] || "text-gray-600";
+}
+
+/**
+ * UI helper: Get transaction type info
  */
 export function getTransactionTypeInfo(type: string): {
+  label: string;
+  icon: string;
   color: string;
   bgColor: string;
   textColor: string;
 } {
-  switch (type) {
-    case "send":
-      return {
-        color: "text-red-500",
-        bgColor: "bg-red-50",
-        textColor: "text-red-600",
-      };
-    case "receive":
-      return {
-        color: "text-green-500",
-        bgColor: "bg-green-50",
-        textColor: "text-green-600",
-      };
-    case "withdraw":
-      return {
-        color: "text-orange-500",
-        bgColor: "bg-orange-50",
-        textColor: "text-orange-600",
-      };
-    case "deposit":
-      return {
-        color: "text-blue-500",
-        bgColor: "bg-blue-50",
-        textColor: "text-blue-600",
-      };
-    default:
-      return {
-        color: "text-neutral-500",
-        bgColor: "bg-neutral-50",
-        textColor: "text-neutral-600",
-      };
-  }
+  const colorMap: Record<string, { bg: string; text: string }> = {
+    deposit: { bg: "bg-green-100", text: "text-green-700" },
+    withdrawal: { bg: "bg-red-100", text: "text-red-700" },
+    transfer: { bg: "bg-blue-100", text: "text-blue-700" },
+    buy: { bg: "bg-purple-100", text: "text-purple-700" },
+    sell: { bg: "bg-orange-100", text: "text-orange-700" },
+    send: { bg: "bg-blue-100", text: "text-blue-700" },
+    receive: { bg: "bg-green-100", text: "text-green-700" },
+  };
+
+  const colors = colorMap[type.toLowerCase()] || { bg: "bg-gray-100", text: "text-gray-700" };
+
+  return {
+    label: type.charAt(0).toUpperCase() + type.slice(1),
+    icon: getTransactionIcon(type),
+    color: getTransactionColor(type),
+    bgColor: colors.bg,
+    textColor: colors.text,
+  };
 }
 
 /**
- * Check if transaction is outgoing (negative amount display)
+ * UI helper: Check if transaction is outgoing
  */
-export function isOutgoingTransaction(type: string): boolean {
-  return type === "send" || type === "withdraw";
+export function isOutgoingTransaction(
+  transaction: Transaction,
+  userId: string,
+): boolean {
+  const outgoingTypes = ["withdrawal", "send", "transfer"];
+  return (
+    outgoingTypes.includes(transaction.type.toLowerCase()) ||
+    transaction.fromUser === userId
+  );
+}
+
+/**
+ * UI helper: Format transaction description
+ */
+export function formatTransactionDescription(transaction: Transaction): string {
+  if (transaction.description) {
+    return transaction.description;
+  }
+
+  const typeDescriptions: Record<string, string> = {
+    deposit: "Cash deposit",
+    withdrawal: "Cash withdrawal",
+    transfer: "P2P transfer",
+    buy: "Buy cryptocurrency",
+    sell: "Sell cryptocurrency",
+    send: "Send cryptocurrency",
+    receive: "Receive cryptocurrency",
+  };
+
+  return typeDescriptions[transaction.type.toLowerCase()] || transaction.type;
 }

@@ -1,81 +1,65 @@
 /**
- * Agents Data Service
+ * Agent Data Service (Demo Mode Only)
  *
- * Pure data fetching functions for agent listings.
- * NO store imports - accepts isDemoMode as parameter.
- * Called by encapsulated components that manage their own store subscriptions.
+ * Loads agent demo data from static JSON files.
+ * NO BUSINESS LOGIC - For UI display only.
+ *
+ * For real operations, use agentOperationsService and agentCanisterService.
  */
 
-import type { Agent } from "$lib/utils/agents";
+import type { Agent } from "$lib/types/agent";
 
 /**
- * Fetch all available agents
- *
- * @param isDemoMode - Whether to use demo data or real backend
- * @returns Array of agents
+ * Fetch agents from demo data
+ * Used only in demo mode for UI display
+ * @param _demoMode - Unused parameter for backward compatibility
  */
-export async function fetchAgents(isDemoMode: boolean): Promise<Agent[]> {
-  if (isDemoMode) {
-    try {
-      const response = await fetch("/data/demo/agents.json");
-      if (!response.ok) {
-        throw new Error("Failed to fetch demo agents");
-      }
-      return response.json();
-    } catch (error) {
-      console.error("Failed to fetch demo agents:", error);
-      return [];
-    }
-  }
-
-  // Real mode: query backend/Juno
+export async function fetchAgents(_demoMode?: boolean): Promise<Agent[]> {
   try {
-    // TODO: Implement real agent query
-    // const response = await fetch('/api/agents');
-    // return response.json();
-    return [];
+    const response = await fetch("/data/demo/agents.json");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch demo agents: ${response.statusText}`);
+    }
+    return await response.json();
   } catch (error) {
-    console.error("Failed to fetch agents:", error);
+    console.error("Error loading demo agents:", error);
     return [];
   }
 }
 
 /**
- * Fetch agent reviews
- *
- * @param agentId - Optional agent ID to filter reviews
- * @param isDemoMode - Whether to use demo data
- * @returns Array of reviews
+ * Get single agent by ID (demo data)
  */
-export async function fetchAgentReviews(
-  agentId: string | undefined,
-  isDemoMode: boolean,
-): Promise<any[]> {
-  if (isDemoMode) {
-    try {
-      const response = await fetch("/data/demo/agent-reviews.json");
-      if (!response.ok) {
-        throw new Error("Failed to fetch demo reviews");
-      }
-      const reviews = await response.json();
-      if (agentId) {
-        return reviews.filter((r: any) => r.agentId === agentId);
-      }
-      return reviews;
-    } catch (error) {
-      console.error("Failed to fetch demo agent reviews:", error);
-      return [];
-    }
-  }
+export async function getAgentById(agentId: string): Promise<Agent | null> {
+  const agents = await fetchAgents();
+  return agents.find((agent) => agent.id === agentId) || null;
+}
 
-  // Real mode
-  try {
-    // TODO: Implement real review query
-    // const response = await fetch(`/api/agents/${agentId}/reviews`);
-    // return response.json();
-    return [];
-  } catch (error) {
-    console.error("Failed to fetch agent reviews:", error);
-    return [];
-  }
+/**
+ * Calculate distance between two points (UI helper only)
+ * For real distance-based features, use backend logic
+ */
+export function calculateDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function toRad(degrees: number): number {
+  return (degrees * Math.PI) / 180;
 }

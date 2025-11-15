@@ -251,7 +251,7 @@ async fn verify_pin(user_identifier: String, pin: String) -> Result<bool, String
         audit::log_failure(
             "pin_verification_failed",
             Some(user.id.clone()),
-            format!("Incorrect PIN for identifier: {}", user_identifier),
+            format!("Incorrect credentials for identifier: {}", user_identifier),
         );
 
         Ok(false)
@@ -308,7 +308,7 @@ async fn change_pin(user_identifier: String, old_pin: String, new_pin: String) -
         audit::log_failure(
             "pin_change_failed",
             Some(user.id.clone()),
-            format!("Incorrect old PIN for user: {}", user_identifier),
+            format!("Incorrect credentials for user: {}", user_identifier),
         );
         return Err("Invalid credentials".to_string());
     }

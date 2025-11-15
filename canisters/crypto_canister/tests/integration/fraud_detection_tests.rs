@@ -1,5 +1,4 @@
 use candid::{encode_one, decode_one, Principal};
-use pocket_ic::PocketIc;
 
 use super::{setup_test_environment, register_test_user, set_fiat_balance};
 

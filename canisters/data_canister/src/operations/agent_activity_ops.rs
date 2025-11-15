@@ -1,4 +1,6 @@
-use shared_types::{AgentActivity, audit};
+use shared_types::AgentActivity;
+#[cfg(not(test))]
+use shared_types::audit;
 use std::collections::BTreeMap;
 
 /// Get agent activity for a specific agent and currency

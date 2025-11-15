@@ -75,6 +75,47 @@ export const CKUSD_LEDGER_CANISTER_ID =
   getEnv("CANISTER_ID_CKUSD_LEDGER") || "xevnm-gaaaa-aaaar-qafnq-cai";
 
 /**
+ * Domain Canister IDs (User, Wallet, Crypto, Agent, Data, USSD)
+ * Prefer PUBLIC_* vars for browser environments, fall back to server vars.
+ */
+const resolveCanisterId = (publicKey: string, privateKey: string) =>
+  getEnv(publicKey) || getEnv(privateKey) || "";
+
+export const USER_CANISTER_ID = resolveCanisterId(
+  "PUBLIC_USER_CANISTER_ID",
+  "CANISTER_ID_USER_CANISTER",
+);
+export const WALLET_CANISTER_ID = resolveCanisterId(
+  "PUBLIC_WALLET_CANISTER_ID",
+  "CANISTER_ID_WALLET_CANISTER",
+);
+export const CRYPTO_CANISTER_ID = resolveCanisterId(
+  "PUBLIC_CRYPTO_CANISTER_ID",
+  "CANISTER_ID_CRYPTO_CANISTER",
+);
+export const AGENT_CANISTER_ID = resolveCanisterId(
+  "PUBLIC_AGENT_CANISTER_ID",
+  "CANISTER_ID_AGENT_CANISTER",
+);
+export const DATA_CANISTER_ID = resolveCanisterId(
+  "PUBLIC_DATA_CANISTER_ID",
+  "CANISTER_ID_DATA_CANISTER",
+);
+export const USSD_CANISTER_ID = resolveCanisterId(
+  "PUBLIC_USSD_CANISTER_ID",
+  "CANISTER_ID_USSD_CANISTER",
+);
+
+/**
+ * OLD CANISTERS - REMOVED
+ * These have been absorbed into the new 4-domain architecture:
+ * - deposit_canister → agent_canister
+ * - withdrawal_canister → agent_canister
+ * - exchange_canister → crypto_canister
+ * - business_logic_canister → split across user/wallet/agent/crypto canisters
+ */
+
+/**
  * Juno Satellite Canister ID
  *
  * This is AfriTokeni's Juno satellite for storing metadata.
@@ -195,6 +236,14 @@ export function getCanisterConfig() {
     },
     ckUSD: {
       ledger: CKUSD_LEDGER_CANISTER_ID,
+    },
+    domain: {
+      user: USER_CANISTER_ID,
+      wallet: WALLET_CANISTER_ID,
+      crypto: CRYPTO_CANISTER_ID,
+      agent: AGENT_CANISTER_ID,
+      data: DATA_CANISTER_ID,
+      ussd: USSD_CANISTER_ID,
     },
     juno: {
       satellite: JUNO_SATELLITE_ID,

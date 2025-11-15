@@ -2,7 +2,6 @@
 // Run with: cargo test --package ussd_canister --test ussd_local_currency_tests
 
 use candid::{CandidType, Deserialize};
-use serde::Serialize;
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
 struct HttpRequest {

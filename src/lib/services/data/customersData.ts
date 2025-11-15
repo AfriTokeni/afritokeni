@@ -1,140 +1,73 @@
 /**
- * Customers Data Service
+ * Customer Data Service (Demo Mode Only)
  *
- * Pure data service for fetching customer-related data from Juno.
- * NO store imports - accepts isDemoMode as parameter.
+ * Loads customer demo data from static JSON files.
+ * NO BUSINESS LOGIC - For UI display only.
  *
- * Following the encapsulated component architecture pattern.
+ * For real customer management, use data_canister.
  */
-
-import { listDocs } from "@junobuild/core";
 
 export interface Customer {
   id: string;
   name: string;
   phone: string;
-  location: string;
-  joinDate: string;
   totalTransactions: number;
-  totalVolume: {
-    ugx: number;
-    usdc: number;
-  };
-  lastTransaction: string;
-  status: "active" | "inactive" | "blocked";
-  kycStatus: "verified" | "pending" | "rejected";
+  totalVolume: number;
+  currency: string;
+  lastTransaction?: number;
+  status?: string;
 }
 
 /**
- * Fetch customers for an agent from Juno
- *
- * In Juno, we'll store customer-agent relationships in a collection.
- * Each document represents a customer that has transacted with this agent.
- *
- * @param agentPrincipal - Agent's ICP principal ID
- * @param isDemoMode - Whether to use demo data or real Juno
+ * Fetch agent customers from demo data
  */
 export async function fetchAgentCustomers(
-  agentPrincipal: string | null,
-  isDemoMode: boolean,
+  agentId: string,
+  _demoMode?: boolean,
 ): Promise<Customer[]> {
-  if (isDemoMode) {
-    // Demo mode: load from JSON
+  try {
     const response = await fetch("/data/demo/agent-customers.json");
     if (!response.ok) {
-      throw new Error("Failed to load demo customers");
+      throw new Error(`Failed to fetch demo customers: ${response.statusText}`);
     }
-    return await response.json();
-  }
+    const data = await response.json();
 
-  // Real mode: query Juno for customers
-  if (!agentPrincipal) {
+    // Demo data might be an array or object with agent IDs
+    if (Array.isArray(data)) {
+      return data;
+    } else if (data[agentId]) {
+      return data[agentId];
+    }
+
     return [];
-  }
-
-  try {
-    // Query Juno for customer documents where agent_principal matches
-    const { items } = await listDocs({
-      collection: "agent_customers",
-      filter: {
-        matcher: {
-          key: agentPrincipal,
-        },
-      },
-    });
-
-    // Transform Juno documents to Customer format
-    return items.map((doc) => {
-      const data = doc.data as any;
-
-      return {
-        id: doc.key,
-        name: data.name || "Unknown",
-        phone: data.phone || "Unknown",
-        location: data.location || "Unknown",
-        joinDate: data.joinDate || new Date().toISOString(),
-        totalTransactions: data.totalTransactions || 0,
-        totalVolume: {
-          ugx: data.totalVolume?.ugx || 0,
-          usdc: data.totalVolume?.usdc || 0,
-        },
-        lastTransaction: data.lastTransaction || new Date().toISOString(),
-        status: data.status || "active",
-        kycStatus: data.kycStatus || "pending",
-      };
-    });
   } catch (error) {
-    console.error("Error fetching agent customers from Juno:", error);
-    throw error;
+    console.error("Error loading demo customers:", error);
+    return [];
   }
 }
 
 /**
- * Get customer transaction history from Juno
- *
- * @param customerId - Customer's ID (user principal)
- * @param isDemoMode - Whether to use demo data
+ * UI helper: Format customer status
  */
-export async function fetchCustomerTransactions(
-  customerId: string,
-  isDemoMode: boolean,
-): Promise<any[]> {
-  if (isDemoMode) {
-    // Demo mode: return mock transactions
-    return [
-      {
-        id: "1",
-        type: "deposit",
-        amount: 50000,
-        currency: "UGX",
-        date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        status: "completed",
-      },
-      {
-        id: "2",
-        type: "withdrawal",
-        amount: 25000,
-        currency: "UGX",
-        date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        status: "completed",
-      },
-    ];
-  }
+export function formatCustomerStatus(status?: string): string {
+  const statusMap: Record<string, string> = {
+    active: "Active",
+    inactive: "Inactive",
+    suspended: "Suspended",
+    new: "New",
+  };
+  return statusMap[status?.toLowerCase() || ""] || "Unknown";
+}
 
-  // Real mode: query Juno transactions collection
-  try {
-    const { items } = await listDocs({
-      collection: "transactions",
-      filter: {
-        matcher: {
-          key: customerId,
-        },
-      },
-    });
-
-    return items.map((doc) => doc.data);
-  } catch (error) {
-    console.error("Error fetching customer transactions:", error);
-    throw error;
-  }
+/**
+ * UI helper: Get status color
+ */
+export function getStatusColor(status?: string): string {
+  const colorMap: Record<string, string> = {
+    active: "text-green-600",
+    inactive: "text-gray-600",
+    suspended: "text-red-600",
+    new: "text-blue-600",
+  };
+  return colorMap[status?.toLowerCase() || ""] || "text-gray-600";
 }

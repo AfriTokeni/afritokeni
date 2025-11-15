@@ -315,7 +315,8 @@ export class AgentService {
     businessLicense?: string;
   }): Promise<{ user: any; agent: Agent }> {
     const { UserService } = await import("./userService");
-    const { BalanceService } = await import("./balanceService");
+    // TODO: Replace with walletCanisterService
+    // const { walletCanisterService } = await import("./icp/canisters/walletCanisterService");
 
     const userUpdates = {
       firstName: agentKYCData.firstName,
@@ -335,10 +336,10 @@ export class AgentService {
     const updatedUser = await UserService.getUserByKey(agentKYCData.userId);
     if (!updatedUser) throw new Error("Failed to retrieve updated user");
 
-    const userBalance = await BalanceService.getUserBalance(
-      agentKYCData.userId,
-    );
-    const digitalBalance = userBalance?.balance || 0;
+    // TODO: Use walletCanisterService.getFiatBalance() instead
+    // const userBalance = await walletCanisterService.getFiatBalance(agentKYCData.userId, { UGX: null });
+    // const digitalBalance = Number(userBalance) || 0;
+    const digitalBalance = 0; // Temporary - use wallet_canister
     const cashBalance = Number(
       process.env.VITE_AGENT_INITIAL_CASH_BALANCE ?? 0,
     );
@@ -371,9 +372,8 @@ export class AgentService {
       newAgent = await this.createAgent(agentData);
     }
 
-    if (!userBalance && digitalBalance === 0) {
-      await BalanceService.updateUserBalance(agentKYCData.userId, 0);
-    }
+    // TODO: Balance initialization now handled by wallet_canister automatically
+    // No need to manually initialize balance
 
     return { user: updatedUser, agent: newAgent };
   }

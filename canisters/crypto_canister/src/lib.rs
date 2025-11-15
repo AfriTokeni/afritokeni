@@ -1386,3 +1386,6 @@ fn parse_crypto_type(crypto_type_str: &str) -> Result<CryptoType, String> {
         _ => Err(format!("Invalid crypto type: {}", crypto_type_str)),
     }
 }
+
+// Export Candid interface
+ic_cdk::export_candid!();

@@ -659,3 +659,6 @@ fn get_config_info() -> String {
         config.escrow.expiration_time_ns
     )
 }
+
+// Export Candid interface
+ic_cdk::export_candid!();

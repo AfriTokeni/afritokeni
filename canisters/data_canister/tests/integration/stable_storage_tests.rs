@@ -9,6 +9,7 @@ use pocket_ic::PocketIc;
 use shared_types::{
     CreateUserRequest, FiatCurrency, KYCStatus, AgentActivity,
 };
+use std::{thread, time::Duration};
 
 /// Helper to get the data_canister WASM path
 fn get_data_canister_wasm() -> Vec<u8> {
@@ -26,6 +27,38 @@ fn get_data_canister_wasm() -> Vec<u8> {
         .unwrap_or_else(|e| panic!("Failed to read WASM from {}: {}. Run 'cargo build --release --target wasm32-unknown-unknown' first", wasm_path, e))
 }
 
+/// Helper to upgrade canister with retry logic for rate limiting
+/// PocketIC can rate-limit install_code operations when too many happen in quick succession
+fn upgrade_canister_with_retry(
+    pic: &PocketIc,
+    canister_id: Principal,
+    wasm: Vec<u8>,
+    arg: Vec<u8>,
+) -> Result<(), String> {
+    let max_retries = 3;
+    let retry_delay = Duration::from_secs(2);
+
+    for attempt in 0..max_retries {
+        match pic.upgrade_canister(canister_id, wasm.clone(), arg.clone(), None) {
+            Ok(_) => return Ok(()),
+            Err(e) => {
+                // Check if it's a rate limiting error
+                if format!("{:?}", e).contains("rate limited") ||
+                   format!("{:?}", e).contains("CanisterInstallCodeRateLimited") {
+                    if attempt < max_retries - 1 {
+                        // Wait and retry
+                        thread::sleep(retry_delay);
+                        continue;
+                    }
+                }
+                // Non-rate-limit error or final retry exhausted
+                return Err(format!("{:?}", e));
+            }
+        }
+    }
+    Err("Max retries exceeded".to_string())
+}
+
 #[test]
 fn test_stable_storage_users_survive_upgrade() {
     let pic = PocketIc::new();
@@ -38,7 +71,7 @@ fn test_stable_storage_users_survive_upgrade() {
     pic.install_canister(
         canister_id,
         wasm.clone(),
-        encode_one(None::<(Option<String>, Option<String>)>).unwrap(),
+        encode_args((None::<String>, None::<String>)).unwrap(),
         None,
     );
 
@@ -87,7 +120,7 @@ fn test_stable_storage_users_survive_upgrade() {
     pic.upgrade_canister(
         canister_id,
         wasm,
-        encode_one(None::<(Option<String>, Option<String>)>).unwrap(),
+        encode_args((None::<String>, None::<String>)).unwrap(),
         None,
     ).expect("Upgrade failed");
 
@@ -122,7 +155,7 @@ fn test_stable_storage_balances_survive_upgrade() {
     pic.install_canister(
         canister_id,
         wasm.clone(),
-        encode_one(None::<(Option<String>, Option<String>)>).unwrap(),
+        encode_args((None::<String>, None::<String>)).unwrap(),
         None,
     );
 
@@ -152,7 +185,7 @@ fn test_stable_storage_balances_survive_upgrade() {
         canister_id,
         Principal::anonymous(),
         "set_fiat_balance",
-        encode_one((user_id.clone(), "UGX".to_string(), 500000u64)).unwrap(),
+        encode_args((user_id.clone(), "UGX".to_string(), 500000u64)).unwrap(),
     );
     assert!(set_balance_result.is_ok(), "Failed to set balance: {:?}", set_balance_result);
 
@@ -161,7 +194,7 @@ fn test_stable_storage_balances_survive_upgrade() {
         canister_id,
         Principal::anonymous(),
         "set_crypto_balance",
-        encode_one((user_id.clone(), 100000u64, 50000u64)).unwrap(),
+        encode_args((user_id.clone(), 100000u64, 50000u64)).unwrap(),
     );
     assert!(set_crypto_result.is_ok(), "Failed to set crypto balance: {:?}", set_crypto_result);
 
@@ -170,7 +203,7 @@ fn test_stable_storage_balances_survive_upgrade() {
         canister_id,
         Principal::anonymous(),
         "get_fiat_balance",
-        encode_one((user_id.clone(), FiatCurrency::UGX)).unwrap(),
+        encode_args((user_id.clone(), FiatCurrency::UGX)).unwrap(),
     ).unwrap();
     let fiat_bal_before: Result<u64, String> = decode_one(&fiat_balance_before).unwrap();
     assert_eq!(fiat_bal_before.unwrap(), 500000);
@@ -190,7 +223,7 @@ fn test_stable_storage_balances_survive_upgrade() {
     pic.upgrade_canister(
         canister_id,
         wasm,
-        encode_one(None::<(Option<String>, Option<String>)>).unwrap(),
+        encode_args((None::<String>, None::<String>)).unwrap(),
         None,
     ).expect("Upgrade failed");
 
@@ -199,7 +232,7 @@ fn test_stable_storage_balances_survive_upgrade() {
         canister_id,
         Principal::anonymous(),
         "get_fiat_balance",
-        encode_one((user_id.clone(), FiatCurrency::UGX)).unwrap(),
+        encode_args((user_id.clone(), FiatCurrency::UGX)).unwrap(),
     ).unwrap();
     let fiat_bal_after: Result<u64, String> = decode_one(&fiat_balance_after).unwrap();
     assert_eq!(fiat_bal_after.unwrap(), 500000, "Fiat balance not preserved after upgrade");
@@ -226,7 +259,7 @@ fn test_stable_storage_agent_activity_survives_upgrade() {
     pic.install_canister(
         canister_id,
         wasm.clone(),
-        encode_one(None::<(Option<String>, Option<String>)>).unwrap(),
+        encode_args((None::<String>, None::<String>)).unwrap(),
         None,
     );
 
@@ -272,7 +305,7 @@ fn test_stable_storage_agent_activity_survives_upgrade() {
     pic.upgrade_canister(
         canister_id,
         wasm,
-        encode_one(None::<(Option<String>, Option<String>)>).unwrap(),
+        encode_args((None::<String>, None::<String>)).unwrap(),
         None,
     ).expect("Upgrade failed");
 
@@ -307,7 +340,7 @@ fn test_stable_storage_multiple_agent_activities_survive_upgrade() {
     pic.install_canister(
         canister_id,
         wasm.clone(),
-        encode_one(None::<(Option<String>, Option<String>)>).unwrap(),
+        encode_args((None::<String>, None::<String>)).unwrap(),
         None,
     );
 
@@ -368,7 +401,7 @@ fn test_stable_storage_multiple_agent_activities_survive_upgrade() {
     pic.upgrade_canister(
         canister_id,
         wasm,
-        encode_one(None::<(Option<String>, Option<String>)>).unwrap(),
+        encode_args((None::<String>, None::<String>)).unwrap(),
         None,
     ).expect("Upgrade failed");
 
@@ -401,7 +434,7 @@ fn test_stable_storage_kyc_status_survives_upgrade() {
     pic.install_canister(
         canister_id,
         wasm.clone(),
-        encode_one(None::<(Option<String>, Option<String>)>).unwrap(),
+        encode_args((None::<String>, None::<String>)).unwrap(),
         None,
     );
 
@@ -430,7 +463,7 @@ fn test_stable_storage_kyc_status_survives_upgrade() {
         canister_id,
         Principal::anonymous(),
         "update_kyc_status",
-        encode_one((user_id.clone(), KYCStatus::Approved)).unwrap(),
+        encode_args((user_id.clone(), KYCStatus::Approved)).unwrap(),
     );
     assert!(update_result.is_ok(), "Failed to update KYC status");
 
@@ -449,7 +482,7 @@ fn test_stable_storage_kyc_status_survives_upgrade() {
     pic.upgrade_canister(
         canister_id,
         wasm,
-        encode_one(None::<(Option<String>, Option<String>)>).unwrap(),
+        encode_args((None::<String>, None::<String>)).unwrap(),
         None,
     ).expect("Upgrade failed");
 
@@ -475,16 +508,16 @@ fn test_stable_storage_empty_state_upgrade() {
     pic.install_canister(
         canister_id,
         wasm.clone(),
-        encode_one(None::<(Option<String>, Option<String>)>).unwrap(),
+        encode_args((None::<String>, None::<String>)).unwrap(),
         None,
     );
 
     // Upgrade without adding any data (edge case)
-    pic.upgrade_canister(
+    upgrade_canister_with_retry(
+        &pic,
         canister_id,
         wasm,
-        encode_one(None::<(Option<String>, Option<String>)>).unwrap(),
-        None,
+        encode_args((None::<String>, None::<String>)).unwrap(),
     ).expect("Upgrade of empty canister failed");
 
     // Verify canister still works after upgrade
@@ -523,7 +556,7 @@ fn test_stable_storage_authorized_canisters_survive_upgrade() {
     pic.install_canister(
         canister_id,
         wasm.clone(),
-        encode_one(Some((Some(ussd_canister.to_text()), None::<String>))).unwrap(),
+        encode_args((Some(ussd_canister.to_text()), None::<String>)).unwrap(),
         None,
     );
 
@@ -543,11 +576,11 @@ fn test_stable_storage_authorized_canisters_survive_upgrade() {
     assert!(canisters_before.contains(&ussd_canister.to_text()), "USSD canister not in authorized list");
 
     // UPGRADE CANISTER (without re-initializing authorized canisters)
-    pic.upgrade_canister(
+    upgrade_canister_with_retry(
+        &pic,
         canister_id,
         wasm,
-        encode_one(None::<(Option<String>, Option<String>)>).unwrap(),
-        None,
+        encode_args((None::<String>, None::<String>)).unwrap(),
     ).expect("Upgrade failed");
 
     // Verify authorized canisters still present

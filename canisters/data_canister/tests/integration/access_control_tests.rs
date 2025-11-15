@@ -8,7 +8,7 @@
 ///
 /// CRITICAL for security: ensures only authorized entities can access data.
 
-use candid::{encode_one, decode_one, Principal};
+use candid::{encode_one, encode_args, decode_one, Principal};
 use pocket_ic::PocketIc;
 use shared_types::{CreateUserRequest, AgentActivity, KYCStatus};
 
@@ -34,7 +34,7 @@ fn test_controller_can_add_authorized_canister() {
     pic.install_canister(
         canister_id,
         wasm,
-        encode_one(None::<(Option<String>, Option<String>)>).unwrap(),
+        encode_args((None::<String>, None::<String>)).unwrap(),
         None,
     );
 
@@ -77,7 +77,7 @@ fn test_non_controller_cannot_add_authorized_canister() {
     pic.install_canister(
         canister_id,
         wasm,
-        encode_one(None::<(Option<String>, Option<String>)>).unwrap(),
+        encode_args((None::<String>, None::<String>)).unwrap(),
         None,
     );
 
@@ -115,7 +115,7 @@ fn test_authorized_canister_can_create_user() {
         canister_id,
         wasm,
         // Initialize with USSD canister as authorized
-        encode_one(Some((Some(ussd_canister.to_text()), None::<String>))).unwrap(),
+        encode_args((Some(ussd_canister.to_text()), None::<String>)).unwrap(),
         None,
     );
 
@@ -155,7 +155,7 @@ fn test_unauthorized_canister_cannot_create_user() {
     pic.install_canister(
         canister_id,
         wasm,
-        encode_one(Some((Some(ussd_canister.to_text()), None::<String>))).unwrap(),
+        encode_args((Some(ussd_canister.to_text()), None::<String>)).unwrap(),
         None,
     );
 
@@ -199,7 +199,7 @@ fn test_authorized_canister_can_store_agent_activity() {
     pic.install_canister(
         canister_id,
         wasm,
-        encode_one(Some((Some(agent_canister.to_text()), None::<String>))).unwrap(),
+        encode_args((Some(agent_canister.to_text()), None::<String>)).unwrap(),
         None,
     );
 
@@ -239,7 +239,7 @@ fn test_unauthorized_canister_cannot_store_agent_activity() {
     pic.install_canister(
         canister_id,
         wasm,
-        encode_one(Some((Some(authorized_canister.to_text()), None::<String>))).unwrap(),
+        encode_args((Some(authorized_canister.to_text()), None::<String>)).unwrap(),
         None,
     );
 
@@ -283,7 +283,7 @@ fn test_controller_can_list_authorized_canisters() {
     pic.install_canister(
         canister_id,
         wasm,
-        encode_one(None::<(Option<String>, Option<String>)>).unwrap(),
+        encode_args((None::<String>, None::<String>)).unwrap(),
         None,
     );
 
@@ -311,7 +311,7 @@ fn test_non_controller_cannot_list_authorized_canisters() {
     pic.install_canister(
         canister_id,
         wasm,
-        encode_one(None::<(Option<String>, Option<String>)>).unwrap(),
+        encode_args((None::<String>, None::<String>)).unwrap(),
         None,
     );
 
@@ -343,7 +343,7 @@ fn test_controller_can_remove_authorized_canister() {
     pic.install_canister(
         canister_id,
         wasm,
-        encode_one(Some((Some(authorized_canister.to_text()), None::<String>))).unwrap(),
+        encode_args((Some(authorized_canister.to_text()), None::<String>)).unwrap(),
         None,
     );
 
@@ -385,7 +385,7 @@ fn test_authorized_canister_can_update_kyc_status() {
     pic.install_canister(
         canister_id,
         wasm,
-        encode_one(Some((None::<String>, Some(web_canister.to_text())))).unwrap(),
+        encode_args((None::<String>, Some(web_canister.to_text()))).unwrap(),
         None,
     );
 
@@ -414,7 +414,7 @@ fn test_authorized_canister_can_update_kyc_status() {
         canister_id,
         web_canister,
         "update_kyc_status",
-        encode_one((user_id, KYCStatus::Approved)).unwrap(),
+        encode_args((user_id, KYCStatus::Approved)).unwrap(),
     );
 
     assert!(update_result.is_ok(), "Authorized canister should be able to update KYC status");
@@ -432,7 +432,7 @@ fn test_unauthorized_principal_cannot_update_kyc_status() {
     pic.install_canister(
         canister_id,
         wasm,
-        encode_one(Some((None::<String>, Some(web_canister.to_text())))).unwrap(),
+        encode_args((None::<String>, Some(web_canister.to_text()))).unwrap(),
         None,
     );
 
@@ -462,7 +462,7 @@ fn test_unauthorized_principal_cannot_update_kyc_status() {
         canister_id,
         random_principal,
         "update_kyc_status",
-        encode_one((user_id, KYCStatus::Approved)).unwrap(),
+        encode_args((user_id, KYCStatus::Approved)).unwrap(),
     );
 
     if let Ok(response) = update_result {
@@ -486,7 +486,7 @@ fn test_multiple_authorized_canisters() {
         canister_id,
         wasm,
         // Initialize with both USSD and Web
-        encode_one(Some((Some(ussd_canister.to_text()), Some(web_canister.to_text())))).unwrap(),
+        encode_args((Some(ussd_canister.to_text()), Some(web_canister.to_text()))).unwrap(),
         None,
     );
 

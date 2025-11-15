@@ -447,7 +447,7 @@ fn test_concurrent_updates_to_different_activities() {
         canister_id,
         Principal::anonymous(),
         "get_agent_activity",
-        encode_one(("agent_002".to_string(), "NGN".to_string())).unwrap(),
+        encode_args(("agent_002".to_string(), "NGN".to_string())).unwrap(),
     ).unwrap();
     let result2: Result<Option<AgentActivity>, String> = decode_one(&get2).unwrap();
     assert!(result2.unwrap().is_some());

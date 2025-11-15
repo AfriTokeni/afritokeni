@@ -318,12 +318,13 @@ fn test_rfc5322_local_part_length_limits() {
 fn test_rfc5322_domain_part_length_limits() {
     let env = TestEnv::new();
 
-    // Exactly 255 characters (maximum for domain part)
-    // Format: aaa...aaa.com (251 a's + .com = 255)
-    let domain_251 = "a".repeat(251);
-    let email_max = format!("user@{}.com", domain_251);
+    // Maximum valid domain: 253 chars total, labels max 63 chars each
+    // Format: (63 a's).(63 a's).(63 a's).aaa.com = 63+1+63+1+63+1+3+1+3 = 199 chars
+    let label_63 = "a".repeat(63);
+    let email_max = format!("user@{}.{}.{}.aaa.com", label_63, label_63, label_63);
+    assert!(email_max.split('@').nth(1).unwrap().len() <= 253, "Domain should be <= 253 chars");
     let result = env.register_user(
-        Some("+256700123456".to_string()),
+        Some("+256700900000".to_string()),
         None,
         "Test",
         "User",
@@ -331,13 +332,13 @@ fn test_rfc5322_domain_part_length_limits() {
         "UGX",
         "1234",
     );
-    assert!(result.is_ok(), "255-char domain should be valid");
+    assert!(result.is_ok(), "Valid domain with 63-char labels should be accepted: {:?}", result);
 
-    // 256 characters (too long)
-    let domain_252 = "a".repeat(252);
-    let email_too_long = format!("user@{}.com", domain_252);
+    // Domain label exceeding 63 characters (invalid per RFC 1035)
+    let label_64 = "a".repeat(64);
+    let email_too_long = format!("user@{}.com", label_64);
     let result = env.register_user(
-        Some("+256700123457".to_string()),
+        Some("+256700900001".to_string()),
         None,
         "Test",
         "User",
@@ -345,8 +346,9 @@ fn test_rfc5322_domain_part_length_limits() {
         "UGX",
         "1234",
     );
-    assert!(result.is_err(), "256-char domain should be rejected");
-    assert!(result.unwrap_err().contains("too long"));
+    assert!(result.is_err(), "Domain label exceeding 63 chars should be rejected");
+    let error_msg = result.unwrap_err();
+    assert!(error_msg.contains("exceed") || error_msg.contains("63"));
 }
 
 #[test]

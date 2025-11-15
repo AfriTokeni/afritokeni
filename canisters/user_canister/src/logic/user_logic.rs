@@ -124,6 +124,9 @@ pub fn validate_email_format(email: &str) -> Result<(), String> {
     if local.starts_with('.') || local.ends_with('.') {
         return Err("Email local part cannot start or end with dot".to_string());
     }
+    if local.contains("..") {
+        return Err("Email local part cannot contain consecutive dots".to_string());
+    }
 
     // Validate domain part (after @)
     if domain.is_empty() {
@@ -138,8 +141,24 @@ pub fn validate_email_format(email: &str) -> Result<(), String> {
     if domain.starts_with('.') || domain.ends_with('.') {
         return Err("Email domain cannot start or end with dot".to_string());
     }
+    if domain.contains("..") {
+        return Err("Email domain cannot contain consecutive dots".to_string());
+    }
     if domain.starts_with('-') || domain.ends_with('-') {
         return Err("Email domain cannot start or end with hyphen".to_string());
+    }
+
+    // Check that no domain label starts or ends with hyphen, is empty, or exceeds 63 chars
+    for label in domain.split('.') {
+        if label.is_empty() {
+            return Err("Email domain cannot have empty labels".to_string());
+        }
+        if label.len() > 63 {
+            return Err("Email domain labels cannot exceed 63 characters".to_string());
+        }
+        if label.starts_with('-') || label.ends_with('-') {
+            return Err("Email domain labels cannot start or end with hyphen".to_string());
+        }
     }
 
     // Validate domain has valid TLD (at least 2 chars after last dot)

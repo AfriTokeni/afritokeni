@@ -2,7 +2,15 @@ import { nanoid } from "nanoid";
 import { getDoc, listDocs, setDoc } from "@junobuild/core";
 import type { User } from "../types/auth";
 import { generatePrincipalFromIdentifier } from "../utils/principalUtils";
-import { PINVerificationService } from "./pinVerification";
+
+/**
+ * IMPORTANT: This service ONLY handles user metadata in Juno (name, email, KYC status).
+ *
+ * For business logic operations, use domain canisters:
+ * - PIN verification: Use userCanisterService.verifyPin()
+ * - Balance operations: Use walletCanisterService
+ * - Authentication: Use user_canister
+ */
 
 export interface UserDataFromJuno {
   id: string;
@@ -267,109 +275,8 @@ export class UserService {
     }
   }
 
-  static async getUserPin(
-    phoneNumber: string,
-    _satellite?: any,
-  ): Promise<UserPin | null> {
-    try {
-      const doc = await getDoc({
-        collection: "user_pins",
-        key: phoneNumber,
-      });
-
-      if (!doc?.data) return null;
-
-      const rawData = doc.data as any;
-      return {
-        phoneNumber: rawData.phoneNumber,
-        pin: rawData.pin,
-        createdAt: new Date(rawData.createdAt),
-        updatedAt: rawData.updatedAt ? new Date(rawData.updatedAt) : undefined,
-      };
-    } catch (error) {
-      console.error("Error getting user PIN:", error);
-      return null;
-    }
-  }
-
-  static async createOrUpdateUserPin(
-    phoneNumber: string,
-    pin: string,
-    _satellite?: any,
-  ): Promise<boolean> {
-    if (!PINVerificationService.isValidPINFormat(pin)) {
-      throw new Error("Invalid PIN format. PIN must be 4-6 digits.");
-    }
-
-    try {
-      const hashedPin = PINVerificationService.hashPIN(pin);
-      const now = new Date();
-      const existing = await this.getUserPin(phoneNumber);
-
-      const pinData = {
-        phoneNumber,
-        pin: hashedPin,
-        createdAt: existing?.createdAt.toISOString() || now.toISOString(),
-        updatedAt: now.toISOString(),
-      };
-
-      const existingDoc = await getDoc({
-        collection: "user_pins",
-        key: phoneNumber,
-      });
-
-      await setDoc({
-        collection: "user_pins",
-        doc: {
-          key: phoneNumber,
-          data: pinData,
-          version: existingDoc?.version ? existingDoc.version : 1n,
-        },
-      });
-
-      return true;
-    } catch (error) {
-      console.error("Error creating/updating user PIN:", error);
-      return false;
-    }
-  }
-
-  static async verifyUserPin(
-    phoneNumber: string,
-    pin: string,
-  ): Promise<boolean> {
-    const result = await PINVerificationService.verifyPIN(phoneNumber, pin);
-    return result.success;
-  }
-
-  static async initializeUserData(userId: string): Promise<void> {
-    const user = await this.getUserByKey(userId);
-    if (!user) {
-      throw new Error("User not found");
-    }
-  }
-
-  static async updateUserBalance(
-    userId: string,
-    newBalance: number,
-  ): Promise<void> {
-    const balanceDoc = await getDoc({
-      collection: "balances",
-      key: userId,
-    });
-
-    if (balanceDoc?.data) {
-      await setDoc({
-        collection: "balances",
-        doc: {
-          key: userId,
-          data: {
-            ...balanceDoc.data,
-            balance: newBalance,
-            lastUpdated: new Date().toISOString(),
-          },
-        },
-      });
-    }
-  }
+  // PIN management, balance operations, and initialization removed
+  // Use domain canister services instead:
+  // - PIN operations: userCanisterService
+  // - Balance operations: walletCanisterService
 }

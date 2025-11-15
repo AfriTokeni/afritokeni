@@ -184,10 +184,10 @@ mod transaction_validation_tests {
 
     #[test]
     fn test_transaction_with_missing_fields() {
-        let tx_id = "tx_001";
+        let _tx_id = "tx_001";
         let from_user = "";
-        let to_user = "user_002";
-        
+        let _to_user = "user_002";
+
         assert!(from_user.is_empty());
         // Should validate all required fields
     }
@@ -227,13 +227,13 @@ mod transaction_validation_tests {
 
     #[test]
     fn test_transaction_history_pagination_boundary() {
-        let page = 1;
+        let _page = 1;
         let page_size = 10;
         let total_transactions = 95;
-        
+
         let total_pages = (total_transactions + page_size - 1) / page_size;
         assert_eq!(total_pages, 10);
-        
+
         // Last page has only 5 items
         let last_page_items = total_transactions % page_size;
         assert_eq!(last_page_items, 5);

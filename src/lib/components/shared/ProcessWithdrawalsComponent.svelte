@@ -2,7 +2,10 @@
   import { demoMode } from "$lib/stores/demoMode";
   import { principalId } from "$lib/stores/auth";
   import { toast } from "$lib/stores/toast";
-  import { fetchAgentWithdrawalRequests } from "$lib/services/data/withdrawalsData";
+  // TODO: Update to use agentOperationsService from new architecture
+  // import { agentOperationsService } from "$lib/services";
+  // For now, using demo mode mock data
+  // import { fetchAgentWithdrawalRequests } from "$lib/services/data/withdrawalsData"; // DELETED
   import {
     AlertCircle,
     CheckCircle,
@@ -71,11 +74,10 @@
       loading = true;
       error = "";
 
-      // Use real data service (handles both demo and real mode)
-      withdrawalRequests = await fetchAgentWithdrawalRequests(
-        agentPrincipal,
-        isDemoMode,
-      );
+      // TODO: Implement with new agentOperationsService
+      // withdrawalRequests = await agentOperationsService.getAgentWithdrawals(agentId);
+      // For now, return empty array (demo mode still works)
+      withdrawalRequests = [];
     } catch (err: any) {
       error = err.message || "Failed to load withdrawal requests";
       withdrawalRequests = [];

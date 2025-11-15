@@ -38,12 +38,6 @@ export default defineConfig({
           memory: "stable",
         },
         {
-          collection: "agent_reviews",
-          read: "public",   // Testimonials remain public
-          write: "managed", // Authenticated users can submit reviews
-          memory: "stable",
-        },
-        {
           collection: "config",
           read: "controllers",  // Holds AfricasTalking + third-party creds
           write: "controllers",

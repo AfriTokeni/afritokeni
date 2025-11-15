@@ -1,9 +1,8 @@
 // Comprehensive session management tests
-use std::collections::HashMap;
 
 #[cfg(test)]
 mod session_creation_tests {
-    use super::*;
+    
     use crate::common::{create_test_session, test_phones};
 
     #[test]
@@ -33,7 +32,7 @@ mod session_creation_tests {
 
 #[cfg(test)]
 mod session_data_tests {
-    use super::*;
+    
     use crate::common::create_test_session;
 
     #[test]
@@ -79,7 +78,7 @@ mod session_data_tests {
 
 #[cfg(test)]
 mod session_navigation_tests {
-    use super::*;
+    
     use crate::common::{create_test_session, create_session_at};
 
     #[test]
@@ -133,7 +132,7 @@ mod session_navigation_tests {
 
 #[cfg(test)]
 mod session_timeout_tests {
-    use super::*;
+    
     use crate::common::create_test_session;
 
     #[test]
