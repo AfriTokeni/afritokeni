@@ -6,20 +6,12 @@
     TrendingDown,
     TrendingUp,
   } from "@lucide/svelte";
-  // TODO: Import when service layer is migrated
-  // import { DynamicFeeService, type LocationData, type TransactionRequest } from '$lib/services/dynamicFeeService';
+  import { agentCanisterService } from "$lib/services/icp/canisters/agentCanisterService";
+  import type { FeeStructureResponse } from "$/declarations/agent_canister/agent_canister.did";
   import {
     AFRICAN_CURRENCIES,
     type AfricanCurrency,
   } from "$lib/types/currency";
-
-  // Temporary mock types until service is migrated
-  type LocationData = {
-    latitude: number;
-    longitude: number;
-    accessibility: string;
-  };
-  type TransactionRequest = any;
 
   interface Props {
     onFeeCalculated?: (fee: number, breakdown: any) => void;
@@ -35,71 +27,142 @@
   let distance = $state("5");
   let urgency = $state<"standard" | "express" | "emergency">("standard");
   let feeCalculation = $state<any>(null);
+  let feeStructure = $state<FeeStructureResponse | null>(null);
+  let loadingFeeStructure = $state(false);
+  let feeStructureError = $state<string | null>(null);
 
+  // Fetch fee structure on component mount
   $effect(() => {
-    if (amount && distance) {
+    fetchFeeStructure();
+  });
+
+  // Recalculate fees when inputs change
+  $effect(() => {
+    if (amount && distance && feeStructure) {
       calculateFee();
     }
   });
+
+  async function fetchFeeStructure() {
+    loadingFeeStructure = true;
+    feeStructureError = null;
+
+    try {
+      const structure = await agentCanisterService.getFeeStructure();
+      feeStructure = structure;
+    } catch (error) {
+      console.error("Failed to fetch fee structure:", error);
+      feeStructureError =
+        error instanceof Error ? error.message : "Failed to load fee structure";
+    } finally {
+      loadingFeeStructure = false;
+    }
+  }
 
   function calculateFee() {
     const amountNum = parseFloat(amount);
     const distanceNum = parseFloat(distance);
 
-    if (isNaN(amountNum) || isNaN(distanceNum)) return;
+    if (isNaN(amountNum) || isNaN(distanceNum) || !feeStructure) return;
 
-    const now = new Date();
-    const hour = now.getHours();
-    const timeOfDay =
-      hour < 6
-        ? "night"
-        : hour < 12
-          ? "morning"
-          : hour < 18
-            ? "afternoon"
-            : hour < 22
-              ? "evening"
-              : "night";
-    const dayOfWeek =
-      now.getDay() === 0 || now.getDay() === 6 ? "weekend" : "weekday";
+    // Convert basis points to percentage (1 basis point = 0.01%)
+    const depositAgentCommissionPct =
+      Number(feeStructure.deposit_agent_commission_bp) / 10000;
+    const depositPlatformOperationFeePct =
+      Number(feeStructure.deposit_platform_operation_fee_bp) / 10000;
+    const depositPlatformCommissionCutPct =
+      Number(feeStructure.deposit_platform_commission_cut_pct) / 10000;
 
-    const request: TransactionRequest = {
-      amount: amountNum,
-      currency,
-      type: "bitcoin_buy",
-      customerLocation: {
-        latitude: 0,
-        longitude: 0,
-        accessibility: customerLocation,
-      },
-      urgency,
-      timeOfDay: timeOfDay as any,
-      dayOfWeek: dayOfWeek as any,
-    };
+    // Calculate base fees from canister configuration
+    const agentBaseCommission = amountNum * depositAgentCommissionPct;
+    const platformOperationFee = amountNum * depositPlatformOperationFeePct;
+    const platformCommissionCut =
+      agentBaseCommission * depositPlatformCommissionCutPct;
 
-    const agentLocation: LocationData = {
-      latitude: 0,
-      longitude: 0,
-      accessibility: "urban",
-    };
+    // Calculate dynamic modifiers based on location, distance, and urgency
+    const locationMultiplier = getLocationMultiplier(customerLocation);
+    const distanceMultiplier = getDistanceMultiplier(distanceNum);
+    const urgencyMultiplier = getUrgencyMultiplier(urgency);
 
-    // TODO: Replace with real service when migrated
-    // const calculation = DynamicFeeService.calculateDynamicFee(request, distanceNum, agentLocation);
+    // Apply modifiers to agent commission (incentivizing remote/difficult service)
+    const agentCommissionModified =
+      agentBaseCommission *
+      locationMultiplier *
+      distanceMultiplier *
+      urgencyMultiplier;
+    const platformRevenue = platformOperationFee + platformCommissionCut;
+    const totalFeeAmount = agentCommissionModified + platformRevenue;
+    const totalFeePercentage = totalFeeAmount / amountNum;
+
     const calculation = {
-      totalFeePercentage: 0.035,
-      totalFeeAmount: amountNum * 0.035,
-      agentCommission: amountNum * 0.025,
-      platformRevenue: amountNum * 0.01,
+      totalFeePercentage,
+      totalFeeAmount,
+      agentCommission: agentCommissionModified,
+      platformRevenue,
       breakdown: [
-        { description: "Base fee", percentage: 0.02 },
-        { description: "Distance fee", percentage: 0.01 },
-        { description: "Location fee", percentage: 0.005 },
+        {
+          description: `Base agent commission (${(depositAgentCommissionPct * 100).toFixed(2)}%)`,
+          percentage: depositAgentCommissionPct,
+        },
+        {
+          description: `Location modifier (${locationMultiplier}x for ${customerLocation})`,
+          percentage: depositAgentCommissionPct * (locationMultiplier - 1),
+        },
+        {
+          description: `Distance modifier (${distanceMultiplier.toFixed(2)}x for ${distanceNum}km)`,
+          percentage: depositAgentCommissionPct * (distanceMultiplier - 1),
+        },
+        {
+          description: `Urgency modifier (${urgencyMultiplier}x for ${urgency})`,
+          percentage: depositAgentCommissionPct * (urgencyMultiplier - 1),
+        },
+        {
+          description: `Platform operation fee (${(depositPlatformOperationFeePct * 100).toFixed(2)}%)`,
+          percentage: depositPlatformOperationFeePct,
+        },
       ],
     };
+
     feeCalculation = calculation;
 
     if (onFeeCalculated) {
       onFeeCalculated(calculation.totalFeeAmount, calculation);
+    }
+  }
+
+  function getLocationMultiplier(location: string): number {
+    switch (location) {
+      case "urban":
+        return 1.0;
+      case "suburban":
+        return 1.2;
+      case "rural":
+        return 1.5;
+      case "remote":
+        return 2.0;
+      default:
+        return 1.0;
+    }
+  }
+
+  function getDistanceMultiplier(distance: number): number {
+    if (distance <= 5) return 1.0;
+    if (distance <= 15) return 1.1;
+    if (distance <= 30) return 1.3;
+    if (distance <= 50) return 1.5;
+    return 1.8;
+  }
+
+  function getUrgencyMultiplier(urgencyLevel: string): number {
+    switch (urgencyLevel) {
+      case "standard":
+        return 1.0;
+      case "express":
+        return 1.3;
+      case "emergency":
+        return 1.8;
+      default:
+        return 1.0;
     }
   }
 
@@ -145,6 +208,37 @@
     Calculate agent commission based on location, distance, and service level.
     Agents earn higher fees for serving remote areas.
   </p>
+
+  {#if feeStructureError}
+    <div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 sm:p-4">
+      <div class="flex items-start space-x-2">
+        <Info class="mt-0.5 h-4 w-4 shrink-0 text-red-600 sm:h-5 sm:w-5" />
+        <div class="min-w-0 flex-1">
+          <p class="text-xs font-semibold text-red-800 sm:text-sm">
+            Failed to Load Fee Structure
+          </p>
+          <p
+            class="mt-0.5 text-[10px] wrap-break-word text-red-700 sm:mt-1 sm:text-xs"
+          >
+            {feeStructureError}
+          </p>
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  {#if loadingFeeStructure}
+    <div class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 sm:p-4">
+      <div class="flex items-center space-x-2">
+        <div
+          class="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"
+        ></div>
+        <p class="text-xs text-blue-700 sm:text-sm">
+          Loading fee structure from agent canister...
+        </p>
+      </div>
+    </div>
+  {/if}
 
   <div class="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 md:gap-6">
     <!-- Input Section -->

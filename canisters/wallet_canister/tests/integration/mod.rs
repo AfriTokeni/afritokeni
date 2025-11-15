@@ -92,6 +92,15 @@ impl TestEnv {
             config_arg,
         ).expect("Failed to configure wallet canister user_canister_id");
 
+        // Enable test mode on wallet_canister (allows anonymous calls and disables velocity checks)
+        let test_mode_arg = encode_one(()).unwrap();
+        pic.update_call(
+            wallet_canister_id,
+            Principal::anonymous(),
+            "enable_test_mode",
+            test_mode_arg,
+        ).expect("Failed to enable test mode on wallet_canister");
+
         // Authorize canisters
         let auth_arg = encode_one(user_canister_id.to_text()).unwrap();
         pic.update_call(

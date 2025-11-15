@@ -92,7 +92,10 @@ export function getTransactionTypeInfo(type: string): {
     receive: { bg: "bg-green-100", text: "text-green-700" },
   };
 
-  const colors = colorMap[type.toLowerCase()] || { bg: "bg-gray-100", text: "text-gray-700" };
+  const colors = colorMap[type.toLowerCase()] || {
+    bg: "bg-gray-100",
+    text: "text-gray-700",
+  };
 
   return {
     label: type.charAt(0).toUpperCase() + type.slice(1),

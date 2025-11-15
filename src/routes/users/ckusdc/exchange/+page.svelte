@@ -4,8 +4,10 @@
   import { toast } from "$lib/stores/toast";
   import { getExchangeRates } from "$lib/services/exchangeRateService";
   import { fetchCkUSDBalance } from "$lib/services/data/ckusdData";
+  import { fetchCkBTCBalance } from "$lib/services/data/ckbtcData";
   import { demoMode } from "$lib/stores/demoMode";
   import { principalId } from "$lib/stores/auth";
+  import { cryptoService } from "$lib/services";
   import { onMount } from "svelte";
 
   let fromAmount = $state("");
@@ -15,6 +17,10 @@
   let isLoadingRate = $state(true);
   let lastUpdated = $state<Date | null>(null);
   let userBalance = $state(0);
+  let pin = $state("");
+  let showPinEntry = $state(false);
+  let spreadAmount = $state("");
+  let netToAmount = $state("");
 
   onMount(async () => {
     await loadExchangeRate();
@@ -23,7 +29,9 @@
 
   async function loadBalance() {
     try {
-      userBalance = await fetchCkUSDBalance($principalId, $demoMode);
+      if ($principalId) {
+        userBalance = await fetchCkUSDBalance($principalId);
+      }
     } catch (error) {
       console.error("Failed to load balance:", error);
     }
@@ -46,13 +54,23 @@
   function calculateExchange() {
     if (!fromAmount || !exchangeRate) {
       toAmount = "";
+      spreadAmount = "";
+      netToAmount = "";
       return;
     }
     const usdcAmount = parseFloat(fromAmount);
-    toAmount = (usdcAmount * exchangeRate).toFixed(8);
+    const grossBTC = usdcAmount * exchangeRate;
+
+    // Platform collects 0.5% spread
+    const spread = grossBTC * 0.005;
+    const netBTC = grossBTC - spread;
+
+    toAmount = grossBTC.toFixed(8);
+    spreadAmount = spread.toFixed(8);
+    netToAmount = netBTC.toFixed(8);
   }
 
-  async function handleExchange() {
+  function handleExchangeClick() {
     const amountNum = parseFloat(fromAmount);
 
     if (!fromAmount || amountNum <= 0) {
@@ -69,35 +87,68 @@
       return;
     }
 
+    // Show PIN entry
+    showPinEntry = true;
+  }
+
+  async function handleConfirmExchange() {
+    if (!pin || pin.length !== 4) {
+      toast.show("error", "Please enter a valid 4-digit PIN");
+      return;
+    }
+
+    const amountNum = parseFloat(fromAmount);
+    const amountSmallestUnit = cryptoService.usdcToSmallest(amountNum);
+
     isExchanging = true;
     try {
-      // TODO: Call AfriTokeni crypto_canister for swaps
-      // The canister will:
-      // 1. Transfer ckUSDC from user's principal
-      // 2. Deduct 0.5% spread → send to DAO treasury
-      // 3. Swap remaining 99.5% for ckBTC
-      // 4. Transfer ckBTC to user's principal
-      //
-      // Example call:
-      // await exchangeCanister.swapUsdcToBtc({
-      //   amount: amountNum,
-      //   minOutput: parseFloat(toAmount) * 0.99 // 1% slippage tolerance
-      // });
+      // Call crypto_canister to perform the swap
+      const result = await cryptoService.swapCrypto({
+        userIdentifier: $principalId || "",
+        pin: pin,
+        fromCrypto: "ckUSDC",
+        toCrypto: "ckBTC",
+        amount: amountSmallestUnit,
+      });
 
-      if (!$demoMode) {
-        throw new Error(
-          "Crypto canister not yet deployed. Please try demo mode.",
-        );
-      }
+      // Format amounts for display
+      const fromUSDC = cryptoService.smallestToUSDC(Number(result.from_amount));
+      const toBTC = cryptoService.satoshisToBTC(Number(result.to_amount));
+      const spread = cryptoService.satoshisToBTC(
+        Number(result.spread_amount),
+      );
 
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      toast.show("success", "Exchange completed successfully!");
-      goto("/users/dashboard");
+      toast.show(
+        "success",
+        `Swapped $${fromUSDC.toFixed(2)} USDC for ${toBTC.toFixed(8)} ckBTC (${spread.toFixed(8)} spread)`,
+      );
+
+      // Refresh balances
+      await loadBalance();
+
+      // Reset form
+      fromAmount = "";
+      toAmount = "";
+      pin = "";
+      showPinEntry = false;
+
+      setTimeout(() => goto("/users/dashboard"), 2000);
     } catch (error: any) {
-      toast.show("error", error.message || "Exchange failed");
+      console.error("Swap error:", error);
+      toast.show(
+        "error",
+        error.message ||
+          "Exchange failed. Please check your PIN and try again.",
+      );
+      pin = "";
     } finally {
       isExchanging = false;
     }
+  }
+
+  function cancelPinEntry() {
+    showPinEntry = false;
+    pin = "";
   }
 </script>
 
@@ -187,6 +238,25 @@
       />
     </div>
 
+    {#if fromAmount && parseFloat(fromAmount) > 0}
+      <div class="space-y-2 rounded-lg bg-gray-50 p-4 text-sm">
+        <div class="flex justify-between">
+          <span class="text-gray-600">Market Value:</span>
+          <span class="font-medium">{toAmount} BTC</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">Platform Spread (0.5%):</span>
+          <span class="font-medium text-blue-600">-{spreadAmount} BTC</span>
+        </div>
+        <div
+          class="flex justify-between border-t border-gray-200 pt-2 font-semibold"
+        >
+          <span>You Receive:</span>
+          <span class="text-green-600">{netToAmount} BTC</span>
+        </div>
+      </div>
+    {/if}
+
     <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
       <p class="text-sm text-blue-800">
         <strong>Note:</strong> To get fiat currency (UGX), use the Withdraw feature
@@ -195,7 +265,7 @@
     </div>
 
     <button
-      onclick={handleExchange}
+      onclick={handleExchangeClick}
       disabled={isExchanging ||
         !fromAmount ||
         parseFloat(fromAmount) > userBalance ||
@@ -212,3 +282,68 @@
     </button>
   </div>
 </div>
+
+<!-- PIN Entry Modal -->
+{#if showPinEntry}
+  <div
+    class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4"
+  >
+    <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+      <h3 class="mb-4 text-xl font-bold">Confirm Exchange</h3>
+
+      <div class="mb-6 space-y-2 rounded-lg bg-gray-50 p-4 text-sm">
+        <div class="flex justify-between">
+          <span class="text-gray-600">From:</span>
+          <span class="font-medium"
+            >${parseFloat(fromAmount).toFixed(2)} USDC</span
+          >
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">To:</span>
+          <span class="font-medium text-green-600">{netToAmount} BTC</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">Spread:</span>
+          <span class="text-blue-600">{spreadAmount} BTC</span>
+        </div>
+      </div>
+
+      <div class="mb-6">
+        <label for="pin" class="mb-2 block text-sm font-medium text-gray-700">
+          Enter PIN to Confirm
+        </label>
+        <input
+          id="pin"
+          type="password"
+          inputmode="numeric"
+          maxlength="4"
+          bind:value={pin}
+          placeholder="****"
+          class="w-full rounded-lg border border-gray-300 px-4 py-3 text-center text-2xl tracking-widest focus:border-transparent focus:ring-2 focus:ring-blue-600"
+          autofocus
+        />
+      </div>
+
+      <div class="flex gap-3">
+        <button
+          onclick={cancelPinEntry}
+          disabled={isExchanging}
+          class="flex-1 rounded-lg bg-gray-200 py-3 font-semibold text-gray-700 hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Cancel
+        </button>
+        <button
+          onclick={handleConfirmExchange}
+          disabled={isExchanging || pin.length !== 4}
+          class="flex-1 rounded-lg bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {#if isExchanging}
+            Processing...
+          {:else}
+            Confirm Swap
+          {/if}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}

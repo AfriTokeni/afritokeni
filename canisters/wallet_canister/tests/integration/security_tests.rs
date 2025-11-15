@@ -100,18 +100,30 @@ fn test_daily_transaction_count_warning_at_80_percent() {
 
     // KES max_daily_transactions = 50
     // 80% of 50 = 40 transactions
+    // Velocity limit is 10 transactions/hour, so we need to advance time
 
     // Perform 39 transactions (below warning threshold)
-    for i in 0..39 {
-        let result = env.transfer_fiat(
-            &sender_id,
-            &recipient_id,
-            1000,
-            "KES",
-            "1234",
-            Some(format!("Transaction {}", i + 1)),
-        );
-        assert!(result.is_ok(), "Transaction {} should succeed", i + 1);
+    // Make 9 transactions at a time, then advance time to avoid velocity limit
+    for batch in 0..5 {
+        let transactions_in_batch = if batch < 4 { 9 } else { 3 }; // 9+9+9+9+3 = 39
+
+        for i in 0..transactions_in_batch {
+            let tx_num = batch * 9 + i + 1;
+            let result = env.transfer_fiat(
+                &sender_id,
+                &recipient_id,
+                1000,
+                "KES",
+                "1234",
+                Some(format!("Transaction {}", tx_num)),
+            );
+            assert!(result.is_ok(), "Transaction {} should succeed", tx_num);
+        }
+
+        // Advance time by 1 hour to reset velocity check
+        if batch < 4 {
+            env.pic.advance_time(std::time::Duration::from_secs(3600));
+        }
     }
 
     // 40th transaction should succeed but trigger warning (80% threshold)

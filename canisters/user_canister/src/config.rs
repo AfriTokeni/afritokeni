@@ -131,14 +131,6 @@ pub fn restore_test_mode(enabled: bool) {
     });
 }
 
-/// Access levels for authorization
-#[derive(Debug, PartialEq, Eq)]
-pub enum AccessLevel {
-    Controller,
-    AuthorizedCanister,
-    UserSelf(String), // Contains the user_id or identifier
-}
-
 /// Verify caller is authorized to call user management functions
 ///
 /// # Authorization Levels
@@ -173,73 +165,3 @@ pub fn verify_authorized_caller() -> Result<(), String> {
     })
 }
 
-/// Verify caller is authorized to access user data
-/// Supports 3-tier access control: Controller, AuthorizedCanister, UserSelf
-///
-/// # Arguments
-/// * `user_identifier` - Optional user identifier (phone, principal, or user_id)
-///
-/// # Returns
-/// * `Ok(AccessLevel)` - The access level granted
-/// * `Err` - If caller is not authorized
-///
-/// # Authorization Levels
-/// 1. Controller - Full access to all user data
-/// 2. AuthorizedCanister - Access to all user data (USSD, web canisters)
-/// 3. UserSelf - Users can only access their own data
-pub async fn verify_user_access(user_identifier: Option<&str>) -> Result<AccessLevel, String> {
-    let caller = ic_cdk::api::msg_caller();
-
-    // Level 1: Controllers have full access
-    if ic_cdk::api::is_controller(&caller) {
-        return Ok(AccessLevel::Controller);
-    }
-
-    // Check if test mode is enabled
-    let test_mode = TEST_MODE.with(|mode| *mode.borrow());
-    if test_mode {
-        return Ok(AccessLevel::Controller);
-    }
-
-    // Level 2: Authorized canisters have full access
-    let is_authorized = AUTHORIZED_CANISTERS.with(|canisters| {
-        canisters.borrow().contains(&caller)
-    });
-
-    if is_authorized {
-        return Ok(AccessLevel::AuthorizedCanister);
-    }
-
-    // Level 3: Check if user is accessing their own data
-    if let Some(identifier) = user_identifier {
-        let caller_str = caller.to_string();
-
-        // Check if identifier matches caller principal
-        if identifier == caller_str {
-            return Ok(AccessLevel::UserSelf(identifier.to_string()));
-        }
-
-        // Check if user with this phone has this principal
-        // This requires calling data_canister, so we'll use the data_client
-        use crate::services::data_client;
-
-        if let Ok(Some(user)) = data_client::get_user_by_phone(identifier).await {
-            if let Some(ref principal) = user.principal_id {
-                if principal == &caller_str {
-                    return Ok(AccessLevel::UserSelf(user.id.clone()));
-                }
-            }
-        }
-
-        // Check by principal
-        if let Ok(Some(user)) = data_client::get_user_by_principal(&caller_str).await {
-            if identifier == user.id
-                || Some(identifier.to_string()) == user.phone_number
-                || Some(&caller_str) == user.principal_id.as_ref() {
-                return Ok(AccessLevel::UserSelf(user.id.clone()));
-            }
-        }
-    }
-
-    Err("Unauthorized access".to_string())
-}

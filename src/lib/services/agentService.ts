@@ -1,7 +1,13 @@
 import { nanoid } from "nanoid";
 import { getDoc, listDocs, setDoc } from "@junobuild/core";
+import { agentCanisterService } from "./icp/canisters/agentCanisterService";
+import { walletCanisterService } from "./icp/canisters/walletCanisterService";
 
-export interface Agent {
+/**
+ * Agent metadata stored in Juno
+ * Balances are NOT stored here - they come from canisters
+ */
+export interface AgentMetadata {
   id: string;
   userId: string;
   businessName: string;
@@ -19,8 +25,6 @@ export interface Agent {
   };
   isActive: boolean;
   status: "available" | "busy" | "cash_out" | "offline";
-  cashBalance: number;
-  digitalBalance: number;
   commissionRate: number;
   createdAt: Date | string;
   rating?: number;
@@ -28,10 +32,34 @@ export interface Agent {
   reviews?: any[];
 }
 
+/**
+ * Complete agent profile with balances fetched from canisters
+ */
+export interface Agent extends AgentMetadata {
+  cashBalance: number;
+  digitalBalance: number;
+}
+
+/**
+ * Agent balances fetched from domain canisters
+ */
+export interface AgentBalances {
+  cashBalance: number; // From agent_canister (outstanding balance + credit)
+  digitalBalance: number; // From wallet_canister (fiat balance)
+  creditLimit: number; // Agent's credit limit
+  availableCredit: number; // How much credit is available
+  outstandingBalance: number; // How much agent owes the platform
+  commissionEarned: number; // Total commission earned
+  commissionPending: number; // Commission not yet paid out
+}
+
 export class AgentService {
+  /**
+   * Create new agent (stores only metadata in Juno)
+   */
   static async createAgent(
-    agent: Omit<Agent, "id" | "createdAt">,
-  ): Promise<Agent> {
+    agent: Omit<AgentMetadata, "id" | "createdAt">,
+  ): Promise<AgentMetadata> {
     const existingAgent = await this.getAgentByUserId(agent.userId);
     if (existingAgent) {
       console.warn(`Agent already exists for userId ${agent.userId}`);
@@ -39,7 +67,7 @@ export class AgentService {
     }
 
     const now = new Date();
-    const newAgent: Agent = {
+    const newAgent: AgentMetadata = {
       ...agent,
       id: nanoid(),
       createdAt: now,
@@ -61,27 +89,102 @@ export class AgentService {
     return newAgent;
   }
 
-  static async getAgent(id: string): Promise<Agent | null> {
+  /**
+   * Get agent metadata from Juno (no balances)
+   */
+  static async getAgentMetadata(id: string): Promise<AgentMetadata | null> {
     try {
       const doc = await getDoc({
         collection: "agents",
         key: id,
       });
-      return (doc?.data as Agent) || null;
+      return (doc?.data as AgentMetadata) || null;
     } catch (error) {
-      console.error("Error getting agent:", error);
+      console.error("Error getting agent metadata:", error);
       return null;
     }
   }
 
-  static async getAgentByUserId(userId: string): Promise<Agent | null> {
+  /**
+   * Get complete agent profile with balances from canisters
+   */
+  static async getAgent(
+    id: string,
+    currency: string = "UGX",
+  ): Promise<Agent | null> {
+    const metadata = await this.getAgentMetadata(id);
+    if (!metadata) return null;
+
+    const balances = await this.getAgentBalances(id, currency);
+
+    return {
+      ...metadata,
+      cashBalance: balances.cashBalance,
+      digitalBalance: balances.digitalBalance,
+    };
+  }
+
+  /**
+   * Get agent balances from domain canisters
+   * @param agentId - Agent identifier
+   * @param currency - Currency code (default: UGX)
+   */
+  static async getAgentBalances(
+    agentId: string,
+    currency: string = "UGX",
+  ): Promise<AgentBalances> {
+    try {
+      // Fetch cash balance from agent_canister
+      const agentBalance = await agentCanisterService.getAgentBalance(
+        agentId,
+        currency,
+      );
+
+      // Fetch digital balance from wallet_canister
+      const digitalBalance = await walletCanisterService.getFiatBalance(
+        agentId,
+        { [currency]: null } as any,
+      );
+
+      // Calculate cash balance as outstanding balance + available credit
+      // This represents how much cash the agent has on hand
+      const cashBalance = Number(agentBalance.outstanding_balance);
+
+      return {
+        cashBalance,
+        digitalBalance: Number(digitalBalance),
+        creditLimit: Number(agentBalance.credit_limit),
+        availableCredit: Number(agentBalance.credit_limit) - cashBalance,
+        outstandingBalance: Number(agentBalance.outstanding_balance),
+        commissionEarned: Number(agentBalance.commission_earned),
+        commissionPending: Number(agentBalance.commission_pending),
+      };
+    } catch (error) {
+      console.error("Error fetching agent balances:", error);
+      // Return zero balances on error
+      return {
+        cashBalance: 0,
+        digitalBalance: 0,
+        creditLimit: 0,
+        availableCredit: 0,
+        outstandingBalance: 0,
+        commissionEarned: 0,
+        commissionPending: 0,
+      };
+    }
+  }
+
+  /**
+   * Get agent by user ID
+   */
+  static async getAgentByUserId(userId: string): Promise<AgentMetadata | null> {
     try {
       const docs = await listDocs({
         collection: "agents",
       });
 
       for (const doc of docs.items) {
-        const agentData = doc.data as Agent;
+        const agentData = doc.data as AgentMetadata;
         if (agentData.userId === userId) {
           return {
             ...agentData,
@@ -99,12 +202,15 @@ export class AgentService {
     }
   }
 
+  /**
+   * Update agent status
+   */
   static async updateAgentStatus(
     agentId: string,
     status: "available" | "busy" | "cash_out" | "offline",
   ): Promise<boolean> {
     try {
-      const existingAgent = await this.getAgent(agentId);
+      const existingAgent = await this.getAgentMetadata(agentId);
       if (!existingAgent) return false;
 
       const existingDoc = await getDoc({
@@ -139,6 +245,9 @@ export class AgentService {
     }
   }
 
+  /**
+   * Update agent status by user ID
+   */
   static async updateAgentStatusByUserId(
     userId: string,
     status: "available" | "busy" | "cash_out" | "offline",
@@ -148,93 +257,23 @@ export class AgentService {
     return this.updateAgentStatus(agent.id, status);
   }
 
-  static async updateAgentBalance(
-    agentId: string,
-    updates: { cashBalance?: number; digitalBalance?: number },
-  ): Promise<boolean> {
-    try {
-      const existingAgent = await this.getAgent(agentId);
-      if (!existingAgent) return false;
-
-      const existingDoc = await getDoc({
-        collection: "agents",
-        key: agentId,
-      });
-
-      if (!existingDoc) return false;
-
-      const updatedAgent = {
-        ...existingAgent,
-        cashBalance:
-          updates.cashBalance !== undefined
-            ? updates.cashBalance
-            : existingAgent.cashBalance,
-        digitalBalance:
-          updates.digitalBalance !== undefined
-            ? updates.digitalBalance
-            : existingAgent.digitalBalance,
-        createdAt:
-          typeof existingAgent.createdAt === "string"
-            ? existingAgent.createdAt
-            : existingAgent.createdAt.toISOString(),
-      };
-
-      await setDoc({
-        collection: "agents",
-        doc: {
-          key: agentId,
-          data: updatedAgent,
-          version: existingDoc.version,
-        },
-      });
-
-      return true;
-    } catch (error) {
-      console.error("Error updating agent balance:", error);
-      return false;
-    }
-  }
-
-  static async updateAgentBalanceByUserId(
-    userId: string,
-    updates: { cashBalance?: number; digitalBalance?: number },
-  ): Promise<boolean> {
-    const agent = await this.getAgentByUserId(userId);
-    if (!agent) return false;
-    return this.updateAgentBalance(agent.id, updates);
-  }
-
-  static async depositCashToAgent(
-    agentId: string,
-    amount: number,
-    _description: string,
-  ): Promise<boolean> {
-    try {
-      const agent = await this.getAgent(agentId);
-      if (!agent) return false;
-
-      const newCashBalance = agent.cashBalance + amount;
-      return await this.updateAgentBalance(agentId, {
-        cashBalance: newCashBalance,
-      });
-    } catch (error) {
-      console.error("Error depositing cash to agent:", error);
-      return false;
-    }
-  }
-
+  /**
+   * Get nearby agents with metadata
+   * Balances are NOT included to avoid excessive canister calls
+   * Fetch balances separately for specific agents if needed
+   */
   static async getNearbyAgents(
     lat: number,
     lng: number,
     radius: number = 5,
     includeStatuses?: ("available" | "busy" | "cash_out" | "offline")[],
-  ): Promise<Agent[]> {
+  ): Promise<AgentMetadata[]> {
     try {
       const docs = await listDocs({
         collection: "agents",
       });
 
-      const agents = docs.items.map((doc) => doc.data as Agent);
+      const agents = docs.items.map((doc) => doc.data as AgentMetadata);
 
       const nearbyAgents = agents.filter((agent) => {
         if (!agent.isActive) return false;
@@ -272,6 +311,37 @@ export class AgentService {
     }
   }
 
+  /**
+   * Get nearby agents with full profiles (including balances)
+   * Use sparingly as this makes canister calls for each agent
+   */
+  static async getNearbyAgentsWithBalances(
+    lat: number,
+    lng: number,
+    radius: number = 5,
+    includeStatuses?: ("available" | "busy" | "cash_out" | "offline")[],
+    currency: string = "UGX",
+  ): Promise<Agent[]> {
+    const nearbyMetadata = await this.getNearbyAgents(
+      lat,
+      lng,
+      radius,
+      includeStatuses,
+    );
+
+    // Fetch balances in parallel for all agents
+    const agentPromises = nearbyMetadata.map(async (metadata) => {
+      const balances = await this.getAgentBalances(metadata.id, currency);
+      return {
+        ...metadata,
+        cashBalance: balances.cashBalance,
+        digitalBalance: balances.digitalBalance,
+      };
+    });
+
+    return Promise.all(agentPromises);
+  }
+
   private static calculateDistance(
     lat1: number,
     lon1: number,
@@ -295,6 +365,10 @@ export class AgentService {
     return deg * (Math.PI / 180);
   }
 
+  /**
+   * Complete agent KYC and create agent profile
+   * Balances are initialized automatically by canisters on first use
+   */
   static async completeAgentKYC(agentKYCData: {
     userId: string;
     firstName: string;
@@ -313,11 +387,10 @@ export class AgentService {
     documentType?: string;
     documentNumber?: string;
     businessLicense?: string;
-  }): Promise<{ user: any; agent: Agent }> {
+  }): Promise<{ user: any; agent: AgentMetadata }> {
     const { UserService } = await import("./userService");
-    // TODO: Replace with walletCanisterService
-    // const { walletCanisterService } = await import("./icp/canisters/walletCanisterService");
 
+    // Update user to approved KYC status
     const userUpdates = {
       firstName: agentKYCData.firstName,
       lastName: agentKYCData.lastName,
@@ -336,28 +409,19 @@ export class AgentService {
     const updatedUser = await UserService.getUserByKey(agentKYCData.userId);
     if (!updatedUser) throw new Error("Failed to retrieve updated user");
 
-    // TODO: Use walletCanisterService.getFiatBalance() instead
-    // const userBalance = await walletCanisterService.getFiatBalance(agentKYCData.userId, { UGX: null });
-    // const digitalBalance = Number(userBalance) || 0;
-    const digitalBalance = 0; // Temporary - use wallet_canister
-    const cashBalance = Number(
-      process.env.VITE_AGENT_INITIAL_CASH_BALANCE ?? 0,
-    );
-
+    // Check if agent already exists
     const existingAgent = await this.getAgentByUserId(agentKYCData.userId);
-    let newAgent: Agent;
+    let newAgent: AgentMetadata;
 
     if (existingAgent) {
+      // Reactivate existing agent
       await this.updateAgentStatus(existingAgent.id, "available");
-      await this.updateAgentBalance(existingAgent.id, {
-        cashBalance,
-        digitalBalance,
-      });
       const updatedAgent = await this.getAgentByUserId(agentKYCData.userId);
       if (!updatedAgent) throw new Error("Failed to retrieve updated agent");
       newAgent = updatedAgent;
     } else {
-      const agentData: Omit<Agent, "id" | "createdAt"> = {
+      // Create new agent metadata in Juno
+      const agentData: Omit<AgentMetadata, "id" | "createdAt"> = {
         userId: agentKYCData.userId,
         businessName:
           agentKYCData.businessName ||
@@ -365,68 +429,78 @@ export class AgentService {
         location: agentKYCData.location,
         isActive: true,
         status: "available",
-        cashBalance,
-        digitalBalance,
-        commissionRate: 0.02,
+        commissionRate: 0.02, // 2% commission rate
       };
       newAgent = await this.createAgent(agentData);
     }
 
-    // TODO: Balance initialization now handled by wallet_canister automatically
-    // No need to manually initialize balance
+    // Note: Agent balances are initialized automatically by domain canisters
+    // - agent_canister initializes credit limit based on tier (default: New tier)
+    // - wallet_canister tracks digital balance from first deposit
+    // No manual balance initialization needed here
 
     return { user: updatedUser, agent: newAgent };
   }
 
+  /**
+   * DEPRECATED: Balance management moved to domain canisters
+   * This method is kept for backward compatibility but does nothing
+   */
+  static async updateAgentBalance(
+    _agentId: string,
+    _updates: { cashBalance?: number; digitalBalance?: number },
+  ): Promise<boolean> {
+    console.warn(
+      "updateAgentBalance is deprecated. Balances are managed by domain canisters.",
+    );
+    return true;
+  }
+
+  /**
+   * DEPRECATED: Balance management moved to domain canisters
+   * This method is kept for backward compatibility but does nothing
+   */
+  static async updateAgentBalanceByUserId(
+    _userId: string,
+    _updates: { cashBalance?: number; digitalBalance?: number },
+  ): Promise<boolean> {
+    console.warn(
+      "updateAgentBalanceByUserId is deprecated. Balances are managed by domain canisters.",
+    );
+    return true;
+  }
+
+  /**
+   * DEPRECATED: Balance management moved to domain canisters
+   * This method is kept for backward compatibility but does nothing
+   */
+  static async depositCashToAgent(
+    _agentId: string,
+    _amount: number,
+    _description: string,
+  ): Promise<boolean> {
+    console.warn(
+      "depositCashToAgent is deprecated. Use agent_canister.create_deposit_request instead.",
+    );
+    return true;
+  }
+
+  /**
+   * DEPRECATED: Balance initialization moved to domain canisters
+   * This method is kept for backward compatibility but does nothing
+   */
   static async initializeAllAgentsCashBalance(): Promise<{
     success: boolean;
     updated: number;
     errors: string[];
   }> {
-    try {
-      const agents = await listDocs({
-        collection: "agents",
-      });
-
-      let updated = 0;
-      const errors: string[] = [];
-
-      for (const agentDoc of agents.items) {
-        try {
-          const agent = agentDoc.data as any;
-
-          if (agent.cashBalance === undefined || agent.cashBalance === null) {
-            await setDoc({
-              collection: "agents",
-              doc: {
-                key: agentDoc.key,
-                data: {
-                  ...agent,
-                  cashBalance: 0,
-                  digitalBalance: agent.digitalBalance || 0,
-                  updatedAt: new Date().toISOString(),
-                },
-              },
-            });
-            updated++;
-          }
-        } catch (error) {
-          errors.push(`Failed to update agent ${agentDoc.key}: ${error}`);
-        }
-      }
-
-      return {
-        success: errors.length === 0,
-        updated,
-        errors,
-      };
-    } catch (error) {
-      console.error("Error initializing agent balances:", error);
-      return {
-        success: false,
-        updated: 0,
-        errors: [`Failed to initialize: ${error}`],
-      };
-    }
+    console.warn(
+      "initializeAllAgentsCashBalance is deprecated. Balances are initialized by domain canisters on first use.",
+    );
+    return {
+      success: true,
+      updated: 0,
+      errors: [],
+    };
   }
 }

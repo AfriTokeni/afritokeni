@@ -7,12 +7,17 @@
  * For real fiat operations, use walletService.
  */
 
+import { walletService } from "$lib/services";
+
 /**
- * Fetch fiat balance (stub - use walletService instead)
+ * Fetch fiat balance
+ * Uses walletService to query wallet_canister
  */
-export async function fetchFiatBalance(_userId: string, _currency: string): Promise<number> {
-  // TODO: Use walletService.getBalance()
-  return 0;
+export async function fetchFiatBalance(
+  userId: string,
+  currency: string,
+): Promise<number> {
+  return await walletService.getBalance(userId, currency);
 }
 
 /**

@@ -69,6 +69,7 @@ export { cryptoCanisterService } from "./icp/canisters/cryptoCanisterService";
 export { walletCanisterService } from "./icp/canisters/walletCanisterService";
 export { agentCanisterService } from "./icp/canisters/agentCanisterService";
 export { userCanisterService } from "./icp/canisters/userCanisterService";
+export { dataCanisterService } from "./icp/canisters/dataCanisterService";
 
 // ============================================================================
 // JUNO SERVICES (Metadata, Auth, Storage)

@@ -1,10 +1,18 @@
 /**
- * ckUSD Data Service (STUB)
+ * ckUSD Data Service
  *
- * TODO: Use cryptoService instead
+ * Provides helper functions for ckUSDC balance queries.
+ * Uses cryptoService to query crypto_canister.
  */
 
-export async function fetchCkUSDBalance(_userId: string): Promise<number> {
-  // TODO: Use cryptoService.checkBalance()
-  return 0;
+import { cryptoService } from "$lib/services";
+
+/**
+ * Fetch ckUSDC balance for a user
+ * @param userId - User identifier (phone number or user ID)
+ * @returns Balance in smallest unit (cents)
+ */
+export async function fetchCkUSDBalance(userId: string): Promise<number> {
+  const balance = await cryptoService.checkBalance(userId, "ckUSDC");
+  return Number(balance);
 }
