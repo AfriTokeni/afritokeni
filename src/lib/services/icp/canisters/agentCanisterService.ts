@@ -238,7 +238,9 @@ export class AgentCanisterService {
    * NOTE: This method is not available in the agent_canister interface
    * Currency limits are configured at the canister level, not queried
    */
-  async getWithdrawalLimits(_currency: string): Promise<CurrencyLimitsResponse> {
+  async getWithdrawalLimits(
+    _currency: string,
+  ): Promise<CurrencyLimitsResponse> {
     // This method doesn't exist in the actual canister interface
     // Return default limits for now
     throw new Error("get_withdrawal_limits not implemented in agent_canister");

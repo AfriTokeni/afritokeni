@@ -32,13 +32,13 @@ struct SellCryptoRequest {
 
 #[test]
 fn test_buy_crypto_success() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
-    
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
+
     // Register user
     let phone = "+254712345678";
     let pin = "1234";
     let user_id = register_test_user(&pic, user_canister, phone, pin);
-    
+
     // Set fiat balance (100,000 KES = ~$667)
     set_fiat_balance(&pic, _data, &user_id, "KES", 10_000_000); // 100,000 KES in cents
     
@@ -75,7 +75,7 @@ fn test_buy_crypto_success() {
 
 #[test]
 fn test_buy_crypto_insufficient_fiat() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     // Register user
     let phone = "+254712345679";
@@ -109,16 +109,16 @@ fn test_buy_crypto_insufficient_fiat() {
 
 #[test]
 fn test_sell_crypto_success() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
-    
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
+
     // Register user
     let phone = "+254712345680";
     let pin = "1234";
     let user_id = register_test_user(&pic, user_canister, phone, pin);
-    
+
     // Set fiat balance and buy crypto first
     set_fiat_balance(&pic, _data, &user_id, "KES", 10_000_000);
-    
+
     let buy_request = BuyCryptoRequest {
         user_identifier: user_id.clone(),
         fiat_amount: 1_500_000,
@@ -126,7 +126,7 @@ fn test_sell_crypto_success() {
         crypto_type: "CkBTC".to_string(),
         pin: pin.to_string(),
     };
-    
+
     let args = encode_args((buy_request,)).unwrap();
     let response = pic.update_call(
         crypto_canister,
@@ -134,10 +134,14 @@ fn test_sell_crypto_success() {
         "buy_crypto",
         args,
     ).expect("Failed to buy crypto");
-    
+
     let buy_result: Result<BuyCryptoResponse, String> = decode_one(&response).unwrap();
     let buy_response = buy_result.expect("Buy should succeed");
-    
+
+    // Fund user's ledger account so they can transfer tokens when selling
+    // User is anonymous in test mode
+    fund_user_ledger_account(&pic, ckbtc_ledger, Principal::anonymous(), buy_response.crypto_amount);
+
     // Now sell half of the crypto
     let sell_amount = buy_response.crypto_amount / 2;
     let sell_request = SellCryptoRequest {
@@ -170,7 +174,7 @@ fn test_sell_crypto_success() {
 
 #[test]
 fn test_buy_usdc_success() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     // Register user
     let phone = "+254712345681";
@@ -211,7 +215,7 @@ fn test_buy_usdc_success() {
 
 #[test]
 fn test_invalid_pin_buy_crypto() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     // Register user
     let phone = "+254712345682";

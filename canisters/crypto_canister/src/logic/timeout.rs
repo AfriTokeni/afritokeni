@@ -1,7 +1,18 @@
 /// Transaction timeout mechanisms for critical operations
 /// Prevents hung operations from blocking the canister
 
+// Use mock time in tests, real time in production
+#[cfg(not(test))]
 use ic_cdk::api::time;
+
+#[cfg(test)]
+fn time() -> u64 {
+    // Return mock time for tests based on system time
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos() as u64
+}
 
 /// Default timeout for critical operations (30 seconds in nanoseconds)
 #[allow(dead_code)]

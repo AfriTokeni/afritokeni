@@ -12,7 +12,7 @@
 
 import { Actor, HttpAgent } from "@dfinity/agent";
 import { CANISTER_IDS, getHost, DAO_CONFIG } from "$lib/config/canister";
-import { demoProposals } from "$lib/stores/demoProposals";
+import { demoProposals, type DemoProposal } from "$lib/stores/demoProposals";
 
 export type ProposalType =
   | "fee_adjustment"
@@ -279,15 +279,15 @@ export async function getActiveSNSProposals(
   if (isDemoMode) {
     // Convert demo proposals to Proposal format
     const demos = demoProposals.getAll();
-    return demos.map((demo) => ({
+    return demos.map((demo: DemoProposal) => ({
       id: demo.id,
       type: demo.type as ProposalType,
       title: demo.title,
       description: demo.description,
       proposer: demo.proposer,
-      createdAt: demo.createdAt,
-      votingEndsAt: demo.votingEndsAt,
-      status: demo.status,
+      createdAt: new Date(demo.createdAt),
+      votingEndsAt: new Date(demo.votingEndsAt),
+      status: demo.status as ProposalStatus,
       votes: demo.votes,
       quorum: DAO_CONFIG.QUORUM_PERCENTAGE,
       threshold: DAO_CONFIG.PASS_THRESHOLD,

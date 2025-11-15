@@ -223,7 +223,6 @@ export class AgentOperationsService {
   }> {
     return await agentCanisterService.getWithdrawalFees(
       BigInt(Math.round(amount)),
-      currency,
     );
   }
 

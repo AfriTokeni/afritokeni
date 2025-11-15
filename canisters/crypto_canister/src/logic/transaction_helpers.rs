@@ -1,10 +1,9 @@
 /// Transaction helper functions for buy_crypto and sell_crypto operations
 /// This module extracts common patterns to reduce code duplication and complexity
-
 use shared_types::{audit, CryptoType};
 
 use crate::logic::fraud_detection;
-use crate::services::{user_client, data_client};
+use crate::services::{data_client, user_client};
 
 /// Result of user verification check
 #[allow(dead_code)]
@@ -94,9 +93,7 @@ pub fn check_operation_rate_limit(
 }
 
 /// Performs comprehensive fraud detection and returns result
-pub fn perform_fraud_check(
-    context: &FraudCheckContext,
-) -> Result<FraudCheckResult, String> {
+pub fn perform_fraud_check(context: &FraudCheckContext) -> Result<FraudCheckResult, String> {
     let fraud_check = fraud_detection::check_transaction(
         context.user_identifier,
         context.amount,
@@ -116,7 +113,10 @@ pub fn perform_fraud_check(
                 fraud_check.warnings, context.device_fingerprint, context.geo_location
             ),
         );
-        return Err(format!("Transaction blocked due to security concerns: {:?}", fraud_check.warnings));
+        return Err(format!(
+            "Transaction blocked due to security concerns: {:?}",
+            fraud_check.warnings
+        ));
     }
 
     if fraud_check.requires_manual_review {
@@ -125,7 +125,10 @@ pub fn perform_fraud_check(
             Some(context.user_identifier.to_string()),
             format!(
                 "Operation: {} | Amount: {} {} | Risk Score: {} | Warnings: {:?}",
-                context.operation, context.amount, context.currency, fraud_check.risk_score,
+                context.operation,
+                context.amount,
+                context.currency,
+                fraud_check.risk_score,
                 fraud_check.warnings
             ),
         );
@@ -140,10 +143,7 @@ pub fn perform_fraud_check(
 }
 
 /// Records device fingerprint with audit logging
-pub fn record_device_fingerprint(
-    user_identifier: &str,
-    fingerprint: &str,
-) -> Result<(), String> {
+pub fn record_device_fingerprint(user_identifier: &str, fingerprint: &str) -> Result<(), String> {
     fraud_detection::record_device_fingerprint(user_identifier, fingerprint)?;
     audit::log_success(
         "device_recorded",
@@ -154,10 +154,7 @@ pub fn record_device_fingerprint(
 }
 
 /// Records geo location with audit logging
-pub fn record_geo_location(
-    user_identifier: &str,
-    location: &str,
-) -> Result<(), String> {
+pub fn record_geo_location(user_identifier: &str, location: &str) -> Result<(), String> {
     fraud_detection::record_geo_location(user_identifier, location)?;
     audit::log_success(
         "location_recorded",
@@ -216,11 +213,7 @@ pub async fn get_crypto_balance_by_type(
 }
 
 /// Calculates crypto balance delta for buy/sell operations
-pub fn calculate_crypto_delta(
-    amount: u64,
-    crypto_type: CryptoType,
-    is_credit: bool,
-) -> (i64, i64) {
+pub fn calculate_crypto_delta(amount: u64, crypto_type: CryptoType, is_credit: bool) -> (i64, i64) {
     let signed_amount = if is_credit {
         amount as i64
     } else {
@@ -272,4 +265,22 @@ mod tests {
         assert_eq!(btc, 0);
         assert_eq!(usdc, -500);
     }
+}
+
+/// Calculates purchase fee for buy_crypto operations
+/// Returns (fee_amount, total_to_deduct)
+pub fn calculate_purchase_fee(fiat_amount: u64, fee_bp: u64) -> Result<(u64, u64), String> {
+    let fee = (fiat_amount * fee_bp) / 10000;
+    let total = fiat_amount.checked_add(fee)
+        .ok_or("Total amount calculation would overflow")?;
+    Ok((fee, total))
+}
+
+/// Calculates sale fee for sell_crypto operations
+/// Returns (fee_amount, net_proceeds)
+pub fn calculate_sale_fee(gross_amount: u64, fee_bp: u64) -> Result<(u64, u64), String> {
+    let fee = (gross_amount * fee_bp) / 10000;
+    let net = gross_amount.checked_sub(fee)
+        .ok_or("Fee calculation would underflow")?;
+    Ok((fee, net))
 }

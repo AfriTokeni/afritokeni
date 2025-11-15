@@ -48,7 +48,7 @@ struct BuyCryptoResponse {
 
 #[test]
 fn test_create_escrow_success() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     // Register user and agent
     let user_phone = "+254712345710";
@@ -108,7 +108,7 @@ fn test_create_escrow_success() {
 
 #[test]
 fn test_verify_escrow_success() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     let user_phone = "+254712345712";
     let agent_phone = "+254712345713";
@@ -176,7 +176,7 @@ fn test_verify_escrow_success() {
 
 #[test]
 fn test_cancel_escrow_success() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     let user_phone = "+254712345714";
     let agent_phone = "+254712345715";
@@ -232,7 +232,7 @@ fn test_cancel_escrow_success() {
 
 #[test]
 fn test_escrow_wrong_agent() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     let user_phone = "+254712345716";
     let agent1_phone = "+254712345717";
@@ -293,7 +293,7 @@ fn test_escrow_wrong_agent() {
 
 #[test]
 fn test_escrow_insufficient_balance() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     let user_phone = "+254712345719";
     let agent_phone = "+254712345720";

@@ -538,17 +538,17 @@ mod tests {
     #[test]
     fn test_rate_limit() {
         let user_id = "test_user";
-        
+
         // First call should succeed
-        assert!(check_rate_limit(user_id).unwrap());
-        
-        // Should allow up to MAX_TRANSACTIONS_PER_MINUTE
-        for _ in 1..MAX_TRANSACTIONS_PER_MINUTE {
-            assert!(check_rate_limit(user_id).unwrap());
+        assert!(check_operation_rate_limit(user_id, "buy_crypto").unwrap());
+
+        // Should allow up to MAX_BUYS_PER_HOUR
+        for _ in 1..MAX_BUYS_PER_HOUR {
+            assert!(check_operation_rate_limit(user_id, "buy_crypto").unwrap());
         }
-        
+
         // Next call should fail
-        assert!(!check_rate_limit(user_id).unwrap());
+        assert!(!check_operation_rate_limit(user_id, "buy_crypto").unwrap());
     }
     
     #[test]

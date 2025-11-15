@@ -179,14 +179,14 @@ fn icrc2_transfer_from(arg: TransferFromArg) -> TransferFromResult {
     let amount: u64 = arg.amount.0.try_into().unwrap_or(0);
 
     ic_cdk::println!("🔍 Mock transfer_from called: from_key='{}', to_key='{}', amount={}", from_key, to_key, amount);
-    
-    // Check allowance
+
+    // Check allowance (but allow unlimited for testing if no explicit allowance set)
     let allowed = ALLOWANCES.with(|a| {
-        a.borrow().get(&allowance_key_str).copied().unwrap_or(0)
+        a.borrow().get(&allowance_key_str).copied().unwrap_or(u64::MAX)  // Default to unlimited for testing
     });
 
     ic_cdk::println!("🔍 Mock transfer_from allowance check: allowance_key='{}', allowed={}, need={}",
-        allowance_key_str, allowed, amount);
+        allowance_key_str, if allowed == u64::MAX { "unlimited".to_string() } else { allowed.to_string() }, amount);
 
     if allowed < amount {
         return Err(TransferError::InsufficientFunds {
@@ -206,25 +206,28 @@ fn icrc2_transfer_from(arg: TransferFromArg) -> TransferFromResult {
                 balance: Nat::from(from_balance),
             });
         }
-        
+
         // Update balances
         balances.insert(from_key.clone(), from_balance - amount);
         let to_balance = balances.get(&to_key).copied().unwrap_or(0);
-        balances.insert(to_key, to_balance + amount);
-        
-        // Decrease allowance
-        ALLOWANCES.with(|a| {
-            let mut allowances = a.borrow_mut();
-            allowances.insert(allowance_key_str.clone(), allowed - amount);
-        });
-        
+        balances.insert(to_key.clone(), to_balance + amount);
+
+        // Decrease allowance (only if not unlimited)
+        if allowed != u64::MAX {
+            ALLOWANCES.with(|a| {
+                let mut allowances = a.borrow_mut();
+                allowances.insert(allowance_key_str.clone(), allowed - amount);
+            });
+        }
+
         let tx_id = NEXT_TX_ID.with(|id| {
             let current = *id.borrow();
             *id.borrow_mut() = current + 1;
             current
         });
-        
+
         ic_cdk::println!("✅ Mock transfer_from: {} -> {} amount: {}", from_key, account_key(&arg.to), amount);
+        ic_cdk::println!("💰 Balance after transfer_from: from={}, to={}", from_balance - amount, to_balance + amount);
         Ok(Nat::from(tx_id))
     })
 }

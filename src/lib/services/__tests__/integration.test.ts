@@ -38,13 +38,11 @@ describe("Integration Tests - End-to-End Flows", () => {
 
       // Step 1: User creates deposit request
       const mockDepositResponse = {
+        agent_commission: 500n,
         deposit_code: "DEP123456",
-        user_id: TEST_USER_ID,
-        agent_id: TEST_AGENT_ID,
-        amount: BigInt(depositAmount),
+        net_to_user: 99_500n, // Amount minus commission
         currency: "UGX",
-        status: { Pending: null },
-        created_at: BigInt(Math.floor(Date.now() / 1000)),
+        amount: BigInt(depositAmount),
         expires_at: BigInt(Math.floor(Date.now() / 1000) + 3600),
       };
 
@@ -61,15 +59,15 @@ describe("Integration Tests - End-to-End Flows", () => {
       });
 
       expect(depositRequest.deposit_code).toBe("DEP123456");
-      expect(depositRequest.status).toEqual({ Pending: null });
+      expect(Number(depositRequest.agent_commission)).toBe(500);
 
       // Step 2: Agent confirms deposit after receiving cash
       const mockConfirmResponse = {
-        deposit_code: "DEP123456",
-        user_balance: 1_100_000n, // User now has 1.1M
         agent_commission: 500n, // Agent earns 500 UGX
-        platform_fee: 50n, // Platform gets 10% of commission
-        status: { Confirmed: null },
+        deposit_code: "DEP123456",
+        user_id: TEST_USER_ID,
+        currency: "UGX",
+        amount: BigInt(depositAmount),
         confirmed_at: BigInt(Math.floor(Date.now() / 1000)),
       };
 
@@ -83,8 +81,8 @@ describe("Integration Tests - End-to-End Flows", () => {
         agentPin: "5678",
       });
 
-      expect(confirmation.status).toEqual({ Confirmed: null });
-      expect(Number(confirmation.user_balance)).toBe(1_100_000);
+      expect(confirmation.deposit_code).toBe("DEP123456");
+      expect(confirmation.user_id).toBe(TEST_USER_ID);
       expect(Number(confirmation.agent_commission)).toBe(500);
 
       // Step 3: Verify user can now query their balance
@@ -104,13 +102,11 @@ describe("Integration Tests - End-to-End Flows", () => {
 
       // Step 1: User creates withdrawal request
       const mockWithdrawalResponse = {
-        withdrawal_code: "WD123456",
-        user_id: TEST_USER_ID,
-        agent_id: TEST_AGENT_ID,
-        amount: BigInt(withdrawalAmount),
+        net_to_user: 49_750n, // Amount minus fees
+        total_fees: 250n,
         currency: "UGX",
-        status: { Pending: null },
-        created_at: BigInt(Math.floor(Date.now() / 1000)),
+        withdrawal_code: "WD123456",
+        amount: BigInt(withdrawalAmount),
         expires_at: BigInt(Math.floor(Date.now() / 1000) + 3600),
       };
 
@@ -131,11 +127,11 @@ describe("Integration Tests - End-to-End Flows", () => {
 
       // Step 2: Agent confirms withdrawal after giving cash
       const mockConfirmResponse = {
+        total_fees: 250n,
+        user_id: TEST_USER_ID,
+        currency: "UGX",
         withdrawal_code: "WD123456",
-        user_balance: 950_000n, // User balance reduced
-        agent_commission: 250n,
-        platform_fee: 25n,
-        status: { Confirmed: null },
+        amount: BigInt(withdrawalAmount),
         confirmed_at: BigInt(Math.floor(Date.now() / 1000)),
       };
 
@@ -149,8 +145,8 @@ describe("Integration Tests - End-to-End Flows", () => {
         agentPin: "5678",
       });
 
-      expect(confirmation.status).toEqual({ Confirmed: null });
-      expect(Number(confirmation.user_balance)).toBe(950_000);
+      expect(confirmation.withdrawal_code).toBe("WD123456");
+      expect(Number(confirmation.total_fees)).toBe(250);
     });
 
     it("should allow user to cancel withdrawal before confirmation", async () => {
@@ -174,11 +170,12 @@ describe("Integration Tests - End-to-End Flows", () => {
 
       // Step 1: Buy ckBTC with fiat
       const mockBuyResponse = {
-        crypto_amount: 100_000n, // 0.001 BTC
-        exchange_rate: 95_000_000n,
-        platform_fee: BigInt(calculateExpectedFee(fiatAmount)),
-        fiat_deducted: BigInt(fiatAmount),
         transaction_id: "tx_buy_001",
+        fiat_amount: BigInt(fiatAmount),
+        crypto_type: "ckBTC",
+        timestamp: BigInt(Date.now()),
+        exchange_rate: 95_000_000,
+        crypto_amount: 100_000n, // 0.001 BTC
       };
 
       vi.spyOn(cryptoCanisterService, "buyCrypto").mockResolvedValue(
@@ -193,7 +190,7 @@ describe("Integration Tests - End-to-End Flows", () => {
         fiatAmount,
       });
 
-      expect(Number(buyResult.platform_fee)).toBe(500); // 0.5% fee collected
+      expect(buyResult.transaction_id).toBe("tx_buy_001");
       expect(Number(buyResult.crypto_amount)).toBe(100_000);
 
       // Step 2: Check crypto balance
@@ -210,11 +207,12 @@ describe("Integration Tests - End-to-End Flows", () => {
 
       // Step 3: Sell crypto back to fiat
       const mockSellResponse = {
-        crypto_amount: 100_000n,
-        exchange_rate: 95_000_000n,
-        platform_fee: 475n,
-        fiat_deducted: 94_525n, // After 0.5% fee
         transaction_id: "tx_sell_001",
+        fiat_amount: 95_000n, // Fiat received
+        crypto_type: "ckBTC",
+        timestamp: BigInt(Date.now()),
+        exchange_rate: 95_000_000,
+        crypto_amount: 100_000n,
       };
 
       vi.spyOn(cryptoCanisterService, "sellCrypto").mockResolvedValue(
@@ -229,8 +227,8 @@ describe("Integration Tests - End-to-End Flows", () => {
         cryptoAmount: 100_000,
       });
 
-      expect(Number(sellResult.platform_fee)).toBe(475); // 0.5% fee collected
-      expect(Number(sellResult.fiat_deducted)).toBe(94_525);
+      expect(sellResult.transaction_id).toBe("tx_sell_001");
+      expect(Number(sellResult.fiat_amount)).toBe(95_000);
     });
   });
 
@@ -240,11 +238,15 @@ describe("Integration Tests - End-to-End Flows", () => {
       const expectedFee = calculateExpectedFee(transferAmount);
 
       const mockTransferResponse = {
-        from_balance: 900_000n,
-        to_balance: BigInt(transferAmount - expectedFee), // Receiver gets net amount
-        platform_fee: BigInt(expectedFee),
+        fee: BigInt(expectedFee),
         transaction_id: "tx_p2p_001",
+        recipient_new_balance: BigInt(transferAmount - expectedFee), // Receiver gets net amount
+        to_user_id: "+256700000002",
+        from_user_id: TEST_USER_ID,
+        currency: "UGX",
+        sender_new_balance: 900_000n,
         timestamp: BigInt(Math.floor(Date.now() / 1000)),
+        amount: BigInt(transferAmount),
       };
 
       vi.spyOn(walletCanisterService, "transferFiat").mockResolvedValue(
@@ -261,8 +263,8 @@ describe("Integration Tests - End-to-End Flows", () => {
       });
 
       // Verify fee was collected
-      expect(Number(result.platform_fee)).toBe(500);
-      expect(Number(result.to_balance)).toBe(99_500); // Net after fee
+      expect(Number(result.fee)).toBe(500);
+      expect(Number(result.recipient_new_balance)).toBe(99_500); // Net after fee
 
       // Verify transaction history can be queried
       const mockHistory = [
@@ -296,9 +298,7 @@ describe("Integration Tests - End-to-End Flows", () => {
 
       // Step 1: User creates escrow to sell crypto for cash
       const mockCreateResponse = {
-        escrow_code: "ESC123456",
-        user_id: TEST_USER_ID,
-        agent_id: TEST_AGENT_ID,
+        code: "ESC123456",
         crypto_type: "ckBTC",
         amount: BigInt(escrowAmount),
         expires_at: BigInt(Math.floor(Date.now() / 1000) + 3600),
@@ -316,7 +316,7 @@ describe("Integration Tests - End-to-End Flows", () => {
         amount: escrowAmount,
       });
 
-      expect(escrow.escrow_code).toBe("ESC123456");
+      expect(escrow.code).toBe("ESC123456");
 
       // Step 2: Check escrow status
       const mockEscrowStatus = {
@@ -375,11 +375,12 @@ describe("Integration Tests - End-to-End Flows", () => {
     it("should complete BTC → USDC → Fiat flow with fee collection", async () => {
       // Step 1: Swap ckBTC to ckUSDC
       const mockSwapResponse = {
+        transaction_id: "tx_swap_001",
         from_amount: 100_000n, // 0.001 BTC
         to_amount: 95_000n, // ~$950 USDC (after spread)
-        spread_collected: 50n, // 0.5% spread
-        exchange_rate: 95_500n,
-        transaction_id: "tx_swap_001",
+        timestamp: BigInt(Date.now()),
+        spread_amount: 50n, // 0.5% spread
+        exchange_rate: 95_500,
       };
 
       vi.spyOn(cryptoCanisterService, "swapCrypto").mockResolvedValue(
@@ -394,16 +395,17 @@ describe("Integration Tests - End-to-End Flows", () => {
         amount: 100_000,
       });
 
-      expect(Number(swapResult.spread_collected)).toBe(50); // Spread collected
+      expect(Number(swapResult.spread_amount)).toBe(50); // Spread collected
       expect(Number(swapResult.to_amount)).toBe(95_000);
 
       // Step 2: Sell ckUSDC for fiat
       const mockSellResponse = {
-        crypto_amount: 95_000n,
-        exchange_rate: 3_700n, // UGX per USDC
-        platform_fee: 1_758n, // 0.5% of 351,500
-        fiat_deducted: 349_742n,
         transaction_id: "tx_sell_usdc_001",
+        fiat_amount: 351_500n, // Fiat received for USDC
+        crypto_type: "ckUSDC",
+        timestamp: BigInt(Date.now()),
+        exchange_rate: 3_700, // UGX per USDC
+        crypto_amount: 95_000n,
       };
 
       vi.spyOn(cryptoCanisterService, "sellCrypto").mockResolvedValue(
@@ -418,8 +420,8 @@ describe("Integration Tests - End-to-End Flows", () => {
         cryptoAmount: 95_000,
       });
 
-      expect(Number(sellResult.platform_fee)).toBe(1_758); // Fee collected
-      expect(Number(sellResult.fiat_deducted)).toBe(349_742);
+      expect(sellResult.transaction_id).toBe("tx_sell_usdc_001");
+      expect(Number(sellResult.fiat_amount)).toBe(351_500);
     });
   });
 
@@ -447,11 +449,12 @@ describe("Integration Tests - End-to-End Flows", () => {
 
       // 2. Buy ckBTC
       vi.spyOn(cryptoCanisterService, "buyCrypto").mockResolvedValue({
-        crypto_amount: 1_000_000n,
-        exchange_rate: 95_000_000n,
-        platform_fee: 5_000n,
-        fiat_deducted: 1_000_000n,
         transaction_id: "tx_buy_001",
+        fiat_amount: 1_000_000n,
+        crypto_type: "ckBTC",
+        timestamp: BigInt(Date.now()),
+        exchange_rate: 95_000_000,
+        crypto_amount: 1_000_000n,
       });
 
       await CryptoService.buyCrypto({
@@ -464,11 +467,12 @@ describe("Integration Tests - End-to-End Flows", () => {
 
       // 3. Swap to ckUSDC
       vi.spyOn(cryptoCanisterService, "swapCrypto").mockResolvedValue({
+        transaction_id: "tx_swap_001",
         from_amount: 1_000_000n,
         to_amount: 950_000n,
-        spread_collected: 50n,
-        exchange_rate: 95_500n,
-        transaction_id: "tx_swap_001",
+        timestamp: BigInt(Date.now()),
+        spread_amount: 50n,
+        exchange_rate: 95_500,
       });
 
       await CryptoService.swapCrypto({
@@ -481,11 +485,12 @@ describe("Integration Tests - End-to-End Flows", () => {
 
       // 4. Sell ckUSDC
       vi.spyOn(cryptoCanisterService, "sellCrypto").mockResolvedValue({
-        crypto_amount: 950_000n,
-        exchange_rate: 3_700n,
-        platform_fee: 17_575n,
-        fiat_deducted: 3_497_425n,
         transaction_id: "tx_sell_001",
+        fiat_amount: 3_515_000n, // Fiat received
+        crypto_type: "ckUSDC",
+        timestamp: BigInt(Date.now()),
+        exchange_rate: 3_700,
+        crypto_amount: 950_000n,
       });
 
       await CryptoService.sellCrypto({

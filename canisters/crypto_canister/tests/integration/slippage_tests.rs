@@ -47,7 +47,7 @@ struct BuyCryptoResponse {
 /// Verifies: 1% default slippage is calculated and validated
 #[test]
 fn test_swap_crypto_with_slippage_protection() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712345800";
     let pin = "1234";
@@ -114,7 +114,7 @@ fn test_swap_crypto_with_slippage_protection() {
 /// This ensures the actual output meets the minimum threshold
 #[test]
 fn test_swap_validates_slippage_after_execution() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712345801";
     let pin = "1234";
@@ -171,7 +171,7 @@ fn test_swap_validates_slippage_after_execution() {
 /// This verifies slippage protection scales with transaction size
 #[test]
 fn test_large_swap_respects_slippage() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712345802";
     let pin = "1234";
@@ -232,18 +232,18 @@ fn test_large_swap_respects_slippage() {
 /// Verifies consistency across multiple operations
 #[test]
 fn test_multiple_swaps_all_protected() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712345803";
     let pin = "1234";
     let user_id = register_test_user(&pic, user_canister, phone, pin);
 
-    // Buy BTC
-    set_fiat_balance(&pic, _data, &user_id, "KES", 20_000_000);
+    // Buy BTC - increased amount to ensure sufficient balance for multiple swaps with spread/slippage
+    set_fiat_balance(&pic, _data, &user_id, "KES", 50_000_000);
 
     let buy_request = BuyCryptoRequest {
         user_identifier: user_id.clone(),
-        fiat_amount: 10_000_000,
+        fiat_amount: 30_000_000,  // Increased from 10M to 30M to cover swaps with spread
         currency: "KES".to_string(),
         crypto_type: "CkBTC".to_string(),
         pin: pin.to_string(),
@@ -256,14 +256,26 @@ fn test_multiple_swaps_all_protected() {
     let buy_result: Result<BuyCryptoResponse, String> = decode_one(&response).unwrap();
     let buy_response = buy_result.expect("Buy should succeed");
 
-    // Perform 3 swaps back and forth
-    let swap_amount = buy_response.crypto_amount / 4;
+    // Perform 3 swaps back and forth - use smaller portion to account for spread losses
+    // Each swap loses 0.5% to spread, so we need to track actual balance
+    let initial_swap_amount = buy_response.crypto_amount / 10;  // Start with 1/10th of balance
 
     for i in 0..3 {
         let (from_crypto, to_crypto) = if i % 2 == 0 {
             ("CkBTC".to_string(), "CkUSDC".to_string())
         } else {
             ("CkUSDC".to_string(), "CkBTC".to_string())
+        };
+
+        // Get current balance to determine how much we can swap
+        let current_balance = get_crypto_balance(&pic, crypto_canister, &user_id, &from_crypto);
+
+        // For first swap use initial amount, for subsequent swaps use most of available balance
+        // Leave small buffer for potential rounding
+        let swap_amount = if i == 0 {
+            initial_swap_amount
+        } else {
+            (current_balance * 95) / 100  // Use 95% of balance to account for spread and rounding
         };
 
         let swap_request = SwapCryptoRequest {
@@ -302,7 +314,7 @@ fn test_multiple_swaps_all_protected() {
 /// This test documents expected behavior when real DEX integration is active
 #[test]
 fn test_slippage_validation_would_catch_extreme_deviation() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712345804";
     let pin = "1234";

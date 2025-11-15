@@ -10,10 +10,11 @@ mod cleanup_tests;
 mod fraud_detection_tests;
 mod slippage_tests;
 mod error_sanitization_tests;
-mod refactored_buy_sell_tests;
+mod buy_sell_flow_tests;
 
 /// Helper to create PocketIC instance with all required canisters
-pub fn setup_test_environment() -> (PocketIc, Principal, Principal, Principal, Principal) {
+/// Returns: (PocketIc, data_canister, user_canister, wallet_canister, crypto_canister, ckbtc_ledger, ckusdc_ledger)
+pub fn setup_test_environment() -> (PocketIc, Principal, Principal, Principal, Principal, Principal, Principal) {
     let pic = PocketIc::new();
 
     // Get workspace root (tests run from canister directory, need to go up 2 levels)
@@ -37,7 +38,7 @@ pub fn setup_test_environment() -> (PocketIc, Principal, Principal, Principal, P
     pic.add_cycles(crypto_canister, 100_000_000_000_000);
     pic.add_cycles(ckbtc_ledger, 100_000_000_000_000);
     pic.add_cycles(ckusdc_ledger, 100_000_000_000_000);
-    
+
     // Deploy data canister with ALL authorized canisters
     let data_wasm = std::fs::read(wasm_dir.join("data_canister.wasm"))
         .expect("Data canister WASM not found. Run: cargo build --target wasm32-unknown-unknown --release -p data_canister");
@@ -45,17 +46,17 @@ pub fn setup_test_environment() -> (PocketIc, Principal, Principal, Principal, P
     // Note: wallet_canister calls through these, doesn't need direct access
     let data_init_args = encode_args((Some(user_canister.to_text()), Some(crypto_canister.to_text()))).unwrap();
     pic.install_canister(data_canister, data_wasm, data_init_args, None);
-    
+
     // Deploy user canister
     let user_wasm = std::fs::read(wasm_dir.join("user_canister.wasm"))
         .expect("User canister WASM not found. Run: cargo build --target wasm32-unknown-unknown --release -p user_canister");
     pic.install_canister(user_canister, user_wasm, vec![], None);
-    
+
     // Deploy wallet canister
     let wallet_wasm = std::fs::read(wasm_dir.join("wallet_canister.wasm"))
         .expect("Wallet canister WASM not found. Run: cargo build --target wasm32-unknown-unknown --release -p wallet_canister");
     pic.install_canister(wallet_canister, wallet_wasm, vec![], None);
-    
+
     // Deploy crypto canister
     let crypto_wasm = std::fs::read(wasm_dir.join("crypto_canister.wasm"))
         .expect("Crypto canister WASM not found. Run: cargo build --target wasm32-unknown-unknown --release -p crypto_canister");
@@ -70,7 +71,7 @@ pub fn setup_test_environment() -> (PocketIc, Principal, Principal, Principal, P
     // Configure canisters
     configure_canisters(&pic, data_canister, user_canister, wallet_canister, crypto_canister, ckbtc_ledger, ckusdc_ledger);
 
-    (pic, data_canister, user_canister, wallet_canister, crypto_canister)
+    (pic, data_canister, user_canister, wallet_canister, crypto_canister, ckbtc_ledger, ckusdc_ledger)
 }
 
 /// Configure all canisters with their dependencies
@@ -300,8 +301,37 @@ pub fn get_crypto_balance(
         "check_crypto_balance",
         args,
     ).expect("Failed to check crypto balance");
-    
+
     let (result,): (Result<u64, String>,) = candid::decode_args(&response)
         .expect("Failed to decode check_crypto_balance response");
     result.expect("Check crypto balance failed")
+}
+
+/// Helper to fund a user's ledger account for testing sell operations
+/// After buying crypto, tests need to fund the user's actual ledger account
+/// so they can transfer tokens back when selling
+pub fn fund_user_ledger_account(
+    pic: &PocketIc,
+    ledger: Principal,
+    user_principal: Principal,
+    amount: u64,
+) {
+    #[derive(candid::CandidType)]
+    struct Account {
+        owner: Principal,
+        subaccount: Option<Vec<u8>>,
+    }
+
+    let account = Account {
+        owner: user_principal,
+        subaccount: None,
+    };
+
+    let args = encode_args((account, amount)).unwrap();
+    pic.update_call(
+        ledger,
+        Principal::anonymous(),
+        "set_balance_for_testing",
+        args,
+    ).expect("Failed to fund user ledger account");
 }

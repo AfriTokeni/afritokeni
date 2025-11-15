@@ -32,7 +32,7 @@ struct BuyCryptoResponse {
 
 #[test]
 fn test_send_crypto_btc_success() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     // Register user and buy crypto first
     let phone = "+254712345690";
@@ -81,7 +81,7 @@ fn test_send_crypto_btc_success() {
 
 #[test]
 fn test_send_crypto_usdc_success() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     let phone = "+254712345691";
     let pin = "1234";
@@ -123,7 +123,7 @@ fn test_send_crypto_usdc_success() {
 
 #[test]
 fn test_send_crypto_insufficient_balance() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     let phone = "+254712345692";
     let pin = "1234";
@@ -166,7 +166,7 @@ fn test_send_crypto_insufficient_balance() {
 
 #[test]
 fn test_send_crypto_invalid_address() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     let phone = "+254712345693";
     let pin = "1234";
@@ -206,7 +206,7 @@ fn test_send_crypto_invalid_address() {
 
 #[test]
 fn test_send_crypto_invalid_pin() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     let phone = "+254712345694";
     let pin = "1234";

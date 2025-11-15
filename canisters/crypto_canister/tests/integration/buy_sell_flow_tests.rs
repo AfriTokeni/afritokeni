@@ -40,8 +40,8 @@ struct SellCryptoRequest {
 
 /// Regression test: buy_crypto basic flow works after refactor
 #[test]
-fn test_refactored_buy_crypto_basic_flow() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+fn test_buy_crypto_basic_flow() {
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712346000";
     let pin = "1234";
@@ -81,8 +81,8 @@ fn test_refactored_buy_crypto_basic_flow() {
 
 /// Regression test: sell_crypto basic flow works after refactor
 #[test]
-fn test_refactored_sell_crypto_basic_flow() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+fn test_sell_crypto_basic_flow() {
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712346001";
     let pin = "1234";
@@ -107,6 +107,9 @@ fn test_refactored_sell_crypto_basic_flow() {
 
     let buy_result: Result<BuyCryptoResponse, String> = decode_one(&response).unwrap();
     let buy_response = buy_result.expect("Buy should succeed");
+
+    // Fund user's ledger account so they can transfer tokens when selling
+    fund_user_ledger_account(&pic, _ckbtc_ledger, Principal::anonymous(), 1_000_000_000);
 
     // Now sell the crypto
     let sell_request = SellCryptoRequest {
@@ -140,8 +143,8 @@ fn test_refactored_sell_crypto_basic_flow() {
 
 /// Regression test: PIN verification still works in refactored buy_crypto
 #[test]
-fn test_refactored_buy_crypto_pin_verification() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+fn test_buy_crypto_requires_pin() {
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712346002";
     let pin = "1234";
@@ -175,8 +178,8 @@ fn test_refactored_buy_crypto_pin_verification() {
 
 /// Regression test: Insufficient balance check still works
 #[test]
-fn test_refactored_buy_crypto_insufficient_balance() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+fn test_buy_crypto_insufficient_fiat() {
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712346003";
     let pin = "1234";
@@ -210,8 +213,8 @@ fn test_refactored_buy_crypto_insufficient_balance() {
 
 /// Regression test: sell_crypto with insufficient crypto balance
 #[test]
-fn test_refactored_sell_crypto_insufficient_crypto() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+fn test_sell_crypto_insufficient_crypto() {
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712346004";
     let pin = "1234";
@@ -243,8 +246,8 @@ fn test_refactored_sell_crypto_insufficient_crypto() {
 
 /// Regression test: buy_crypto with device fingerprint and geo location
 #[test]
-fn test_refactored_buy_crypto_with_tracking_data() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+fn test_buy_crypto_fraud_detection() {
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712346005";
     let pin = "1234";
@@ -278,8 +281,8 @@ fn test_refactored_buy_crypto_with_tracking_data() {
 
 /// Regression test: sell_crypto with device fingerprint and geo location
 #[test]
-fn test_refactored_sell_crypto_with_tracking_data() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+fn test_sell_crypto_fraud_detection() {
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712346006";
     let pin = "1234";
@@ -304,6 +307,9 @@ fn test_refactored_sell_crypto_with_tracking_data() {
 
     let buy_result: Result<BuyCryptoResponse, String> = decode_one(&response).unwrap();
     let buy_response = buy_result.expect("Buy should succeed");
+
+    // Fund user's ledger account so they can transfer tokens when selling
+    fund_user_ledger_account(&pic, _ckbtc_ledger, Principal::anonymous(), 1_000_000_000);
 
     // Sell with tracking data
     let sell_request = SellCryptoRequest {
@@ -330,8 +336,8 @@ fn test_refactored_sell_crypto_with_tracking_data() {
 
 /// Regression test: buy and sell ckUSDC (not just ckBTC)
 #[test]
-fn test_refactored_buy_sell_ckusdc() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+fn test_buy_sell_ckusdc_round_trip() {
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712346007";
     let pin = "1234";
@@ -360,7 +366,12 @@ fn test_refactored_buy_sell_ckusdc() {
     assert_eq!(buy_response.crypto_type, "CkUSDC", "Should buy USDC");
     assert!(buy_response.crypto_amount > 0, "Should receive USDC");
 
-    // Sell USDC
+    // Fund user's ledger account so they can transfer USDC tokens when selling
+    // Need to fund enough to cover the sell amount (buy_response.crypto_amount / 2)
+    // Add generous buffer to ensure sufficient balance
+    fund_user_ledger_account(&pic, _ckusdc_ledger, Principal::anonymous(), buy_response.crypto_amount);
+
+    // Sell half of the USDC (we have full amount in ledger, so this should work)
     let sell_request = SellCryptoRequest {
         user_identifier: user_id.clone(),
         crypto_amount: buy_response.crypto_amount / 2,
@@ -384,8 +395,8 @@ fn test_refactored_buy_sell_ckusdc() {
 
 /// Regression test: exchange rate calculation is accurate
 #[test]
-fn test_refactored_exchange_rate_calculation() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+fn test_exchange_rate_calculation() {
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712346008";
     let pin = "1234";
@@ -424,8 +435,8 @@ fn test_refactored_exchange_rate_calculation() {
 
 /// Regression test: multiple buy operations in sequence
 #[test]
-fn test_refactored_multiple_buy_operations() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+fn test_multiple_buy_operations_sequential() {
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712346009";
     let pin = "1234";
@@ -460,8 +471,8 @@ fn test_refactored_multiple_buy_operations() {
 
 /// Regression test: balance updates are atomic (no race conditions)
 #[test]
-fn test_refactored_atomic_balance_updates() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+fn test_atomic_balance_updates() {
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712346010";
     let pin = "1234";
@@ -488,6 +499,9 @@ fn test_refactored_atomic_balance_updates() {
     let buy_response = buy_result.expect("Buy should succeed");
 
     let balance_after_buy = get_crypto_balance(&pic, crypto_canister, &user_id, "CkBTC");
+
+    // Fund user's ledger account so they can transfer tokens when selling
+    fund_user_ledger_account(&pic, _ckbtc_ledger, Principal::anonymous(), 1_000_000_000);
 
     // Sell part of it
     let sell_request = SellCryptoRequest {

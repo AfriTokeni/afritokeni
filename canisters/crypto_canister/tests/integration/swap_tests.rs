@@ -42,7 +42,7 @@ struct BuyCryptoResponse {
 
 #[test]
 fn test_swap_btc_to_usdc_success() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     let phone = "+254712345700";
     let pin = "1234";
@@ -95,7 +95,7 @@ fn test_swap_btc_to_usdc_success() {
 
 #[test]
 fn test_swap_same_crypto_error() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     let phone = "+254712345701";
     let pin = "1234";

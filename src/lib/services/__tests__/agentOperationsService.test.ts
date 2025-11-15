@@ -480,12 +480,16 @@ describe("AgentOperationsService", () => {
     describe("getAgentBalance", () => {
       it("should get agent balance for specific currency", async () => {
         const mockBalance = {
+          outstanding_balance: 0n,
+          commission_pending: 100_000n,
+          commission_paid: 25_000n,
+          total_deposits: 1_000_000n,
+          commission_earned: 25_000n,
+          total_withdrawals: 500_000n,
           agent_id: TEST_AGENT_ID,
+          last_settlement_date: [BigInt(Date.now())] as [bigint],
           currency: "UGX",
-          available_balance: 500_000n,
-          pending_deposits: 100_000n,
-          pending_withdrawals: 50_000n,
-          total_commission_earned: 25_000n,
+          credit_limit: 5_000_000n,
         };
 
         vi.spyOn(agentCanisterService, "getAgentBalance").mockResolvedValue(
@@ -505,20 +509,28 @@ describe("AgentOperationsService", () => {
       it("should get all balances for an agent", async () => {
         const mockBalances = [
           {
+            outstanding_balance: 0n,
+            commission_pending: 50_000n,
+            commission_paid: 25_000n,
+            total_deposits: 1_000_000n,
+            commission_earned: 25_000n,
+            total_withdrawals: 500_000n,
             agent_id: TEST_AGENT_ID,
+            last_settlement_date: [BigInt(Date.now())] as [bigint],
             currency: "UGX",
-            available_balance: 500_000n,
-            pending_deposits: 0n,
-            pending_withdrawals: 0n,
-            total_commission_earned: 25_000n,
+            credit_limit: 5_000_000n,
           },
           {
+            outstanding_balance: 0n,
+            commission_pending: 2_500n,
+            commission_paid: 2_500n,
+            total_deposits: 100_000n,
+            commission_earned: 2_500n,
+            total_withdrawals: 50_000n,
             agent_id: TEST_AGENT_ID,
+            last_settlement_date: [BigInt(Date.now())] as [bigint],
             currency: "KES",
-            available_balance: 50_000n,
-            pending_deposits: 0n,
-            pending_withdrawals: 0n,
-            total_commission_earned: 2_500n,
+            credit_limit: 500_000n,
           },
         ];
 

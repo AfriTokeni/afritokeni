@@ -284,10 +284,23 @@
 <!-- PIN Entry Modal -->
 {#if showPinEntry}
   <div
+    role="button"
+    tabindex="0"
     class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4"
+    onclick={cancelPinEntry}
+    onkeydown={(e) => e.key === "Escape" && cancelPinEntry()}
   >
-    <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-      <h3 class="mb-4 text-xl font-bold">Confirm Exchange</h3>
+    <div
+      role="dialog"
+      aria-labelledby="exchange-modal-title"
+      tabindex="-1"
+      class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
+    >
+      <h3 id="exchange-modal-title" class="mb-4 text-xl font-bold">
+        Confirm Exchange
+      </h3>
 
       <div class="mb-6 space-y-2 rounded-lg bg-gray-50 p-4 text-sm">
         <div class="flex justify-between">
@@ -318,7 +331,6 @@
           bind:value={pin}
           placeholder="****"
           class="w-full rounded-lg border border-gray-300 px-4 py-3 text-center text-2xl tracking-widest focus:border-transparent focus:ring-2 focus:ring-blue-600"
-          autofocus
         />
       </div>
 

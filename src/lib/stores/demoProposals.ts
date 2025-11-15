@@ -149,6 +149,17 @@ function createDemoProposalsStore() {
         localStorage.removeItem(STORAGE_KEY);
       }
     },
+
+    /**
+     * Get all demo proposals (for non-component contexts)
+     */
+    getAll: (): DemoProposal[] => {
+      let proposals: DemoProposal[] = [];
+      subscribe((p) => {
+        proposals = p;
+      })();
+      return proposals;
+    },
   };
 }
 

@@ -25,11 +25,12 @@ describe("CryptoService", () => {
   describe("buyCrypto", () => {
     it("should buy ckBTC with fiat", async () => {
       const mockResponse = {
-        crypto_amount: 100_000n, // 0.001 BTC
-        exchange_rate: 95_000_000n, // 95M UGX per BTC
-        platform_fee: 500n,
-        fiat_deducted: 100_000n,
         transaction_id: "tx_buy_001",
+        fiat_amount: 100_000n,
+        crypto_type: "ckBTC",
+        timestamp: BigInt(Date.now()),
+        exchange_rate: 95_000_000, // 95M UGX per BTC (number, not bigint)
+        crypto_amount: 100_000n, // 0.001 BTC
       };
 
       vi.spyOn(cryptoCanisterService, "buyCrypto").mockResolvedValue(
@@ -58,11 +59,12 @@ describe("CryptoService", () => {
 
     it("should buy ckUSDC with fiat", async () => {
       const mockResponse = {
-        crypto_amount: 27_000n, // $270 USDC
-        exchange_rate: 3_700n, // 3,700 UGX per USDC
-        platform_fee: 500n,
-        fiat_deducted: 100_000n,
         transaction_id: "tx_buy_usdc_001",
+        fiat_amount: 100_000n,
+        crypto_type: "ckUSDC",
+        timestamp: BigInt(Date.now()),
+        exchange_rate: 3_700, // 3,700 UGX per USDC (number, not bigint)
+        crypto_amount: 27_000n, // $270 USDC
       };
 
       vi.spyOn(cryptoCanisterService, "buyCrypto").mockResolvedValue(
@@ -78,16 +80,17 @@ describe("CryptoService", () => {
       });
 
       expect(result.crypto_amount).toBe(27_000n);
-      expect(result.platform_fee).toBe(500n);
+      expect(result.exchange_rate).toBe(3_700);
     });
 
     it("should include device fingerprint and geo location if provided", async () => {
       const mockResponse = {
-        crypto_amount: 100_000n,
-        exchange_rate: 95_000_000n,
-        platform_fee: 500n,
-        fiat_deducted: 100_000n,
         transaction_id: "tx_buy_002",
+        fiat_amount: 100_000n,
+        crypto_type: "ckBTC",
+        timestamp: BigInt(Date.now()),
+        exchange_rate: 95_000_000,
+        crypto_amount: 100_000n,
       };
 
       vi.spyOn(cryptoCanisterService, "buyCrypto").mockResolvedValue(
@@ -132,11 +135,12 @@ describe("CryptoService", () => {
   describe("sellCrypto", () => {
     it("should sell ckBTC for fiat", async () => {
       const mockResponse = {
-        crypto_amount: 100_000n,
-        exchange_rate: 95_000_000n,
-        platform_fee: 475n,
-        fiat_deducted: 94_525n, // 95,000 - 475 fee
         transaction_id: "tx_sell_001",
+        fiat_amount: 95_000n, // Fiat received
+        crypto_type: "ckBTC",
+        timestamp: BigInt(Date.now()),
+        exchange_rate: 95_000_000,
+        crypto_amount: 100_000n,
       };
 
       vi.spyOn(cryptoCanisterService, "sellCrypto").mockResolvedValue(
@@ -165,11 +169,12 @@ describe("CryptoService", () => {
 
     it("should sell ckUSDC for fiat", async () => {
       const mockResponse = {
-        crypto_amount: 10_000n, // $100 USDC
-        exchange_rate: 3_700n,
-        platform_fee: 1_850n,
-        fiat_deducted: 368_150n,
         transaction_id: "tx_sell_usdc_001",
+        fiat_amount: 370_000n, // Fiat received for $100 USDC
+        crypto_type: "ckUSDC",
+        timestamp: BigInt(Date.now()),
+        exchange_rate: 3_700,
+        crypto_amount: 10_000n, // $100 USDC
       };
 
       vi.spyOn(cryptoCanisterService, "sellCrypto").mockResolvedValue(
@@ -185,7 +190,7 @@ describe("CryptoService", () => {
       });
 
       expect(result.crypto_amount).toBe(10_000n);
-      expect(result.fiat_deducted).toBe(368_150n);
+      expect(result.fiat_amount).toBe(370_000n);
     });
 
     it("should handle sell errors", async () => {
@@ -265,11 +270,12 @@ describe("CryptoService", () => {
   describe("swapCrypto", () => {
     it("should swap ckBTC to ckUSDC", async () => {
       const mockResponse = {
+        transaction_id: "tx_swap_001",
         from_amount: 100_000n,
         to_amount: 95_000n, // ~$950 USDC (after spread)
-        spread_collected: 50n, // 0.5% spread
-        exchange_rate: 95_500n,
-        transaction_id: "tx_swap_001",
+        timestamp: BigInt(Date.now()),
+        spread_amount: 50n, // 0.5% spread
+        exchange_rate: 95_500, // number, not bigint
       };
 
       vi.spyOn(cryptoCanisterService, "swapCrypto").mockResolvedValue(
@@ -296,11 +302,12 @@ describe("CryptoService", () => {
 
     it("should swap ckUSDC to ckBTC", async () => {
       const mockResponse = {
+        transaction_id: "tx_swap_002",
         from_amount: 100_000n, // $1,000 USDC
         to_amount: 1_045_000n, // ~0.01045 BTC
-        spread_collected: 50n,
-        exchange_rate: 95_500n,
-        transaction_id: "tx_swap_002",
+        timestamp: BigInt(Date.now()),
+        spread_amount: 50n,
+        exchange_rate: 95_500,
       };
 
       vi.spyOn(cryptoCanisterService, "swapCrypto").mockResolvedValue(
@@ -316,7 +323,7 @@ describe("CryptoService", () => {
       });
 
       expect(result.from_amount).toBe(100_000n);
-      expect(result.spread_collected).toBe(50n);
+      expect(result.spread_amount).toBe(50n);
     });
 
     it("should handle swap errors", async () => {
@@ -378,9 +385,7 @@ describe("CryptoService", () => {
     describe("createEscrow", () => {
       it("should create escrow for crypto-to-cash exchange", async () => {
         const mockResponse = {
-          escrow_code: "ESC123456",
-          user_id: TEST_USER_ID,
-          agent_id: TEST_AGENT_ID,
+          code: "ESC123456",
           crypto_type: "ckBTC",
           amount: 50_000n,
           expires_at: BigInt(Math.floor(Date.now() / 1000) + 3600),

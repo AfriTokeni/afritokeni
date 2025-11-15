@@ -53,7 +53,7 @@ struct SendCryptoRequest {
 /// but don't leak exact internal state
 #[test]
 fn test_insufficient_balance_error_is_clear() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712345900";
     let pin = "1234";
@@ -97,7 +97,7 @@ fn test_insufficient_balance_error_is_clear() {
 /// Tests that invalid PIN errors don't leak user information
 #[test]
 fn test_invalid_pin_error_is_sanitized() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712345901";
     let pin = "1234";
@@ -141,7 +141,7 @@ fn test_invalid_pin_error_is_sanitized() {
 /// Tests that non-existent user errors don't leak system details
 #[test]
 fn test_user_not_found_error_is_sanitized() {
-    let (pic, _data, _user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, _user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let request = BuyCryptoRequest {
         user_identifier: "nonexistent-user-12345".to_string(),
@@ -181,7 +181,7 @@ fn test_user_not_found_error_is_sanitized() {
 /// Tests that invalid currency errors are clear but don't leak system info
 #[test]
 fn test_invalid_currency_error_is_sanitized() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712345902";
     let pin = "1234";
@@ -224,7 +224,7 @@ fn test_invalid_currency_error_is_sanitized() {
 /// Tests that sell crypto with insufficient crypto balance gives clear error
 #[test]
 fn test_insufficient_crypto_balance_error_is_clear() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712345903";
     let pin = "1234";
@@ -269,7 +269,7 @@ fn test_insufficient_crypto_balance_error_is_clear() {
 /// Tests that send crypto to invalid address gives sanitized error
 #[test]
 fn test_send_crypto_invalid_address_error_is_sanitized() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712345904";
     let pin = "1234";
@@ -331,7 +331,7 @@ fn test_send_crypto_invalid_address_error_is_sanitized() {
 /// Tests that errors don't leak device fingerprint or geo location data
 #[test]
 fn test_errors_dont_leak_tracking_data() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712345905";
     let pin = "1234";
@@ -380,7 +380,7 @@ fn test_errors_dont_leak_tracking_data() {
 /// Tests that rate limit errors are generic and don't leak threshold values
 #[test]
 fn test_rate_limit_error_is_generic() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
 
     let phone = "+254712345906";
     let pin = "1234";

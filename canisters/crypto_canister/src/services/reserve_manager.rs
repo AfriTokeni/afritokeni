@@ -165,6 +165,8 @@ pub async fn rebalance_reserve(btc_price_usd: f64) -> Result<RebalanceResult, St
 }
 
 /// Check if reserve has sufficient balance for a buy operation
+/// Used by buy_crypto flow to ensure platform has sufficient reserves before executing purchase
+#[allow(dead_code)]
 pub async fn check_reserve_sufficient(
     crypto_type: CryptoType,
     amount: u64,

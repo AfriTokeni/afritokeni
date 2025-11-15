@@ -198,14 +198,23 @@
 <!-- PIN Confirmation Modal -->
 {#if showPinModal}
   <div
+    role="button"
+    tabindex="0"
     class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4"
     onclick={cancelPinModal}
+    onkeydown={(e) => e.key === "Escape" && cancelPinModal()}
   >
     <div
+      role="dialog"
+      aria-labelledby="pin-modal-title"
+      tabindex="-1"
       class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
       onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
     >
-      <h3 class="mb-4 text-xl font-bold text-gray-900">Confirm Transaction</h3>
+      <h3 id="pin-modal-title" class="mb-4 text-xl font-bold text-gray-900">
+        Confirm Transaction
+      </h3>
 
       <div
         class="mb-6 space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4"
@@ -250,7 +259,6 @@
           bind:value={pin}
           placeholder="Enter 4-digit PIN"
           class="w-full rounded-lg border border-gray-300 px-4 py-3 text-center font-mono text-lg tracking-widest focus:border-transparent focus:ring-2 focus:ring-blue-600"
-          autofocus
         />
       </div>
 

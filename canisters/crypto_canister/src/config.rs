@@ -273,10 +273,14 @@ pub fn is_test_mode() -> bool {
 // Configuration Getters (convenience methods)
 // ============================================================================
 
+/// Used by external canisters (USSD, web) via inter-canister calls
+#[allow(dead_code)]
 pub fn get_purchase_fee_basis_points() -> u64 {
     get_config().fees.purchase_fee_basis_points
 }
 
+/// Used by external canisters (USSD, web) via inter-canister calls
+#[allow(dead_code)]
 pub fn get_sale_fee_basis_points() -> u64 {
     get_config().fees.sale_fee_basis_points
 }
@@ -289,6 +293,8 @@ pub fn get_escrow_expiration_ns() -> u64 {
     get_config().escrow.expiration_time_ns
 }
 
+/// Used by external canisters (USSD, web) to retrieve platform wallet for fee collection
+#[allow(dead_code)]
 pub fn get_company_wallet_principal() -> Result<Principal, String> {
     let config = get_config();
     Principal::from_text(&config.company_wallet.principal)

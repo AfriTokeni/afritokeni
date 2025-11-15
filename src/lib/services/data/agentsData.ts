@@ -7,7 +7,7 @@
  * For real operations, use agentOperationsService and agentCanisterService.
  */
 
-import type { Agent } from "$lib/types/agent";
+import type { Agent } from "$lib/types/user_dashboard";
 
 /**
  * Fetch agents from demo data

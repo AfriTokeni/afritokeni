@@ -50,7 +50,7 @@ struct CreateEscrowResponse {
 
 #[test]
 fn test_buy_crypto_rate_limit_exceeded() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     let user_phone = "+254712345001";
     let pin = "1234";
@@ -111,7 +111,7 @@ fn test_buy_crypto_rate_limit_exceeded() {
 
 #[test]
 fn test_create_escrow_rate_limit_exceeded() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     let user_phone = "+254712345002";
     let agent_phone = "+254712345003";
@@ -223,7 +223,7 @@ fn test_create_escrow_rate_limit_exceeded() {
 
 #[test]
 fn test_pin_exponential_backoff() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     let user_phone = "+254712345004";
     let correct_pin = "1234";
@@ -282,7 +282,7 @@ fn test_pin_exponential_backoff() {
 
 #[test]
 fn test_pin_reset_on_success() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     let user_phone = "+254712345005";
     let correct_pin = "1234";
@@ -346,7 +346,7 @@ fn test_pin_reset_on_success() {
 
 #[test]
 fn test_high_amount_manual_review() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     let user_phone = "+254712345006";
     let pin = "1234";
@@ -381,7 +381,7 @@ fn test_high_amount_manual_review() {
 
 #[test]
 fn test_very_high_amount_triggers_security() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     let user_phone = "+254712345007";
     let pin = "1234";
@@ -423,7 +423,7 @@ fn test_very_high_amount_triggers_security() {
 
 #[test]
 fn test_device_fingerprint_tracking() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     let user_phone = "+254712345008";
     let pin = "1234";
@@ -479,7 +479,7 @@ fn test_device_fingerprint_tracking() {
 
 #[test]
 fn test_geo_location_tracking() {
-    let (pic, _data, user_canister, wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     let user_phone = "+254712345009";
     let pin = "1234";

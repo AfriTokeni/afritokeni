@@ -48,7 +48,7 @@ struct CleanupResult {
 
 #[test]
 fn test_cleanup_expired_escrows_success() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     let user_phone = "+254712345750";
     let agent_phone = "+254712345751";
@@ -113,7 +113,7 @@ fn test_cleanup_expired_escrows_success() {
 
 #[test]
 fn test_cleanup_no_expired_escrows() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     let user_phone = "+254712345752";
     let agent_phone = "+254712345753";
@@ -184,7 +184,7 @@ fn test_cleanup_no_expired_escrows() {
 
 #[test]
 fn test_cleanup_multiple_expired_escrows() {
-    let (pic, _data, user_canister, _wallet_canister, crypto_canister) = setup_test_environment();
+    let (pic, _data, user_canister, _wallet_canister, crypto_canister, _ckbtc_ledger, _ckusdc_ledger) = setup_test_environment();
     
     let user_phone = "+254712345754";
     let agent_phone = "+254712345755";

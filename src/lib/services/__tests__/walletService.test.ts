@@ -23,11 +23,15 @@ describe("WalletService", () => {
   describe("transferFiat", () => {
     it("should transfer fiat between users", async () => {
       const mockResponse = {
-        from_balance: 900_000n,
-        to_balance: 199_500n, // Receiver gets 100,000 - 500 fee
-        platform_fee: 500n,
+        fee: 500n,
         transaction_id: "tx_transfer_001",
+        recipient_new_balance: 199_500n,
+        to_user_id: "+256700000002",
+        from_user_id: TEST_USER_ID,
+        currency: "UGX",
+        sender_new_balance: 900_000n,
         timestamp: BigInt(Math.floor(Date.now() / 1000)),
+        amount: 100_000n,
       };
 
       vi.spyOn(walletCanisterService, "transferFiat").mockResolvedValue(
@@ -55,11 +59,15 @@ describe("WalletService", () => {
 
     it("should include description if provided", async () => {
       const mockResponse = {
-        from_balance: 900_000n,
-        to_balance: 199_500n,
-        platform_fee: 500n,
+        fee: 500n,
         transaction_id: "tx_transfer_002",
+        recipient_new_balance: 199_500n,
+        to_user_id: "+256700000002",
+        from_user_id: TEST_USER_ID,
+        currency: "UGX",
+        sender_new_balance: 900_000n,
         timestamp: BigInt(Math.floor(Date.now() / 1000)),
+        amount: 100_000n,
       };
 
       vi.spyOn(walletCanisterService, "transferFiat").mockResolvedValue(

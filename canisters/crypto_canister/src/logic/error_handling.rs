@@ -7,17 +7,19 @@ pub fn sanitize_canister_error(error: String, operation: &str) -> String {
     // Don't expose internal canister details or specific error codes
     // that could reveal system architecture to attackers
 
-    if error.contains("insufficient") {
+    let error_lower = error.to_lowercase();
+
+    if error_lower.contains("insufficient") {
         // Preserve balance-related errors as they're user-facing
         error
-    } else if error.contains("not found") || error.contains("does not exist") {
+    } else if error_lower.contains("not found") || error_lower.contains("does not exist") {
         // Generic "not found" errors are safe
         error
-    } else if error.contains("unauthorized") || error.contains("not authorized") {
+    } else if error_lower.contains("unauthorized") || error_lower.contains("not authorized") {
         "Unauthorized operation".to_string()
-    } else if error.contains("rate limit") || error.contains("too many") {
+    } else if error_lower.contains("rate limit") || error_lower.contains("too many") {
         "Rate limit exceeded. Please try again later".to_string()
-    } else if error.contains("timeout") || error.contains("deadline") {
+    } else if error_lower.contains("timeout") || error_lower.contains("deadline") {
         "Operation timeout. Please try again".to_string()
     } else {
         // Generic error for unexpected failures
@@ -28,15 +30,18 @@ pub fn sanitize_canister_error(error: String, operation: &str) -> String {
 /// Sanitizes ledger errors to prevent information leakage
 #[allow(dead_code)]
 pub fn sanitize_ledger_error(error: String) -> String {
-    if error.contains("InsufficientFunds") || error.contains("insufficient") {
-        "Insufficient balance for this operation".to_string()
-    } else if error.contains("InsufficientAllowance") || error.contains("allowance") {
+    let error_lower = error.to_lowercase();
+
+    // Check more specific patterns first to avoid false matches
+    if error_lower.contains("insufficientallowance") || error_lower.contains("allowance") {
         "Insufficient approval. Please approve spending in your wallet first".to_string()
-    } else if error.contains("BadFee") || error.contains("fee") {
+    } else if error_lower.contains("insufficientfunds") || error_lower.contains("insufficient") {
+        "Insufficient balance for this operation".to_string()
+    } else if error_lower.contains("badfee") || error_lower.contains("fee") {
         "Transaction fee error. Please try again".to_string()
-    } else if error.contains("Duplicate") || error.contains("duplicate") {
+    } else if error_lower.contains("duplicate") {
         "Duplicate transaction detected".to_string()
-    } else if error.contains("TooOld") || error.contains("expired") {
+    } else if error_lower.contains("tooold") || error_lower.contains("expired") {
         "Transaction expired. Please retry".to_string()
     } else {
         "Ledger operation failed. Please try again".to_string()
@@ -46,9 +51,11 @@ pub fn sanitize_ledger_error(error: String) -> String {
 /// Sanitizes exchange rate errors
 #[allow(dead_code)]
 pub fn sanitize_exchange_rate_error(error: String) -> String {
-    if error.contains("unavailable") || error.contains("not available") {
+    let error_lower = error.to_lowercase();
+
+    if error_lower.contains("unavailable") || error_lower.contains("not available") {
         "Exchange rate temporarily unavailable. Please try again".to_string()
-    } else if error.contains("timeout") {
+    } else if error_lower.contains("timeout") {
         "Exchange rate service timeout. Please try again".to_string()
     } else {
         "Unable to fetch exchange rate. Please try again later".to_string()

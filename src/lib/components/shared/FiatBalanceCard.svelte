@@ -45,9 +45,11 @@
   async function loadBalance(isDemoMode: boolean, principal: string | null) {
     try {
       error = null;
-      const result = await fetchFiatBalance(principal, isDemoMode);
-      balance = result.amount;
-      currency = result._currency;
+      if (!principal) {
+        throw new Error("No principal ID available");
+      }
+      const result = await fetchFiatBalance(principal, currency);
+      balance = result;
       lastUpdated = new Date();
     } catch (err: any) {
       console.error("Error fetching fiat balance:", err);
