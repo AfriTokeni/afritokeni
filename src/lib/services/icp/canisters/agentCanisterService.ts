@@ -223,11 +223,8 @@ export class AgentCanisterService {
   /**
    * Calculate withdrawal fees
    */
-  async getWithdrawalFees(
-    amount: bigint,
-    currency: string,
-  ): Promise<WithdrawalFeesResponse> {
-    const result = await this.actor.get_withdrawal_fees(amount, currency);
+  async getWithdrawalFees(amount: bigint): Promise<WithdrawalFeesResponse> {
+    const result = await this.actor.get_withdrawal_fees(amount);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -238,15 +235,13 @@ export class AgentCanisterService {
 
   /**
    * Get withdrawal limits for a currency
+   * NOTE: This method is not available in the agent_canister interface
+   * Currency limits are configured at the canister level, not queried
    */
-  async getWithdrawalLimits(currency: string): Promise<CurrencyLimitsResponse> {
-    const result = await this.actor.get_withdrawal_limits(currency);
-
-    if ("Err" in result) {
-      throw new Error(result.Err);
-    }
-
-    return result.Ok;
+  async getWithdrawalLimits(_currency: string): Promise<CurrencyLimitsResponse> {
+    // This method doesn't exist in the actual canister interface
+    // Return default limits for now
+    throw new Error("get_withdrawal_limits not implemented in agent_canister");
   }
 
   // ============================================================================
@@ -370,7 +365,7 @@ export class AgentCanisterService {
     week: string,
     currency: string,
   ): Promise<void> {
-    const result = await this.actor.pay_weekly_settlement(
+    const result = await this.actor.process_weekly_settlement(
       agentId,
       week,
       currency,

@@ -13,7 +13,7 @@ import { DAO_CONFIG } from "$lib/config/canister";
 import { demoProposals } from "$lib/stores/demoProposals";
 // Import SNS voting function for future production implementation
 // Currently unused because SNS voting is not yet implemented
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 import { voteOnSNSProposal as _voteOnSNSProposal } from "$lib/services/icp/sns/governanceService";
 
 // Re-export for backward compatibility

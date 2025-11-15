@@ -11,12 +11,13 @@
  */
 
 import { Actor, HttpAgent } from "@dfinity/agent";
-import { idlFactory, type _SERVICE } from "$/declarations/data_canister";
+import {
+  idlFactory,
+  type _SERVICE,
+  type AgentReview,
+  type CreateReviewRequest,
+} from "$/declarations/data_canister";
 import { DATA_CANISTER_ID, IC_HOST } from "./config";
-import type {
-  AgentReview,
-  CreateReviewRequest,
-} from "$/declarations/data_canister/data_canister.did";
 
 /**
  * Create actor for data_canister

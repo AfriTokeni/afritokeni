@@ -173,7 +173,7 @@ export class UserCanisterService {
     }
 
     const optionalPrincipal = result.Ok;
-    return optionalPrincipal.length > 0 ? optionalPrincipal[0] : null;
+    return optionalPrincipal.length > 0 ? (optionalPrincipal[0] ?? null) : null;
   }
 
   /**

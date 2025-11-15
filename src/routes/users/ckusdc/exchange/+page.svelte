@@ -114,9 +114,7 @@
       // Format amounts for display
       const fromUSDC = cryptoService.smallestToUSDC(Number(result.from_amount));
       const toBTC = cryptoService.satoshisToBTC(Number(result.to_amount));
-      const spread = cryptoService.satoshisToBTC(
-        Number(result.spread_amount),
-      );
+      const spread = cryptoService.satoshisToBTC(Number(result.spread_amount));
 
       toast.show(
         "success",

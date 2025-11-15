@@ -30,19 +30,6 @@ export interface TransferFiatParams {
 }
 
 /**
- * Currency mapping helper
- */
-const CURRENCY_MAP: Record<string, keyof typeof FiatCurrency> = {
-  UGX: "UGX",
-  KES: "KES",
-  TZS: "TZS",
-  NGN: "NGN",
-  GHS: "GHS",
-  ZAR: "ZAR",
-  // Add more as needed
-};
-
-/**
  * Wallet Service
  */
 export class WalletService {
@@ -136,18 +123,14 @@ export class WalletService {
   }
 
   /**
-   * Convert string currency code to FiatCurrency enum
+   * Convert string currency code to FiatCurrency variant
    */
   private static stringToCurrency(currency: string): FiatCurrency {
     const upperCurrency = currency.toUpperCase();
-    const currencyKey = CURRENCY_MAP[upperCurrency];
-
-    if (!currencyKey) {
-      throw new Error(`Unsupported currency: ${currency}`);
-    }
 
     // Create FiatCurrency object with the appropriate variant
-    return { [currencyKey]: null } as FiatCurrency;
+    // Candid variants are represented as { 'VariantName': null }
+    return { [upperCurrency]: null } as FiatCurrency;
   }
 
   /**

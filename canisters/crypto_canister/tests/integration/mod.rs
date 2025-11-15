@@ -15,24 +15,28 @@ mod refactored_buy_sell_tests;
 /// Helper to create PocketIC instance with all required canisters
 pub fn setup_test_environment() -> (PocketIc, Principal, Principal, Principal, Principal) {
     let pic = PocketIc::new();
-    
+
     // Get workspace root (tests run from canister directory, need to go up 2 levels)
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
     let workspace_root = current_dir.parent().and_then(|p| p.parent())
         .expect("Failed to find workspace root");
     let wasm_dir = workspace_root.join("target/wasm32-unknown-unknown/release");
-    
+
     // Create all canisters first to get their principals
     let data_canister = pic.create_canister();
     let user_canister = pic.create_canister();
     let wallet_canister = pic.create_canister();
     let crypto_canister = pic.create_canister();
-    
+    let ckbtc_ledger = pic.create_canister();
+    let ckusdc_ledger = pic.create_canister();
+
     // Add cycles
     pic.add_cycles(data_canister, 100_000_000_000_000);
     pic.add_cycles(user_canister, 100_000_000_000_000);
     pic.add_cycles(wallet_canister, 100_000_000_000_000);
     pic.add_cycles(crypto_canister, 100_000_000_000_000);
+    pic.add_cycles(ckbtc_ledger, 100_000_000_000_000);
+    pic.add_cycles(ckusdc_ledger, 100_000_000_000_000);
     
     // Deploy data canister with ALL authorized canisters
     let data_wasm = std::fs::read(wasm_dir.join("data_canister.wasm"))
@@ -56,10 +60,16 @@ pub fn setup_test_environment() -> (PocketIc, Principal, Principal, Principal, P
     let crypto_wasm = std::fs::read(wasm_dir.join("crypto_canister.wasm"))
         .expect("Crypto canister WASM not found. Run: cargo build --target wasm32-unknown-unknown --release -p crypto_canister");
     pic.install_canister(crypto_canister, crypto_wasm, vec![], None);
-    
+
+    // Deploy mock ICRC-1 ledgers for ckBTC and ckUSDC
+    let ledger_wasm = std::fs::read(wasm_dir.join("mock_icrc1_ledger.wasm"))
+        .expect("Mock ledger WASM not found. Run: cargo build --target wasm32-unknown-unknown --release -p mock_icrc1_ledger");
+    pic.install_canister(ckbtc_ledger, ledger_wasm.clone(), vec![], None);
+    pic.install_canister(ckusdc_ledger, ledger_wasm, vec![], None);
+
     // Configure canisters
-    configure_canisters(&pic, data_canister, user_canister, wallet_canister, crypto_canister);
-    
+    configure_canisters(&pic, data_canister, user_canister, wallet_canister, crypto_canister, ckbtc_ledger, ckusdc_ledger);
+
     (pic, data_canister, user_canister, wallet_canister, crypto_canister)
 }
 
@@ -70,6 +80,8 @@ fn configure_canisters(
     user_canister: Principal,
     wallet_canister: Principal,
     crypto_canister: Principal,
+    ckbtc_ledger: Principal,
+    ckusdc_ledger: Principal,
 ) {
     // Configure user canister (takes Principal)
     let args = encode_args((data_canister,)).unwrap();
@@ -154,6 +166,60 @@ fn configure_canisters(
         "enable_test_mode",
         encode_args(()).unwrap(),
     ).expect("Failed to enable test mode on crypto canister");
+
+    // Configure ledger canister IDs in crypto canister
+    let args = encode_args((ckbtc_ledger,)).unwrap();
+    pic.update_call(
+        crypto_canister,
+        Principal::anonymous(),
+        "set_ckbtc_ledger_id",
+        args,
+    ).expect("Failed to set ckBTC ledger ID in crypto canister");
+
+    let args = encode_args((ckusdc_ledger,)).unwrap();
+    pic.update_call(
+        crypto_canister,
+        Principal::anonymous(),
+        "set_ckusdc_ledger_id",
+        args,
+    ).expect("Failed to set ckUSDC ledger ID in crypto canister");
+
+    // Fund the crypto canister with tokens for testing
+    // Crypto canister needs tokens to fulfill buy orders
+    fund_ledger_account(pic, ckbtc_ledger, crypto_canister, 1_000_000_000_000); // 10,000 ckBTC (8 decimals)
+    fund_ledger_account(pic, ckusdc_ledger, crypto_canister, 1_000_000_000_000); // 10,000 ckUSDC (6 decimals)
+}
+
+/// Fund a ledger account for testing
+fn fund_ledger_account(
+    pic: &PocketIc,
+    ledger: Principal,
+    account_owner: Principal,
+    amount: u64,
+) {
+    #[derive(candid::CandidType)]
+    struct Account {
+        owner: Principal,
+        subaccount: Option<Vec<u8>>,
+    }
+
+    // Fund the platform reserve subaccount [1, 0, 0, ..., 0]
+    // This matches get_platform_reserve_subaccount() in ledger_client.rs
+    let mut subaccount = vec![0u8; 32];
+    subaccount[0] = 1;
+
+    let account = Account {
+        owner: account_owner,
+        subaccount: Some(subaccount),
+    };
+
+    let args = encode_args((account, amount)).unwrap();
+    pic.update_call(
+        ledger,
+        Principal::anonymous(),
+        "set_balance_for_testing",
+        args,
+    ).expect("Failed to fund ledger account");
 }
 
 /// Helper to register a test user

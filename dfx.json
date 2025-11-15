@@ -40,11 +40,7 @@
     "data_canister": {
       "type": "rust",
       "package": "data_canister",
-      "candid": "canisters/data_canister/data_canister.did",
-      "declarations": {
-        "bindings": ["rust"],
-        "output": "canisters/bindings"
-      }
+      "candid": "canisters/data_canister/data_canister.did"
     },
     "crypto_canister": {
       "type": "rust",
