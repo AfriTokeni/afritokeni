@@ -83,14 +83,19 @@
   }
 
   async function handleNext() {
-    if (validateStep(step)) {
-      if (step < 4) {
-        step = step + 1;
-      } else {
-        // Step 4 - Save to Juno and complete
-        await handleSubmit();
-      }
+    if (!validateStep(step)) {
+      return; // Stop if validation fails
     }
+
+    // If on step 3 (final form step), create agent profile before showing success screen
+    if (step === 3) {
+      await handleSubmit(); // This creates the agent profile
+      // handleSubmit() already moves to step 4 on success
+    } else if (step < 3) {
+      // For steps 1-2, just move to next step
+      step = step + 1;
+    }
+    // Note: step 4 is the success screen, no "Next" button there
   }
 
   async function handleSubmit() {

@@ -10,7 +10,6 @@
  * - All writes should be handled by domain canisters (user, wallet, crypto, agent)
  */
 
-import { Actor, HttpAgent } from "@dfinity/agent";
 import { idlFactory } from "$/declarations/data_canister/data_canister.did.js";
 import type {
   _SERVICE,
@@ -18,35 +17,28 @@ import type {
   CreateReviewRequest,
   Transaction,
 } from "$/declarations/data_canister/data_canister.did.d.ts";
-import { DATA_CANISTER_ID, IC_HOST } from "./config";
-
-/**
- * Create actor for data_canister
- */
-function createDataActor(): _SERVICE {
-  const agent = new HttpAgent({ host: IC_HOST });
-
-  // Fetch root key for local development
-  if (IC_HOST.includes("localhost")) {
-    agent.fetchRootKey().catch((err) => {
-      console.warn("Unable to fetch root key. Check if dfx is running:", err);
-    });
-  }
-
-  return Actor.createActor<_SERVICE>(idlFactory, {
-    agent,
-    canisterId: DATA_CANISTER_ID,
-  });
-}
+import { DATA_CANISTER_ID } from "./config";
+import { AuthenticatedActorService } from "./actorFactory";
 
 /**
  * Data Canister Service
+ * Uses authenticated identity from Juno/Internet Identity for all calls
  */
 export class DataCanisterService {
-  private actor: _SERVICE;
+  private actorService: AuthenticatedActorService<_SERVICE>;
 
   constructor() {
-    this.actor = createDataActor();
+    this.actorService = new AuthenticatedActorService<_SERVICE>(
+      idlFactory,
+      DATA_CANISTER_ID,
+    );
+  }
+
+  /**
+   * Get authenticated actor (creates on first use, reuses afterwards)
+   */
+  private async getActor(): Promise<_SERVICE> {
+    return this.actorService.getActor();
   }
 
   /**
@@ -54,7 +46,7 @@ export class DataCanisterService {
    * Public query - anyone can read reviews
    */
   async getAgentReviews(agentId: string): Promise<AgentReview[]> {
-    const result = await this.actor.get_agent_reviews(agentId);
+    const result = await (await this.getActor()).get_agent_reviews(agentId);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -75,7 +67,7 @@ export class DataCanisterService {
       throw new Error("Rating must be between 1 and 5");
     }
 
-    const result = await this.actor.get_agent_reviews_by_rating(
+    const result = await (await this.getActor()).get_agent_reviews_by_rating(
       agentId,
       rating,
     );
@@ -93,7 +85,7 @@ export class DataCanisterService {
    * Public query - anyone can read reviews
    */
   async getVerifiedReviews(agentId: string): Promise<AgentReview[]> {
-    const result = await this.actor.get_verified_reviews(agentId);
+    const result = await (await this.getActor()).get_verified_reviews(agentId);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -108,7 +100,7 @@ export class DataCanisterService {
    * Public query - anyone can read reviews
    */
   async getAgentRating(agentId: string): Promise<[number, bigint]> {
-    const result = await this.actor.get_agent_rating(agentId);
+    const result = await (await this.getActor()).get_agent_rating(agentId);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -124,7 +116,7 @@ export class DataCanisterService {
    * NOTE: This should typically be called from backend canisters, not directly from frontend
    */
   async createReview(request: CreateReviewRequest): Promise<AgentReview> {
-    const result = await this.actor.create_review(request);
+    const result = await (await this.getActor()).create_review(request);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -138,7 +130,7 @@ export class DataCanisterService {
    * For content moderation
    */
   async deleteReview(reviewId: string): Promise<void> {
-    const result = await this.actor.delete_review(reviewId);
+    const result = await (await this.getActor()).delete_review(reviewId);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -155,7 +147,7 @@ export class DataCanisterService {
     limit?: bigint,
     offset?: bigint,
   ): Promise<Transaction[]> {
-    const result = await this.actor.get_my_transactions(
+    const result = await (await this.getActor()).get_my_transactions(
       limit ? [limit] : [],
       offset ? [offset] : [],
     );
@@ -179,7 +171,7 @@ export class DataCanisterService {
     limit?: bigint,
     offset?: bigint,
   ): Promise<Transaction[]> {
-    const result = await this.actor.get_user_transactions(
+    const result = await (await this.getActor()).get_user_transactions(
       userId,
       limit ? [limit] : [],
       offset ? [offset] : [],

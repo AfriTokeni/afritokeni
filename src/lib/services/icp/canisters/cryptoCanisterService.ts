@@ -10,10 +10,11 @@
  * IMPORTANT: All crypto operations route through this canister to collect platform fees (0.5%)
  */
 
-import { Actor, HttpAgent } from "@dfinity/agent";
+
 import { idlFactory } from "$/declarations/crypto_canister/crypto_canister.did.js";
+import { AuthenticatedActorService } from "./actorFactory";
 import type { _SERVICE } from "$/declarations/crypto_canister/crypto_canister.did.d.ts";
-import { CRYPTO_CANISTER_ID, IC_HOST } from "./config";
+import { CRYPTO_CANISTER_ID } from "./config";
 import type {
   BuyCryptoRequest,
   BuyCryptoResponse,
@@ -29,32 +30,24 @@ import type {
 } from "$/declarations/crypto_canister/crypto_canister.did";
 
 /**
- * Create actor for crypto_canister
- */
-function createCryptoActor(): _SERVICE {
-  const agent = new HttpAgent({ host: IC_HOST });
-
-  // Fetch root key for local development
-  if (IC_HOST.includes("localhost")) {
-    agent.fetchRootKey().catch((err) => {
-      console.warn("Unable to fetch root key. Check if dfx is running:", err);
-    });
-  }
-
-  return Actor.createActor<_SERVICE>(idlFactory, {
-    agent,
-    canisterId: CRYPTO_CANISTER_ID,
-  });
-}
-
-/**
  * Crypto Canister Service
+ * Uses authenticated identity from Juno/Internet Identity for all calls
  */
 export class CryptoCanisterService {
-  private actor: _SERVICE;
+  private actorService: AuthenticatedActorService<_SERVICE>;
 
   constructor() {
-    this.actor = createCryptoActor();
+    this.actorService = new AuthenticatedActorService<_SERVICE>(
+      idlFactory,
+      CRYPTO_CANISTER_ID,
+    );
+  }
+
+  /**
+   * Get authenticated actor (creates on first use, reuses afterwards)
+   */
+  private async getActor(): Promise<_SERVICE> {
+    return this.actorService.getActor();
   }
 
   /**
@@ -62,7 +55,7 @@ export class CryptoCanisterService {
    * Collects 0.5% platform fee automatically
    */
   async buyCrypto(request: BuyCryptoRequest): Promise<BuyCryptoResponse> {
-    const result = await this.actor.buy_crypto(request);
+    const result = await (await this.getActor()).buy_crypto(request);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -76,7 +69,7 @@ export class CryptoCanisterService {
    * Collects 0.5% platform fee automatically
    */
   async sellCrypto(request: SellCryptoRequest): Promise<BuyCryptoResponse> {
-    const result = await this.actor.sell_crypto(request);
+    const result = await (await this.getActor()).sell_crypto(request);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -89,7 +82,7 @@ export class CryptoCanisterService {
    * Send cryptocurrency to external address
    */
   async sendCrypto(request: SendCryptoRequest): Promise<string> {
-    const result = await this.actor.send_crypto(request);
+    const result = await (await this.getActor()).send_crypto(request);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -103,7 +96,7 @@ export class CryptoCanisterService {
    * Collects 0.5% spread automatically
    */
   async swapCrypto(request: SwapCryptoRequest): Promise<SwapCryptoResponse> {
-    const result = await this.actor.swap_crypto(request);
+    const result = await (await this.getActor()).swap_crypto(request);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -121,7 +114,7 @@ export class CryptoCanisterService {
     userIdentifier: string,
     cryptoType: string,
   ): Promise<bigint> {
-    const result = await this.actor.check_crypto_balance(
+    const result = await (await this.getActor()).check_crypto_balance(
       userIdentifier,
       cryptoType,
     );
@@ -139,7 +132,7 @@ export class CryptoCanisterService {
   async createEscrow(
     request: CreateEscrowRequest,
   ): Promise<CreateEscrowResponse> {
-    const result = await this.actor.create_escrow(request);
+    const result = await (await this.getActor()).create_escrow(request);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -152,7 +145,7 @@ export class CryptoCanisterService {
    * Verify and claim escrow (agent receives crypto)
    */
   async verifyEscrow(request: VerifyEscrowRequest): Promise<string> {
-    const result = await this.actor.verify_escrow(request);
+    const result = await (await this.getActor()).verify_escrow(request);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -169,7 +162,7 @@ export class CryptoCanisterService {
     userIdentifier: string,
     pin: string,
   ): Promise<void> {
-    const result = await this.actor.cancel_escrow(code, userIdentifier, pin);
+    const result = await (await this.getActor()).cancel_escrow(code, userIdentifier, pin);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -180,7 +173,7 @@ export class CryptoCanisterService {
    * Get escrow status
    */
   async getEscrowStatus(code: string): Promise<Escrow> {
-    const result = await this.actor.get_escrow_status(code);
+    const result = await (await this.getActor()).get_escrow_status(code);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -193,21 +186,21 @@ export class CryptoCanisterService {
    * Get DEX provider
    */
   async getDexProvider(): Promise<string> {
-    return await this.actor.get_dex_provider();
+    return await (await this.getActor()).get_dex_provider();
   }
 
   /**
    * Get spread in basis points (1 basis point = 0.01%)
    */
   async getSpreadBasisPoints(): Promise<bigint> {
-    return await this.actor.get_spread_basis_points();
+    return await (await this.getActor()).get_spread_basis_points();
   }
 
   /**
    * Get platform reserve balance (admin only)
    */
   async getReserveBalance(btcPriceUsd: number): Promise<ReserveBalance> {
-    const result = await this.actor.get_reserve_balance(btcPriceUsd);
+    const result = await (await this.getActor()).get_reserve_balance(btcPriceUsd);
 
     if ("Err" in result) {
       throw new Error(result.Err);

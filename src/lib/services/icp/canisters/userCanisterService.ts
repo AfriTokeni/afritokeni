@@ -9,10 +9,10 @@
  * - Audit logging
  */
 
-import { Actor, HttpAgent } from "@dfinity/agent";
 import { idlFactory } from "$/declarations/user_canister/user_canister.did.js";
 import type { _SERVICE } from "$/declarations/user_canister/user_canister.did.d.ts";
-import { USER_CANISTER_ID, IC_HOST } from "./config";
+import { USER_CANISTER_ID } from "./config";
+import { AuthenticatedActorService } from "./actorFactory";
 import type {
   RegisterUserRequest,
   UserProfile,
@@ -22,32 +22,24 @@ import type {
 } from "$/declarations/user_canister/user_canister.did";
 
 /**
- * Create actor for user_canister
- */
-function createUserActor(): _SERVICE {
-  const agent = new HttpAgent({ host: IC_HOST });
-
-  // Fetch root key for local development
-  if (IC_HOST.includes("localhost")) {
-    agent.fetchRootKey().catch((err) => {
-      console.warn("Unable to fetch root key. Check if dfx is running:", err);
-    });
-  }
-
-  return Actor.createActor<_SERVICE>(idlFactory, {
-    agent,
-    canisterId: USER_CANISTER_ID,
-  });
-}
-
-/**
  * User Canister Service
+ * Uses authenticated identity from Juno/Internet Identity for all calls
  */
 export class UserCanisterService {
-  private actor: _SERVICE;
+  private actorService: AuthenticatedActorService<_SERVICE>;
 
   constructor() {
-    this.actor = createUserActor();
+    this.actorService = new AuthenticatedActorService<_SERVICE>(
+      idlFactory,
+      USER_CANISTER_ID,
+    );
+  }
+
+  /**
+   * Get authenticated actor (creates on first use, reuses afterwards)
+   */
+  private async getActor(): Promise<_SERVICE> {
+    return this.actorService.getActor();
   }
 
   // ============================================================================
@@ -59,7 +51,7 @@ export class UserCanisterService {
    * @returns User ID
    */
   async registerUser(request: RegisterUserRequest): Promise<string> {
-    const result = await this.actor.register_user(request);
+    const result = await (await this.getActor()).register_user(request);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -73,7 +65,7 @@ export class UserCanisterService {
    * @param userIdentifier - Phone number (+256...), principal ID, or user ID
    */
   async userExists(userIdentifier: string): Promise<boolean> {
-    const result = await this.actor.user_exists(userIdentifier);
+    const result = await (await this.getActor()).user_exists(userIdentifier);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -87,7 +79,7 @@ export class UserCanisterService {
    * @param userIdentifier - Phone number, principal ID, or user ID
    */
   async getUserProfile(userIdentifier: string): Promise<UserProfile> {
-    const result = await this.actor.get_user_profile(userIdentifier);
+    const result = await (await this.getActor()).get_user_profile(userIdentifier);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -101,7 +93,7 @@ export class UserCanisterService {
    * @param userIdentifier - Phone number, principal ID, or user ID
    */
   async getUserProfileUpdate(userIdentifier: string): Promise<UserProfile> {
-    const result = await this.actor.get_user_profile_update(userIdentifier);
+    const result = await (await this.getActor()).get_user_profile_update(userIdentifier);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -114,7 +106,7 @@ export class UserCanisterService {
    * Get user by phone number (query)
    */
   async getUserByPhone(phone: string): Promise<UserProfile> {
-    const result = await this.actor.get_user_by_phone(phone);
+    const result = await (await this.getActor()).get_user_by_phone(phone);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -127,7 +119,7 @@ export class UserCanisterService {
    * Get user by phone number (update)
    */
   async getUserByPhoneUpdate(phone: string): Promise<UserProfile> {
-    const result = await this.actor.get_user_by_phone_update(phone);
+    const result = await (await this.getActor()).get_user_by_phone_update(phone);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -140,7 +132,7 @@ export class UserCanisterService {
    * Get user by principal ID (query)
    */
   async getUserByPrincipal(principalId: string): Promise<UserProfile> {
-    const result = await this.actor.get_user_by_principal(principalId);
+    const result = await (await this.getActor()).get_user_by_principal(principalId);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -153,7 +145,7 @@ export class UserCanisterService {
    * Get user by principal ID (update)
    */
   async getUserByPrincipalUpdate(principalId: string): Promise<UserProfile> {
-    const result = await this.actor.get_user_by_principal_update(principalId);
+    const result = await (await this.getActor()).get_user_by_principal_update(principalId);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -167,7 +159,7 @@ export class UserCanisterService {
    * @returns Principal ID string or null if user has no principal
    */
   async getUserPrincipal(userId: string): Promise<string | null> {
-    const result = await this.actor.get_user_principal(userId);
+    const result = await (await this.getActor()).get_user_principal(userId);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -184,7 +176,7 @@ export class UserCanisterService {
     userIdentifier: string,
     updates: ProfileUpdates,
   ): Promise<void> {
-    const result = await this.actor.update_user_profile(
+    const result = await (await this.getActor()).update_user_profile(
       userIdentifier,
       updates,
     );
@@ -202,7 +194,7 @@ export class UserCanisterService {
     principalId: string,
     phoneNumber: string,
   ): Promise<void> {
-    const result = await this.actor.link_phone_to_account(
+    const result = await (await this.getActor()).link_phone_to_account(
       principalId,
       phoneNumber,
     );
@@ -221,7 +213,7 @@ export class UserCanisterService {
     userIdentifier: string,
     newUserType: string,
   ): Promise<void> {
-    const result = await this.actor.set_user_type(userIdentifier, newUserType);
+    const result = await (await this.getActor()).set_user_type(userIdentifier, newUserType);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -238,7 +230,7 @@ export class UserCanisterService {
    * @throws Error if user not found or account is locked
    */
   async verifyPin(userIdentifier: string, pin: string): Promise<boolean> {
-    const result = await this.actor.verify_pin(userIdentifier, pin);
+    const result = await (await this.getActor()).verify_pin(userIdentifier, pin);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -255,7 +247,7 @@ export class UserCanisterService {
     oldPin: string,
     newPin: string,
   ): Promise<void> {
-    const result = await this.actor.change_pin(userIdentifier, oldPin, newPin);
+    const result = await (await this.getActor()).change_pin(userIdentifier, oldPin, newPin);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -271,7 +263,7 @@ export class UserCanisterService {
    * @param limit - Maximum number of entries to return
    */
   async getAuditLog(limit?: bigint): Promise<AuditEntry[]> {
-    const result = await this.actor.get_audit_log(limit ? [limit] : []);
+    const result = await (await this.getActor()).get_audit_log(limit ? [limit] : []);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -284,7 +276,7 @@ export class UserCanisterService {
    * Get audit log statistics
    */
   async getAuditStats(): Promise<AuditStats> {
-    const result = await this.actor.get_audit_stats();
+    const result = await (await this.getActor()).get_audit_stats();
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -297,7 +289,7 @@ export class UserCanisterService {
    * Get audit entries for a specific user
    */
   async getUserAuditLog(userId: string, limit?: bigint): Promise<AuditEntry[]> {
-    const result = await this.actor.get_user_audit_log(
+    const result = await (await this.getActor()).get_user_audit_log(
       userId,
       limit ? [limit] : [],
     );
@@ -316,7 +308,7 @@ export class UserCanisterService {
     action: string,
     limit?: bigint,
   ): Promise<AuditEntry[]> {
-    const result = await this.actor.get_audit_by_action(
+    const result = await (await this.getActor()).get_audit_by_action(
       action,
       limit ? [limit] : [],
     );
@@ -332,7 +324,7 @@ export class UserCanisterService {
    * Get failed operations (for debugging)
    */
   async getFailedOperations(limit?: bigint): Promise<AuditEntry[]> {
-    const result = await this.actor.get_failed_operations(limit ? [limit] : []);
+    const result = await (await this.getActor()).get_failed_operations(limit ? [limit] : []);
 
     if ("Err" in result) {
       throw new Error(result.Err);

@@ -10,10 +10,11 @@
  * Collects 0.5% platform fee on all transfers
  */
 
-import { Actor, HttpAgent } from "@dfinity/agent";
+
 import { idlFactory } from "$/declarations/wallet_canister/wallet_canister.did.js";
+import { AuthenticatedActorService } from "./actorFactory";
 import type { _SERVICE } from "$/declarations/wallet_canister/wallet_canister.did.d.ts";
-import { WALLET_CANISTER_ID, IC_HOST } from "./config";
+import { WALLET_CANISTER_ID } from "./config";
 import type {
   TransferRequest,
   TransferResponse,
@@ -25,32 +26,24 @@ import type {
 } from "$/declarations/wallet_canister/wallet_canister.did";
 
 /**
- * Create actor for wallet_canister
- */
-function createWalletActor(): _SERVICE {
-  const agent = new HttpAgent({ host: IC_HOST });
-
-  // Fetch root key for local development
-  if (IC_HOST.includes("localhost")) {
-    agent.fetchRootKey().catch((err) => {
-      console.warn("Unable to fetch root key. Check if dfx is running:", err);
-    });
-  }
-
-  return Actor.createActor<_SERVICE>(idlFactory, {
-    agent,
-    canisterId: WALLET_CANISTER_ID,
-  });
-}
-
-/**
  * Wallet Canister Service
+ * Uses authenticated identity from Juno/Internet Identity for all calls
  */
 export class WalletCanisterService {
-  private actor: _SERVICE;
+  private actorService: AuthenticatedActorService<_SERVICE>;
 
   constructor() {
-    this.actor = createWalletActor();
+    this.actorService = new AuthenticatedActorService<_SERVICE>(
+      idlFactory,
+      WALLET_CANISTER_ID,
+    );
+  }
+
+  /**
+   * Get authenticated actor (creates on first use, reuses afterwards)
+   */
+  private async getActor(): Promise<_SERVICE> {
+    return this.actorService.getActor();
   }
 
   /**
@@ -58,7 +51,7 @@ export class WalletCanisterService {
    * Automatically deducts 0.5% platform fee
    */
   async transferFiat(request: TransferRequest): Promise<TransferResponse> {
-    const result = await this.actor.transfer_fiat(request);
+    const result = await (await this.getActor()).transfer_fiat(request);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -74,7 +67,7 @@ export class WalletCanisterService {
     userId: string,
     currency: FiatCurrency,
   ): Promise<bigint> {
-    const result = await this.actor.get_fiat_balance(userId, currency);
+    const result = await (await this.getActor()).get_fiat_balance(userId, currency);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -91,7 +84,7 @@ export class WalletCanisterService {
     amount: bigint,
     currency: FiatCurrency,
   ): Promise<bigint> {
-    const result = await this.actor.add_fiat_balance(userId, amount, currency);
+    const result = await (await this.getActor()).add_fiat_balance(userId, amount, currency);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -108,7 +101,7 @@ export class WalletCanisterService {
     amount: bigint,
     currency: FiatCurrency,
   ): Promise<bigint> {
-    const result = await this.actor.deduct_fiat_balance(
+    const result = await (await this.getActor()).deduct_fiat_balance(
       userId,
       amount,
       currency,
@@ -132,7 +125,7 @@ export class WalletCanisterService {
     startTime?: bigint,
     endTime?: bigint,
   ): Promise<Transaction[]> {
-    const result = await this.actor.get_transaction_history(
+    const result = await (await this.getActor()).get_transaction_history(
       userId,
       startTime ? [startTime] : [],
       endTime ? [endTime] : [],
@@ -151,7 +144,7 @@ export class WalletCanisterService {
   async createEscrow(
     request: CreateEscrowRequest,
   ): Promise<CreateEscrowResponse> {
-    const result = await this.actor.create_escrow(request);
+    const result = await (await this.getActor()).create_escrow(request);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -164,7 +157,7 @@ export class WalletCanisterService {
    * Get escrow details
    */
   async getEscrow(code: string): Promise<Escrow> {
-    const result = await this.actor.get_escrow(code);
+    const result = await (await this.getActor()).get_escrow(code);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -177,7 +170,7 @@ export class WalletCanisterService {
    * Cancel escrow and refund crypto to user
    */
   async cancelEscrow(code: string, userId: string, pin: string): Promise<void> {
-    const result = await this.actor.cancel_escrow(code, userId, pin);
+    const result = await (await this.getActor()).cancel_escrow(code, userId, pin);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -188,7 +181,7 @@ export class WalletCanisterService {
    * Claim escrow (agent receives crypto)
    */
   async claimEscrow(code: string, agentId: string): Promise<void> {
-    const result = await this.actor.claim_escrow(code, agentId);
+    const result = await (await this.getActor()).claim_escrow(code, agentId);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -199,7 +192,7 @@ export class WalletCanisterService {
    * Get wallet configuration info
    */
   async getConfigInfo(): Promise<string> {
-    return await this.actor.get_config_info();
+    return await (await this.getActor()).get_config_info();
   }
 }
 

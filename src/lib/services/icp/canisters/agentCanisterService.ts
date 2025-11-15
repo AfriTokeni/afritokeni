@@ -11,10 +11,10 @@
  * Replaced old deposit_canister and withdrawal_canister
  */
 
-import { Actor, HttpAgent } from "@dfinity/agent";
 import { idlFactory } from "$/declarations/agent_canister/agent_canister.did.js";
 import type { _SERVICE } from "$/declarations/agent_canister/agent_canister.did.d.ts";
-import { AGENT_CANISTER_ID, IC_HOST } from "./config";
+import { AGENT_CANISTER_ID } from "./config";
+import { AuthenticatedActorService } from "./actorFactory";
 import type {
   CreateDepositRequest,
   CreateDepositResponse,
@@ -40,32 +40,24 @@ import type {
 } from "$/declarations/agent_canister/agent_canister.did";
 
 /**
- * Create actor for agent_canister
- */
-function createAgentActor(): _SERVICE {
-  const agent = new HttpAgent({ host: IC_HOST });
-
-  // Fetch root key for local development
-  if (IC_HOST.includes("localhost")) {
-    agent.fetchRootKey().catch((err) => {
-      console.warn("Unable to fetch root key. Check if dfx is running:", err);
-    });
-  }
-
-  return Actor.createActor<_SERVICE>(idlFactory, {
-    agent,
-    canisterId: AGENT_CANISTER_ID,
-  });
-}
-
-/**
  * Agent Canister Service
+ * Uses authenticated identity from Juno/Internet Identity for all calls
  */
 export class AgentCanisterService {
-  private actor: _SERVICE;
+  private actorService: AuthenticatedActorService<_SERVICE>;
 
   constructor() {
-    this.actor = createAgentActor();
+    this.actorService = new AuthenticatedActorService<_SERVICE>(
+      idlFactory,
+      AGENT_CANISTER_ID,
+    );
+  }
+
+  /**
+   * Get authenticated actor (creates on first use, reuses afterwards)
+   */
+  private async getActor(): Promise<_SERVICE> {
+    return this.actorService.getActor();
   }
 
   // ============================================================================
@@ -79,7 +71,8 @@ export class AgentCanisterService {
   async createDepositRequest(
     request: CreateDepositRequest,
   ): Promise<CreateDepositResponse> {
-    const result = await this.actor.create_deposit_request(request);
+    const actor = await this.getActor();
+    const result = await actor.create_deposit_request(request);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -94,7 +87,7 @@ export class AgentCanisterService {
   async confirmDeposit(
     request: ConfirmDepositRequest,
   ): Promise<ConfirmDepositResponse> {
-    const result = await this.actor.confirm_deposit(request);
+    const result = await (await this.getActor()).confirm_deposit(request);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -107,7 +100,7 @@ export class AgentCanisterService {
    * Get deposit status by code
    */
   async getDepositStatus(depositCode: string): Promise<DepositTransaction> {
-    const result = await this.actor.get_deposit_status(depositCode);
+    const result = await (await this.getActor()).get_deposit_status(depositCode);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -120,7 +113,7 @@ export class AgentCanisterService {
    * Get all deposits for an agent
    */
   async getAgentDeposits(agentId: string): Promise<DepositTransaction[]> {
-    const result = await this.actor.get_agent_deposits(agentId);
+    const result = await (await this.getActor()).get_agent_deposits(agentId);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -133,7 +126,7 @@ export class AgentCanisterService {
    * Get deposit limits for a currency
    */
   async getDepositLimits(currency: string): Promise<CurrencyLimitsResponse> {
-    const result = await this.actor.get_deposit_limits(currency);
+    const result = await (await this.getActor()).get_deposit_limits(currency);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -153,7 +146,7 @@ export class AgentCanisterService {
   async createWithdrawalRequest(
     request: CreateDepositRequest,
   ): Promise<CreateWithdrawalResponse> {
-    const result = await this.actor.create_withdrawal_request(request);
+    const result = await (await this.getActor()).create_withdrawal_request(request);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -168,7 +161,7 @@ export class AgentCanisterService {
   async confirmWithdrawal(
     request: ConfirmWithdrawalRequest,
   ): Promise<ConfirmWithdrawalResponse> {
-    const result = await this.actor.confirm_withdrawal(request);
+    const result = await (await this.getActor()).confirm_withdrawal(request);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -185,7 +178,7 @@ export class AgentCanisterService {
     userId: string,
     pin: string,
   ): Promise<void> {
-    const result = await this.actor.cancel_withdrawal(
+    const result = await (await this.getActor()).cancel_withdrawal(
       withdrawalCode,
       userId,
       pin,
@@ -202,7 +195,7 @@ export class AgentCanisterService {
   async getWithdrawalStatus(
     withdrawalCode: string,
   ): Promise<WithdrawalTransaction> {
-    const result = await this.actor.get_withdrawal_status(withdrawalCode);
+    const result = await (await this.getActor()).get_withdrawal_status(withdrawalCode);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -215,7 +208,7 @@ export class AgentCanisterService {
    * Get all withdrawals for an agent
    */
   async getAgentWithdrawals(agentId: string): Promise<WithdrawalTransaction[]> {
-    const result = await this.actor.get_agent_withdrawals(agentId);
+    const result = await (await this.getActor()).get_agent_withdrawals(agentId);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -228,7 +221,7 @@ export class AgentCanisterService {
    * Calculate withdrawal fees
    */
   async getWithdrawalFees(amount: bigint): Promise<WithdrawalFeesResponse> {
-    const result = await this.actor.get_withdrawal_fees(amount);
+    const result = await (await this.getActor()).get_withdrawal_fees(amount);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -261,7 +254,7 @@ export class AgentCanisterService {
     agentId: string,
     currency: string,
   ): Promise<AgentBalanceResponse> {
-    const result = await this.actor.get_agent_balance(agentId, currency);
+    const result = await (await this.getActor()).get_agent_balance(agentId, currency);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -274,7 +267,7 @@ export class AgentCanisterService {
    * Get all balances for an agent (all currencies)
    */
   async getAgentAllBalances(agentId: string): Promise<AgentBalanceResponse[]> {
-    const result = await this.actor.get_agent_all_balances(agentId);
+    const result = await (await this.getActor()).get_agent_all_balances(agentId);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -290,7 +283,7 @@ export class AgentCanisterService {
     agentId: string,
     currency: string,
   ): Promise<AgentCreditStatus> {
-    const result = await this.actor.get_agent_credit_status(agentId, currency);
+    const result = await (await this.getActor()).get_agent_credit_status(agentId, currency);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -307,7 +300,7 @@ export class AgentCanisterService {
     currency: string,
     amount: bigint,
   ): Promise<boolean> {
-    const result = await this.actor.check_agent_credit_available(
+    const result = await (await this.getActor()).check_agent_credit_available(
       agentId,
       currency,
       amount,
@@ -324,7 +317,7 @@ export class AgentCanisterService {
    * Set agent tier (admin only)
    */
   async setAgentTier(request: SetAgentTierRequest): Promise<void> {
-    const result = await this.actor.set_agent_tier(request);
+    const result = await (await this.getActor()).set_agent_tier(request);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -341,7 +334,7 @@ export class AgentCanisterService {
   async createAgentProfile(
     request: CreateAgentProfileRequest,
   ): Promise<AgentProfile> {
-    const result = await this.actor.create_agent_profile(request);
+    const result = await (await this.getActor()).create_agent_profile(request);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -355,7 +348,7 @@ export class AgentCanisterService {
    * Note: Uses update call because query calls cannot make inter-canister calls
    */
   async getAgentProfile(userId: string): Promise<AgentProfile | null> {
-    const result = await this.actor.get_agent_profile_update(userId);
+    const result = await (await this.getActor()).get_agent_profile_update(userId);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -372,7 +365,7 @@ export class AgentCanisterService {
   async updateAgentProfile(
     request: UpdateAgentProfileRequest,
   ): Promise<AgentProfile> {
-    const result = await this.actor.update_agent_profile(request);
+    const result = await (await this.getActor()).update_agent_profile(request);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -390,7 +383,7 @@ export class AgentCanisterService {
     radiusKm: number,
     limit: bigint,
   ): Promise<AgentProfile[]> {
-    const result = await this.actor.get_nearby_agent_profiles(
+    const result = await (await this.getActor()).get_nearby_agent_profiles(
       latitude,
       longitude,
       radiusKm,
@@ -412,7 +405,7 @@ export class AgentCanisterService {
    * Get settlements for a specific agent
    */
   async getAgentSettlements(agentId: string): Promise<MonthlySettlement[]> {
-    const result = await this.actor.get_agent_settlements(agentId);
+    const result = await (await this.getActor()).get_agent_settlements(agentId);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -427,7 +420,7 @@ export class AgentCanisterService {
   async generateWeeklySettlements(
     currency: string,
   ): Promise<WeeklySettlement[]> {
-    const result = await this.actor.generate_weekly_settlements(currency);
+    const result = await (await this.getActor()).generate_weekly_settlements(currency);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -444,7 +437,7 @@ export class AgentCanisterService {
     week: string,
     currency: string,
   ): Promise<void> {
-    const result = await this.actor.process_weekly_settlement(
+    const result = await (await this.getActor()).process_weekly_settlement(
       agentId,
       week,
       currency,
@@ -463,21 +456,21 @@ export class AgentCanisterService {
    * Get fee structure
    */
   async getFeeStructure(): Promise<FeeStructureResponse> {
-    return await this.actor.get_fee_structure();
+    return await (await this.getActor()).get_fee_structure();
   }
 
   /**
    * Get canister status
    */
   async getCanisterStatus(): Promise<CanisterStatus> {
-    return await this.actor.get_canister_status();
+    return await (await this.getActor()).get_canister_status();
   }
 
   /**
    * Get all agent balances (admin only)
    */
   async getAllAgentBalances(): Promise<AgentBalanceResponse[]> {
-    const result = await this.actor.get_all_agent_balances();
+    const result = await (await this.getActor()).get_all_agent_balances();
 
     if ("Err" in result) {
       throw new Error(result.Err);

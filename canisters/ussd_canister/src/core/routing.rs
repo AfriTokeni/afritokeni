@@ -203,7 +203,7 @@ pub async fn handle_registration(session: &mut UssdSession, input: &str) -> (Str
 /// assert_eq!(detect_currency_from_phone("254712345678"), "KES");  // Kenya
 /// ```
 pub fn detect_currency_from_phone(phone: &str) -> String {
-    let phone = phone.trim_start_matches('+');
+    let phone = phone.trim().trim_start_matches('+');
 
     // African country codes and their currencies (39 countries)
     // Sorted by country code length (longest first) to handle overlapping prefixes

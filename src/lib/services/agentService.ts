@@ -159,14 +159,20 @@ export class AgentService {
   static async createAgent(
     agent: Omit<AgentMetadata, "id" | "createdAt">,
   ): Promise<AgentMetadata> {
+    const demoMode = this.isDemoMode();
+    console.log(`🎯 AgentService.createAgent called (demo mode: ${demoMode})`, {
+      userId: agent.userId,
+      businessName: agent.businessName,
+    });
+
     // Check if agent already exists
     const existingAgent = await this.getAgentByUserId(agent.userId);
     if (existingAgent) {
-      console.warn(`Agent already exists for userId ${agent.userId}`);
+      console.warn(`⚠️ Agent already exists for userId ${agent.userId}, returning existing profile`);
       return existingAgent;
     }
 
-    if (this.isDemoMode()) {
+    if (demoMode) {
       // Demo mode: Store in localStorage
       await this.initializeDemoAgents();
 
@@ -189,6 +195,12 @@ export class AgentService {
     } else {
       // Production mode: Call agent_canister
       try {
+        console.log("📝 Creating agent profile in production mode:", {
+          userId: agent.userId,
+          businessName: agent.businessName,
+          location: agent.location,
+        });
+
         const result = await agentCanisterService.createAgentProfile({
           user_id: agent.userId,
           business_name: agent.businessName,
@@ -376,11 +388,15 @@ export class AgentService {
     } else {
       // Production mode: Call agent_canister
       try {
+        console.log("🔍 Fetching agent profile for user:", userId);
         const result = await agentCanisterService.getAgentProfile(userId);
 
         if (!result) {
+          console.log("❌ No agent profile found in agent_canister for user:", userId);
           return null;
         }
+
+        console.log("✅ Found agent profile:", result.user_id);
 
         // Convert Candid AgentStatus back to string
         let status: "available" | "busy" | "cash_out" | "offline" = "available";

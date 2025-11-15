@@ -92,9 +92,11 @@ function transformCanisterTransaction(
     currency: transformCurrencyType(canisterTx.currency_type),
     status: transformTransactionStatus(canisterTx.status),
     timestamp: Number(canisterTx.created_at) / 1_000_000, // Convert nanoseconds to milliseconds
-    fromUser: canisterTx.from_user.length > 0 ? canisterTx.from_user[0] : undefined,
+    fromUser:
+      canisterTx.from_user.length > 0 ? canisterTx.from_user[0] : undefined,
     toUser: canisterTx.to_user.length > 0 ? canisterTx.to_user[0] : undefined,
-    description: canisterTx.description.length > 0 ? canisterTx.description[0] : undefined,
+    description:
+      canisterTx.description.length > 0 ? canisterTx.description[0] : undefined,
   };
 }
 
@@ -137,7 +139,8 @@ export async function fetchTransactions(
   // This is a public query endpoint that checks the caller's principal
   try {
     const limit = maxTransactions ? BigInt(maxTransactions) : undefined;
-    const canisterTransactions = await dataCanisterService.getMyTransactions(limit);
+    const canisterTransactions =
+      await dataCanisterService.getMyTransactions(limit);
 
     // Transform canister transactions to frontend format
     return canisterTransactions.map(transformCanisterTransaction);
