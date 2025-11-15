@@ -32,69 +32,21 @@ export default defineConfig({
     collections: {
       datastore: [
         {
-          collection: "users",
-          read: "managed",
-          write: "managed",
-          memory: "stable",
-        },
-        {
           collection: "agents",
-          read: "public",   // Agent profiles are public for discovery
-          write: "managed", // Agents can only edit their own profile
-          memory: "stable",
-        },
-        {
-          collection: "agent_customers",
-          read: "managed",  // Agents can only see their own customers
-          write: "managed",
+          read: "public",   // Discovery directory for agents
+          write: "managed", // Agents edit their own profile
           memory: "stable",
         },
         {
           collection: "agent_reviews",
-          read: "public",   // Reviews are public
-          write: "managed", // Users can write their own reviews
-          memory: "stable",
-        },
-        {
-          collection: "user_roles",
-          read: "managed",
-          write: "managed",
-          memory: "stable",
-        },
-        {
-          collection: "user_pins",
-          read: "managed",  // Users can only see their own PIN
-          write: "managed",
-          memory: "stable",
-        },
-        {
-          collection: "balances",
-          read: "managed",
-          write: "controllers", // Only backend can modify balances
-          memory: "stable",
-        },
-        {
-          collection: "transactions",
-          read: "managed",
-          write: "controllers",
-          memory: "stable",
-        },
-        {
-          collection: "deposit_requests",
-          read: "managed",
-          write: "managed",
-          memory: "stable",
-        },
-        {
-          collection: "escrow_transactions",
-          read: "managed",
-          write: "controllers",
+          read: "public",   // Testimonials remain public
+          write: "managed", // Authenticated users can submit reviews
           memory: "stable",
         },
         {
           collection: "config",
-          read: "controllers",  // Only controllers can read config (contains secrets)
-          write: "controllers", // Only controllers can write config
+          read: "controllers",  // Holds AfricasTalking + third-party creds
+          write: "controllers",
           memory: "stable",
         },
       ],

@@ -1,5 +1,4 @@
-/**
- * Deposit Canister Service
+/** * Deposit Canister Service
  *
  * Wrapper service for interacting with the deposit canister on ICP.
  * Handles cash deposit transactions, agent commissions, and settlements.

@@ -39,9 +39,15 @@ function getCanisterList(): Array<{ id: string; name: string }> {
   const canisters: Array<{ id: string; name: string }> = [];
 
   // Add old canisters if they exist (backward compatibility)
-  if (depositId) canisters.push({ id: depositId, name: "Deposit Canister (deprecated)" });
-  if (withdrawalId) canisters.push({ id: withdrawalId, name: "Withdrawal Canister (deprecated)" });
-  if (exchangeId) canisters.push({ id: exchangeId, name: "Exchange Canister (deprecated)" });
+  if (depositId)
+    canisters.push({ id: depositId, name: "Deposit Canister (deprecated)" });
+  if (withdrawalId)
+    canisters.push({
+      id: withdrawalId,
+      name: "Withdrawal Canister (deprecated)",
+    });
+  if (exchangeId)
+    canisters.push({ id: exchangeId, name: "Exchange Canister (deprecated)" });
 
   // Add new domain canisters if they exist
   if (agentId) canisters.push({ id: agentId, name: "Agent Canister" });
