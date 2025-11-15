@@ -10,7 +10,8 @@
  * - agentOperationsService (deposits/withdrawals)
  */
 
-import { dataCanisterService } from "$lib/services/icp/canisters/dataCanisterService";
+// These imports are for future production mode implementation
+import { dataCanisterService as _dataCanisterService } from "$lib/services/icp/canisters/dataCanisterService";
 import type { Transaction as CanisterTransaction } from "$/declarations/data_canister/data_canister.did.d.ts";
 
 export interface Transaction {
@@ -27,8 +28,9 @@ export interface Transaction {
 
 /**
  * Transform canister TransactionType to frontend string
+ * Reserved for future production mode implementation
  */
-function transformTransactionType(
+function _transformTransactionType(
   canisterType: CanisterTransaction["transaction_type"],
 ): string {
   if ("TransferFiat" in canisterType) return "transfer";
@@ -47,8 +49,9 @@ function transformTransactionType(
 
 /**
  * Transform canister TransactionStatus to frontend string
+ * Reserved for future production mode implementation
  */
-function transformTransactionStatus(
+function _transformTransactionStatus(
   canisterStatus: CanisterTransaction["status"],
 ): string {
   if ("Completed" in canisterStatus) return "completed";
@@ -60,8 +63,9 @@ function transformTransactionStatus(
 
 /**
  * Transform canister CurrencyType to frontend string
+ * Reserved for future production mode implementation
  */
-function transformCurrencyType(
+function _transformCurrencyType(
   currencyType: CanisterTransaction["currency_type"],
 ): string {
   if ("Fiat" in currencyType && currencyType.Fiat) {

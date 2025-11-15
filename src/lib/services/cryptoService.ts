@@ -185,9 +185,11 @@ export class CryptoService {
     userIdentifier: string,
     cryptoType: "ckBTC" | "ckUSD",
   ): Promise<bigint> {
+    // Convert to canister format: "ckBTC" -> "CkBTC", "ckUSD" -> "CkUSD"
+    const canisterCryptoType = cryptoType === "ckBTC" ? "CkBTC" : "CkUSD";
     return await cryptoCanisterService.checkCryptoBalance(
       userIdentifier,
-      cryptoType,
+      canisterCryptoType,
     );
   }
 
