@@ -27,7 +27,7 @@ export async function fetchCkBTCBalance(
     return 250000;
   }
 
-  const balance = await cryptoService.checkBalance(userId, "CkBTC");
+  const balance = await cryptoService.checkBalance(userId, "ckBTC");
   return Number(balance);
 }
 

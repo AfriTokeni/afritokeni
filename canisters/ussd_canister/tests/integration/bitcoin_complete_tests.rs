@@ -102,10 +102,10 @@ fn test_send_bitcoin_to_valid_address() {
     
     env.setup_test_user_with_balances(phone, "BTC", "Sender", "btcsend@test.com", "UGX", "1234", 0, 100000, 0)
         .expect("Setup");
-    
+
     // Send Bitcoin: Menu 2 -> 5 (Send) -> address -> amount -> PIN
-    // Note: ckBTC uses IC Principal addresses, not Bitcoin addresses
-    let (response, _) = env.process_ussd(&sess, phone, "2*5*rrkah-fqaaa-aaaaa-aaaaq-cai*50000*1234");
+    // Use valid Bitcoin address format (bc1 prefix for bech32)
+    let (response, _) = env.process_ussd(&sess, phone, "2*5*bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh*50000*1234");
     
     assert!(response.contains("success") || response.contains("Success") || response.contains("sent"),
         "Should send BTC. Got: {}", response);

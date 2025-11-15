@@ -16,6 +16,7 @@ import type {
   _SERVICE,
   AgentReview,
   CreateReviewRequest,
+  Transaction,
 } from "$/declarations/data_canister/data_canister.did.d.ts";
 import { DATA_CANISTER_ID, IC_HOST } from "./config";
 
@@ -142,6 +143,53 @@ export class DataCanisterService {
     if ("Err" in result) {
       throw new Error(result.Err);
     }
+  }
+
+  /**
+   * Get transactions for current user
+   * User can only access their own transactions
+   * @param limit - Optional limit on number of transactions to return
+   * @param offset - Optional offset for pagination
+   */
+  async getMyTransactions(
+    limit?: bigint,
+    offset?: bigint,
+  ): Promise<Transaction[]> {
+    const result = await this.actor.get_my_transactions(
+      limit ? [limit] : [],
+      offset ? [offset] : [],
+    );
+
+    if ("Err" in result) {
+      throw new Error(result.Err);
+    }
+
+    return result.Ok;
+  }
+
+  /**
+   * Get transactions for a specific user
+   * User can access their own, canisters can access any
+   * @param userId - User identifier (phone, principal, or user ID)
+   * @param limit - Optional limit on number of transactions to return
+   * @param offset - Optional offset for pagination
+   */
+  async getUserTransactions(
+    userId: string,
+    limit?: bigint,
+    offset?: bigint,
+  ): Promise<Transaction[]> {
+    const result = await this.actor.get_user_transactions(
+      userId,
+      limit ? [limit] : [],
+      offset ? [offset] : [],
+    );
+
+    if ("Err" in result) {
+      throw new Error(result.Err);
+    }
+
+    return result.Ok;
   }
 }
 

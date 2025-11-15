@@ -25,7 +25,11 @@ fn test_buy_usdc_with_ugx() {
     assert!(usdc > 0, "Should have USDC balance");
 
     let fiat = env.check_fiat_balance(phone, "UGX").expect("Get fiat balance");
-    assert_eq!(fiat, 9900000, "Fiat should decrease to 9,900,000 cents after buying 1000 UGX worth of USDC");
+    // Purchase: 1000 UGX = 100,000 cents
+    // 0.5% fee: 100,000 * 0.005 = 500 cents
+    // Total deducted: 100,000 + 500 = 100,500 cents
+    // Final balance: 10,000,000 - 100,500 = 9,899,500 cents
+    assert_eq!(fiat, 9899500, "Fiat should decrease by 100,500 cents (100,000 purchase + 500 fee)");
 }
 
 #[test]
@@ -90,14 +94,18 @@ fn test_send_usdc_to_valid_address() {
         .expect("Setup");
     
     // Send USDC: Menu 3 -> 5 (Send) -> address -> amount -> PIN
-    // Note: ckUSDC uses IC Principal addresses, not Ethereum addresses
-    let (response, _) = env.process_ussd(&sess, phone, "3*5*rrkah-fqaaa-aaaaa-aaaaq-cai*50000*1234");
+    // ckUSDC uses Ethereum addresses for sending (42 characters including 0x)
+    let (response, _) = env.process_ussd(&sess, phone, "3*5*0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb1*50000*1234");
     
     assert!(response.contains("success") || response.contains("Success") || response.contains("sent"),
         "Should send USDC. Got: {}", response);
-    
+
     let (_, usdc) = env.get_crypto_balance(phone).expect("Get balance");
-    assert_eq!(usdc, 50000, "USDC balance should decrease");
+    // Initial: 100,000 e6
+    // Sent: 50,000 e6
+    // Network fee: 50 e6 ($0.50)
+    // Final: 100,000 - 50,000 - 50 = 49,950 e6
+    assert_eq!(usdc, 49950, "USDC balance should be 49,950 e6 (sent 50,000 + network fee 50)");
 }
 
 #[test]
@@ -108,8 +116,8 @@ fn test_send_usdc_insufficient_balance() {
     
     env.setup_test_user_with_balances(phone, "USDC", "Poor", "usdcpoor@test.com", "UGX", "1234", 0, 0, 10000)
         .expect("Setup");
-    
-    let (response, _) = env.process_ussd(&sess, phone, "3*5*rrkah-fqaaa-aaaaa-aaaaq-cai*50000*1234");
+
+    let (response, _) = env.process_ussd(&sess, phone, "3*5*0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb1*50000*1234");
     
     assert!(response.contains("Insufficient") || response.contains("insufficient"),
         "Should reject insufficient balance. Got: {}", response);
@@ -138,8 +146,8 @@ fn test_send_usdc_zero_amount() {
     
     env.setup_test_user_with_balances(phone, "USDC", "Zero", "usdczero@test.com", "UGX", "1234", 0, 0, 100000)
         .expect("Setup");
-    
-    let (response, _) = env.process_ussd(&sess, phone, "3*5*rrkah-fqaaa-aaaaa-aaaaq-cai*0");
+
+    let (response, _) = env.process_ussd(&sess, phone, "3*5*0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb1*0");
     
     assert!(response.contains("Invalid") || response.contains("invalid") || response.contains("positive"),
         "Should reject zero amount. Got: {}", response);
@@ -375,7 +383,7 @@ fn test_usdc_buy_then_send() {
 
     // Send half of USDC
     let half_usdc_e6 = usdc_after_buy / 2;
-    env.process_ussd(&sess, phone, &format!("3*5*rrkah-fqaaa-aaaaa-aaaaq-cai*{}*1234", half_usdc_e6));
+    env.process_ussd(&sess, phone, &format!("3*5*0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb1*{}*1234", half_usdc_e6));
 
     let (_, usdc_final) = env.get_crypto_balance(phone).expect("Get balance");
     assert!(usdc_final < usdc_after_buy, "USDC should decrease after send");

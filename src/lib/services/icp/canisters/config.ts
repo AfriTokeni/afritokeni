@@ -12,8 +12,6 @@
  * - AfriTokeni NEVER holds user funds - all funds are in user-controlled principals
  */
 
-import { browser } from "$app/environment";
-
 /**
  * Get environment variable (works in both browser and server)
  */

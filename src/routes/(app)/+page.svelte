@@ -200,8 +200,8 @@
       <p
         class="mx-auto max-w-3xl px-4 text-base text-gray-600 sm:px-0 sm:text-lg lg:text-xl"
       >
-        Send ckBTC (Bitcoin) or ckUSD (stablecoin) in under 1 second with
-        ~$0.01 fees. Choose speed or stability.
+        Send ckBTC (Bitcoin) or ckUSD (stablecoin) in under 1 second with ~$0.01
+        fees. Choose speed or stability.
       </p>
     </div>
 

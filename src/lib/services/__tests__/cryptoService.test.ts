@@ -29,6 +29,7 @@ describe("CryptoService", () => {
         fiat_amount: 100_000n,
         crypto_type: "ckBTC",
         timestamp: BigInt(Date.now()),
+        fee_charged: 0n,
         exchange_rate: 95_000_000, // 95M UGX per BTC (number, not bigint)
         crypto_amount: 100_000n, // 0.001 BTC
       };
@@ -63,6 +64,7 @@ describe("CryptoService", () => {
         fiat_amount: 100_000n,
         crypto_type: "ckUSD",
         timestamp: BigInt(Date.now()),
+        fee_charged: 0n,
         exchange_rate: 3_700, // 3,700 UGX per USDC (number, not bigint)
         crypto_amount: 27_000n, // $270 USDC
       };
@@ -89,6 +91,7 @@ describe("CryptoService", () => {
         fiat_amount: 100_000n,
         crypto_type: "ckBTC",
         timestamp: BigInt(Date.now()),
+        fee_charged: 0n,
         exchange_rate: 95_000_000,
         crypto_amount: 100_000n,
       };
@@ -139,6 +142,7 @@ describe("CryptoService", () => {
         fiat_amount: 95_000n, // Fiat received
         crypto_type: "ckBTC",
         timestamp: BigInt(Date.now()),
+        fee_charged: 0n,
         exchange_rate: 95_000_000,
         crypto_amount: 100_000n,
       };
@@ -173,6 +177,7 @@ describe("CryptoService", () => {
         fiat_amount: 370_000n, // Fiat received for $100 USDC
         crypto_type: "ckUSD",
         timestamp: BigInt(Date.now()),
+        fee_charged: 0n,
         exchange_rate: 3_700,
         crypto_amount: 10_000n, // $100 USDC
       };
@@ -274,6 +279,7 @@ describe("CryptoService", () => {
         from_amount: 100_000n,
         to_amount: 95_000n, // ~$950 USDC (after spread)
         timestamp: BigInt(Date.now()),
+        fee_charged: 0n,
         spread_amount: 50n, // 0.5% spread
         exchange_rate: 95_500, // number, not bigint
       };
@@ -306,6 +312,7 @@ describe("CryptoService", () => {
         from_amount: 100_000n, // $1,000 USDC
         to_amount: 1_045_000n, // ~0.01045 BTC
         timestamp: BigInt(Date.now()),
+        fee_charged: 0n,
         spread_amount: 50n,
         exchange_rate: 95_500,
       };
@@ -558,9 +565,7 @@ describe("CryptoService", () => {
       });
 
       it("should format ckUSD amounts", () => {
-        expect(CryptoService.formatAmount(10_000, "ckUSD")).toBe(
-          "100.00 USDC",
-        );
+        expect(CryptoService.formatAmount(10_000, "ckUSD")).toBe("100.00 USDC");
         expect(CryptoService.formatAmount(5_050, "ckUSD")).toBe("50.50 USDC");
       });
     });

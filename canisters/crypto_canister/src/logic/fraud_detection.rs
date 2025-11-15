@@ -273,13 +273,25 @@ pub fn check_velocity_limits(user_id: &str, amount: u64) -> Result<Vec<String>, 
 
             // Check transaction frequency
             let now = time();
+
+            // Check per-minute limit
+            let minute_ago = now.saturating_sub(60_000_000_000); // 1 minute in nanoseconds
+            let recent_count_minute = velocity.transactions.iter()
+                .filter(|tx| tx.timestamp > minute_ago)
+                .count();
+
+            if recent_count_minute >= cfg.fraud_detection.max_transactions_per_minute {
+                warnings.push(format!("High transaction frequency: {} transactions in last minute", recent_count_minute));
+            }
+
+            // Check per-hour limit
             let hour_ago = now.saturating_sub(3600_000_000_000);
-            let recent_count = velocity.transactions.iter()
+            let recent_count_hour = velocity.transactions.iter()
                 .filter(|tx| tx.timestamp > hour_ago)
                 .count();
 
-            if recent_count >= cfg.fraud_detection.max_transactions_per_hour {
-                warnings.push(format!("High transaction frequency: {} transactions in last hour", recent_count));
+            if recent_count_hour >= cfg.fraud_detection.max_transactions_per_hour {
+                warnings.push(format!("High transaction frequency: {} transactions in last hour", recent_count_hour));
             }
         }
 

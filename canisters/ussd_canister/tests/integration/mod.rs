@@ -270,7 +270,30 @@ impl TestEnv {
         pic.update_call(data_canister_id, Principal::anonymous(), "add_authorized_canister", encode_one(wallet_canister_id.to_text()).unwrap()).ok();
         pic.update_call(data_canister_id, Principal::anonymous(), "add_authorized_canister", encode_one(crypto_canister_id.to_text()).unwrap()).ok();
         pic.update_call(data_canister_id, Principal::anonymous(), "add_authorized_canister", encode_one(agent_canister_id.to_text()).unwrap()).ok();
-        
+
+        // Register company wallet user (required for network fee collection in send_crypto)
+        // The company wallet principal is "aaaaa-aa" (anonymous principal) in crypto_config.toml
+        #[derive(CandidType, Deserialize)]
+        struct CompanyRegister {
+            phone_number: Option<String>,
+            principal_id: Option<String>,
+            first_name: String,
+            last_name: String,
+            email: String,
+            preferred_currency: String,
+            pin: String,
+        }
+        let company_registration = CompanyRegister {
+            phone_number: None,
+            principal_id: Some("aaaaa-aa".to_string()),
+            first_name: "Company".to_string(),
+            last_name: "Wallet".to_string(),
+            email: "company@afritokeni.com".to_string(),
+            preferred_currency: "UGX".to_string(),
+            pin: "1234".to_string(),
+        };
+        pic.update_call(user_canister_id, Principal::anonymous(), "register_user", encode_one(company_registration).unwrap()).ok();
+
         Self {
             pic,
             ussd_canister_id,

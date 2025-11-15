@@ -174,6 +174,7 @@ describe("Integration Tests - End-to-End Flows", () => {
         fiat_amount: BigInt(fiatAmount),
         crypto_type: "ckBTC",
         timestamp: BigInt(Date.now()),
+        fee_charged: 0n,
         exchange_rate: 95_000_000,
         crypto_amount: 100_000n, // 0.001 BTC
       };
@@ -211,6 +212,7 @@ describe("Integration Tests - End-to-End Flows", () => {
         fiat_amount: 95_000n, // Fiat received
         crypto_type: "ckBTC",
         timestamp: BigInt(Date.now()),
+        fee_charged: 0n,
         exchange_rate: 95_000_000,
         crypto_amount: 100_000n,
       };
@@ -379,6 +381,7 @@ describe("Integration Tests - End-to-End Flows", () => {
         from_amount: 100_000n, // 0.001 BTC
         to_amount: 95_000n, // ~$950 USDC (after spread)
         timestamp: BigInt(Date.now()),
+        fee_charged: 0n,
         spread_amount: 50n, // 0.5% spread
         exchange_rate: 95_500,
       };
@@ -404,6 +407,7 @@ describe("Integration Tests - End-to-End Flows", () => {
         fiat_amount: 351_500n, // Fiat received for USDC
         crypto_type: "ckUSD",
         timestamp: BigInt(Date.now()),
+        fee_charged: 0n,
         exchange_rate: 3_700, // UGX per USDC
         crypto_amount: 95_000n,
       };
@@ -453,6 +457,7 @@ describe("Integration Tests - End-to-End Flows", () => {
         fiat_amount: 1_000_000n,
         crypto_type: "ckBTC",
         timestamp: BigInt(Date.now()),
+        fee_charged: 0n,
         exchange_rate: 95_000_000,
         crypto_amount: 1_000_000n,
       });
@@ -489,6 +494,7 @@ describe("Integration Tests - End-to-End Flows", () => {
         fiat_amount: 3_515_000n, // Fiat received
         crypto_type: "ckUSD",
         timestamp: BigInt(Date.now()),
+        fee_charged: 0n,
         exchange_rate: 3_700,
         crypto_amount: 950_000n,
       });

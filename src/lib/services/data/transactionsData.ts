@@ -1,7 +1,7 @@
 /**
- * Transaction Data Service (Demo Mode Only)
+ * Transaction Data Service
  *
- * Loads transaction demo data and provides UI formatting helpers.
+ * Loads transaction data from demo JSON or data_canister.
  * NO BUSINESS LOGIC - For UI display only.
  *
  * For real operations, use:
@@ -9,6 +9,9 @@
  * - cryptoService (crypto transfers)
  * - agentOperationsService (deposits/withdrawals)
  */
+
+import { dataCanisterService } from "$lib/services/icp/canisters/dataCanisterService";
+import type { Transaction as CanisterTransaction } from "$/declarations/data_canister/data_canister.did.d.ts";
 
 export interface Transaction {
   id: string;
@@ -23,7 +26,61 @@ export interface Transaction {
 }
 
 /**
- * Fetch transactions from demo data
+ * Transform canister TransactionType to frontend string
+ */
+function transformTransactionType(
+  canisterType: CanisterTransaction["transaction_type"],
+): string {
+  if ("TransferFiat" in canisterType) return "transfer";
+  if ("TransferCrypto" in canisterType) return "send";
+  if ("DepositFiat" in canisterType) return "deposit";
+  if ("WithdrawFiat" in canisterType) return "withdrawal";
+  if ("BuyCrypto" in canisterType) return "buy";
+  if ("SellCrypto" in canisterType) return "sell";
+  if ("SwapCrypto" in canisterType) return "exchange";
+  if ("EscrowCreate" in canisterType) return "escrow";
+  if ("EscrowClaim" in canisterType) return "claim";
+  if ("EscrowCancel" in canisterType) return "refund";
+  if ("AgentCommission" in canisterType) return "commission";
+  return "unknown";
+}
+
+/**
+ * Transform canister TransactionStatus to frontend string
+ */
+function transformTransactionStatus(
+  canisterStatus: CanisterTransaction["status"],
+): string {
+  if ("Completed" in canisterStatus) return "completed";
+  if ("Pending" in canisterStatus) return "pending";
+  if ("Failed" in canisterStatus) return "failed";
+  if ("Cancelled" in canisterStatus) return "cancelled";
+  return "unknown";
+}
+
+/**
+ * Transform canister CurrencyType to frontend string
+ */
+function transformCurrencyType(
+  currencyType: CanisterTransaction["currency_type"],
+): string {
+  if ("Fiat" in currencyType && currencyType.Fiat) {
+    // FiatCurrency is an enum object like { UGX: null }
+    // Extract the currency code from the object keys
+    const fiatCurrency = currencyType.Fiat;
+    const currencyCode = Object.keys(fiatCurrency)[0];
+    return currencyCode || "unknown";
+  }
+  if ("Crypto" in currencyType) {
+    const cryptoType = currencyType.Crypto;
+    if ("CkBTC" in cryptoType) return "ckBTC";
+    if ("CkUSD" in cryptoType) return "ckUSD";
+  }
+  return "unknown";
+}
+
+/**
+ * Fetch transactions from demo data or data_canister
  * @param userId - User identifier (optional, for filtering)
  * @param isDemoMode - Whether to use demo data
  * @param maxTransactions - Maximum number of transactions to return
@@ -31,26 +88,39 @@ export interface Transaction {
  */
 export async function fetchTransactions(
   userId?: string | null,
-  _isDemoMode: boolean = true,
+  isDemoMode: boolean = true,
   maxTransactions?: number,
 ): Promise<Transaction[]> {
-  try {
-    const response = await fetch("/data/demo/transactions.json");
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch demo transactions: ${response.statusText}`,
-      );
+  if (isDemoMode) {
+    // Demo mode: fetch from JSON
+    try {
+      const response = await fetch("/data/demo/transactions.json");
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch demo transactions: ${response.statusText}`,
+        );
+      }
+      const data = await response.json();
+      // Extract array from "user-transactions" key
+      const transactions = Array.isArray(data)
+        ? data
+        : data["user-transactions"] || [];
+      return maxTransactions
+        ? transactions.slice(0, maxTransactions)
+        : transactions;
+    } catch (error) {
+      console.error("Error loading demo transactions:", error);
+      return [];
     }
-    const data = await response.json();
-    // Extract array from "user-transactions" key
-    const transactions = Array.isArray(data) ? data : data["user-transactions"] || [];
-    return maxTransactions
-      ? transactions.slice(0, maxTransactions)
-      : transactions;
-  } catch (error) {
-    console.error("Error loading demo transactions:", error);
-    return [];
   }
+
+  // Production mode: Frontend cannot call data_canister directly
+  // data_canister only accepts calls from authorized canisters (user_canister, wallet_canister, etc.)
+  // For production, transactions should be fetched via domain canister endpoints
+  console.warn(
+    "Production mode transaction fetching not yet implemented. Enable demo mode or implement via domain canister.",
+  );
+  return [];
 }
 
 /**

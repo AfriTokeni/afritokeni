@@ -47,7 +47,7 @@
   async function loadBalance(isDemoMode: boolean, principal: string | null) {
     try {
       error = null;
-      const balance = await fetchCkUSDBalance(principal);
+      const balance = await fetchCkUSDBalance(principal, isDemoMode);
       balanceUSD = balance;
       lastUpdated = new Date();
     } catch (err: any) {

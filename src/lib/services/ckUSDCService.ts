@@ -15,11 +15,7 @@ import { ethers } from "ethers";
 import { Principal } from "@dfinity/principal";
 import { Actor, AnonymousIdentity, HttpAgent } from "@dfinity/agent";
 import { nanoid } from "nanoid";
-import {
-  getCkUSDLedgerActor,
-  toPrincipal,
-  toSubaccount,
-} from "./icpActors.js";
+import { getCkUSDLedgerActor, toPrincipal, toSubaccount } from "./icpActors.js";
 import type { SatelliteOptions } from "@junobuild/core";
 import { getDoc, listDocs, setDoc } from "@junobuild/core";
 import type {

@@ -1,6 +1,7 @@
 // Mock ICRC-1 Ledger for Testing
 // Implements minimal ICRC-1 standard for PocketIC tests
 use candid::{CandidType, Deserialize, Principal, Nat};
+use ic_cdk::api::msg_caller;
 use ic_cdk_macros::{init, query, update};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -98,7 +99,7 @@ fn init() {
 /// ICRC-1 transfer
 #[update]
 fn icrc1_transfer(arg: TransferArg) -> TransferResult {
-    let caller = ic_cdk::api::caller();
+    let caller = msg_caller();
     
     let from = Account {
         owner: caller,
@@ -138,7 +139,7 @@ fn icrc1_transfer(arg: TransferArg) -> TransferResult {
 /// ICRC-2 approve
 #[update]
 fn icrc2_approve(arg: ApproveArg) -> ApproveResult {
-    let caller = ic_cdk::api::caller();
+    let caller = msg_caller();
     
     let from = Account {
         owner: caller,
@@ -166,7 +167,7 @@ fn icrc2_approve(arg: ApproveArg) -> ApproveResult {
 /// ICRC-2 transfer_from
 #[update]
 fn icrc2_transfer_from(arg: TransferFromArg) -> TransferFromResult {
-    let caller = ic_cdk::api::caller();
+    let caller = msg_caller();
 
     let spender = Account {
         owner: caller,

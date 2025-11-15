@@ -1,10 +1,24 @@
+/**
+ * Agent Service
+ *
+ * Manages agent profiles with demo mode and production mode support.
+ *
+ * Demo Mode: Uses localStorage for agent storage
+ * Production Mode: Uses agent_canister (NOT IMPLEMENTED YET)
+ *
+ * Note: Balances are always fetched from domain canisters (agent_canister, wallet_canister)
+ */
+
 import { nanoid } from "nanoid";
-import { getDoc, listDocs, setDoc } from "@junobuild/core";
+import { browser } from "$app/environment";
 import { agentCanisterService } from "./icp/canisters/agentCanisterService";
 import { walletCanisterService } from "./icp/canisters/walletCanisterService";
 
+const DEMO_AGENTS_KEY = "afritokeni_demo_agents";
+const DEMO_MODE_KEY = "afritokeni_demo_mode";
+
 /**
- * Agent metadata stored in Juno
+ * Agent metadata
  * Balances are NOT stored here - they come from canisters
  */
 export interface AgentMetadata {
@@ -55,53 +69,143 @@ export interface AgentBalances {
 
 export class AgentService {
   /**
-   * Create new agent (stores only metadata in Juno)
+   * Check if demo mode is enabled
+   */
+  private static isDemoMode(): boolean {
+    if (!browser) return false;
+    return localStorage.getItem(DEMO_MODE_KEY) === "true";
+  }
+
+  /**
+   * Load agents from localStorage (demo mode)
+   */
+  private static loadDemoAgents(): AgentMetadata[] {
+    if (!browser) return [];
+
+    try {
+      const stored = localStorage.getItem(DEMO_AGENTS_KEY);
+      if (!stored) return [];
+
+      const agents = JSON.parse(stored);
+      return agents.map((agent: any) => ({
+        ...agent,
+        createdAt: new Date(agent.createdAt),
+      }));
+    } catch (error) {
+      console.error("Error loading demo agents from localStorage:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Save agents to localStorage (demo mode)
+   */
+  private static saveDemoAgents(agents: AgentMetadata[]): void {
+    if (!browser) return;
+
+    try {
+      const dataToStore = agents.map((agent) => ({
+        ...agent,
+        createdAt:
+          typeof agent.createdAt === "string"
+            ? agent.createdAt
+            : agent.createdAt.toISOString(),
+      }));
+
+      localStorage.setItem(DEMO_AGENTS_KEY, JSON.stringify(dataToStore));
+    } catch (error) {
+      console.error("Error saving demo agents to localStorage:", error);
+    }
+  }
+
+  /**
+   * Load demo agents from JSON file on first access
+   */
+  private static async loadDemoAgentsFromJSON(): Promise<AgentMetadata[]> {
+    try {
+      const response = await fetch("/data/demo/agents.json");
+      if (!response.ok) {
+        throw new Error(`Failed to fetch demo agents: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.map((agent: any) => ({
+        ...agent,
+        createdAt: new Date(agent.createdAt),
+      }));
+    } catch (error) {
+      console.error("Error loading demo agents from JSON:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Initialize demo agents if localStorage is empty
+   */
+  private static async initializeDemoAgents(): Promise<void> {
+    if (!browser) return;
+
+    const stored = localStorage.getItem(DEMO_AGENTS_KEY);
+    if (stored) return; // Already initialized
+
+    console.log("📦 Initializing demo agents from JSON...");
+    const demoAgents = await this.loadDemoAgentsFromJSON();
+    this.saveDemoAgents(demoAgents);
+  }
+
+  /**
+   * Create new agent
    */
   static async createAgent(
     agent: Omit<AgentMetadata, "id" | "createdAt">,
   ): Promise<AgentMetadata> {
+    // Check if agent already exists
     const existingAgent = await this.getAgentByUserId(agent.userId);
     if (existingAgent) {
       console.warn(`Agent already exists for userId ${agent.userId}`);
       return existingAgent;
     }
 
-    const now = new Date();
-    const newAgent: AgentMetadata = {
-      ...agent,
-      id: nanoid(),
-      createdAt: now,
-    };
+    if (this.isDemoMode()) {
+      // Demo mode: Store in localStorage
+      await this.initializeDemoAgents();
 
-    const dataForJuno = {
-      ...newAgent,
-      createdAt: now.toISOString(),
-    };
+      const now = new Date();
+      const newAgent: AgentMetadata = {
+        ...agent,
+        id: nanoid(),
+        createdAt: now,
+        status: agent.status || "available",
+        isActive: agent.isActive !== false,
+        commissionRate: agent.commissionRate || 0.02,
+      };
 
-    await setDoc({
-      collection: "agents",
-      doc: {
-        key: newAgent.id,
-        data: dataForJuno,
-      },
-    });
+      const agents = this.loadDemoAgents();
+      agents.push(newAgent);
+      this.saveDemoAgents(agents);
 
-    return newAgent;
+      console.log("✅ Agent created in demo mode:", newAgent.id);
+      return newAgent;
+    } else {
+      // Production mode: NOT IMPLEMENTED YET
+      throw new Error(
+        "Production agent creation not implemented. Enable demo mode or use agent_canister.",
+      );
+    }
   }
 
   /**
-   * Get agent metadata from Juno (no balances)
+   * Get agent metadata (no balances)
    */
   static async getAgentMetadata(id: string): Promise<AgentMetadata | null> {
-    try {
-      const doc = await getDoc({
-        collection: "agents",
-        key: id,
-      });
-      return (doc?.data as AgentMetadata) || null;
-    } catch (error) {
-      console.error("Error getting agent metadata:", error);
-      return null;
+    if (this.isDemoMode()) {
+      await this.initializeDemoAgents();
+      const agents = this.loadDemoAgents();
+      return agents.find((a) => a.id === id) || null;
+    } else {
+      throw new Error(
+        "Production agent retrieval not implemented. Enable demo mode or use agent_canister.",
+      );
     }
   }
 
@@ -133,6 +237,39 @@ export class AgentService {
     agentId: string,
     currency: string = "UGX",
   ): Promise<AgentBalances> {
+    if (this.isDemoMode()) {
+      // Demo mode: Return demo balances from localStorage
+      await this.initializeDemoAgents();
+      const agents = this.loadDemoAgents();
+      const agent = agents.find((a) => a.id === agentId);
+
+      if (agent && "cashBalance" in agent && "digitalBalance" in agent) {
+        const cashBalance = (agent as any).cashBalance || 0;
+        const digitalBalance = (agent as any).digitalBalance || 0;
+
+        return {
+          cashBalance,
+          digitalBalance,
+          creditLimit: 5_000_000, // Demo credit limit
+          availableCredit: 5_000_000 - cashBalance,
+          outstandingBalance: cashBalance,
+          commissionEarned: 0,
+          commissionPending: 0,
+        };
+      }
+
+      return {
+        cashBalance: 0,
+        digitalBalance: 0,
+        creditLimit: 0,
+        availableCredit: 0,
+        outstandingBalance: 0,
+        commissionEarned: 0,
+        commissionPending: 0,
+      };
+    }
+
+    // Production mode: Fetch from canisters
     try {
       // Fetch cash balance from agent_canister
       const agentBalance = await agentCanisterService.getAgentBalance(
@@ -147,7 +284,6 @@ export class AgentService {
       );
 
       // Calculate cash balance as outstanding balance + available credit
-      // This represents how much cash the agent has on hand
       const cashBalance = Number(agentBalance.outstanding_balance);
 
       return {
@@ -178,27 +314,14 @@ export class AgentService {
    * Get agent by user ID
    */
   static async getAgentByUserId(userId: string): Promise<AgentMetadata | null> {
-    try {
-      const docs = await listDocs({
-        collection: "agents",
-      });
-
-      for (const doc of docs.items) {
-        const agentData = doc.data as AgentMetadata;
-        if (agentData.userId === userId) {
-          return {
-            ...agentData,
-            createdAt: agentData.createdAt
-              ? new Date(agentData.createdAt)
-              : new Date(),
-          };
-        }
-      }
-
-      return null;
-    } catch (error) {
-      console.error("Error getting agent by userId:", error);
-      return null;
+    if (this.isDemoMode()) {
+      await this.initializeDemoAgents();
+      const agents = this.loadDemoAgents();
+      return agents.find((a) => a.userId === userId) || null;
+    } else {
+      throw new Error(
+        "Production agent retrieval not implemented. Enable demo mode or use agent_canister.",
+      );
     }
   }
 
@@ -209,39 +332,22 @@ export class AgentService {
     agentId: string,
     status: "available" | "busy" | "cash_out" | "offline",
   ): Promise<boolean> {
-    try {
-      const existingAgent = await this.getAgentMetadata(agentId);
-      if (!existingAgent) return false;
+    if (this.isDemoMode()) {
+      await this.initializeDemoAgents();
+      const agents = this.loadDemoAgents();
+      const agentIndex = agents.findIndex((a) => a.id === agentId);
 
-      const existingDoc = await getDoc({
-        collection: "agents",
-        key: agentId,
-      });
+      if (agentIndex === -1) return false;
 
-      if (!existingDoc) return false;
+      agents[agentIndex].status = status;
+      this.saveDemoAgents(agents);
 
-      const updatedAgent = {
-        ...existingAgent,
-        status,
-        createdAt:
-          typeof existingAgent.createdAt === "string"
-            ? existingAgent.createdAt
-            : existingAgent.createdAt.toISOString(),
-      };
-
-      await setDoc({
-        collection: "agents",
-        doc: {
-          key: agentId,
-          data: updatedAgent,
-          version: existingDoc.version,
-        },
-      });
-
+      console.log(`✅ Agent ${agentId} status updated to ${status}`);
       return true;
-    } catch (error) {
-      console.error("Error updating agent status:", error);
-      return false;
+    } else {
+      throw new Error(
+        "Production agent update not implemented. Enable demo mode or use agent_canister.",
+      );
     }
   }
 
@@ -268,12 +374,9 @@ export class AgentService {
     radius: number = 5,
     includeStatuses?: ("available" | "busy" | "cash_out" | "offline")[],
   ): Promise<AgentMetadata[]> {
-    try {
-      const docs = await listDocs({
-        collection: "agents",
-      });
-
-      const agents = docs.items.map((doc) => doc.data as AgentMetadata);
+    if (this.isDemoMode()) {
+      await this.initializeDemoAgents();
+      const agents = this.loadDemoAgents();
 
       const nearbyAgents = agents.filter((agent) => {
         if (!agent.isActive) return false;
@@ -305,9 +408,10 @@ export class AgentService {
         );
         return distA - distB;
       });
-    } catch (error) {
-      console.error("Error getting nearby agents:", error);
-      return [];
+    } else {
+      throw new Error(
+        "Production agent search not implemented. Enable demo mode or use agent_canister.",
+      );
     }
   }
 
@@ -420,7 +524,7 @@ export class AgentService {
       if (!updatedAgent) throw new Error("Failed to retrieve updated agent");
       newAgent = updatedAgent;
     } else {
-      // Create new agent metadata in Juno
+      // Create new agent metadata
       const agentData: Omit<AgentMetadata, "id" | "createdAt"> = {
         userId: agentKYCData.userId,
         businessName:

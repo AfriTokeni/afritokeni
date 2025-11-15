@@ -144,7 +144,7 @@
     return filtered;
   });
 
-  function getAgentDistance(agent: UtilsAgent): number | undefined {
+  function getAgentDistance(agent: Agent): number | undefined {
     if (!userLocation) return undefined;
     return calculateDistance(
       userLocation.lat,

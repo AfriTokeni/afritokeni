@@ -39,6 +39,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
         crypto_type: "ckBTC",
         timestamp: BigInt(Math.floor(Date.now() / 1000)),
         transaction_id: "tx_buy_btc_001",
+        fee_charged: 0n,
       });
 
       const result = await CryptoService.buyCrypto({
@@ -77,6 +78,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
         crypto_type: "ckUSD",
         timestamp: BigInt(Math.floor(Date.now() / 1000)),
         transaction_id: "tx_buy_usdc_001",
+        fee_charged: 0n,
       });
 
       const result = await CryptoService.buyCrypto({
@@ -104,6 +106,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
         crypto_type: "ckUSD",
         timestamp: BigInt(Math.floor(Date.now() / 1000)),
         transaction_id: "tx_buy_small_001",
+        fee_charged: 0n,
       });
 
       const result = await CryptoService.buyCrypto({
@@ -134,6 +137,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
         crypto_type: "ckBTC",
         timestamp: BigInt(Math.floor(Date.now() / 1000)),
         transaction_id: "tx_sell_btc_001",
+        fee_charged: 0n,
       });
 
       const result = await CryptoService.sellCrypto({
@@ -162,6 +166,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
         crypto_type: "ckUSD",
         timestamp: BigInt(Math.floor(Date.now() / 1000)),
         transaction_id: "tx_sell_usdc_001",
+        fee_charged: 0n,
       });
 
       const result = await CryptoService.sellCrypto({
@@ -334,6 +339,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
           crypto_type: "ckBTC",
           timestamp: BigInt(Math.floor(Date.now() / 1000)),
           transaction_id: "tx_001",
+          fee_charged: 0n,
         });
 
       await CryptoService.buyCrypto({

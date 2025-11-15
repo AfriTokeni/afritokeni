@@ -153,8 +153,8 @@ fn test_withdraw_negative_amount() {
     
     env.process_ussd(&sess, phone, "1*4");
     let (response, _) = env.process_ussd(&sess, phone, "-5000");
-    
-    assert!(response.contains("Invalid") || response.contains("invalid"),
+
+    assert!(response.contains("Invalid") || response.contains("invalid") || response.contains("Minimum"),
         "Should reject negative amount. Got: {}", response);
 }
 

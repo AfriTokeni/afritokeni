@@ -27,7 +27,7 @@ export async function fetchCkUSDBalance(
     return 100000000;
   }
 
-  const balance = await cryptoService.checkBalance(userId, "CkUSD");
+  const balance = await cryptoService.checkBalance(userId, "ckUSD");
   return Number(balance);
 }
 

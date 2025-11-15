@@ -73,9 +73,8 @@ async function fetchUserRole(principalId: string): Promise<UserRole | null> {
     );
 
     // Use update call (not query) since it makes inter-canister calls to data_canister
-    const userProfile = await userCanisterService.getUserByPrincipalUpdate(
-      principalId
-    );
+    const userProfile =
+      await userCanisterService.getUserByPrincipalUpdate(principalId);
 
     // user_type is "User", "Agent", or "Admin" from canister
     const role = userProfile.user_type.toLowerCase() as UserRole;
