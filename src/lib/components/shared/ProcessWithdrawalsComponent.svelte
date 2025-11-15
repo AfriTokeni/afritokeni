@@ -120,11 +120,21 @@
             );
 
             // Extract phone_number from Candid optional type [] | [string]
-            const phoneNumber = Array.isArray(userProfile.phone_number)
-              ? userProfile.phone_number.length > 0
-                ? userProfile.phone_number[0]
-                : req.userId
-              : userProfile.phone_number || req.userId;
+            let phoneNumber: string;
+            if (
+              Array.isArray(userProfile.phone_number) &&
+              userProfile.phone_number.length > 0 &&
+              userProfile.phone_number[0] !== undefined
+            ) {
+              phoneNumber = userProfile.phone_number[0];
+            } else if (
+              !Array.isArray(userProfile.phone_number) &&
+              userProfile.phone_number
+            ) {
+              phoneNumber = userProfile.phone_number;
+            } else {
+              phoneNumber = req.userId;
+            }
 
             return {
               ...req,

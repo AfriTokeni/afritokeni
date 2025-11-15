@@ -16,7 +16,10 @@
   import { demoMode } from "$lib/stores/demoMode";
   import { demoProposals } from "$lib/stores/demoProposals";
   import { DAO_CONFIG } from "$lib/config/canister";
-  import { createSNSProposal, type ProposalType } from "$lib/services/icp/sns/governanceService";
+  import {
+    createSNSProposal,
+    type ProposalType,
+  } from "$lib/services/icp/sns/governanceService";
   import { toast } from "$lib/stores/toast";
 
   interface Props {
@@ -35,7 +38,12 @@
   let description = $state("");
   let isLoading = $state(false);
 
-  const proposalTypes = [
+  const proposalTypes: Array<{
+    value: ProposalType;
+    label: string;
+    icon: any;
+    color: string;
+  }> = [
     {
       value: "fee_adjustment",
       label: "Fee Adjustment",

@@ -28,7 +28,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
   describe("Crypto Buy - Fee Collection", () => {
     it("should collect 0.5% platform fee on ckBTC buy", async () => {
       const fiatAmount = 100_000; // 100,000 UGX
-      const expectedFee = calculateExpectedFee(fiatAmount);
+      const _expectedFee = calculateExpectedFee(fiatAmount); // Fee collected on backend
       const expectedCryptoAmount = 50_000n; // Mock value
 
       // Mock the canister response
@@ -68,7 +68,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
 
     it("should collect 0.5% platform fee on ckUSDC buy", async () => {
       const fiatAmount = 50_000; // 50,000 UGX
-      const expectedFee = calculateExpectedFee(fiatAmount);
+      const _expectedFee = calculateExpectedFee(fiatAmount); // Fee collected on backend
 
       vi.spyOn(cryptoCanisterService, "buyCrypto").mockResolvedValue({
         crypto_amount: 13_500n, // ~$13.50 USDC
@@ -95,7 +95,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
 
     it("should collect fee even on small amounts", async () => {
       const fiatAmount = 1_000; // 1,000 UGX (small amount)
-      const expectedFee = calculateExpectedFee(fiatAmount);
+      const _expectedFee = calculateExpectedFee(fiatAmount); // Fee collected on backend
 
       vi.spyOn(cryptoCanisterService, "buyCrypto").mockResolvedValue({
         crypto_amount: 1_000n,
@@ -125,7 +125,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
     it("should collect 0.5% platform fee on ckBTC sell", async () => {
       const cryptoAmount = 50_000; // 0.0005 BTC (50k satoshis)
       const fiatAmount = 47_500; // UGX received after fee
-      const expectedFee = calculateExpectedFee(50_000);
+      const _expectedFee = calculateExpectedFee(50_000); // Fee collected on backend
 
       vi.spyOn(cryptoCanisterService, "sellCrypto").mockResolvedValue({
         crypto_amount: BigInt(cryptoAmount),
@@ -153,7 +153,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
     it("should collect 0.5% platform fee on ckUSDC sell", async () => {
       const cryptoAmount = 10_000; // $100 USDC
       const fiatAmount = 370_000; // UGX received
-      const expectedFee = calculateExpectedFee(370_000);
+      const _expectedFee = calculateExpectedFee(370_000); // Fee collected on backend
 
       vi.spyOn(cryptoCanisterService, "sellCrypto").mockResolvedValue({
         crypto_amount: BigInt(cryptoAmount),

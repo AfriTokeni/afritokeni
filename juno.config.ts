@@ -1,22 +1,16 @@
 import { defineConfig } from "@junobuild/config";
 
 /**
- * REQUIRED CONFIGURATION FOR PRODUCTION:
- * 
- * Store Africa's Talking credentials in the "config" collection:
- * 
- * 1. Create a document in the "config" collection with key "afritalking"
- * 2. Set the data to:
- *    {
- *      "at_username": "your_africastalking_username",
- *      "at_api_key": "your_africastalking_api_key",
- *      "playground_mode": false
- *    }
- * 
- * For testing/playground mode (uses sandbox credentials):
- *    Set "playground_mode": true in the config
- * 
- * If no config is found, the system defaults to sandbox mode (safe fallback).
+ * Juno Configuration - File Storage Only
+ *
+ * NOTE: This configuration is for file storage (images, KYC documents) only.
+ * All application data comes from ICP canisters:
+ * - Agent data: agent_canister
+ * - User data: user_canister
+ * - Transactions: wallet_canister
+ * - Crypto operations: crypto_canister
+ *
+ * API credentials are stored in environment variables, not Juno datastore.
  */
 
 export default defineConfig({
@@ -30,20 +24,6 @@ export default defineConfig({
     source: "build",
     predeploy: ["pnpm run build"],
     collections: {
-      datastore: [
-        {
-          collection: "agents",
-          read: "public",   // Discovery directory for agents
-          write: "managed", // Agents edit their own profile
-          memory: "stable",
-        },
-        {
-          collection: "config",
-          read: "controllers",  // Holds AfricasTalking + third-party creds
-          write: "controllers",
-          memory: "stable",
-        },
-      ],
       storage: [
         {
           collection: "profile-images",

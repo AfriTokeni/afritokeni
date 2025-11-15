@@ -213,7 +213,7 @@ export class AgentOperationsService {
    */
   static async getWithdrawalFees(
     amount: number,
-    currency: string,
+    _currency: string,
   ): Promise<{
     amount: bigint;
     agent_fee: bigint;

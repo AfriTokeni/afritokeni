@@ -112,7 +112,10 @@
         return;
       }
 
-      const dataCustomers = await fetchAgentCustomers(agentPrincipal, isDemoMode);
+      const dataCustomers = await fetchAgentCustomers(
+        agentPrincipal,
+        isDemoMode,
+      );
       // Map DataCustomer to Customer interface
       customers = dataCustomers.map(mapDataCustomerToCustomer);
     } catch (err: any) {
@@ -140,7 +143,8 @@
         dataCustomer.lastTransaction !== undefined
           ? new Date(dataCustomer.lastTransaction).toISOString()
           : new Date().toISOString(),
-      status: (dataCustomer.status as "active" | "inactive" | "blocked") || "active",
+      status:
+        (dataCustomer.status as "active" | "inactive" | "blocked") || "active",
       kycStatus: "pending", // Not available in DataCustomer
     };
   }

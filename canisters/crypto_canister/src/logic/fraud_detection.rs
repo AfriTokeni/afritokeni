@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
+use crate::config;
 
 // Use mock time in tests, real time in production
 #[cfg(not(test))]

@@ -31,7 +31,7 @@ export interface Transaction {
  */
 export async function fetchTransactions(
   userId?: string | null,
-  isDemoMode: boolean = true,
+  _isDemoMode: boolean = true,
   maxTransactions?: number,
 ): Promise<Transaction[]> {
   try {
@@ -42,7 +42,9 @@ export async function fetchTransactions(
       );
     }
     const transactions = await response.json();
-    return maxTransactions ? transactions.slice(0, maxTransactions) : transactions;
+    return maxTransactions
+      ? transactions.slice(0, maxTransactions)
+      : transactions;
   } catch (error) {
     console.error("Error loading demo transactions:", error);
     return [];

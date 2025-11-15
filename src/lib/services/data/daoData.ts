@@ -55,7 +55,7 @@ export async function fetchDAOProposals(
  * @returns Array of leaderboard entries
  */
 export async function fetchLeaderboard(
-  isDemoMode: boolean = true,
+  _isDemoMode: boolean = true,
   maxEntries?: number,
 ): Promise<any[]> {
   try {

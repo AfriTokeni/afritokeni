@@ -93,8 +93,9 @@ fn test_cleanup_expired_escrows_success() {
     ).expect("Failed to call create_escrow");
     
     let result: Result<CreateEscrowResponse, String> = decode_one(&response).unwrap();
-    let escrow_response = result.expect("Create escrow should succeed");
-    
+    // Response unused - test validates automatic cleanup via timer, not manual operations
+    let _escrow_response = result.expect("Create escrow should succeed");
+
     // Verify user balance reduced
     let balance_before = get_crypto_balance(&pic, crypto_canister, &user_id, "CkBTC");
     assert_eq!(balance_before, buy_response.crypto_amount - escrow_amount);

@@ -102,7 +102,9 @@
       userName: canisterReview.user_name,
       rating: canisterReview.rating,
       comment: canisterReview.comment,
-      createdAt: new Date(Number(canisterReview.created_at) / 1_000_000).toISOString(),
+      createdAt: new Date(
+        Number(canisterReview.created_at) / 1_000_000,
+      ).toISOString(),
     };
   }
 

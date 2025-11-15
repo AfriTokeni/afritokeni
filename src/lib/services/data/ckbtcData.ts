@@ -12,7 +12,9 @@ import { cryptoService } from "$lib/services";
  * @param userId - User identifier (phone number or user ID)
  * @returns Balance in satoshis
  */
-export async function fetchCkBTCBalance(userId: string | null): Promise<number> {
+export async function fetchCkBTCBalance(
+  userId: string | null,
+): Promise<number> {
   if (!userId) {
     return 0;
   }
