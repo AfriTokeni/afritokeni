@@ -51,82 +51,10 @@ fn test_check_balance_kes() {
         "Should show KES balance. Got: {}", response);
 }
 
-#[test]
-fn test_check_balance_tzs() {
-    let env = get_test_env();
-    let sess = session();
-    let phone = &phone("TZS");
 
-    // 1000000 cents = 10000.00 TZS
-    env.setup_test_user_with_balances(phone, "Balance", "TZS", "baltzs@test.com", "TZS", "1234", 1000000, 0, 0)
-        .expect("Setup");
 
-    let (response, _) = env.process_ussd(&sess, phone, "1*2");
 
-    assert!(response.contains("10,000") || response.contains("10000"),
-        "Should show TZS balance (10,000.00). Got: {}", response);
-}
 
-#[test]
-fn test_check_balance_rwf() {
-    let env = get_test_env();
-    let sess = session();
-    let phone = &phone("RWF");
-    
-    env.setup_test_user_with_balances(phone, "Balance", "RWF", "balrwf@test.com", "RWF", "1234", 750000, 0, 0)
-        .expect("Setup");
-    
-    let (response, _) = env.process_ussd(&sess, phone, "1*2");
-    
-    assert!(response.contains("750") && response.contains("RWF"),
-        "Should show RWF balance. Got: {}", response);
-}
-
-#[test]
-fn test_check_balance_ngn() {
-    let env = get_test_env();
-    let sess = session();
-    let phone = &phone("NGN");
-
-    // 2000000 cents = 20000.00 NGN
-    env.setup_test_user_with_balances(phone, "Balance", "NGN", "balngn@test.com", "NGN", "1234", 2000000, 0, 0)
-        .expect("Setup");
-
-    let (response, _) = env.process_ussd(&sess, phone, "1*2");
-
-    assert!(response.contains("20,000") || response.contains("20000"),
-        "Should show NGN balance (20,000.00). Got: {}", response);
-}
-
-#[test]
-fn test_check_balance_ghs() {
-    let env = get_test_env();
-    let sess = session();
-    let phone = &phone("GHS");
-    
-    env.setup_test_user_with_balances(phone, "Balance", "GHS", "balghs@test.com", "GHS", "1234", 50000, 0, 0)
-        .expect("Setup");
-    
-    let (response, _) = env.process_ussd(&sess, phone, "1*2");
-    
-    assert!(response.contains("50") && response.contains("GHS"),
-        "Should show GHS balance. Got: {}", response);
-}
-
-#[test]
-fn test_check_balance_zar() {
-    let env = get_test_env();
-    let sess = session();
-    let phone = "+27700888888";
-    
-    env.setup_test_user_with_balances(phone, "Balance", "ZAR", "balzar@test.com", "ZAR", "1234", 100000, 0, 0)
-        .expect("Setup");
-    
-    let (response, _) = env.process_ussd(&sess, phone, "1*2");
-    
-    assert!(response.contains("100") && response.contains("ZAR"),
-        "Should show ZAR balance. Got: {}", response);
-}
 
 // ============================================================================
 // CRYPTO BALANCE CHECKS

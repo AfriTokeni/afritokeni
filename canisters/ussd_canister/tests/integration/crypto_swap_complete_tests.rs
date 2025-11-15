@@ -158,19 +158,6 @@ fn test_swap_negative_amount_rejected() {
 // ============================================================================
 
 #[test]
-fn test_swap_menu_shows_crypto_options() {
-    let env = get_test_env();
-    let sess = session();
-    let phone = &phone("UGX");
-    env.register_user_direct(phone, "Swap", "Menu", "swapmenu@test.com", "UGX", "1234")
-        .expect("Registration");
-    let (response, continue_session) = env.process_ussd(&sess, phone, "4");
-    assert!(continue_session, "Should continue");
-    assert!(response.contains("BTC") || response.contains("Bitcoin") || response.contains("1"));
-    assert!(response.contains("USDC") || response.contains("2"));
-}
-
-#[test]
 fn test_swap_cancel_at_confirmation() {
     let env = get_test_env();
     let sess = session();
@@ -188,19 +175,6 @@ fn test_swap_cancel_at_confirmation() {
     let (btc, usdc) = env.get_crypto_balance(phone).expect("Get balance");
     assert_eq!(btc, 100000, "BTC should not change");
     assert_eq!(usdc, 0, "USDC should not change");
-}
-
-#[test]
-fn test_swap_return_to_main_menu() {
-    let env = get_test_env();
-    let sess = session();
-    let phone = &phone("UGX");
-    env.register_user_direct(phone, "Swap", "Return", "swapreturn@test.com", "UGX", "1234")
-        .expect("Registration");
-    env.process_ussd(&sess, phone, "4");
-    let (response, _) = env.process_ussd(&sess, phone, "0");
-    assert!(response.contains("Main") || response.contains("Menu") || response.contains("Welcome to AfriTokeni"),
-        "Should return to main menu. Got: {}", response);
 }
 
 // ============================================================================

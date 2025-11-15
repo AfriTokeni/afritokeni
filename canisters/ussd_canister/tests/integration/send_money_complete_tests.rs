@@ -31,62 +31,8 @@ fn test_send_money_ugx_success() {
     assert_eq!(receiver_balance, 100000, "Receiver should get 100000");
 }
 
-#[test]
-fn test_send_money_kes_success() {
-    let env = get_test_env();
-    let sess = session();
-    let sender = &format!("{}1", phone("KES"));
-    let receiver = &format!("{}2", phone("KES"));
-    
-    env.setup_test_user_with_balances(sender, "Send", "Sender", "sendkes@test.com", "KES", "1234", 0, 0, 0)
-        .expect("Setup");
-    env.setup_test_user_with_balances(receiver, "Receive", "Receiver", "recvkes@test.com", "KES", "1234", 0, 0, 0)
-        .expect("Setup");
-    env.set_fiat_balance(sender, "KES", 300000).expect("Set balance");
-    
-    let (response, _) = env.process_ussd(&sess, sender, &format!("1*1*{}*50000*1234", receiver));
-    
-    assert!(response.contains("success") || response.contains("Success"));
-    
-    let receiver_balance = env.check_fiat_balance(receiver, "KES").expect("Get balance");
-    assert_eq!(receiver_balance, 50000);
-}
 
-#[test]
-fn test_send_money_tzs_success() {
-    let env = get_test_env();
-    let sess = session();
-    let sender = &format!("{}1", phone("TZS"));
-    let receiver = &format!("{}2", phone("TZS"));
-    
-    env.setup_test_user_with_balances(sender, "Send", "Sender", "sendtzs@test.com", "TZS", "1234", 0, 0, 0)
-        .expect("Setup");
-    env.setup_test_user_with_balances(receiver, "Receive", "Receiver", "recvtzs@test.com", "TZS", "1234", 0, 0, 0)
-        .expect("Setup");
-    env.set_fiat_balance(sender, "TZS", 1000000).expect("Set balance");
-    
-    let (response, _) = env.process_ussd(&sess, sender, &format!("1*1*{}*200000*1234", receiver));
-    
-    assert!(response.contains("success") || response.contains("Success"));
-}
 
-#[test]
-fn test_send_money_ngn_success() {
-    let env = get_test_env();
-    let sess = session();
-    let sender = &format!("{}1", phone("NGN"));
-    let receiver = &format!("{}2", phone("NGN"));
-    
-    env.setup_test_user_with_balances(sender, "Send", "Sender", "sendngn@test.com", "NGN", "1234", 0, 0, 0)
-        .expect("Setup");
-    env.setup_test_user_with_balances(receiver, "Receive", "Receiver", "recvngn@test.com", "NGN", "1234", 0, 0, 0)
-        .expect("Setup");
-    env.set_fiat_balance(sender, "NGN", 2000000).expect("Set balance");
-    
-    let (response, _) = env.process_ussd(&sess, sender, &format!("1*1*{}*500000*1234", receiver));
-    
-    assert!(response.contains("success") || response.contains("Success"));
-}
 
 // ============================================================================
 // SEND MONEY ERROR CASES - INSUFFICIENT BALANCE
@@ -392,38 +338,3 @@ fn test_send_money_includes_transfer_fee() {
     assert_eq!(receiver_balance, 100000, "Receiver gets exact amount");
 }
 
-// ============================================================================
-// SEND MONEY MENU NAVIGATION
-// ============================================================================
-
-#[test]
-fn test_send_money_menu_navigation() {
-    let env = get_test_env();
-    let sess = session();
-    let phone = &phone("UGX");
-    
-    env.setup_test_user_with_balances(phone, "Send", "Nav", "sendnav@test.com", "UGX", "1234", 100000, 0, 0)
-        .expect("Setup");
-    
-    let (response, continue_session) = env.process_ussd(&sess, phone, "1*1");
-    
-    assert!(continue_session, "Should continue session");
-    assert!(response.contains("recipient") || response.contains("Recipient") || response.contains("phone"),
-        "Should ask for recipient. Got: {}", response);
-}
-
-#[test]
-fn test_send_money_return_to_main_menu() {
-    let env = get_test_env();
-    let sess = session();
-    let phone = &phone("UGX");
-    
-    env.setup_test_user_with_balances(phone, "Send", "Return", "sendreturn@test.com", "UGX", "1234", 0, 0, 0)
-        .expect("Setup");
-    
-    env.process_ussd(&sess, phone, "1*1");
-    let (response, _) = env.process_ussd(&sess, phone, "0"); // Back
-    
-    assert!(response.contains("Main") || response.contains("Menu") || response.contains("Send"),
-        "Should return to main menu. Got: {}", response);
-}

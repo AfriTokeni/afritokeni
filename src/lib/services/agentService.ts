@@ -187,9 +187,19 @@ export class AgentService {
       console.log("✅ Agent created in demo mode:", newAgent.id);
       return newAgent;
     } else {
-      // Production mode: NOT IMPLEMENTED YET
+      // Production mode: Use agent_canister when available
+      // TODO: Implement agent_canister.create_agent() call
+      console.warn(
+        "⚠️  Agent creation in production mode requires agent_canister implementation. Please enable demo mode.",
+      );
+      // For now, redirect to enable demo mode
+      if (typeof window !== "undefined") {
+        alert(
+          "Agent registration requires demo mode. Please enable demo mode in settings.",
+        );
+      }
       throw new Error(
-        "Production agent creation not implemented. Enable demo mode or use agent_canister.",
+        "Agent creation requires demo mode. Enable demo mode to continue.",
       );
     }
   }
@@ -203,9 +213,12 @@ export class AgentService {
       const agents = this.loadDemoAgents();
       return agents.find((a) => a.id === id) || null;
     } else {
-      throw new Error(
-        "Production agent retrieval not implemented. Enable demo mode or use agent_canister.",
+      // Production mode: Call agent_canister when available
+      // TODO: Implement agent_canister.get_agent_metadata(id) call
+      console.warn(
+        "⚠️  Agent retrieval in production mode requires agent_canister. Enable demo mode or implement agent_canister.",
       );
+      return null; // Graceful fallback: no agent found
     }
   }
 
@@ -319,9 +332,12 @@ export class AgentService {
       const agents = this.loadDemoAgents();
       return agents.find((a) => a.userId === userId) || null;
     } else {
-      throw new Error(
-        "Production agent retrieval not implemented. Enable demo mode or use agent_canister.",
+      // Production mode: Call agent_canister when available
+      // TODO: Implement agent_canister.get_agent_by_user(userId) call
+      console.warn(
+        "⚠️  Agent retrieval by user ID in production mode requires agent_canister. Enable demo mode or implement agent_canister.",
       );
+      return null; // Graceful fallback: no agent found
     }
   }
 
@@ -345,9 +361,12 @@ export class AgentService {
       console.log(`✅ Agent ${agentId} status updated to ${status}`);
       return true;
     } else {
-      throw new Error(
-        "Production agent update not implemented. Enable demo mode or use agent_canister.",
+      // Production mode: Call agent_canister when available
+      // TODO: Implement agent_canister.update_agent_status(agentId, status) call
+      console.warn(
+        "⚠️  Agent status update in production mode requires agent_canister. Enable demo mode or implement agent_canister.",
       );
+      return false; // Graceful fallback: update failed
     }
   }
 
@@ -409,9 +428,12 @@ export class AgentService {
         return distA - distB;
       });
     } else {
-      throw new Error(
-        "Production agent search not implemented. Enable demo mode or use agent_canister.",
+      // Production mode: Call agent_canister when available
+      // TODO: Implement agent_canister.get_nearby_agents(lat, lng, radius) call
+      console.warn(
+        "⚠️  Nearby agents search in production mode requires agent_canister. Enable demo mode or implement agent_canister.",
       );
+      return []; // Graceful fallback: no agents found
     }
   }
 

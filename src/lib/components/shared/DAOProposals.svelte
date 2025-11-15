@@ -22,6 +22,7 @@
   import { demoMode } from "$lib/stores/demoMode";
   import { DAO_CONFIG } from "$lib/config/canister";
   import { demoProposals } from "$lib/stores/demoProposals";
+  import { getActiveSNSProposals } from "$lib/services/icp/sns/governanceService";
 
   interface Props {
     onVote?: (proposalId: string, vote: "yes" | "no" | "abstain") => void;
@@ -53,7 +54,7 @@
       error = null;
       isLoading = true;
       if (isDemoMode) {
-        // Demo mode: fetch from localStorage via store
+        // Demo mode: fetch from demo JSON
         const data = await fetch("/data/demo/proposals.json");
         if (data.ok) {
           const allProposals = await data.json();
@@ -64,8 +65,11 @@
           proposals = [];
         }
       } else {
-        // Production mode: SNS governance not yet implemented
-        proposals = [];
+        // Production mode: Fetch from real SNS governance canister
+        const snsProposals = await getActiveSNSProposals(false);
+        proposals = maxProposals
+          ? snsProposals.slice(0, maxProposals)
+          : snsProposals;
       }
     } catch (err: any) {
       console.error("Error fetching DAO proposals:", err);

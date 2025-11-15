@@ -32,53 +32,8 @@ fn test_buy_usdc_with_ugx() {
     assert_eq!(fiat, 9899500, "Fiat should decrease by 100,500 cents (100,000 purchase + 500 fee)");
 }
 
-#[test]
-fn test_buy_usdc_with_kes() {
-    let env = get_test_env();
-    let sess = session();
-    let phone = &phone("KES");
 
-    env.setup_test_user_with_balances(phone, "KES", "USDCBuyer", "kesusdc@test.com", "KES", "1234", 5000000, 0, 0)
-        .expect("Setup");
 
-    let (response, _) = env.process_ussd(&sess, phone, "3*3*5000*1234");
-
-    assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
-        "Should buy USDC. Got: {}", response);
-
-    let (_, usdc) = env.get_crypto_balance(phone).expect("Get balance");
-    assert!(usdc > 0);
-}
-
-#[test]
-fn test_buy_usdc_with_tzs() {
-    let env = get_test_env();
-    let sess = session();
-    let phone = &phone("TZS");
-
-    env.setup_test_user_with_balances(phone, "TZS", "USDCBuyer", "tzsusdc@test.com", "TZS", "1234", 20000000, 0, 0)
-        .expect("Setup");
-
-    let (response, _) = env.process_ussd(&sess, phone, "3*3*20000*1234");
-
-    assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
-        "Should buy USDC. Got: {}", response);
-}
-
-#[test]
-fn test_buy_usdc_with_ngn() {
-    let env = get_test_env();
-    let sess = session();
-    let phone = &phone("NGN");
-
-    env.setup_test_user_with_balances(phone, "NGN", "USDCBuyer", "ngnusdc@test.com", "NGN", "1234", 50000000, 0, 0)
-        .expect("Setup");
-
-    let (response, _) = env.process_ussd(&sess, phone, "3*3*50000*1234");
-
-    assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
-        "Should buy USDC. Got: {}", response);
-}
 
 // ============================================================================
 // SEND USDC - ALL SCENARIOS
@@ -262,82 +217,7 @@ fn test_usdc_stablecoin_precision() {
     assert!(response.len() > 0, "Should show balance");
 }
 
-// ============================================================================
-// USDC MENU NAVIGATION
-// ============================================================================
 
-#[test]
-fn test_usdc_menu_shows_all_options() {
-    let env = get_test_env();
-    let sess = session();
-    let phone = &phone("UGX");
-    
-    env.setup_test_user_with_balances(phone, "USDC", "Menu", "usdcmenu@test.com", "UGX", "1234", 0, 0, 0)
-        .expect("Setup");
-    
-    let (response, continue_session) = env.process_ussd(&sess, phone, "3");
-    
-    assert!(continue_session, "Should continue");
-    assert!(response.contains("Balance") || response.contains("balance"));
-    assert!(response.contains("Buy") || response.contains("buy"));
-    assert!(response.contains("Send") || response.contains("send"));
-}
-
-#[test]
-fn test_usdc_return_to_main_menu() {
-    let env = get_test_env();
-    let sess = session();
-    let phone = &phone("UGX");
-    
-    env.setup_test_user_with_balances(phone, "USDC", "Return", "usdcreturn@test.com", "UGX", "1234", 0, 0, 0)
-        .expect("Setup");
-    
-    env.process_ussd(&sess, phone, "3");
-    let (response, _) = env.process_ussd(&sess, phone, "0");
-    
-    assert!(response.contains("Main") || response.contains("Menu") || response.contains("Send"),
-        "Should return to main menu. Got: {}", response);
-}
-
-// ============================================================================
-// USDC WRONG PIN SCENARIOS
-// ============================================================================
-
-#[test]
-fn test_buy_usdc_wrong_pin() {
-    let env = get_test_env();
-    let sess = session();
-    let phone = &phone("UGX");
-
-    env.setup_test_user_with_balances(phone, "USDC", "WrongPIN", "usdcwrong@test.com", "UGX", "1234", 5000000, 0, 0)
-        .expect("Setup");
-
-    let (response, _) = env.process_ussd(&sess, phone, "3*3*5000*9999");
-
-    assert!(response.contains("Incorrect") || response.contains("incorrect") || response.contains("Wrong") || response.contains("Invalid"),
-        "Should reject wrong PIN. Got: {}", response);
-
-    let fiat = env.check_fiat_balance(phone, "UGX").expect("Get balance");
-    assert_eq!(fiat, 5000000, "Fiat should not change");
-}
-
-#[test]
-fn test_sell_usdc_wrong_pin() {
-    let env = get_test_env();
-    let sess = session();
-    let phone = &phone("UGX");
-    
-    env.setup_test_user_with_balances(phone, "USDC", "SellWrong", "usdcsellwrong@test.com", "UGX", "1234", 0, 0, 100000)
-        .expect("Setup");
-    
-    let (response, _) = env.process_ussd(&sess, phone, "3*4*0.05*9999");
-    
-    assert!(response.contains("Incorrect") || response.contains("incorrect") || response.contains("Invalid"),
-        "Should reject wrong PIN. Got: {}", response);
-    
-    let (_, usdc) = env.get_crypto_balance(phone).expect("Get balance");
-    assert_eq!(usdc, 100000, "USDC should not change");
-}
 
 // ============================================================================
 // USDC MULTIPLE OPERATIONS

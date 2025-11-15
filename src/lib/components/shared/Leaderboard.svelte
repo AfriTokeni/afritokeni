@@ -12,6 +12,7 @@
 <script lang="ts">
   import { Award, RefreshCw, TrendingUp, Trophy } from "@lucide/svelte";
   import { demoMode } from "$lib/stores/demoMode";
+  import { getTopTokenHolders } from "$lib/services/icp/sns/snsLedgerService";
 
   interface Props {
     maxEntries?: number;
@@ -30,17 +31,36 @@
     loadLeaderboard($demoMode);
   });
 
-  async function loadLeaderboard(_isDemoMode: boolean) {
+  async function loadLeaderboard(isDemoMode: boolean) {
     try {
       error = null;
       isLoading = true;
-      // Fetch leaderboard from demo data (production leaderboard not yet implemented)
-      const response = await fetch("/data/demo/leaderboard.json");
-      if (response.ok) {
-        const entries = await response.json();
-        leaderboard = maxEntries ? entries.slice(0, maxEntries) : entries;
+
+      if (isDemoMode) {
+        // Demo mode: fetch from demo JSON
+        const response = await fetch("/data/demo/leaderboard.json");
+        if (response.ok) {
+          const entries = await response.json();
+          leaderboard = maxEntries ? entries.slice(0, maxEntries) : entries;
+        } else {
+          leaderboard = [];
+        }
       } else {
-        leaderboard = [];
+        // Production mode: Fetch from real SNS ledger
+        const holders = await getTopTokenHolders(false, maxEntries);
+        // Map token holders to leaderboard format
+        leaderboard = holders.map((holder, index) => ({
+          rank: index + 1,
+          name: holder.principal,
+          username: holder.principal.slice(0, 8) + "...",
+          address: holder.principal,
+          balance: holder.balance,
+          points: holder.balance,
+          votes: holder.balance,
+          percentage: holder.percentage,
+          contributionCount: 0,
+          verified: false,
+        }));
       }
     } catch (err: any) {
       console.error("Error fetching leaderboard:", err);

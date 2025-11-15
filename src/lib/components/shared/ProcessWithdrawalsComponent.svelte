@@ -77,8 +77,16 @@
       loading = true;
       error = "";
 
-      if (!isDemoMode && agentPrincipal) {
-        // Fetch real withdrawals from agent canister
+      if (isDemoMode) {
+        // Demo mode - load from JSON
+        const response = await fetch("/data/demo/demo-withdrawal-requests.json");
+        if (!response.ok) {
+          throw new Error("Failed to load demo withdrawal requests");
+        }
+        const demoData = await response.json();
+        withdrawalRequests = demoData;
+      } else if (agentPrincipal) {
+        // Production mode: Fetch real withdrawals from agent canister
         const canisterWithdrawals =
           await agentOperationsService.getAgentWithdrawals(agentPrincipal);
 
@@ -90,7 +98,7 @@
         // Enrich with user data
         withdrawalRequests = await enrichWithUserData(mappedRequests);
       } else {
-        // Demo mode - empty array (demo data handled elsewhere)
+        // No principal and not demo mode
         withdrawalRequests = [];
       }
     } catch (err: any) {

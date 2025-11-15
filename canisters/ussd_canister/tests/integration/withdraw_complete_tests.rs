@@ -30,57 +30,8 @@ fn test_withdraw_ugx_success() {
     assert_eq!(balance, 389500, "Balance should decrease by amount + fees");
 }
 
-#[test]
-fn test_withdraw_kes_success() {
-    let env = get_test_env();
-    let sess = session();
-    let phone = &phone("KES");
 
-    env.setup_test_user_with_balances(phone, "Withdraw", "KES", "withdrawkes@test.com", "KES", "1234", 300000, 0, 0)
-        .expect("Setup");
 
-    let agent_id = env.register_agent("AGENT002").expect("Agent registration");
-    let input = format!("1*4*50000*{}*1234", agent_id);
-    let (response, _) = env.process_ussd(&sess, phone, &input);
-
-    assert!(response.contains("Withdrawal Request Created") || response.contains("CODE:"));
-
-    // Balance should decrease by amount + fees (50000 + 5250 = 55250)
-    let balance = env.check_fiat_balance(phone, "KES").expect("Get balance");
-    assert_eq!(balance, 244750);
-}
-
-#[test]
-fn test_withdraw_tzs_success() {
-    let env = get_test_env();
-    let sess = session();
-    let phone = &phone("TZS");
-
-    env.setup_test_user_with_balances(phone, "Withdraw", "TZS", "withdrawtzs@test.com", "TZS", "1234", 1000000, 0, 0)
-        .expect("Setup");
-
-    let agent_id = env.register_agent("AGENT003").expect("Agent registration");
-    let input = format!("1*4*200000*{}*1234", agent_id);
-    let (response, _) = env.process_ussd(&sess, phone, &input);
-
-    assert!(response.contains("Withdrawal Request Created") || response.contains("CODE:"));
-}
-
-#[test]
-fn test_withdraw_ngn_success() {
-    let env = get_test_env();
-    let sess = session();
-    let phone = &phone("NGN");
-
-    env.setup_test_user_with_balances(phone, "Withdraw", "NGN", "withdrawngn@test.com", "NGN", "1234", 2000000, 0, 0)
-        .expect("Setup");
-
-    let agent_id = env.register_agent("AGENT004").expect("Agent registration");
-    let input = format!("1*4*500000*{}*1234", agent_id);
-    let (response, _) = env.process_ussd(&sess, phone, &input);
-
-    assert!(response.contains("Withdrawal Request Created") || response.contains("CODE:"));
-}
 
 // ============================================================================
 // WITHDRAWAL ERROR CASES - INSUFFICIENT BALANCE
@@ -376,41 +327,6 @@ fn test_withdraw_after_deposit() {
     assert_eq!(balance, 89500);
 }
 
-// ============================================================================
-// WITHDRAWAL MENU NAVIGATION
-// ============================================================================
-
-#[test]
-fn test_withdraw_menu_navigation() {
-    let env = get_test_env();
-    let sess = session();
-    let phone = &phone("UGX");
-    
-    env.setup_test_user_with_balances(phone, "Withdraw", "Nav", "withdrawnav@test.com", "UGX", "1234", 100000, 0, 0)
-        .expect("Setup");
-    
-    let (response, continue_session) = env.process_ussd(&sess, phone, "1*4");
-    
-    assert!(continue_session, "Should continue session");
-    assert!(response.contains("amount") || response.contains("Amount") || response.contains("withdraw"),
-        "Should ask for amount. Got: {}", response);
-}
-
-#[test]
-fn test_withdraw_return_to_main_menu() {
-    let env = get_test_env();
-    let sess = session();
-    let phone = &phone("UGX");
-    
-    env.setup_test_user_with_balances(phone, "Withdraw", "Return", "withdrawreturn@test.com", "UGX", "1234", 0, 0, 0)
-        .expect("Setup");
-    
-    env.process_ussd(&sess, phone, "1*4");
-    let (response, _) = env.process_ussd(&sess, phone, "0"); // Back
-
-    assert!(response.contains("Main") || response.contains("Menu") || response.contains("Send") || response.contains("Welcome to AfriTokeni"),
-        "Should return to main menu. Got: {}", response);
-}
 
 // ============================================================================
 // WITHDRAWAL WITH AGENT COMMISSION

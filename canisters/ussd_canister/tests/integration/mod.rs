@@ -27,19 +27,19 @@ lazy_static! {
 }
 
 // Integration test modules - test real canister interactions
-pub mod crypto_swap_integration_tests;
+// DELETED: pub mod crypto_swap_integration_tests; // Redundant - covered by crypto_swap_complete_tests
 pub mod registration_flow_tests;
-pub mod send_money_flow_tests;
-// pub mod send_money_complete_tests; // ALL send money combinations (28 tests) - TEMPORARILY DISABLED
-pub mod bitcoin_flow_tests;
-pub mod bitcoin_complete_tests; // ALL Bitcoin combinations (30 tests)
-pub mod usdc_flow_tests;
-pub mod usdc_complete_tests; // ALL USDC combinations (30 tests)
-pub mod crypto_swap_complete_tests; // ALL swap combinations (25 tests)
-pub mod balance_check_tests;
-pub mod balance_complete_tests; // ALL balance combinations (30 tests)
-pub mod withdraw_flow_tests;
-pub mod withdraw_complete_tests; // ALL withdrawal combinations (30 tests)
+// DELETED: pub mod send_money_flow_tests; // Redundant - covered by send_money_complete_tests
+pub mod send_money_complete_tests; // ALL send money combinations (19 tests)
+// DELETED: pub mod bitcoin_flow_tests; // Redundant - covered by bitcoin_complete_tests
+pub mod bitcoin_complete_tests; // ALL Bitcoin combinations (21 tests)
+// DELETED: pub mod usdc_flow_tests; // Redundant - covered by usdc_complete_tests
+pub mod usdc_complete_tests; // ALL USDC combinations (22 tests)
+pub mod crypto_swap_complete_tests; // ALL swap combinations (18 tests)
+// DELETED: pub mod balance_check_tests; // Redundant - covered by balance_complete_tests
+pub mod balance_complete_tests; // ALL balance combinations (23 tests)
+// DELETED: pub mod withdraw_flow_tests; // Redundant - covered by withdraw_complete_tests
+pub mod withdraw_complete_tests; // ALL withdrawal combinations (22 tests)
 pub mod dao_flow_tests;
 pub mod language_flow_tests;
 pub mod main_menu_tests;

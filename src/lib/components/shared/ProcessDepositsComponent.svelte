@@ -77,7 +77,15 @@
       loading = true;
       error = "";
 
-      if (!isDemoMode && agentPrincipal) {
+      if (isDemoMode) {
+        // Demo mode - load from JSON
+        const response = await fetch("/data/demo/demo-deposit-requests.json");
+        if (!response.ok) {
+          throw new Error("Failed to load demo deposit requests");
+        }
+        const demoData = await response.json();
+        depositRequests = demoData;
+      } else if (agentPrincipal) {
         // Fetch real deposits from agent canister
         const canisterDeposits =
           await agentOperationsService.getAgentDeposits(agentPrincipal);
@@ -90,7 +98,7 @@
         // Enrich with user data
         depositRequests = await enrichWithUserData(mappedRequests);
       } else {
-        // Demo mode - empty array (demo data handled elsewhere)
+        // No agent principal and not demo mode
         depositRequests = [];
       }
     } catch (err: any) {

@@ -169,6 +169,66 @@ pub struct User {
     pub phone_number: Option<String>,
 }
 
+// ============================================================================
+// Agent Profile Models - Separate from User for clean composition
+// ============================================================================
+
+/// Agent status - availability for transactions
+#[derive(CandidType, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AgentStatus {
+    Available,
+    Busy,
+    CashOut,
+    Offline,
+}
+
+/// Location data for agent business address and coordinates
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct LocationData {
+    pub country: String,
+    pub state: String,
+    pub city: String,
+    pub address: String,
+    pub latitude: f64,
+    pub longitude: f64,
+}
+
+/// Agent Profile - Stores agent-specific metadata (composition, not inheritance)
+/// Linked to User via user_id where user_type = Agent
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct AgentProfile {
+    pub user_id: String,             // Links to User.id (User.user_type must be Agent)
+    pub business_name: String,
+    pub business_address: String,
+    pub location: LocationData,
+    pub commission_rate: f64,        // e.g., 0.02 for 2%
+    pub is_active: bool,
+    pub status: AgentStatus,
+    pub created_at: u64,
+    pub updated_at: u64,
+}
+
+/// Request to create agent profile
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct CreateAgentProfileRequest {
+    pub user_id: String,
+    pub business_name: String,
+    pub business_address: String,
+    pub location: LocationData,
+    pub commission_rate: f64,
+}
+
+/// Request to update agent profile
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct UpdateAgentProfileRequest {
+    pub user_id: String,
+    pub business_name: Option<String>,
+    pub business_address: Option<String>,
+    pub location: Option<LocationData>,
+    pub commission_rate: Option<f64>,
+    pub status: Option<AgentStatus>,
+}
+
 // Helper to deserialize numbers from strings (Candid JSON format)
 #[allow(dead_code)]
 fn deserialize_number_from_string<'de, D>(deserializer: D) -> Result<u64, D::Error>
