@@ -12,7 +12,6 @@
 <script lang="ts">
   import { Award, RefreshCw, TrendingUp, Trophy } from "@lucide/svelte";
   import { demoMode } from "$lib/stores/demoMode";
-  import { fetchLeaderboard } from "$lib/services/data/daoData";
 
   interface Props {
     maxEntries?: number;
@@ -31,12 +30,18 @@
     loadLeaderboard($demoMode);
   });
 
-  async function loadLeaderboard(isDemoMode: boolean) {
+  async function loadLeaderboard(_isDemoMode: boolean) {
     try {
       error = null;
-      isLoading = true; // Ensure loading state is set
-      const data = await fetchLeaderboard(isDemoMode, maxEntries);
-      leaderboard = data;
+      isLoading = true;
+      // Fetch leaderboard from demo data (production leaderboard not yet implemented)
+      const response = await fetch("/data/demo/leaderboard.json");
+      if (response.ok) {
+        const entries = await response.json();
+        leaderboard = maxEntries ? entries.slice(0, maxEntries) : entries;
+      } else {
+        leaderboard = [];
+      }
     } catch (err: any) {
       console.error("Error fetching leaderboard:", err);
       error = err.message || "Failed to load leaderboard";

@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { Coins, TrendingUp, Vote } from "@lucide/svelte";
   import { getUserData } from "$lib/services/user/userService";
-  import { voteOnProposal } from "$lib/services/data/daoData";
+  import { demoProposals } from "$lib/stores/demoProposals";
   import { demoMode } from "$lib/stores/demoMode";
   import { principalId } from "$lib/stores/auth";
   import { toast } from "$lib/stores/toast";
@@ -35,23 +35,19 @@
     console.log("🗳️ Voting:", choice, "on proposal", proposalId);
 
     try {
-      const result = await voteOnProposal(
-        proposalId,
-        choice,
-        $principalId || "",
-        $demoMode,
-        tokenBalance, // Pass user's voting power
-      );
-
-      if (result.success) {
-        console.log("✅", result.message);
+      if ($demoMode) {
+        // Demo mode: update localStorage via demoProposals store
+        demoProposals.vote(proposalId, choice, tokenBalance);
+        console.log(`✅ Voted ${choice.toUpperCase()} with ${tokenBalance.toLocaleString()} AFRI tokens (Demo Mode)`);
         toast.show(
           "success",
           `Vote recorded: ${choice.toUpperCase()} (${tokenBalance.toLocaleString()} AFRI)`,
         );
       } else {
-        console.error("❌", result.message);
-        toast.show("error", result.message);
+        // Production mode: SNS voting not yet implemented
+        const errorMsg = "SNS voting not yet implemented. Please use Demo Mode for testing governance features.";
+        console.error("❌", errorMsg);
+        toast.show("error", errorMsg);
       }
     } catch (error: any) {
       console.error("❌ Error voting:", error);
