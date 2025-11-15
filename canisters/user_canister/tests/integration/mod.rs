@@ -4,6 +4,8 @@ use shared_types::*;
 
 pub mod user_registration_tests;
 pub mod pin_security_tests;
+pub mod access_control_tests;
+pub mod user_enumeration_tests;
 
 // ============================================================================
 // Test Environment Setup - User Canister Only
@@ -44,7 +46,7 @@ impl TestEnv {
         pic.install_canister(user_canister_id, user_wasm, vec![], None);
         
         // Configure user canister
-        let config_arg = encode_one(data_canister_id.to_text()).unwrap();
+        let config_arg = encode_args((data_canister_id,)).unwrap();
         pic.update_call(
             user_canister_id,
             Principal::anonymous(),

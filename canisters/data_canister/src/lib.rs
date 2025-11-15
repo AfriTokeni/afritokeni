@@ -17,9 +17,10 @@ use models::*;
 thread_local! {
     static STATE: RefCell<DataCanisterState> = RefCell::new(DataCanisterState::new());
     static AUTHORIZED_CANISTERS: RefCell<Vec<Principal>> = RefCell::new(Vec::new());
+    static AGENT_ACTIVITIES: RefCell<std::collections::BTreeMap<String, shared_types::AgentActivity>> = RefCell::new(std::collections::BTreeMap::new());
 }
 
-#[derive(CandidType, Deserialize, Default)]
+#[derive(CandidType, Deserialize, Default, Clone)]
 pub struct DataCanisterState {
     users: HashMap<String, User>,
     fiat_balances: HashMap<String, FiatBalance>,  // key: "user_id:currency"
@@ -161,13 +162,44 @@ fn init(ussd_canister_id: Option<String>, web_canister_id: Option<String>) {
 
 #[pre_upgrade]
 fn pre_upgrade() {
-    ic_cdk::println!("🔄 Pre-upgrade: State will be preserved");
+    ic_cdk::println!("🔄 Pre-upgrade: Serializing state to stable memory");
+
+    // Extract state from thread-local storage (clone the inner value, not the Ref)
+    let state = STATE.with(|s| (*s.borrow()).clone());
+    let authorized = AUTHORIZED_CANISTERS.with(|c| (*c.borrow()).clone());
+    let agent_activities = AGENT_ACTIVITIES.with(|a| (*a.borrow()).clone());
+
+    // Serialize to stable memory
+    ic_cdk::storage::stable_save((state, authorized, agent_activities))
+        .expect("Failed to save state to stable memory");
+
+    ic_cdk::println!("✅ Pre-upgrade: State serialized successfully");
 }
 
 #[post_upgrade]
 fn post_upgrade(ussd_canister_id: Option<String>, web_canister_id: Option<String>) {
-    init(ussd_canister_id, web_canister_id);
-    ic_cdk::println!("✅ Post-upgrade: Canister restored");
+    ic_cdk::println!("🔄 Post-upgrade: Restoring state from stable memory");
+
+    // Restore state from stable memory
+    let (state, authorized, agent_activities): (
+        DataCanisterState,
+        Vec<Principal>,
+        std::collections::BTreeMap<String, shared_types::AgentActivity>
+    ) = ic_cdk::storage::stable_restore()
+        .expect("Failed to restore state from stable memory");
+
+    // Restore to thread-local storage
+    STATE.with(|s| *s.borrow_mut() = state);
+    AUTHORIZED_CANISTERS.with(|c| *c.borrow_mut() = authorized);
+    AGENT_ACTIVITIES.with(|a| *a.borrow_mut() = agent_activities);
+
+    ic_cdk::println!("✅ Post-upgrade: State restored successfully");
+
+    // Re-initialize authorized canisters if provided (for manual override)
+    if ussd_canister_id.is_some() || web_canister_id.is_some() {
+        ic_cdk::println!("📝 Post-upgrade: Re-initializing authorized canisters from args");
+        init(ussd_canister_id, web_canister_id);
+    }
 }
 
 // ============================================================================
@@ -329,18 +361,28 @@ fn get_user_by_principal(principal_id: String) -> Result<Option<User>, String> {
 #[update]
 async fn update_user_phone(request: shared_types::UpdateUserPhoneRequest) -> Result<(), String> {
     verify_canister_access()?;
-    
+
     STATE.with(|state| {
         let mut state = state.borrow_mut();
-        
+
         // Check if user exists
         let user = state.users.get_mut(&request.user_id)
             .ok_or_else(|| format!("User not found: {}", request.user_id))?;
-        
+
         // Update phone number
         user.phone_number = Some(request.phone_number);
-        
+
         Ok(())
+    })
+}
+
+/// Update KYC status (canister only - for compliance)
+#[update]
+async fn update_kyc_status(user_id: String, status: KYCStatus) -> Result<(), String> {
+    verify_canister_access()?;
+
+    STATE.with(|state| {
+        operations::user_ops::update_kyc_status(&mut state.borrow_mut(), &user_id, status)
     })
 }
 
@@ -1092,9 +1134,59 @@ async fn update_agent_balance(balance: AgentBalance) -> Result<AgentBalance, Str
 #[query]
 fn get_all_agent_balances() -> Result<Vec<AgentBalance>, String> {
     verify_canister_access()?;
-    
+
     STATE.with(|state| {
         Ok(state.borrow().agent_balances.values().cloned().collect())
+    })
+}
+
+// ============================================================================
+// Agent Activity Operations - Fraud Detection (Canister Only)
+// ============================================================================
+
+/// Get agent activity for fraud detection analysis
+///
+/// Returns activity metrics for a specific agent and currency, including:
+/// - Daily deposit/withdrawal counts and volumes
+/// - Hourly and 24h operation velocity
+/// - User-agent pair frequency (for detecting coordination)
+///
+/// # Arguments
+/// * `agent_id` - The agent's unique identifier
+/// * `currency` - The currency code (e.g., "UGX", "NGN")
+///
+/// # Access Control
+/// Canister-only endpoint. Must be called by authorized canisters.
+#[query]
+fn get_agent_activity(agent_id: String, currency: String) -> Result<Option<shared_types::AgentActivity>, String> {
+    verify_canister_access()?;
+
+    AGENT_ACTIVITIES.with(|activities| {
+        let activities = activities.borrow();
+        Ok(operations::agent_activity_ops::get_agent_activity(&activities, agent_id, currency))
+    })
+}
+
+/// Store or update agent activity for fraud detection
+///
+/// Persists agent activity metrics used for fraud detection and risk analysis.
+/// Called by agent_canister after each deposit/withdrawal operation.
+///
+/// # Arguments
+/// * `activity` - The agent activity record to store
+///
+/// # Returns
+/// The stored activity record on success
+///
+/// # Access Control
+/// Canister-only endpoint. Must be called by authorized canisters.
+#[update]
+async fn store_agent_activity(activity: shared_types::AgentActivity) -> Result<shared_types::AgentActivity, String> {
+    verify_canister_access()?;
+
+    AGENT_ACTIVITIES.with(|activities| {
+        let mut activities = activities.borrow_mut();
+        operations::agent_activity_ops::store_agent_activity(&mut activities, activity)
     })
 }
 

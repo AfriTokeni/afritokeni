@@ -67,11 +67,22 @@ thread_local! {
 
 /// Get or create a USSD session
 pub async fn get_or_create_session(session_id: &str, phone_number: &str) -> Result<UssdSession, String> {
+    // Periodically clean up expired sessions (lazy cleanup during normal operations)
+    // This prevents memory buildup from abandoned sessions
+    // We do this every 10th session creation/retrieval to balance cleanup cost
+    static mut CLEANUP_COUNTER: u32 = 0;
+    unsafe {
+        CLEANUP_COUNTER += 1;
+        if CLEANUP_COUNTER % 10 == 0 {
+            cleanup_expired_sessions();
+        }
+    }
+
     // Check existing session first
     let existing_session = SESSIONS.with(|sessions| {
         let sessions_map = sessions.borrow();
         ic_cdk::println!("🔍 Looking for session '{}', total sessions: {}", session_id, sessions_map.len());
-        
+
         // Check if session exists and is not expired
         if let Some(session) = sessions_map.get(session_id) {
             ic_cdk::println!("✅ Found existing session: menu='{}', step={}", session.current_menu, session.step);
@@ -129,6 +140,57 @@ pub async fn delete_session(session_id: &str) -> Result<(), String> {
         sessions.borrow_mut().remove(session_id);
     });
     Ok(())
+}
+
+/// Clean up expired sessions
+///
+/// This function removes all sessions that have exceeded SESSION_TIMEOUT_NANOS.
+/// It should be called periodically (e.g., during get_or_create_session) to prevent
+/// memory buildup from abandoned sessions.
+///
+/// **Security Note:** This cleanup happens lazily during normal request processing,
+/// making it deterministic (tied to update calls) rather than using heartbeats which
+/// could cause non-determinism.
+///
+/// # Returns
+/// Number of sessions that were cleaned up
+pub fn cleanup_expired_sessions() -> usize {
+    let current_time = time();
+
+    SESSIONS.with(|sessions| {
+        let mut sessions_map = sessions.borrow_mut();
+        let initial_count = sessions_map.len();
+
+        // Remove all expired sessions
+        sessions_map.retain(|session_id, session| {
+            let is_valid = !session.is_expired();
+            if !is_valid {
+                ic_cdk::println!("🧹 Cleaning up expired session: {} (expired {} nanos ago)",
+                    session_id,
+                    current_time.saturating_sub(session.last_activity + SESSION_TIMEOUT_NANOS));
+            }
+            is_valid
+        });
+
+        let cleaned_count = initial_count.saturating_sub(sessions_map.len());
+        if cleaned_count > 0 {
+            ic_cdk::println!("✅ Cleaned up {} expired session(s), {} active remain",
+                cleaned_count,
+                sessions_map.len());
+        }
+
+        cleaned_count
+    })
+}
+
+/// Get total number of active sessions
+///
+/// Useful for monitoring and debugging.
+///
+/// # Returns
+/// Number of active sessions in memory
+pub fn get_active_session_count() -> usize {
+    SESSIONS.with(|sessions| sessions.borrow().len())
 }
 
 #[cfg(test)]

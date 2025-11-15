@@ -4,7 +4,6 @@
 // Handles all communication with user_canister for authentication
 // ============================================================================
 
-use candid::Principal;
 use ic_cdk::call::Call;
 use crate::config::get_user_canister_id;
 

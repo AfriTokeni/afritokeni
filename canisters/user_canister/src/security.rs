@@ -1,9 +1,8 @@
 /// PIN Security Module
 /// Uses Argon2id for secure PIN hashing (industry standard, winner of Password Hashing Competition)
-/// 
+///
 /// SECURITY: Uses IC's raw_rand() for cryptographically secure random salt generation
 /// This is the correct approach for WASM environments where OsRng is not available
-
 use argon2::{
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,

@@ -93,29 +93,45 @@ pub async fn create_deposit_request(request: CreateDepositRequest) -> Result<Cre
         return Err("Invalid PIN".to_string());
     }
     
-    // Get or create agent activity for fraud detection
+    // FRAUD DETECTION: Load agent activity from data_canister
     let now = ic_cdk::api::time();
-    let agent_activity = fraud_detection::AgentActivity::new(request.agent_id.clone(), now);
-    
-    // Fraud check
+    let mut agent_activity = match data_client::get_agent_activity(&request.agent_id, &request.currency).await? {
+        Some(shared_activity) => {
+            // Convert from storage format to fraud detection format
+            fraud_detection::AgentActivity::from_shared(shared_activity)
+        }
+        None => {
+            // First transaction for this agent/currency - create new activity tracker
+            fraud_detection::AgentActivity::new(request.agent_id.clone(), now)
+        }
+    };
+
+    // Run fraud detection checks BEFORE recording operation
     let fraud_result = fraud_detection::check_deposit_fraud(&agent_activity, &request.user_id, request.amount);
     if fraud_result.should_block {
         audit::log_failure(
             "create_deposit_request",
             Some(request.user_id.clone()),
-            format!("Blocked by fraud detection: {:?}", fraud_result.warnings)
+            format!("FRAUD BLOCKED - Deposit blocked by fraud detection: {:?}", fraud_result.warnings)
         );
         return Err(format!("Transaction blocked: {}", fraud_result.warnings.join(", ")));
     }
-    
-    // Log warnings if any
+
+    // Log warnings if any (non-blocking)
     if !fraud_result.warnings.is_empty() {
         audit::log_failure(
             "create_deposit_request",
             Some(request.user_id.clone()),
-            format!("Fraud warnings: {:?}", fraud_result.warnings)
+            format!("FRAUD WARNING - Suspicious patterns detected: {:?}", fraud_result.warnings)
         );
     }
+
+    // Record this operation in activity tracker
+    agent_activity.record_operation(&request.user_id, true, request.amount, now);
+
+    // Store updated activity back to data_canister
+    let shared_activity = agent_activity.to_shared(request.currency.clone());
+    data_client::store_agent_activity(shared_activity).await?;
     
     // Calculate fees
     let fees = deposit_logic::calculate_deposit_fees(request.amount)?;
@@ -235,7 +251,7 @@ pub async fn confirm_deposit(request: ConfirmDepositRequest) -> Result<ConfirmDe
             last_updated: now,
         });
     
-    agent_balance.total_deposits += deposit.amount;
+    agent_balance.total_deposits += 1;  // Increment COUNT of deposits (not amount)
     agent_balance.commission_earned += deposit.agent_keeps;
     
     // NEW: Agent owes platform (outstanding_balance decreases)

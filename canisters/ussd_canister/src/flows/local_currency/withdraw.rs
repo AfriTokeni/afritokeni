@@ -10,7 +10,6 @@ use crate::utils::translations::{Language, TranslationService};
 /// - Shorthand: "1*4*amount*agent*pin" (skips confirmation)
 /// - Continued: When in session, just the current input (e.g., "50000")
 pub async fn handle_withdraw(text: &str, session: &mut UssdSession) -> (String, bool) {
-    let lang = Language::from_code(&session.language);
     let parts: Vec<&str> = text.split('*').collect();
 
     // Check if this is a continued session or fresh start
@@ -59,14 +58,24 @@ pub async fn handle_withdraw(text: &str, session: &mut UssdSession) -> (String, 
     ic_cdk::println!("🔍 [WITHDRAW] Checking shorthand: amount={:?}, agent={:?}, pin={:?}", amount_opt, agent_id_opt, pin_opt);
     if let (Some(amount_str), Some(agent_id), Some(pin)) = (amount_opt, agent_id_opt, pin_opt) {
         ic_cdk::println!("✅ [WITHDRAW] Shorthand mode - executing withdrawal");
+        let lang = Language::from_code(&session.language);
         return execute_withdrawal(session, agent_id, amount_str, pin, lang).await;
     }
     ic_cdk::println!("➡️ [WITHDRAW] Not shorthand, entering interactive mode");
 
     // INTERACTIVE MODE: Guide user through missing steps
+    let lang = Language::from_code(&session.language);
 
     // Step 0: Need amount
     if amount_opt.is_none() {
+        // Check for cancellation (user entered "0" at initial menu, before collecting any data)
+        if text == "0" && !is_fresh_start && stored_amount.is_none() && stored_agent.is_none() {
+            session.clear_data();
+            session.current_menu = "main".to_string();
+            session.step = 0;
+            return (format!("Withdrawal cancelled\n\n0. Main Menu"), false);
+        }
+
         return (format!("{}\n{}",
             TranslationService::translate("withdraw", lang),
             "Enter amount (UGX):"), true);
@@ -154,7 +163,7 @@ async fn execute_withdrawal(
     agent_id: &str,
     amount_str: &str,
     pin: &str,
-    lang: Language,
+    _lang: Language,
 ) -> (String, bool) {
     ic_cdk::println!("🔧 [WITHDRAW] execute_withdrawal called: agent='{}', amount='{}', pin len={}", agent_id, amount_str, pin.len());
 

@@ -8,7 +8,6 @@
 use candid::Principal;
 use serde::Deserialize as SerdeDeserialize;
 use std::cell::RefCell;
-use std::collections::HashMap;
 
 const CONFIG_TOML: &str = include_str!("../agent_config.toml");
 

@@ -226,3 +226,15 @@ pub struct AuditStats {
     pub unique_actions: usize,
     pub most_common_action: Option<String>,
 }
+
+/// Get all audit entries (for upgrade persistence)
+pub fn get_all_entries() -> Vec<AuditEntry> {
+    AUDIT_LOG.with(|log| log.borrow().clone())
+}
+
+/// Restore audit entries from stable memory (used during post_upgrade)
+pub fn restore_entries(entries: Vec<AuditEntry>) {
+    AUDIT_LOG.with(|log| {
+        *log.borrow_mut() = entries;
+    });
+}

@@ -1,6 +1,6 @@
 use ic_cdk::call::Call;
 use shared_types::{
-    FiatCurrency, Transaction, Escrow, EscrowStatus, CryptoType,
+    FiatCurrency, Transaction, Escrow, EscrowStatus,
 };
 
 use crate::config;
@@ -136,15 +136,95 @@ pub async fn get_escrow(code: &str) -> Result<Option<Escrow>, String> {
 /// Update escrow status in data canister
 pub async fn update_escrow_status(code: &str, status: EscrowStatus) -> Result<(), String> {
     let canister_id = config::get_data_canister_id()?;
-    
+
     let response = Call::unbounded_wait(canister_id, "update_escrow_status")
         .with_args(&(code.to_string(), status))
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
-    
+
     let (result,): (Result<(), String>,) = response
         .candid_tuple()
         .map_err(|e| format!("Decode failed: {}", e))?;
-    
+
     result
+}
+
+/// Get daily transaction statistics for fraud detection
+/// Returns (transaction_count, total_amount) for the current day
+pub async fn get_daily_transaction_stats(
+    user_id: &str,
+    currency: FiatCurrency,
+) -> Result<(usize, u64), String> {
+    let canister_id = config::get_data_canister_id()?;
+
+    // Get transactions for today by filtering the user's transaction history
+    // We use a large limit to get all transactions, then filter client-side
+    let response = Call::unbounded_wait(canister_id, "get_user_transactions")
+        .with_args(&(user_id.to_string(), Some(1000), Some(0)))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+
+    let (result,): (Result<Vec<Transaction>, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+
+    let transactions = result?;
+
+    // Get current time and calculate start of day (last 24 hours)
+    let current_time = ic_cdk::api::time();
+    let one_day_ns: u64 = 86_400_000_000_000; // 24 hours in nanoseconds
+    let start_of_day = current_time.saturating_sub(one_day_ns);
+
+    // Filter transactions from the last 24 hours for the same currency
+    let (count, total) = transactions.iter()
+        .filter(|tx| {
+            // Only count completed transfers in the last 24 hours
+            tx.created_at >= start_of_day &&
+            tx.status == shared_types::TransactionStatus::Completed &&
+            matches!(tx.transaction_type, shared_types::TransactionType::TransferFiat) &&
+            matches!(&tx.currency_type, shared_types::CurrencyType::Fiat(c) if *c == currency)
+        })
+        .fold((0usize, 0u64), |(count, total), tx| {
+            (count + 1, total.saturating_add(tx.amount))
+        });
+
+    Ok((count, total))
+}
+
+/// Get hourly transaction count for velocity checking
+/// Returns the count of transactions in the last hour
+pub async fn get_hourly_transaction_count(
+    user_id: &str,
+    currency: FiatCurrency,
+) -> Result<usize, String> {
+    let canister_id = config::get_data_canister_id()?;
+
+    // Get recent transactions
+    let response = Call::unbounded_wait(canister_id, "get_user_transactions")
+        .with_args(&(user_id.to_string(), Some(100), Some(0)))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+
+    let (result,): (Result<Vec<Transaction>, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+
+    let transactions = result?;
+
+    // Get current time and calculate start of hour
+    let current_time = ic_cdk::api::time();
+    let one_hour_ns: u64 = 3_600_000_000_000; // 1 hour in nanoseconds
+    let start_of_hour = current_time.saturating_sub(one_hour_ns);
+
+    // Count transactions from the last hour for the same currency
+    let count = transactions.iter()
+        .filter(|tx| {
+            tx.created_at >= start_of_hour &&
+            tx.status == shared_types::TransactionStatus::Completed &&
+            matches!(tx.transaction_type, shared_types::TransactionType::TransferFiat) &&
+            matches!(&tx.currency_type, shared_types::CurrencyType::Fiat(c) if *c == currency)
+        })
+        .count();
+
+    Ok(count)
 }

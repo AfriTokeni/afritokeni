@@ -1,5 +1,10 @@
 /// Pure business logic for fraud detection
 /// No I/O, no async, fully testable
+///
+/// NOTE: Some functions are prepared for future fraud detection enhancements:
+/// - Daily transaction limits (config exists, not yet enforced in transfer flow)
+/// - Velocity checks (multiple rapid transactions)
+/// - Pattern-based fraud detection (round numbers, etc.)
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FraudCheckResult {
@@ -55,34 +60,12 @@ pub fn check_transaction_amount(
     }
 }
 
-/// Check if amount is suspicious (above threshold)
-pub fn is_suspicious_amount(amount: u64, threshold: u64) -> bool {
-    amount >= threshold
-}
-
-/// Check if amount is a round number (potential indicator)
-pub fn is_round_number(amount: u64) -> bool {
-    amount % 10000 == 0 && amount > 0
-}
-
-/// Calculate risk score based on amount and threshold
-pub fn calculate_amount_risk_score(
-    amount: u64,
-    max_amount: u64,
-    suspicious_threshold: u64,
-) -> u8 {
-    if amount > max_amount {
-        100
-    } else if amount > suspicious_threshold {
-        70
-    } else if amount > suspicious_threshold / 2 {
-        30
-    } else {
-        0
-    }
-}
+// Removed unused fraud detection functions (is_suspicious_amount, is_round_number, calculate_amount_risk_score)
+// These were duplicates of logic in check_transaction_amount() and are not needed for current implementation.
+// If pattern-based fraud detection is needed in the future, implement comprehensive logic instead of these helpers.
 
 /// Check daily transaction limits
+/// Used in transfer flow for fraud prevention (SECURITY_AUDIT.md recommendation #3)
 pub fn check_daily_limits(
     transaction_count: usize,
     total_amount: u64,
@@ -135,6 +118,48 @@ pub fn check_daily_limits(
         warnings.push(format!(
             "Approaching daily amount limit: {}/{}",
             total_amount, max_amount
+        ));
+    }
+
+    FraudCheckResult {
+        is_suspicious,
+        risk_score,
+        requires_manual_review,
+        should_block,
+        warnings,
+    }
+}
+
+/// Check for velocity-based fraud (rapid successive transactions)
+/// Detects if a user is making too many transactions too quickly
+pub fn check_velocity(
+    transaction_count_last_hour: usize,
+    max_transactions_per_hour: usize,
+) -> FraudCheckResult {
+    let mut warnings = Vec::new();
+    let mut is_suspicious = false;
+    let mut should_block = false;
+    let mut risk_score: u8 = 0;
+    let mut requires_manual_review = false;
+
+    // Check if velocity limit exceeded
+    if transaction_count_last_hour >= max_transactions_per_hour {
+        should_block = true;
+        is_suspicious = true;
+        risk_score = 100;
+        requires_manual_review = true;
+        warnings.push(format!(
+            "Velocity limit exceeded: {} transactions in last hour (max: {})",
+            transaction_count_last_hour, max_transactions_per_hour
+        ));
+    }
+    // Warning if approaching velocity limit (80%)
+    else if transaction_count_last_hour >= (max_transactions_per_hour * 80) / 100 {
+        is_suspicious = true;
+        risk_score = 60;
+        warnings.push(format!(
+            "Approaching velocity limit: {}/{} transactions in last hour",
+            transaction_count_last_hour, max_transactions_per_hour
         ));
     }
 
@@ -210,75 +235,8 @@ mod tests {
         assert_eq!(result.risk_score, 70);
     }
 
-    // ============================================================================
-    // Suspicious Amount Tests
-    // ============================================================================
-
-    #[test]
-    fn test_is_suspicious_amount_above_threshold() {
-        assert!(is_suspicious_amount(1_000_000, 500_000));
-        assert!(is_suspicious_amount(500_000, 500_000));
-    }
-
-    #[test]
-    fn test_is_suspicious_amount_below_threshold() {
-        assert!(!is_suspicious_amount(100_000, 500_000));
-        assert!(!is_suspicious_amount(0, 500_000));
-    }
-
-    // ============================================================================
-    // Round Number Tests
-    // ============================================================================
-
-    #[test]
-    fn test_is_round_number_valid() {
-        assert!(is_round_number(10000));
-        assert!(is_round_number(100000));
-        assert!(is_round_number(1000000));
-    }
-
-    #[test]
-    fn test_is_round_number_invalid() {
-        assert!(!is_round_number(10001));
-        assert!(!is_round_number(99999));
-        assert!(!is_round_number(0));
-    }
-
-    // ============================================================================
-    // Risk Score Calculation Tests
-    // ============================================================================
-
-    #[test]
-    fn test_calculate_amount_risk_score_normal() {
-        assert_eq!(
-            calculate_amount_risk_score(1_000_000, 10_000_000, 5_000_000),
-            0
-        );
-    }
-
-    #[test]
-    fn test_calculate_amount_risk_score_medium() {
-        assert_eq!(
-            calculate_amount_risk_score(3_000_000, 10_000_000, 5_000_000),
-            30
-        );
-    }
-
-    #[test]
-    fn test_calculate_amount_risk_score_suspicious() {
-        assert_eq!(
-            calculate_amount_risk_score(6_000_000, 10_000_000, 5_000_000),
-            70
-        );
-    }
-
-    #[test]
-    fn test_calculate_amount_risk_score_blocked() {
-        assert_eq!(
-            calculate_amount_risk_score(11_000_000, 10_000_000, 5_000_000),
-            100
-        );
-    }
+    // Tests for removed helper functions (is_suspicious_amount, is_round_number, calculate_amount_risk_score)
+    // These functions were redundant with check_transaction_amount() and have been removed
 
     // ============================================================================
     // Daily Limits Tests
@@ -368,5 +326,100 @@ mod tests {
         let result = check_transaction_amount(15_000_000, max, threshold);
         assert!(result.should_block);
         assert_eq!(result.risk_score, 100);
+    }
+
+    // ============================================================================
+    // Additional Security Tests - Boundary Conditions
+    // ============================================================================
+
+    #[test]
+    fn test_velocity_exactly_at_limit() {
+        let result = check_velocity(10, 10);
+        assert!(result.should_block);
+        assert_eq!(result.risk_score, 100);
+    }
+
+    #[test]
+    fn test_velocity_one_below_limit() {
+        let result = check_velocity(9, 10);
+        // 9/10 = 90%, which is above 80% warning threshold
+        assert!(!result.should_block);
+        assert!(result.is_suspicious); // Should warn at 90%
+        assert_eq!(result.risk_score, 60);
+    }
+
+    #[test]
+    fn test_velocity_warning_at_80_percent() {
+        let result = check_velocity(8, 10);
+        assert!(!result.should_block);
+        assert!(result.is_suspicious);
+        assert_eq!(result.risk_score, 60);
+    }
+
+    #[test]
+    fn test_daily_limits_exactly_at_count() {
+        let result = check_daily_limits(50, 1_000_000, 50, 10_000_000);
+        assert!(result.should_block);
+        assert_eq!(result.risk_score, 100);
+    }
+
+    #[test]
+    fn test_daily_limits_exactly_at_amount() {
+        let result = check_daily_limits(10, 10_000_000, 50, 10_000_000);
+        assert!(result.should_block);
+        assert_eq!(result.risk_score, 100);
+    }
+
+    #[test]
+    fn test_daily_limits_warning_count_80_percent() {
+        let result = check_daily_limits(40, 1_000_000, 50, 10_000_000);
+        assert!(!result.should_block);
+        assert!(result.is_suspicious);
+        assert_eq!(result.risk_score, 50);
+    }
+
+    #[test]
+    fn test_daily_limits_warning_amount_80_percent() {
+        let result = check_daily_limits(10, 8_000_000, 50, 10_000_000);
+        assert!(!result.should_block);
+        assert!(result.is_suspicious);
+        assert_eq!(result.risk_score, 50);
+    }
+
+    #[test]
+    fn test_amount_exactly_at_max() {
+        let result = check_transaction_amount(10_000_000, 10_000_000, 5_000_000);
+        assert!(!result.should_block);
+        assert!(result.is_suspicious);
+        assert_eq!(result.risk_score, 70);
+    }
+
+    #[test]
+    fn test_amount_one_over_max() {
+        let result = check_transaction_amount(10_000_001, 10_000_000, 5_000_000);
+        assert!(result.should_block);
+        assert_eq!(result.risk_score, 100);
+    }
+
+    #[test]
+    fn test_manual_review_required_when_blocked() {
+        let r1 = check_transaction_amount(11_000_000, 10_000_000, 5_000_000);
+        let r2 = check_daily_limits(51, 1_000_000, 50, 10_000_000);
+        let r3 = check_velocity(11, 10);
+
+        assert!(r1.requires_manual_review);
+        assert!(r2.requires_manual_review);
+        assert!(r3.requires_manual_review);
+    }
+
+    #[test]
+    fn test_warning_messages_contain_values() {
+        let r1 = check_transaction_amount(11_000_000, 10_000_000, 5_000_000);
+        assert!(!r1.warnings.is_empty());
+        assert!(r1.warnings[0].contains("11000000"));
+
+        let r2 = check_velocity(11, 10);
+        assert!(!r2.warnings.is_empty());
+        assert!(r2.warnings[0].contains("11"));
     }
 }

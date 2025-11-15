@@ -3,9 +3,16 @@
 // ============================================================================
 // Detects suspicious patterns in agent operations
 // 100% unit test coverage required
+//
+// INTEGRATION STATUS: ACTIVE
+// - Fraud checks are integrated with deposit/withdrawal endpoints
+// - AgentActivity is persisted in data_canister
+// - Historical activity is loaded before each fraud check
+// - Activity is updated and stored after each operation
 // ============================================================================
 
 use crate::config::get_config;
+use crate::services::data_client;
 use std::collections::HashMap;
 
 // ============================================================================
@@ -74,6 +81,43 @@ impl AgentActivity {
             operations_last_24h: Vec::new(),
             user_agent_pairs: HashMap::new(),
             last_reset: current_time_ns,
+        }
+    }
+
+    /// Convert from shared_types::AgentActivity (used for storage)
+    pub fn from_shared(shared: data_client::AgentActivity) -> Self {
+        let user_agent_pairs: HashMap<String, u64> = shared.user_agent_pairs.into_iter().collect();
+        Self {
+            agent_id: shared.agent_id,
+            deposits_today: shared.deposits_today,
+            withdrawals_today: shared.withdrawals_today,
+            deposit_volume_today: shared.deposit_volume_today,
+            withdrawal_volume_today: shared.withdrawal_volume_today,
+            operations_last_hour: shared.operations_last_hour,
+            operations_last_24h: shared.operations_last_24h,
+            user_agent_pairs,
+            last_reset: shared.last_reset,
+        }
+    }
+
+    /// Convert to shared_types::AgentActivity (for storage)
+    pub fn to_shared(&self, currency: String) -> data_client::AgentActivity {
+        let user_agent_pairs: Vec<(String, u64)> = self.user_agent_pairs.iter()
+            .map(|(k, v)| (k.clone(), *v))
+            .collect();
+        let now = ic_cdk::api::time();
+        data_client::AgentActivity {
+            agent_id: self.agent_id.clone(),
+            currency,
+            deposits_today: self.deposits_today,
+            withdrawals_today: self.withdrawals_today,
+            deposit_volume_today: self.deposit_volume_today,
+            withdrawal_volume_today: self.withdrawal_volume_today,
+            operations_last_hour: self.operations_last_hour.clone(),
+            operations_last_24h: self.operations_last_24h.clone(),
+            user_agent_pairs,
+            last_reset: self.last_reset,
+            last_updated: now,
         }
     }
 

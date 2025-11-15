@@ -26,6 +26,7 @@ fn time() -> u64 {
 
 #[derive(Clone, Debug)]
 pub struct FraudCheckResult {
+    #[allow(dead_code)]
     pub is_suspicious: bool,
     pub should_block: bool,
     pub requires_manual_review: bool,
@@ -37,7 +38,9 @@ pub struct FraudCheckResult {
 struct TransactionRecord {
     timestamp: u64,
     amount: u64,
+    #[allow(dead_code)]
     currency: String,
+    #[allow(dead_code)]
     operation: String,
 }
 
@@ -46,13 +49,16 @@ struct UserVelocityData {
     transactions: Vec<TransactionRecord>,
     total_24h: u64,
     total_1h: u64,
+    #[allow(dead_code)]
     device_fingerprints: Vec<String>,
+    #[allow(dead_code)]
     geo_locations: Vec<String>,
 }
 
 #[derive(Clone, Debug)]
 struct DeviceInfo {
     fingerprint: String,
+    #[allow(dead_code)]
     first_seen: u64,
     last_seen: u64,
     transaction_count: u32,
@@ -86,6 +92,7 @@ thread_local! {
 // CONFIGURATION
 // ============================================================================
 
+#[allow(dead_code)]
 const MAX_TRANSACTIONS_PER_MINUTE: usize = 10;
 const MAX_TRANSACTIONS_PER_HOUR: usize = 50;
 const MAX_24H_VOLUME_CENTS: u64 = 10_000_000; // $100,000
@@ -108,28 +115,7 @@ const MAX_BACKOFF_NS: u64 = 3600_000_000_000;   // 1 hour
 // RATE LIMITING
 // ============================================================================
 
-/// Check global rate limit (transactions per minute)
-pub fn check_rate_limit(user_id: &str) -> Result<bool, String> {
-    RATE_LIMITS.with(|limits| {
-        let mut limits = limits.borrow_mut();
-        let now = time();
-        let minute_ago = now.saturating_sub(60_000_000_000); // 60 seconds in nanoseconds
-        
-        let timestamps = limits.entry(user_id.to_string()).or_insert_with(Vec::new);
-        
-        // Remove old timestamps
-        timestamps.retain(|&ts| ts > minute_ago);
-        
-        // Check if limit exceeded
-        if timestamps.len() >= MAX_TRANSACTIONS_PER_MINUTE {
-            return Ok(false); // Rate limit exceeded
-        }
-        
-        // Add current timestamp
-        timestamps.push(now);
-        Ok(true)
-    })
-}
+ 
 
 /// Check per-operation rate limit
 pub fn check_operation_rate_limit(user_id: &str, operation: &str) -> Result<bool, String> {
@@ -170,9 +156,9 @@ pub fn check_operation_rate_limit(user_id: &str, operation: &str) -> Result<bool
 /// Check if PIN attempts are allowed (with exponential backoff)
 pub fn check_pin_attempts_allowed(user_id: &str) -> Result<bool, String> {
     PIN_ATTEMPTS.with(|attempts| {
-        let mut attempts = attempts.borrow_mut();
+        let attempts = attempts.borrow();
         let now = time();
-        
+
         if let Some((count, _last_attempt, backoff_until)) = attempts.get(user_id) {
             // Check if still in backoff period
             if now < *backoff_until {
@@ -518,11 +504,13 @@ pub fn check_transaction(
 // ============================================================================
 
 /// Check if amount is suspicious
+#[allow(dead_code)]
 pub fn is_suspicious_amount(amount: u64, _currency: &str) -> bool {
     amount > SUSPICIOUS_AMOUNT_CENTS
 }
 
 /// Calculate risk score
+#[allow(dead_code)]
 pub fn calculate_risk_score(amount: u64, _currency: &str) -> u32 {
     if amount > HIGH_RISK_AMOUNT_CENTS {
         50
@@ -534,6 +522,7 @@ pub fn calculate_risk_score(amount: u64, _currency: &str) -> u32 {
 }
 
 /// Determine if transaction should be blocked
+#[allow(dead_code)]
 pub fn should_block_transaction(risk_score: u32) -> bool {
     risk_score >= 80
 }

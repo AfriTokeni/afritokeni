@@ -123,29 +123,45 @@ pub async fn create_withdrawal_request(request: CreateWithdrawalRequest) -> Resu
     let user_balance = wallet_client::get_fiat_balance(&request.user_id, &request.currency).await?;
     withdrawal_logic::validate_sufficient_balance(user_balance, request.amount, fees.total_fees)?;
     
-    // Get or create agent activity for fraud detection
+    // FRAUD DETECTION: Load agent activity from data_canister
     let now = ic_cdk::api::time();
-    let agent_activity = fraud_detection::AgentActivity::new(request.agent_id.clone(), now);
-    
-    // Fraud check
+    let mut agent_activity = match data_client::get_agent_activity(&request.agent_id, &request.currency).await? {
+        Some(shared_activity) => {
+            // Convert from storage format to fraud detection format
+            fraud_detection::AgentActivity::from_shared(shared_activity)
+        }
+        None => {
+            // First transaction for this agent/currency - create new activity tracker
+            fraud_detection::AgentActivity::new(request.agent_id.clone(), now)
+        }
+    };
+
+    // Run fraud detection checks BEFORE recording operation
     let fraud_result = fraud_detection::check_withdrawal_fraud(&agent_activity, &request.user_id, request.amount);
     if fraud_result.should_block {
         audit::log_failure(
             "create_withdrawal_request",
             Some(request.user_id.clone()),
-            format!("Blocked by fraud detection: {:?}", fraud_result.warnings)
+            format!("FRAUD BLOCKED - Withdrawal blocked by fraud detection: {:?}", fraud_result.warnings)
         );
         return Err(format!("Transaction blocked: {}", fraud_result.warnings.join(", ")));
     }
-    
-    // Log warnings if any
+
+    // Log warnings if any (non-blocking)
     if !fraud_result.warnings.is_empty() {
         audit::log_failure(
             "create_withdrawal_request",
             Some(request.user_id.clone()),
-            format!("Fraud warnings: {:?}", fraud_result.warnings)
+            format!("FRAUD WARNING - Suspicious patterns detected: {:?}", fraud_result.warnings)
         );
     }
+
+    // Record this operation in activity tracker
+    agent_activity.record_operation(&request.user_id, false, request.amount, now);
+
+    // Store updated activity back to data_canister
+    let shared_activity = agent_activity.to_shared(request.currency.clone());
+    data_client::store_agent_activity(shared_activity).await?;
     
     // Generate withdrawal code
     let now = ic_cdk::api::time();
@@ -267,7 +283,7 @@ pub async fn confirm_withdrawal(request: ConfirmWithdrawalRequest) -> Result<Con
             last_updated: now,
         });
     
-    agent_balance.total_withdrawals += withdrawal.amount;  // Track total withdrawal amount
+    agent_balance.total_withdrawals += 1;  // Increment COUNT of withdrawals (not amount)
     agent_balance.commission_earned += withdrawal.agent_keeps;
     
     // NEW: Platform owes agent (outstanding_balance increases)

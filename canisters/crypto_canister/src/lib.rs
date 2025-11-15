@@ -1,6 +1,6 @@
 use candid::{CandidType, Deserialize, Principal};
 use ic_cdk_macros::{init, query, update};
-use ic_cdk::api::{time, caller};
+use ic_cdk::api::time;
 
 mod logic;
 mod services;
@@ -129,7 +129,7 @@ fn init() {
     ic_cdk_timers::set_timer_interval(
         std::time::Duration::from_secs(3600), // 1 hour
         || {
-            ic_cdk::spawn(async {
+            ic_cdk::futures::spawn_017_compat(async {
                 match cleanup_expired_escrows().await {
                     Ok(result) => {
                         ic_cdk::println!("⏰ Periodic cleanup: processed={}, refunded={}",
@@ -153,7 +153,7 @@ fn init() {
 /// Set data canister ID (admin only)
 #[update]
 fn set_data_canister_id(principal: Principal) -> Result<(), String> {
-    if !ic_cdk::api::is_controller(&caller()) {
+    if !ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()) {
         return Err("Only controller can set data canister ID".to_string());
     }
     config::set_data_canister_id(principal);
@@ -163,7 +163,7 @@ fn set_data_canister_id(principal: Principal) -> Result<(), String> {
 /// Set user canister ID (admin only)
 #[update]
 fn set_user_canister_id(principal: Principal) -> Result<(), String> {
-    if !ic_cdk::api::is_controller(&caller()) {
+    if !ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()) {
         return Err("Only controller can set user canister ID".to_string());
     }
     config::set_user_canister_id(principal);
@@ -173,7 +173,7 @@ fn set_user_canister_id(principal: Principal) -> Result<(), String> {
 /// Set wallet canister ID (admin only)
 #[update]
 fn set_wallet_canister_id(principal: Principal) -> Result<(), String> {
-    if !ic_cdk::api::is_controller(&caller()) {
+    if !ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()) {
         return Err("Only controller can set wallet canister ID".to_string());
     }
     config::set_wallet_canister_id(principal);
@@ -183,7 +183,7 @@ fn set_wallet_canister_id(principal: Principal) -> Result<(), String> {
 /// Add authorized canister (admin only)
 #[update]
 fn add_authorized_canister(principal: Principal) -> Result<(), String> {
-    if !ic_cdk::api::is_controller(&caller()) {
+    if !ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()) {
         return Err("Only controller can add authorized canisters".to_string());
     }
     config::add_authorized_canister(principal);
@@ -193,7 +193,7 @@ fn add_authorized_canister(principal: Principal) -> Result<(), String> {
 /// Set ckBTC ledger ID (admin only, for testing)
 #[update]
 fn set_ckbtc_ledger_id(principal: Principal) -> Result<(), String> {
-    if !ic_cdk::api::is_controller(&caller()) {
+    if !ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()) {
         return Err("Only controller can set ckBTC ledger ID".to_string());
     }
     config::set_ckbtc_ledger_id(principal);
@@ -203,7 +203,7 @@ fn set_ckbtc_ledger_id(principal: Principal) -> Result<(), String> {
 /// Set ckUSDC ledger ID (admin only, for testing)
 #[update]
 fn set_ckusdc_ledger_id(principal: Principal) -> Result<(), String> {
-    if !ic_cdk::api::is_controller(&caller()) {
+    if !ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()) {
         return Err("Only controller can set ckUSDC ledger ID".to_string());
     }
     config::set_ckusdc_ledger_id(principal);
@@ -213,7 +213,7 @@ fn set_ckusdc_ledger_id(principal: Principal) -> Result<(), String> {
 /// Enable test mode (admin only)
 #[update]
 fn enable_test_mode() -> Result<(), String> {
-    if !ic_cdk::api::is_controller(&caller()) {
+    if !ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()) {
         return Err("Only controller can enable test mode".to_string());
     }
     config::enable_test_mode();
@@ -223,7 +223,7 @@ fn enable_test_mode() -> Result<(), String> {
 /// Disable test mode (admin only)
 #[update]
 fn disable_test_mode() -> Result<(), String> {
-    if !ic_cdk::api::is_controller(&caller()) {
+    if !ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()) {
         return Err("Only controller can disable test mode".to_string());
     }
     config::disable_test_mode();
@@ -261,125 +261,129 @@ async fn set_crypto_balance_for_testing(
 /// Buy cryptocurrency with fiat
 #[update]
 async fn buy_crypto(request: BuyCryptoRequest) -> Result<BuyCryptoResponse, String> {
-    
-    // Validate inputs
+    // Parse and validate inputs
     logic::crypto_logic::validate_fiat_amount_for_crypto(request.fiat_amount)?;
-    
     let crypto_type = parse_crypto_type(&request.crypto_type)?;
     let fiat_currency = FiatCurrency::from_code(&request.currency)
         .ok_or_else(|| format!("Invalid currency code: {}", request.currency))?;
-    
-    // 1. Verify user exists
-    let user_exists = services::user_client::user_exists(&request.user_identifier).await?;
-    if !user_exists {
-        return Err("User not found".to_string());
-    }
-    
-    // 2. Check PIN attempts allowed (exponential backoff)
-    logic::fraud_detection::check_pin_attempts_allowed(&request.user_identifier)?;
-    
-    // 3. Verify PIN
-    let verified = services::user_client::verify_pin(&request.user_identifier, &request.pin).await?;
-    if !verified {
-        logic::fraud_detection::record_failed_pin_attempt(&request.user_identifier)?;
-        audit::log_failure(
-            "failed_pin_buy_crypto",
-            Some(request.user_identifier.clone()),
-            format!("Invalid PIN | Amount: {} {} | Device: {:?} | Location: {:?}",
-                request.fiat_amount, request.currency, request.device_fingerprint, request.geo_location)
-        );
-        return Err("Invalid PIN".to_string());
-    }
-    logic::fraud_detection::reset_pin_attempts(&request.user_identifier);
-    
-    // 4. Check operation rate limit
-    if !logic::fraud_detection::check_operation_rate_limit(&request.user_identifier, "buy_crypto")? {
-        audit::log_failure(
-            "rate_limit_exceeded",
-            Some(request.user_identifier.clone()),
-            format!("Operation: buy_crypto | Amount: {} {}", request.fiat_amount, request.currency)
-        );
-        return Err("Operation rate limit exceeded. Please try again later".to_string());
-    }
-    
-    // 5. Comprehensive fraud check
-    let fraud_check = logic::fraud_detection::check_transaction(
+
+    // Step 1: Perform all security checks
+    perform_buy_crypto_security_checks(&request).await?;
+
+    // Step 2: Execute the crypto purchase
+    let (crypto_amount, exchange_rate, block_index) = execute_crypto_purchase(
         &request.user_identifier,
         request.fiat_amount,
         &request.currency,
+        crypto_type,
+        fiat_currency,
+    ).await?;
+
+    // Step 3: Record and finalize transaction
+    let timestamp = finalize_buy_crypto_transaction(
+        &request.user_identifier,
+        request.fiat_amount,
+        &request.currency,
+        crypto_amount,
+        crypto_type,
+        exchange_rate,
+        block_index,
+    ).await?;
+
+    Ok(BuyCryptoResponse {
+        transaction_id: format!("buy-crypto-{}-{}", request.user_identifier, timestamp),
+        crypto_amount,
+        fiat_amount: request.fiat_amount,
+        crypto_type: format!("{:?}", crypto_type),
+        exchange_rate,
+        timestamp,
+    })
+}
+
+/// Performs all security checks for buy_crypto operation
+async fn perform_buy_crypto_security_checks(request: &BuyCryptoRequest) -> Result<(), String> {
+    // 1. Verify user exists
+    logic::transaction_helpers::verify_user_exists(&request.user_identifier).await?;
+
+    // 2. Verify PIN with exponential backoff
+    let audit_context = format!(
+        "Invalid PIN | Amount: {} {} | Device: {:?} | Location: {:?}",
+        request.fiat_amount, request.currency, request.device_fingerprint, request.geo_location
+    );
+    logic::transaction_helpers::verify_pin_with_backoff(
+        &request.user_identifier,
+        &request.pin,
         "buy_crypto",
+        &audit_context,
+    ).await?;
+
+    // 3. Check operation rate limit
+    let rate_limit_context = format!(
+        "Operation: buy_crypto | Amount: {} {}",
+        request.fiat_amount, request.currency
+    );
+    logic::transaction_helpers::check_operation_rate_limit(
+        &request.user_identifier,
+        "buy_crypto",
+        &rate_limit_context,
+    )?;
+
+    // 4. Comprehensive fraud check
+    let fraud_context = logic::transaction_helpers::FraudCheckContext {
+        user_identifier: &request.user_identifier,
+        amount: request.fiat_amount,
+        currency: &request.currency,
+        operation: "buy_crypto",
+        device_fingerprint: request.device_fingerprint.as_deref(),
+        geo_location: request.geo_location.as_deref(),
+    };
+    logic::transaction_helpers::perform_fraud_check(&fraud_context)?;
+
+    // 5. Record device and location
+    logic::transaction_helpers::record_device_and_location(
+        &request.user_identifier,
         request.device_fingerprint.as_deref(),
         request.geo_location.as_deref(),
     )?;
-    
-    if fraud_check.should_block {
-        audit::log_failure(
-            "transaction_blocked",
-            Some(request.user_identifier.clone()),
-            format!("Operation: buy_crypto | Amount: {} {} | Risk Score: {} | Warnings: {:?} | Device: {:?} | Location: {:?}",
-                request.fiat_amount, request.currency, fraud_check.risk_score, fraud_check.warnings,
-                request.device_fingerprint, request.geo_location)
-        );
-        return Err(format!("Transaction blocked due to security concerns: {:?}", fraud_check.warnings));
+
+    Ok(())
+}
+
+/// Executes the crypto purchase including fiat deduction and crypto transfer
+/// Returns (crypto_amount, exchange_rate, block_index)
+async fn execute_crypto_purchase(
+    user_identifier: &str,
+    fiat_amount: u64,
+    currency: &str,
+    crypto_type: CryptoType,
+    fiat_currency: FiatCurrency,
+) -> Result<(u64, f64, u64), String> {
+    // 1. Check fiat balance
+    let fiat_balance = services::wallet_client::get_fiat_balance(user_identifier, fiat_currency).await?;
+    if fiat_balance < fiat_amount {
+        return Err(format!("Insufficient fiat balance. Have: {}, Need: {}", fiat_balance, fiat_amount));
     }
-    
-    if fraud_check.requires_manual_review {
-        audit::log_success(
-            "manual_review_required",
-            Some(request.user_identifier.clone()),
-            format!("Operation: buy_crypto | Amount: {} {} | Risk Score: {} | Warnings: {:?}",
-                request.fiat_amount, request.currency, fraud_check.risk_score, fraud_check.warnings)
-        );
-    }
-    
-    // 6. Record device and location
-    if let Some(fingerprint) = &request.device_fingerprint {
-        logic::fraud_detection::record_device_fingerprint(&request.user_identifier, fingerprint)?;
-        audit::log_success(
-            "device_recorded",
-            Some(request.user_identifier.clone()),
-            format!("Device: {}", fingerprint)
-        );
-    }
-    if let Some(location) = &request.geo_location {
-        logic::fraud_detection::record_geo_location(&request.user_identifier, location)?;
-        audit::log_success(
-            "location_recorded",
-            Some(request.user_identifier.clone()),
-            format!("Location: {}", location)
-        );
-    }
-    
-    // 3. Check fiat balance
-    let fiat_balance = services::wallet_client::get_fiat_balance(&request.user_identifier, fiat_currency).await?;
-    if fiat_balance < request.fiat_amount {
-        return Err(format!("Insufficient fiat balance. Have: {}, Need: {}", fiat_balance, request.fiat_amount));
-    }
-    
-    // 4. Calculate crypto amount using real exchange rates
+
+    // 2. Calculate crypto amount using real exchange rates
     let crypto_type_str = format!("{:?}", crypto_type);
     let crypto_amount = services::exchange_rate::calculate_crypto_from_fiat(
-        request.fiat_amount,
-        &request.currency,
+        fiat_amount,
+        currency,
         &crypto_type_str
     ).await?;
-    
-    // 5. Calculate exchange rate for display
-    let exchange_rate = if request.fiat_amount > 0 {
-        crypto_amount as f64 / request.fiat_amount as f64
-    } else {
-        0.0
-    };
-    
-    // 6. Deduct fiat from wallet (IOU system)
-    let new_fiat_balance = fiat_balance.checked_sub(request.fiat_amount)
+
+    // 3. Calculate exchange rate for display
+    let exchange_rate = logic::transaction_helpers::calculate_exchange_rate(crypto_amount, fiat_amount);
+
+    // 4. Deduct fiat from wallet (IOU system)
+    let new_fiat_balance = fiat_balance.checked_sub(fiat_amount)
         .ok_or("Fiat balance calculation would underflow")?;
-    services::wallet_client::set_fiat_balance(&request.user_identifier, fiat_currency, new_fiat_balance).await?;
-    
-    // 7. Get user's Principal ID for non-custodial transfer
-    let user_principal = services::ledger_client::get_user_principal(&request.user_identifier).await?;
-    
-    // 8. Transfer crypto from platform reserve to user's Principal (NON-CUSTODIAL)
+    services::wallet_client::set_fiat_balance(user_identifier, fiat_currency, new_fiat_balance).await?;
+
+    // 5. Get user's Principal ID for non-custodial transfer
+    let user_principal = services::ledger_client::get_user_principal(user_identifier).await?;
+
+    // 6. Transfer crypto from platform reserve to user's Principal (NON-CUSTODIAL)
     let block_index = match crypto_type {
         CryptoType::CkBTC => {
             services::ledger_client::transfer_ckbtc_to_user(user_principal, crypto_amount).await?
@@ -388,262 +392,286 @@ async fn buy_crypto(request: BuyCryptoRequest) -> Result<BuyCryptoResponse, Stri
             services::ledger_client::transfer_ckusdc_to_user(user_principal, crypto_amount).await?
         },
     };
-    
+
     audit::log_success(
         "crypto_transferred_to_user",
-        Some(request.user_identifier.clone()),
+        Some(user_identifier.to_string()),
         format!("Transferred {} {} to Principal {} | Block: {}",
             crypto_amount, crypto_type_str, user_principal, block_index)
     );
 
-    // 9. Update crypto balance in data canister (for tracking purposes)
-    let (delta_btc, delta_usdc) = match crypto_type {
-        CryptoType::CkBTC => (crypto_amount as i64, 0i64),
-        CryptoType::CkUSDC => (0i64, crypto_amount as i64),
-    };
-    services::data_client::update_crypto_balance(&request.user_identifier, delta_btc, delta_usdc).await?;
+    Ok((crypto_amount, exchange_rate, block_index))
+}
 
-    // 10. Record transaction
+/// Finalizes buy_crypto transaction by updating balances and recording transaction
+/// Returns timestamp of transaction
+async fn finalize_buy_crypto_transaction(
+    user_identifier: &str,
+    fiat_amount: u64,
+    currency: &str,
+    crypto_amount: u64,
+    crypto_type: CryptoType,
+    exchange_rate: f64,
+    block_index: u64,
+) -> Result<u64, String> {
+    let crypto_type_str = format!("{:?}", crypto_type);
+
+    // 1. Update crypto balance in data canister (for tracking purposes)
+    let (delta_btc, delta_usdc) = logic::transaction_helpers::calculate_crypto_delta(
+        crypto_amount,
+        crypto_type,
+        true, // is_credit
+    );
+    services::data_client::update_crypto_balance(user_identifier, delta_btc, delta_usdc).await?;
+
+    // 2. Record transaction
     let timestamp = time();
     let transaction = Transaction {
-        id: format!("buy-crypto-{}-{}", request.user_identifier, timestamp),
+        id: format!("buy-crypto-{}-{}", user_identifier, timestamp),
         transaction_type: TransactionType::BuyCrypto,
-        from_user: Some(request.user_identifier.clone()),
-        to_user: Some(request.user_identifier.clone()),
+        from_user: Some(user_identifier.to_string()),
+        to_user: Some(user_identifier.to_string()),
         amount: crypto_amount,
         currency_type: CurrencyType::Crypto(crypto_type),
         status: TransactionStatus::Completed,
         created_at: timestamp,
         completed_at: Some(timestamp),
-        description: Some(format!("Bought {} {} for {} {} | Block: {}", 
-            crypto_amount, crypto_type_str, request.fiat_amount, request.currency, block_index)),
+        description: Some(format!("Bought {} {} for {} {} | Block: {}",
+            crypto_amount, crypto_type_str, fiat_amount, currency, block_index)),
     };
-    
+
     services::data_client::store_transaction(&transaction).await?;
 
-    // 11. Record transaction for velocity tracking
-    logic::fraud_detection::record_transaction(
-        &request.user_identifier,
-        request.fiat_amount,
-        &request.currency,
+    // 3. Record transaction for velocity tracking
+    logic::transaction_helpers::record_transaction_for_velocity(
+        user_identifier,
+        fiat_amount,
+        currency,
         "buy_crypto",
     )?;
 
-    // 12. Audit successful transaction
+    // 4. Audit successful transaction
     audit::log_success(
         "buy_crypto_completed",
-        Some(request.user_identifier.clone()),
+        Some(user_identifier.to_string()),
         format!("Bought {} {} for {} {} | Exchange Rate: {} | Block: {} | TX: {}",
-            crypto_amount, crypto_type_str, request.fiat_amount, request.currency,
+            crypto_amount, crypto_type_str, fiat_amount, currency,
             exchange_rate, block_index, transaction.id)
     );
-    
-    Ok(BuyCryptoResponse {
-        transaction_id: transaction.id,
-        crypto_amount,
-        fiat_amount: request.fiat_amount,
-        crypto_type: crypto_type_str,
-        exchange_rate,
-        timestamp,
-    })
+
+    Ok(timestamp)
 }
 
 /// Sell cryptocurrency for fiat
 #[update]
 async fn sell_crypto(request: SellCryptoRequest) -> Result<BuyCryptoResponse, String> {
-    
-    // Validate inputs
+    // Parse and validate inputs
     logic::crypto_logic::validate_crypto_amount_positive(request.crypto_amount)?;
-    
     let crypto_type = parse_crypto_type(&request.crypto_type)?;
     let fiat_currency = FiatCurrency::from_code(&request.currency)
         .ok_or_else(|| format!("Invalid currency code: {}", request.currency))?;
-    
+
+    // Step 1: Perform initial security checks (PIN, rate limits)
+    perform_sell_crypto_initial_checks(&request).await?;
+
+    // Step 2: Execute the crypto sale
+    let (fiat_amount, exchange_rate, transfer_block) = execute_crypto_sale(
+        &request.user_identifier,
+        request.crypto_amount,
+        &request.currency,
+        crypto_type,
+        fiat_currency,
+        request.device_fingerprint.as_deref(),
+        request.geo_location.as_deref(),
+    ).await?;
+
+    // Step 3: Record and finalize transaction
+    let timestamp = finalize_sell_crypto_transaction(
+        &request.user_identifier,
+        request.crypto_amount,
+        fiat_amount,
+        &request.currency,
+        crypto_type,
+        exchange_rate,
+        transfer_block,
+    ).await?;
+
+    Ok(BuyCryptoResponse {
+        transaction_id: format!("sell-crypto-{}-{}", request.user_identifier, timestamp),
+        crypto_amount: request.crypto_amount,
+        fiat_amount,
+        crypto_type: format!("{:?}", crypto_type),
+        exchange_rate,
+        timestamp,
+    })
+}
+
+/// Performs initial security checks for sell_crypto (PIN, rate limits, user verification)
+async fn perform_sell_crypto_initial_checks(request: &SellCryptoRequest) -> Result<(), String> {
     // 1. Verify user exists
-    let user_exists = services::user_client::user_exists(&request.user_identifier).await?;
-    if !user_exists {
-        return Err("User not found".to_string());
-    }
-    
-    // 2. Check PIN attempts allowed (exponential backoff)
-    logic::fraud_detection::check_pin_attempts_allowed(&request.user_identifier)?;
-    
-    // 3. Verify PIN
-    let verified = services::user_client::verify_pin(&request.user_identifier, &request.pin).await?;
-    if !verified {
-        logic::fraud_detection::record_failed_pin_attempt(&request.user_identifier)?;
-        audit::log_failure(
-            "failed_pin_sell_crypto",
-            Some(request.user_identifier.clone()),
-            format!("Invalid PIN | Amount: {} {} | Device: {:?} | Location: {:?}",
-                request.crypto_amount, request.crypto_type, request.device_fingerprint, request.geo_location)
-        );
-        return Err("Invalid PIN".to_string());
-    }
-    logic::fraud_detection::reset_pin_attempts(&request.user_identifier);
-    
-    // 4. Check operation rate limit
-    if !logic::fraud_detection::check_operation_rate_limit(&request.user_identifier, "sell_crypto")? {
-        audit::log_failure(
-            "rate_limit_exceeded",
-            Some(request.user_identifier.clone()),
-            format!("Operation: sell_crypto | Amount: {} {}", request.crypto_amount, request.crypto_type)
-        );
-        return Err("Operation rate limit exceeded. Please try again later".to_string());
-    }
-    
-    // 5. Get user's Principal ID for non-custodial transfer
-    let user_principal = services::ledger_client::get_user_principal(&request.user_identifier).await?;
-    
-    // 6. Check crypto balance on ledger (NON-CUSTODIAL)
+    logic::transaction_helpers::verify_user_exists(&request.user_identifier).await?;
+
+    // 2. Verify PIN with exponential backoff
+    let audit_context = format!(
+        "Invalid PIN | Amount: {} {} | Device: {:?} | Location: {:?}",
+        request.crypto_amount, request.crypto_type, request.device_fingerprint, request.geo_location
+    );
+    logic::transaction_helpers::verify_pin_with_backoff(
+        &request.user_identifier,
+        &request.pin,
+        "sell_crypto",
+        &audit_context,
+    ).await?;
+
+    // 3. Check operation rate limit
+    let rate_limit_context = format!(
+        "Operation: sell_crypto | Amount: {} {}",
+        request.crypto_amount, request.crypto_type
+    );
+    logic::transaction_helpers::check_operation_rate_limit(
+        &request.user_identifier,
+        "sell_crypto",
+        &rate_limit_context,
+    )?;
+
+    Ok(())
+}
+
+/// Executes the crypto sale including balance checks, fraud detection, and transfers
+/// Returns (fiat_amount, exchange_rate, transfer_block)
+async fn execute_crypto_sale(
+    user_identifier: &str,
+    crypto_amount: u64,
+    currency: &str,
+    crypto_type: CryptoType,
+    _fiat_currency: FiatCurrency,
+    device_fingerprint: Option<&str>,
+    geo_location: Option<&str>,
+) -> Result<(u64, f64, u64), String> {
+    let crypto_type_str = format!("{:?}", crypto_type);
+
+    // 1. Get user's Principal ID and check crypto balance on ledger (NON-CUSTODIAL)
+    let user_principal = services::ledger_client::get_user_principal(user_identifier).await?;
     let crypto_balance = match crypto_type {
         CryptoType::CkBTC => services::ledger_client::get_user_ckbtc_balance(user_principal).await?,
         CryptoType::CkUSDC => services::ledger_client::get_user_ckusdc_balance(user_principal).await?,
     };
-    
-    logic::crypto_logic::validate_sufficient_crypto_balance(crypto_balance, request.crypto_amount)?;
-    
-    // 4. Calculate fiat amount using real exchange rates
-    let crypto_type_str = format!("{:?}", crypto_type);
-    let fiat_amount = services::exchange_rate::calculate_fiat_from_crypto(
-        request.crypto_amount,
-        &crypto_type_str,
-        &request.currency
-    ).await?;
-    
-    // 5. Calculate exchange rate for display
-    let exchange_rate = if fiat_amount > 0 {
-        request.crypto_amount as f64 / fiat_amount as f64
-    } else {
-        0.0
-    };
-    
-    // 6. Comprehensive fraud check
-    let fraud_check = logic::fraud_detection::check_transaction(
-        &request.user_identifier,
-        fiat_amount,
-        &request.currency,
-        "sell_crypto",
-        request.device_fingerprint.as_deref(),
-        request.geo_location.as_deref(),
-    )?;
-    
-    if fraud_check.should_block {
-        audit::log_failure(
-            "transaction_blocked",
-            Some(request.user_identifier.clone()),
-            format!("Operation: sell_crypto | Amount: {} {} | Risk Score: {} | Warnings: {:?} | Device: {:?} | Location: {:?}",
-                fiat_amount, request.currency, fraud_check.risk_score, fraud_check.warnings,
-                request.device_fingerprint, request.geo_location)
-        );
-        return Err(format!("Transaction blocked due to security concerns: {:?}", fraud_check.warnings));
-    }
-    
-    if fraud_check.requires_manual_review {
-        audit::log_success(
-            "manual_review_required",
-            Some(request.user_identifier.clone()),
-            format!("Operation: sell_crypto | Amount: {} {} | Risk Score: {} | Warnings: {:?}",
-                fiat_amount, request.currency, fraud_check.risk_score, fraud_check.warnings)
-        );
-    }
-    
-    // 7. Record device and location
-    if let Some(fingerprint) = &request.device_fingerprint {
-        logic::fraud_detection::record_device_fingerprint(&request.user_identifier, fingerprint)?;
-        audit::log_success(
-            "device_recorded",
-            Some(request.user_identifier.clone()),
-            format!("Device: {}", fingerprint)
-        );
-    }
-    if let Some(location) = &request.geo_location {
-        logic::fraud_detection::record_geo_location(&request.user_identifier, location)?;
-        audit::log_success(
-            "location_recorded",
-            Some(request.user_identifier.clone()),
-            format!("Location: {}", location)
-        );
-    }
-    
-    // 8. SKIP approval step - user must have pre-approved spending (via web UI or test setup)
-    // The crypto canister cannot call icrc2_approve on behalf of the user without delegation.
-    // In production, users approve via web wallet before using USSD.
-    // In tests, allowances are pre-set via set_allowance_for_testing.
+    logic::crypto_logic::validate_sufficient_crypto_balance(crypto_balance, crypto_amount)?;
 
-    // 9. Transfer crypto from user to platform reserve (ICRC-2 transfer_from)
+    // 2. Calculate fiat amount using real exchange rates
+    let fiat_amount = services::exchange_rate::calculate_fiat_from_crypto(
+        crypto_amount,
+        &crypto_type_str,
+        currency
+    ).await?;
+
+    // 3. Calculate exchange rate for display
+    let exchange_rate = logic::transaction_helpers::calculate_exchange_rate(crypto_amount, fiat_amount);
+
+    // 4. Comprehensive fraud check (now that we know fiat_amount)
+    let fraud_context = logic::transaction_helpers::FraudCheckContext {
+        user_identifier,
+        amount: fiat_amount,
+        currency,
+        operation: "sell_crypto",
+        device_fingerprint,
+        geo_location,
+    };
+    logic::transaction_helpers::perform_fraud_check(&fraud_context)?;
+
+    // 5. Record device and location
+    logic::transaction_helpers::record_device_and_location(
+        user_identifier,
+        device_fingerprint,
+        geo_location,
+    )?;
+
+    // 6. Transfer crypto from user to platform reserve (ICRC-2 transfer_from)
+    // NOTE: User must have pre-approved spending via web UI or test setup
     let transfer_block = match crypto_type {
         CryptoType::CkBTC => {
-            services::ledger_client::transfer_from_ckbtc(user_principal, request.crypto_amount).await?
+            services::ledger_client::transfer_from_ckbtc(user_principal, crypto_amount).await?
         },
         CryptoType::CkUSDC => {
-            services::ledger_client::transfer_from_ckusdc(user_principal, request.crypto_amount).await?
+            services::ledger_client::transfer_from_ckusdc(user_principal, crypto_amount).await?
         },
     };
-    
+
     audit::log_success(
         "crypto_transferred_from_user",
-        Some(request.user_identifier.clone()),
+        Some(user_identifier.to_string()),
         format!("Transferred {} {} from Principal {} to reserve | Block: {}",
-            request.crypto_amount, crypto_type_str, user_principal, transfer_block)
+            crypto_amount, crypto_type_str, user_principal, transfer_block)
     );
 
-    // 10. Update crypto balance in data canister (deduct sold crypto)
-    let (delta_btc, delta_usdc) = match crypto_type {
-        CryptoType::CkBTC => (-(request.crypto_amount as i64), 0i64),
-        CryptoType::CkUSDC => (0i64, -(request.crypto_amount as i64)),
-    };
-    services::data_client::update_crypto_balance(&request.user_identifier, delta_btc, delta_usdc).await?;
+    Ok((fiat_amount, exchange_rate, transfer_block))
+}
 
-    // 11. Add fiat to wallet (IOU system)
-    let current_fiat_balance = services::wallet_client::get_fiat_balance(&request.user_identifier, fiat_currency).await?;
+/// Finalizes sell_crypto transaction by updating balances and recording transaction
+/// Returns timestamp of transaction
+async fn finalize_sell_crypto_transaction(
+    user_identifier: &str,
+    crypto_amount: u64,
+    fiat_amount: u64,
+    currency: &str,
+    crypto_type: CryptoType,
+    exchange_rate: f64,
+    transfer_block: u64,
+) -> Result<u64, String> {
+    let crypto_type_str = format!("{:?}", crypto_type);
+
+    // 1. Update crypto balance in data canister (deduct sold crypto)
+    let (delta_btc, delta_usdc) = logic::transaction_helpers::calculate_crypto_delta(
+        crypto_amount,
+        crypto_type,
+        false, // is_credit = false (debit)
+    );
+    services::data_client::update_crypto_balance(user_identifier, delta_btc, delta_usdc).await?;
+
+    // 2. Add fiat to wallet (IOU system)
+    let fiat_currency = FiatCurrency::from_code(currency)
+        .ok_or_else(|| format!("Invalid currency code: {}", currency))?;
+    let current_fiat_balance = services::wallet_client::get_fiat_balance(user_identifier, fiat_currency).await?;
     let new_fiat_balance = current_fiat_balance.checked_add(fiat_amount)
         .ok_or("Fiat balance calculation would overflow")?;
-    services::wallet_client::set_fiat_balance(&request.user_identifier, fiat_currency, new_fiat_balance).await?;
+    services::wallet_client::set_fiat_balance(user_identifier, fiat_currency, new_fiat_balance).await?;
 
-    // 12. Record transaction
+    // 3. Record transaction
     let timestamp = time();
     let transaction = Transaction {
-        id: format!("sell-crypto-{}-{}", request.user_identifier, timestamp),
+        id: format!("sell-crypto-{}-{}", user_identifier, timestamp),
         transaction_type: TransactionType::SellCrypto,
-        from_user: Some(request.user_identifier.clone()),
-        to_user: Some(request.user_identifier.clone()),
-        amount: request.crypto_amount,
+        from_user: Some(user_identifier.to_string()),
+        to_user: Some(user_identifier.to_string()),
+        amount: crypto_amount,
         currency_type: CurrencyType::Crypto(crypto_type),
         status: TransactionStatus::Completed,
         created_at: timestamp,
         completed_at: Some(timestamp),
         description: Some(format!("Sold {} {} for {} {} | Transfer Block: {}",
-            request.crypto_amount, crypto_type_str, fiat_amount, request.currency, transfer_block)),
+            crypto_amount, crypto_type_str, fiat_amount, currency, transfer_block)),
     };
 
     services::data_client::store_transaction(&transaction).await?;
 
-    // 13. Record transaction for velocity tracking
-    logic::fraud_detection::record_transaction(
-        &request.user_identifier,
+    // 4. Record transaction for velocity tracking
+    logic::transaction_helpers::record_transaction_for_velocity(
+        user_identifier,
         fiat_amount,
-        &request.currency,
+        currency,
         "sell_crypto",
     )?;
 
-    // 14. Audit successful transaction
+    // 5. Audit successful transaction
     audit::log_success(
         "sell_crypto_completed",
-        Some(request.user_identifier.clone()),
+        Some(user_identifier.to_string()),
         format!("Sold {} {} for {} {} | Exchange Rate: {} | Transfer Block: {} | TX: {}",
-            request.crypto_amount, crypto_type_str, fiat_amount, request.currency,
+            crypto_amount, crypto_type_str, fiat_amount, currency,
             exchange_rate, transfer_block, transaction.id)
     );
-    
-    Ok(BuyCryptoResponse {
-        transaction_id: transaction.id,
-        crypto_amount: request.crypto_amount,
-        fiat_amount,
-        crypto_type: crypto_type_str,
-        exchange_rate,
-        timestamp,
-    })
+
+    Ok(timestamp)
 }
 
 // ============================================================================
@@ -856,18 +884,27 @@ async fn swap_crypto(request: SwapCryptoRequest) -> Result<SwapCryptoResponse, S
     let spread_bp = config::get_spread_basis_points();
     let spread_amount = (request.amount * spread_bp) / 10000;
     let swap_amount = request.amount - spread_amount;
-    
-    // 5. Perform swap via DEX
-    let to_amount = services::dex_client::swap_tokens(from_crypto, to_crypto, swap_amount, 0).await?;
-    
-    // 6. Calculate exchange rate
+
+    // 5. Calculate expected output with slippage protection
+    // Estimate expected output (1:1 for simplicity, real implementation would use oracle)
+    let expected_output = swap_amount;
+    let slippage_bp = 100; // 1% slippage tolerance
+    let min_output = services::dex_client::calculate_min_output_with_slippage(expected_output, slippage_bp)?;
+
+    // 6. Perform swap via DEX with slippage protection
+    let to_amount = services::dex_client::swap_tokens(from_crypto, to_crypto, swap_amount, min_output).await?;
+
+    // 7. Validate actual slippage after swap
+    services::dex_client::validate_slippage(expected_output, to_amount, slippage_bp)?;
+
+    // 8. Calculate exchange rate
     let exchange_rate = if request.amount > 0 {
         to_amount as f64 / request.amount as f64
     } else {
         0.0
     };
-    
-    // 7. Update balances (use user_id for data canister operations)
+
+    // 9. Update balances (use user_id for data canister operations)
     let (from_delta_btc, from_delta_usdc) = match from_crypto {
         CryptoType::CkBTC => (-(request.amount as i64), 0),
         CryptoType::CkUSDC => (0, -(request.amount as i64)),
@@ -883,7 +920,7 @@ async fn swap_crypto(request: SwapCryptoRequest) -> Result<SwapCryptoResponse, S
 
     services::data_client::update_crypto_balance(&user_id, total_btc_delta, total_usdc_delta).await?;
 
-    // 8. Record transaction (use user_id for data canister operations)
+    // 10. Record transaction (use user_id for data canister operations)
     let timestamp = time();
     let transaction = Transaction {
         id: format!("swap-crypto-{}-{}", user_id, timestamp),
@@ -901,7 +938,7 @@ async fn swap_crypto(request: SwapCryptoRequest) -> Result<SwapCryptoResponse, S
 
     services::data_client::store_transaction(&transaction).await?;
 
-    // 9. Audit successful swap
+    // 11. Audit successful swap
     audit::log_success(
         "swap_crypto_completed",
         Some(user_id.clone()),

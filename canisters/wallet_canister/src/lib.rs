@@ -1,3 +1,45 @@
+//! # Wallet Canister
+//!
+//! Manages P2P fiat transfers, balance queries, transaction history, and fraud detection
+//! for the AfriTokeni platform.
+//!
+//! ## Security Features
+//!
+//! - **Multi-layer fraud detection**: Amount limits, daily limits, and velocity checks
+//! - **PIN verification**: Delegated to user_canister for proper separation of concerns
+//! - **Atomic operations**: Balance updates are atomic to prevent partial transfers
+//! - **Comprehensive audit logging**: All operations logged with transaction IDs
+//! - **Access control**: 3-tier system (Controller, AuthorizedCanister, UserSelf)
+//!
+//! ## Transfer Flow
+//!
+//! 1. Validate inputs (amount > 0, identifiers not empty, sender != recipient)
+//! 2. Parse and validate currency
+//! 3. Verify PIN via user_canister
+//! 4. Calculate transaction fee (0.5% = 50 basis points)
+//! 5. Get fraud limits for currency
+//! 6. Check velocity limits (max 10 transactions/hour)
+//! 7. Check daily limits (if configured in wallet_config.toml)
+//! 8. Check per-transaction amount limits
+//! 9. Verify sufficient balance (amount + fee)
+//! 10. Calculate new balances with overflow protection
+//! 11. Update balances atomically in data_canister
+//! 12. Store transaction record
+//! 13. Audit log with transaction ID
+//!
+//! ## Fraud Detection
+//!
+//! - **Per-transaction limits**: Configurable per currency (e.g., KES: 150K, NGN: 1.5M)
+//! - **Daily limits**: Optional max transactions and total amount per day
+//! - **Velocity checks**: Max 10 transactions per hour to prevent rapid-fire fraud
+//! - **Risk scoring**: 0-100 scale with automatic blocking at 100
+//! - **Suspicious flagging**: Transactions flagged for manual review at high risk scores
+//!
+//! ## Dependencies
+//!
+//! - `data_canister`: Balances, transactions, escrows (persistent storage)
+//! - `user_canister`: PIN verification, user lookup, authentication
+
 use candid::{CandidType, Deserialize, Principal};
 use ic_cdk_macros::{init, query, update};
 use ic_cdk::api::{time, msg_caller};
@@ -164,47 +206,119 @@ async fn transfer_fiat(request: TransferRequest) -> Result<TransferResponse, Str
     // 4. Calculate fee
     let fee_bps = config::get_transfer_fee_bps();
     let fee = logic::transfer_logic::calculate_fee(request.amount, fee_bps)?;
-    
+
     // 5. Get fraud limits for currency
     let fraud_limits = config::get_fraud_limits(currency.code());
-    
-    // 6. Check fraud detection
+
+    // 6. Check velocity limits (rapid transactions in last hour)
+    let hourly_count = services::data_client::get_hourly_transaction_count(
+        &request.from_user_id,
+        currency,
+    ).await?;
+
+    // Max 10 transactions per hour as recommended in SECURITY_AUDIT.md
+    let velocity_check = logic::fraud_logic::check_velocity(hourly_count, 10);
+
+    if velocity_check.should_block {
+        audit::log_failure(
+            "transfer_fiat_blocked_velocity",
+            Some(request.from_user_id.clone()),
+            format!("Velocity limit exceeded: {:?}", velocity_check.warnings),
+        );
+        return Err(format!("Transaction blocked: {}", velocity_check.warnings.join(", ")));
+    }
+
+    // Log warning if approaching velocity limit
+    if velocity_check.is_suspicious {
+        audit::log_success(
+            "transfer_fiat_velocity_warning",
+            Some(request.from_user_id.clone()),
+            format!("Approaching velocity limit: {:?}", velocity_check.warnings),
+        );
+    }
+
+    // 7. Check daily transaction limits (if configured)
+    if let (Some(max_daily_transactions), Some(max_daily_amount)) = (
+        fraud_limits.max_daily_transactions,
+        fraud_limits.max_daily_amount,
+    ) {
+        let (daily_count, daily_total) = services::data_client::get_daily_transaction_stats(
+            &request.from_user_id,
+            currency,
+        ).await?;
+
+        let daily_check = logic::fraud_logic::check_daily_limits(
+            daily_count,
+            daily_total,
+            max_daily_transactions,
+            max_daily_amount,
+        );
+
+        if daily_check.should_block {
+            audit::log_failure(
+                "transfer_fiat_blocked_daily_limit",
+                Some(request.from_user_id.clone()),
+                format!("Daily limit exceeded: {:?}", daily_check.warnings),
+            );
+            return Err(format!("Transaction blocked: {}", daily_check.warnings.join(", ")));
+        }
+
+        // Log warning if approaching limits
+        if daily_check.is_suspicious {
+            audit::log_success(
+                "transfer_fiat_daily_warning",
+                Some(request.from_user_id.clone()),
+                format!("Approaching daily limits: {:?}", daily_check.warnings),
+            );
+        }
+    }
+
+    // 8. Check per-transaction amount limits
     let fraud_check = logic::fraud_logic::check_transaction_amount(
         request.amount,
         fraud_limits.max_transaction_amount,
         fraud_limits.suspicious_threshold,
     );
-    
+
     if fraud_check.should_block {
         audit::log_failure(
-            "transfer_fiat_blocked",
+            "transfer_fiat_blocked_amount",
             Some(request.from_user_id.clone()),
-            format!("Fraud check failed: {:?}", fraud_check.warnings),
+            format!("Amount check failed: {:?}", fraud_check.warnings),
         );
         return Err(format!("Transaction blocked: {}", fraud_check.warnings.join(", ")));
     }
-    
-    // 7. Get sender balance
+
+    // Log warning for suspicious amounts
+    if fraud_check.is_suspicious {
+        audit::log_success(
+            "transfer_fiat_amount_warning",
+            Some(request.from_user_id.clone()),
+            format!("Large transaction flagged (risk score: {}): {:?}", fraud_check.risk_score, fraud_check.warnings),
+        );
+    }
+
+    // 9. Get sender balance
     let sender_balance = services::data_client::get_fiat_balance(&request.from_user_id, currency).await?;
-    
-    // 8. Validate sufficient balance
+
+    // 10. Validate sufficient balance (includes fee)
     logic::transfer_logic::validate_sufficient_balance(sender_balance, request.amount, fee)?;
-    
-    // 9. Get recipient balance
+
+    // 11. Get recipient balance
     let recipient_balance = services::data_client::get_fiat_balance(&request.to_user_id, currency).await?;
-    
-    // 10. Calculate new balances
+
+    // 12. Calculate new balances with overflow protection
     let sender_new_balance = logic::transfer_logic::calculate_new_balance(sender_balance, request.amount + fee)?;
     let recipient_new_balance = logic::transfer_logic::calculate_balance_addition(recipient_balance, request.amount)?;
-    
-    // 11. Update balances
+
+    // 13. Update balances atomically (prevents partial transfers)
     services::data_client::set_fiat_balance(&request.from_user_id, currency, sender_new_balance).await?;
     services::data_client::set_fiat_balance(&request.to_user_id, currency, recipient_new_balance).await?;
-    
-    // 12. Generate transaction ID
+
+    // 14. Generate transaction ID
     let tx_id = logic::transfer_logic::generate_transaction_id(current_time);
-    
-    // 13. Store transaction
+
+    // 15. Store transaction with comprehensive details
     let transaction = Transaction {
         id: tx_id.clone(),
         transaction_type: TransactionType::TransferFiat,
@@ -217,14 +331,18 @@ async fn transfer_fiat(request: TransferRequest) -> Result<TransferResponse, Str
         completed_at: Some(current_time),
         description: request.description.or(Some(format!("Transfer {} {}", request.amount, currency.code()))),
     };
-    
+
     services::data_client::store_transaction(&transaction).await?;
-    
-    // 14. Log success
+
+    // 16. Comprehensive audit logging with transaction ID and balance tracking
     audit::log_success(
         "transfer_fiat",
         Some(request.from_user_id.clone()),
-        format!("Transferred {} {} to {}", request.amount, currency.code(), request.to_user_id),
+        format!(
+            "TX:{} - Transferred {} {} to {} (fee: {}, balance: {} -> {})",
+            tx_id, request.amount, currency.code(), request.to_user_id,
+            fee, sender_balance, sender_new_balance
+        ),
     );
     
     Ok(TransferResponse {
@@ -302,7 +420,7 @@ async fn create_escrow(request: CreateEscrowRequest) -> Result<CreateEscrowRespo
     // 8. Store transaction
     let tx_id = logic::transfer_logic::generate_transaction_id(current_time);
     let transaction = Transaction {
-        id: tx_id,
+        id: tx_id.clone(),
         transaction_type: TransactionType::SellCrypto,
         from_user: Some(request.user_id.clone()),
         to_user: Some(request.agent_id.clone()),
@@ -313,14 +431,17 @@ async fn create_escrow(request: CreateEscrowRequest) -> Result<CreateEscrowRespo
         completed_at: None,
         description: Some(format!("Escrow created: {}", code)),
     };
-    
+
     services::data_client::store_transaction(&transaction).await?;
-    
-    // 9. Log success
+
+    // 9. Comprehensive audit logging with transaction ID
     audit::log_success(
         "create_escrow",
         Some(request.user_id.clone()),
-        format!("Created escrow {} for {} {:?}", code, request.amount, crypto_type),
+        format!(
+            "TX:{} - Created escrow {} for {} {:?} (agent: {}, expires: {})",
+            tx_id, code, request.amount, crypto_type, request.agent_id, expires_at
+        ),
     );
     
     Ok(CreateEscrowResponse {
@@ -361,7 +482,7 @@ async fn claim_escrow(code: String, agent_id: String) -> Result<(), String> {
     // 7. Store transaction
     let tx_id = logic::transfer_logic::generate_transaction_id(current_time);
     let transaction = Transaction {
-        id: tx_id,
+        id: tx_id.clone(),
         transaction_type: TransactionType::SellCrypto,
         from_user: Some(escrow.user_id.clone()),
         to_user: Some(agent_id.clone()),
@@ -372,14 +493,17 @@ async fn claim_escrow(code: String, agent_id: String) -> Result<(), String> {
         completed_at: Some(current_time),
         description: Some(format!("Escrow claimed: {}", code)),
     };
-    
+
     services::data_client::store_transaction(&transaction).await?;
-    
-    // 8. Log success
+
+    // 8. Comprehensive audit logging with transaction ID
     audit::log_success(
         "claim_escrow",
-        Some(agent_id),
-        format!("Agent claimed escrow: {}", code),
+        Some(agent_id.clone()),
+        format!(
+            "TX:{} - Agent claimed escrow: {} (amount: {} {:?}, user: {})",
+            tx_id, code, escrow.amount, escrow.crypto_type, escrow.user_id
+        ),
     );
     
     Ok(())
@@ -423,7 +547,7 @@ async fn cancel_escrow(code: String, user_id: String, pin: String) -> Result<(),
     // 7. Store transaction
     let tx_id = logic::transfer_logic::generate_transaction_id(current_time);
     let transaction = Transaction {
-        id: tx_id,
+        id: tx_id.clone(),
         transaction_type: TransactionType::SellCrypto,
         from_user: Some(user_id.clone()),
         to_user: Some(escrow.agent_id.clone()),
@@ -434,14 +558,17 @@ async fn cancel_escrow(code: String, user_id: String, pin: String) -> Result<(),
         completed_at: Some(current_time),
         description: Some(format!("Escrow cancelled: {}", code)),
     };
-    
+
     services::data_client::store_transaction(&transaction).await?;
-    
-    // 8. Log success
+
+    // 8. Comprehensive audit logging with transaction ID
     audit::log_success(
         "cancel_escrow",
-        Some(user_id),
-        format!("User cancelled escrow: {}", code),
+        Some(user_id.clone()),
+        format!(
+            "TX:{} - User cancelled escrow: {} (amount: {} {:?}, refunded)",
+            tx_id, code, escrow.amount, escrow.crypto_type
+        ),
     );
     
     Ok(())

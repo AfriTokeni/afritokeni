@@ -168,8 +168,7 @@ pub use shared_types::{
     FiatBalance, CryptoBalance,
     // Transaction types
     Transaction, TransactionType, TransactionStatus, CurrencyType,
-    // Crypto types
-    CryptoType,
+    // Note: CryptoType is re-exported via CurrencyType enum variant, not used directly here
     // Security types
     UserPin,
     // Audit types

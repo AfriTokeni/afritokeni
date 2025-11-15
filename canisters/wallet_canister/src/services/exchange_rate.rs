@@ -1,12 +1,20 @@
 /// Exchange Rate Service - Multi-Currency Support
 /// Integrates with external APIs for real-time exchange rates
+///
+/// NOTE: This module is prepared for future crypto exchange features.
+/// Most functions are currently unused but will be activated when implementing:
+/// - Buy/Sell crypto flows (moved to crypto_canister)
+/// - Real-time exchange rate fetching
+/// - Multi-currency conversions
 
 use candid::{CandidType, Deserialize, Principal};
 use ic_cdk::call::Call;
 
 use crate::config;
 
+// HTTP types for external API calls (prepared for crypto_canister migration)
 #[derive(CandidType, Deserialize)]
+#[allow(dead_code)] // Will be used when crypto exchange features are implemented
 struct HttpRequest {
     url: String,
     method: HttpMethod,
@@ -16,17 +24,20 @@ struct HttpRequest {
 }
 
 #[derive(CandidType, Deserialize)]
+#[allow(dead_code)] // Will be used when crypto exchange features are implemented
 struct HttpHeader {
     name: String,
     value: String,
 }
 
 #[derive(CandidType, Deserialize, Clone, Copy)]
+#[allow(dead_code)] // Will be used when crypto exchange features are implemented
 enum HttpMethod {
     GET,
 }
 
 #[derive(CandidType, Deserialize)]
+#[allow(dead_code)] // Will be used when crypto exchange features are implemented
 struct HttpResponse {
     status: u64,
     headers: Vec<HttpHeader>,
@@ -34,6 +45,8 @@ struct HttpResponse {
 }
 
 /// Get BTC price in USD from CoinGecko
+/// TODO: Move to crypto_canister when implementing buy/sell flows
+#[allow(dead_code)]
 pub async fn get_btc_usd_price() -> Result<f64, String> {
     let api_url = config::get_coingecko_api_url();
     let url = format!("{}?ids=bitcoin&vs_currencies=usd", api_url);
@@ -64,6 +77,8 @@ pub async fn get_btc_usd_price() -> Result<f64, String> {
 }
 
 /// Get USDC price in USD from CoinGecko
+/// TODO: Move to crypto_canister when implementing buy/sell flows
+#[allow(dead_code)]
 pub async fn get_usdc_usd_price() -> Result<f64, String> {
     let api_url = config::get_coingecko_api_url();
     let url = format!("{}?ids=usd-coin&vs_currencies=usd", api_url);
@@ -94,6 +109,8 @@ pub async fn get_usdc_usd_price() -> Result<f64, String> {
 }
 
 /// Get fiat currency exchange rate to USD
+/// TODO: Move to crypto_canister when implementing buy/sell flows
+#[allow(dead_code)]
 pub async fn get_fiat_to_usd_rate(currency_code: &str) -> Result<f64, String> {
     let api_url = config::get_exchangerate_api_url();
     let request = HttpRequest {
@@ -122,6 +139,7 @@ pub async fn get_fiat_to_usd_rate(currency_code: &str) -> Result<f64, String> {
 }
 
 /// Mock exchange rates for testing (1 USD = X local currency)
+#[allow(dead_code)]
 fn get_mock_fiat_to_usd_rate(currency_code: &str) -> Result<f64, String> {
     let rate = match currency_code {
         "UGX" => 1.0 / 3700.0,
@@ -142,6 +160,8 @@ fn get_mock_fiat_to_usd_rate(currency_code: &str) -> Result<f64, String> {
 }
 
 /// Calculate crypto amount from fiat with real exchange rates
+/// TODO: Move to crypto_canister when implementing buy/sell flows
+#[allow(dead_code)]
 pub async fn calculate_crypto_from_fiat(
     fiat_amount: u64,
     fiat_currency: &str,
@@ -174,6 +194,8 @@ pub async fn calculate_crypto_from_fiat(
 }
 
 /// Calculate fiat amount from crypto with real exchange rates
+/// TODO: Move to crypto_canister when implementing buy/sell flows
+#[allow(dead_code)]
 pub async fn calculate_fiat_from_crypto(
     crypto_amount: u64,
     crypto_type: &str,
@@ -208,6 +230,8 @@ pub async fn calculate_fiat_from_crypto(
 }
 
 /// Convert between two fiat currencies
+/// TODO: Move to crypto_canister when implementing buy/sell flows
+#[allow(dead_code)]
 pub async fn convert_fiat_currency(
     amount: u64,
     from_currency: &str,
@@ -232,6 +256,7 @@ pub async fn convert_fiat_currency(
 // HTTP Response Parsing
 // ============================================================================
 
+#[allow(dead_code)]
 fn parse_coingecko_response(response: &HttpResponse, coin_id: &str) -> Result<f64, String> {
     let body = String::from_utf8(response.body.clone())
         .map_err(|_| "Invalid UTF-8 response".to_string())?;
@@ -249,6 +274,7 @@ fn parse_coingecko_response(response: &HttpResponse, coin_id: &str) -> Result<f6
         .map_err(|_| "Failed to parse price as number".to_string())
 }
 
+#[allow(dead_code)]
 fn parse_exchangerate_response(response: &HttpResponse, currency_code: &str) -> Result<f64, String> {
     let body = String::from_utf8(response.body.clone())
         .map_err(|_| "Invalid UTF-8 response".to_string())?;

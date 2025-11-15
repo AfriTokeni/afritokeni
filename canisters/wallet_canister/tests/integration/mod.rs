@@ -6,6 +6,7 @@ pub mod transfer_tests;
 pub mod escrow_tests;
 pub mod fraud_detection_tests;
 pub mod balance_integrity_tests;
+pub mod security_tests;
 
 // ============================================================================
 // Test Environment Setup - Wallet Canister Integration
@@ -57,7 +58,7 @@ impl TestEnv {
         pic.install_canister(wallet_canister_id, wallet_wasm, vec![], None);
         
         // Configure user canister
-        let config_arg = encode_one(data_canister_id.to_text()).unwrap();
+        let config_arg = encode_args((data_canister_id,)).unwrap();
         pic.update_call(
             user_canister_id,
             Principal::anonymous(),
@@ -75,22 +76,22 @@ impl TestEnv {
         ).expect("Failed to enable test mode on user_canister");
         
         // Configure wallet canister
-        let config_arg = encode_one(data_canister_id).unwrap();
+        let config_arg = encode_args((data_canister_id,)).unwrap();
         pic.update_call(
             wallet_canister_id,
             Principal::anonymous(),
             "set_data_canister_id",
             config_arg,
         ).expect("Failed to configure wallet canister data_canister_id");
-        
-        let config_arg = encode_one(user_canister_id).unwrap();
+
+        let config_arg = encode_args((user_canister_id,)).unwrap();
         pic.update_call(
             wallet_canister_id,
             Principal::anonymous(),
             "set_user_canister_id",
             config_arg,
         ).expect("Failed to configure wallet canister user_canister_id");
-        
+
         // Authorize canisters
         let auth_arg = encode_one(user_canister_id.to_text()).unwrap();
         pic.update_call(
@@ -99,7 +100,7 @@ impl TestEnv {
             "add_authorized_canister",
             auth_arg,
         ).expect("Failed to authorize user canister");
-        
+
         let auth_arg = encode_one(wallet_canister_id.to_text()).unwrap();
         pic.update_call(
             data_canister_id,
@@ -107,8 +108,8 @@ impl TestEnv {
             "add_authorized_canister",
             auth_arg,
         ).expect("Failed to authorize wallet canister");
-        
-        let auth_arg = encode_one(wallet_canister_id.to_text()).unwrap();
+
+        let auth_arg = encode_args((wallet_canister_id,)).unwrap();
         pic.update_call(
             user_canister_id,
             Principal::anonymous(),

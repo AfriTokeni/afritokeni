@@ -61,11 +61,17 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
         let text = params.get("text").map(|s| s.as_str()).unwrap_or("");
         (session_id.to_string(), phone_number.to_string(), text.to_string())
     };
-    
+
     // Validate required fields
     if session_id.is_empty() || phone_number.is_empty() {
         return make_error_response(400, "Missing required fields: sessionId and phoneNumber");
     }
+
+    // Sanitize all inputs to prevent injection attacks (defense-in-depth)
+    // Note: Individual flows still validate inputs against expected formats
+    let session_id = crate::utils::validation::sanitize_input(&session_id);
+    let phone_number = crate::utils::validation::sanitize_input(&phone_number);
+    let text = crate::utils::validation::sanitize_input(&text);
     
     // Check rate limit (skip for JSON requests which are tests)
     if !is_json && !crate::utils::rate_limit::check_rate_limit(&phone_number) {
@@ -97,10 +103,36 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                     Err(_) => false, // User doesn't exist
                 };
 
-                // PLAYGROUND MODE: Auto-register playground users (configured via config.toml)
+                // ============================================================================
+                // PLAYGROUND MODE - Auto-registration for frontend testing
+                // ============================================================================
+                //
+                // **Security Isolation:**
+                // 1. Triggered ONLY by session_id prefix (configured in config.toml)
+                // 2. Does NOT bypass rate limiting for production phone numbers
+                // 3. Does NOT grant elevated permissions or access control
+                // 4. Uses same user_canister registration as real users
+                // 5. Default PIN (1234) is only for testing - real users must set their own
+                //
+                // **Purpose:**
+                // - Enables frontend developers to test USSD flows without manual registration
+                // - Simplifies integration testing and demo scenarios
+                // - Session-based activation (not phone-based) for safety
+                //
+                // **Production Safety:**
+                // - config.playground.enabled can be set to false in production
+                // - Session ID prefix prevents accidental activation from Africa's Talking
+                // - Playground users are real users in the system (no special privileges)
+                // - All transactions are subject to same validation and limits
+                //
+                // **WARNING:** Playground mode should be DISABLED in production or limited
+                // to specific test phone numbers to prevent unauthorized auto-registration.
+                // ============================================================================
                 let config = crate::config_loader::get_config();
                 if !user_registered && config.playground.enabled && session_id.starts_with(&config.playground.session_id_prefix) {
                     ic_cdk::println!("🎮 Playground mode detected - auto-registering demo user");
+                    ic_cdk::println!("   Session ID: {}, Phone: {}", session_id, phone_number);
+
                     let ussd_email = format!("{}@{}", phone_number.replace("+", ""), config.ussd_defaults.default_email_domain);
 
                     match crate::services::user_client::register_user(
@@ -153,24 +185,11 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                     let parts: Vec<&str> = text.split('*').collect();
                     ic_cdk::println!("🔍 Routing: text='{}', parts={:?}", text, parts);
 
-                    // Check for universal navigation commands (last input)
+                    // Check for active flows FIRST - this takes precedence over navigation commands
+                    // This allows "0" to be used as input value (e.g., amount=0) in active flows
                     let last_input = parts.last().unwrap_or(&"");
-                    if *last_input == "9" && parts.len() == 1 {
-                        // 9 = Main Menu (only from top-level, not submenus)
-                        ic_cdk::println!("🏠 Returning to main menu");
-                        session.current_menu = "main".to_string();
-                        session.step = 0;
-                        session.clear_data();
-                        crate::core::routing::handle_main_menu("", &mut session).await
-                    } else if *last_input == "0" && parts.len() == 1 && session.step == 0 {
-                        // 0 = Back to main menu from submenu (only when at menu level, not collecting input)
-                        ic_cdk::println!("⬅️ Navigation: Back to main menu (0 pressed)");
-                        session.current_menu = "main".to_string();
-                        session.step = 0;
-                        session.clear_data();
-                        crate::core::routing::handle_main_menu("", &mut session).await
-                    } else if !session.current_menu.is_empty() && session.current_menu != "main" {
-                        // Session is in an active flow - route to that flow's handler (even if text is empty)
+                    if !session.current_menu.is_empty() && session.current_menu != "main" {
+                        // Session is in an active flow - route to that flow's handler
                         ic_cdk::println!("🔄 Continuing flow: menu='{}', step={}", session.current_menu, session.step);
                         match session.current_menu.as_str() {
                             "send_money" => crate::flows::local_currency::send_money::handle_send_money(&text, &mut session).await,
@@ -193,6 +212,20 @@ pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
                                 crate::core::routing::handle_main_menu("", &mut session).await
                             }
                         }
+                    } else if *last_input == "9" && parts.len() == 1 {
+                        // 9 = Main Menu (only from top-level, not submenus)
+                        ic_cdk::println!("🏠 Returning to main menu");
+                        session.current_menu = "main".to_string();
+                        session.step = 0;
+                        session.clear_data();
+                        crate::core::routing::handle_main_menu("", &mut session).await
+                    } else if *last_input == "0" && parts.len() == 1 && session.step == 0 {
+                        // 0 = Back to main menu from submenu (only when at menu level, not collecting input)
+                        ic_cdk::println!("⬅️ Navigation: Back to main menu (0 pressed)");
+                        session.current_menu = "main".to_string();
+                        session.step = 0;
+                        session.clear_data();
+                        crate::core::routing::handle_main_menu("", &mut session).await
                     } else if text.is_empty() {
                         // Show main menu when no input - with welcome message for first visit
                         let welcome_prefix = if session_id.starts_with("playground_") {

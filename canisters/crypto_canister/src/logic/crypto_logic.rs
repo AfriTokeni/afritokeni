@@ -38,6 +38,15 @@ pub fn validate_crypto_address(address: &str, crypto_type: &str) -> Result<(), S
                 if parts.len() < 3 {
                     return Err("Invalid IC Principal address format".to_string());
                 }
+            } else if address.starts_with("0x") {
+                // Ethereum address validation: must be exactly 42 characters (0x + 40 hex digits)
+                if address.len() != 42 {
+                    return Err("Invalid Ethereum address length (must be 42 characters)".to_string());
+                }
+                // Validate hex characters
+                if !address[2..].chars().all(|c| c.is_ascii_hexdigit()) {
+                    return Err("Invalid Ethereum address format (must contain only hex digits)".to_string());
+                }
             }
         }
         _ => return Err(format!("Unsupported crypto type: {}", crypto_type)),
@@ -65,6 +74,7 @@ pub fn validate_sufficient_crypto_balance(balance: u64, amount: u64) -> Result<(
 /// Validates crypto amount can be calculated from fiat
 /// NOTE: Actual calculation happens in exchange_rate service (async)
 /// This is just validation logic
+#[allow(dead_code)]
 pub fn validate_crypto_calculation_inputs(
     fiat_amount: u64,
     crypto_type: &str,
@@ -88,12 +98,14 @@ pub fn validate_fiat_amount_for_crypto(fiat_amount: u64) -> Result<(), String> {
 }
 
 /// Calculates new crypto balance after deduction
+#[allow(dead_code)]
 pub fn calculate_crypto_balance_deduction(balance: u64, amount: u64) -> Result<u64, String> {
     balance.checked_sub(amount)
         .ok_or_else(|| "Crypto balance calculation would underflow".to_string())
 }
 
 /// Calculates new crypto balance after addition
+#[allow(dead_code)]
 pub fn calculate_crypto_balance_addition(balance: u64, amount: u64) -> Result<u64, String> {
     balance.checked_add(amount)
         .ok_or_else(|| "Crypto balance calculation would overflow".to_string())

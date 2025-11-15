@@ -13,7 +13,7 @@
 // ============================================================================
 
 use candid::{CandidType, Deserialize, Principal, Nat};
-use ic_cdk::call;
+use ic_cdk::call::Call;
 use crate::config;
 
 /// ICRC-1 Account structure
@@ -145,13 +145,14 @@ pub async fn get_user_principal(user_id: &str) -> Result<Principal, String> {
     // Query user_canister to get the principal_id for this user
     let user_canister_id = config::get_user_canister_id()?;
 
-    let (principal_result,): (Result<Option<String>, String>,) = call(
-        user_canister_id,
-        "get_user_principal",
-        (user_id.to_string(),)
-    )
-    .await
-    .map_err(|e| format!("Failed to get user principal: {:?}", e))?;
+    let response = Call::unbounded_wait(user_canister_id, "get_user_principal")
+        .with_args(&(user_id.to_string(),))
+        .await
+        .map_err(|e| format!("Failed to get user principal: {:?}", e))?;
+
+    let (principal_result,): (Result<Option<String>, String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
 
     let principal_opt = principal_result?;
 
@@ -195,13 +196,14 @@ pub async fn transfer_ckbtc_to_user(
         created_at_time: Some(ic_cdk::api::time()),
     };
 
-    let (result,): (TransferResult,) = call(
-        ledger_id,
-        "icrc1_transfer",
-        (transfer_arg,)
-    )
-    .await
-    .map_err(|e| format!("ICRC-1 transfer failed: {:?}", e))?;
+    let response = Call::unbounded_wait(ledger_id, "icrc1_transfer")
+        .with_args(&(transfer_arg,))
+        .await
+        .map_err(|e| format!("ICRC-1 transfer failed: {:?}", e))?;
+
+    let (result,): (TransferResult,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
 
     match result {
         TransferResult::Ok(block_index) => {
@@ -216,12 +218,13 @@ pub async fn transfer_ckbtc_to_user(
 
 /// Transfer ckBTC from user to platform reserve
 /// This is called when user "sells" ckBTC
+#[allow(dead_code)]
 pub async fn transfer_ckbtc_from_user(
-    user_principal: Principal,
+    _user_principal: Principal,
     amount_sats: u64,
 ) -> Result<u64, String> {
     let ledger_id = get_ckbtc_ledger_id();
-    let this_canister = ic_cdk::api::id();
+    let this_canister = ic_cdk::api::canister_self();
 
     let transfer_arg = TransferArg {
         from_subaccount: None,  // User's default subaccount
@@ -237,13 +240,14 @@ pub async fn transfer_ckbtc_from_user(
 
     // Note: This requires user to have approved the crypto_canister as spender
     // Or we need to use inter-canister calls with user's signature
-    let (result,): (TransferResult,) = call(
-        ledger_id,
-        "icrc1_transfer",
-        (transfer_arg,)
-    )
-    .await
-    .map_err(|e| format!("ICRC-1 transfer failed: {:?}", e))?;
+    let response = Call::unbounded_wait(ledger_id, "icrc1_transfer")
+        .with_args(&(transfer_arg,))
+        .await
+        .map_err(|e| format!("ICRC-1 transfer failed: {:?}", e))?;
+
+    let (result,): (TransferResult,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
 
     match result {
         TransferResult::Ok(block_index) => {
@@ -274,13 +278,14 @@ pub async fn transfer_ckusdc_to_user(
         created_at_time: Some(ic_cdk::api::time()),
     };
 
-    let (result,): (TransferResult,) = call(
-        ledger_id,
-        "icrc1_transfer",
-        (transfer_arg,)
-    )
-    .await
-    .map_err(|e| format!("ICRC-1 transfer failed: {:?}", e))?;
+    let response = Call::unbounded_wait(ledger_id, "icrc1_transfer")
+        .with_args(&(transfer_arg,))
+        .await
+        .map_err(|e| format!("ICRC-1 transfer failed: {:?}", e))?;
+
+    let (result,): (TransferResult,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
 
     match result {
         TransferResult::Ok(block_index) => {
@@ -294,12 +299,13 @@ pub async fn transfer_ckusdc_to_user(
 }
 
 /// Transfer ckUSDC from user to platform reserve
+#[allow(dead_code)]
 pub async fn transfer_ckusdc_from_user(
-    user_principal: Principal,
+    _user_principal: Principal,
     amount_e6: u64,
 ) -> Result<u64, String> {
     let ledger_id = get_ckusdc_ledger_id();
-    let this_canister = ic_cdk::api::id();
+    let this_canister = ic_cdk::api::canister_self();
 
     let transfer_arg = TransferArg {
         from_subaccount: None,
@@ -313,13 +319,14 @@ pub async fn transfer_ckusdc_from_user(
         created_at_time: Some(ic_cdk::api::time()),
     };
 
-    let (result,): (TransferResult,) = call(
-        ledger_id,
-        "icrc1_transfer",
-        (transfer_arg,)
-    )
-    .await
-    .map_err(|e| format!("ICRC-1 transfer failed: {:?}", e))?;
+    let response = Call::unbounded_wait(ledger_id, "icrc1_transfer")
+        .with_args(&(transfer_arg,))
+        .await
+        .map_err(|e| format!("ICRC-1 transfer failed: {:?}", e))?;
+
+    let (result,): (TransferResult,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
 
     match result {
         TransferResult::Ok(block_index) => {
@@ -346,13 +353,14 @@ pub async fn get_user_ckbtc_balance(user_principal: Principal) -> Result<u64, St
         subaccount: None,
     };
 
-    let (balance,): (Nat,) = call(
-        ledger_id,
-        "icrc1_balance_of",
-        (account,)
-    )
-    .await
-    .map_err(|e| format!("Failed to query balance: {:?}", e))?;
+    let response = Call::unbounded_wait(ledger_id, "icrc1_balance_of")
+        .with_args(&(account,))
+        .await
+        .map_err(|e| format!("Failed to query balance: {:?}", e))?;
+
+    let (balance,): (Nat,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
 
     Ok(balance.0.to_u64_digits()[0])
 }
@@ -360,16 +368,21 @@ pub async fn get_user_ckbtc_balance(user_principal: Principal) -> Result<u64, St
 /// Get platform reserve ckBTC balance
 pub async fn get_platform_reserve_ckbtc_balance() -> Result<u64, String> {
     let ledger_id = get_ckbtc_ledger_id();
-    let this_canister = ic_cdk::api::id();
+    let this_canister = ic_cdk::api::canister_self();
 
     let account = Account {
         owner: this_canister,
         subaccount: get_platform_reserve_subaccount(),
     };
 
-    let (balance,): (Nat,) = call(ledger_id, "icrc1_balance_of", (account,))
+    let response = Call::unbounded_wait(ledger_id, "icrc1_balance_of")
+        .with_args(&(account,))
         .await
         .map_err(|e| format!("Failed to get platform reserve ckBTC balance: {:?}", e))?;
+
+    let (balance,): (Nat,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
 
     Ok(balance.0.to_u64_digits()[0])
 }
@@ -389,13 +402,14 @@ pub async fn get_user_ckusdc_balance(user_principal: Principal) -> Result<u64, S
         subaccount: None,
     };
 
-    let (balance,): (Nat,) = call(
-        ledger_id,
-        "icrc1_balance_of",
-        (account,)
-    )
-    .await
-    .map_err(|e| format!("Failed to query balance: {:?}", e))?;
+    let response = Call::unbounded_wait(ledger_id, "icrc1_balance_of")
+        .with_args(&(account,))
+        .await
+        .map_err(|e| format!("Failed to query balance: {:?}", e))?;
+
+    let (balance,): (Nat,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
 
     Ok(balance.0.to_u64_digits()[0])
 }
@@ -403,27 +417,29 @@ pub async fn get_user_ckusdc_balance(user_principal: Principal) -> Result<u64, S
 /// Get platform reserve ckUSDC balance
 pub async fn get_platform_reserve_ckusdc_balance() -> Result<u64, String> {
     let ledger_id = get_ckusdc_ledger_id();
-    let this_canister = ic_cdk::api::id();
+    let this_canister = ic_cdk::api::canister_self();
 
     let account = Account {
         owner: this_canister,
         subaccount: get_platform_reserve_subaccount(),
     };
 
-    let (balance,): (Nat,) = call(
-        ledger_id,
-        "icrc1_balance_of",
-        (account,)
-    )
-    .await
-    .map_err(|e| format!("Failed to get platform reserve ckUSDC balance: {:?}", e))?;
+    let response = Call::unbounded_wait(ledger_id, "icrc1_balance_of")
+        .with_args(&(account,))
+        .await
+        .map_err(|e| format!("Failed to get platform reserve ckUSDC balance: {:?}", e))?;
+
+    let (balance,): (Nat,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
 
     Ok(balance.0.to_u64_digits()[0])
 }
 
 /// Transfer ckBTC from one user to another (P2P transfer)
+#[allow(dead_code)]
 pub async fn transfer_ckbtc_p2p(
-    from_principal: Principal,
+    _from_principal: Principal,
     to_principal: Principal,
     amount_sats: u64,
 ) -> Result<u64, String> {
@@ -441,13 +457,14 @@ pub async fn transfer_ckbtc_p2p(
         created_at_time: Some(ic_cdk::api::time()),
     };
 
-    let (result,): (TransferResult,) = call(
-        ledger_id,
-        "icrc1_transfer",
-        (transfer_arg,)
-    )
-    .await
-    .map_err(|e| format!("ICRC-1 transfer failed: {:?}", e))?;
+    let response = Call::unbounded_wait(ledger_id, "icrc1_transfer")
+        .with_args(&(transfer_arg,))
+        .await
+        .map_err(|e| format!("ICRC-1 transfer failed: {:?}", e))?;
+
+    let (result,): (TransferResult,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
 
     match result {
         TransferResult::Ok(block_index) => {
@@ -460,8 +477,9 @@ pub async fn transfer_ckbtc_p2p(
 }
 
 /// Transfer ckUSDC from one user to another (P2P transfer)
+#[allow(dead_code)]
 pub async fn transfer_ckusdc_p2p(
-    from_principal: Principal,
+    _from_principal: Principal,
     to_principal: Principal,
     amount_e6: u64,
 ) -> Result<u64, String> {
@@ -479,13 +497,14 @@ pub async fn transfer_ckusdc_p2p(
         created_at_time: Some(ic_cdk::api::time()),
     };
 
-    let (result,): (TransferResult,) = call(
-        ledger_id,
-        "icrc1_transfer",
-        (transfer_arg,)
-    )
-    .await
-    .map_err(|e| format!("ICRC-1 transfer failed: {:?}", e))?;
+    let response = Call::unbounded_wait(ledger_id, "icrc1_transfer")
+        .with_args(&(transfer_arg,))
+        .await
+        .map_err(|e| format!("ICRC-1 transfer failed: {:?}", e))?;
+
+    let (result,): (TransferResult,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
 
     match result {
         TransferResult::Ok(block_index) => {
@@ -503,12 +522,13 @@ pub async fn transfer_ckusdc_p2p(
 
 /// Approve platform to spend user's ckBTC (called on behalf of user)
 /// This is used when user wants to sell ckBTC
+#[allow(dead_code)]
 pub async fn approve_ckbtc_spending(
-    user_principal: Principal,
+    _user_principal: Principal,
     amount_sats: u64,
 ) -> Result<u64, String> {
     let ledger_id = get_ckbtc_ledger_id();
-    let this_canister = ic_cdk::api::id();
+    let this_canister = ic_cdk::api::canister_self();
 
     let approve_arg = ApproveArg {
         from_subaccount: None,  // User's default subaccount
@@ -526,13 +546,14 @@ pub async fn approve_ckbtc_spending(
 
     // Note: This call is made on behalf of the user
     // In production, this would require user's signature/delegation
-    let (result,): (ApproveResult,) = call(
-        ledger_id,
-        "icrc2_approve",
-        (approve_arg,)
-    )
-    .await
-    .map_err(|e| format!("ICRC-2 approve failed: {:?}", e))?;
+    let response = Call::unbounded_wait(ledger_id, "icrc2_approve")
+        .with_args(&(approve_arg,))
+        .await
+        .map_err(|e| format!("ICRC-2 approve failed: {:?}", e))?;
+
+    let (result,): (ApproveResult,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
 
     match result {
         ApproveResult::Ok(block_index) => {
@@ -552,7 +573,7 @@ pub async fn transfer_from_ckbtc(
     amount_sats: u64,
 ) -> Result<u64, String> {
     let ledger_id = get_ckbtc_ledger_id();
-    let this_canister = ic_cdk::api::id();
+    let this_canister = ic_cdk::api::canister_self();
 
     let transfer_from_arg = TransferFromArg {
         spender_subaccount: get_platform_reserve_subaccount(),
@@ -570,13 +591,14 @@ pub async fn transfer_from_ckbtc(
         created_at_time: Some(ic_cdk::api::time()),
     };
 
-    let (result,): (TransferFromResult,) = call(
-        ledger_id,
-        "icrc2_transfer_from",
-        (transfer_from_arg,)
-    )
-    .await
-    .map_err(|e| format!("ICRC-2 transfer_from failed: {:?}", e))?;
+    let response = Call::unbounded_wait(ledger_id, "icrc2_transfer_from")
+        .with_args(&(transfer_from_arg,))
+        .await
+        .map_err(|e| format!("ICRC-2 transfer_from failed: {:?}", e))?;
+
+    let (result,): (TransferFromResult,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
 
     match result {
         TransferResult::Ok(block_index) => {
@@ -590,12 +612,13 @@ pub async fn transfer_from_ckbtc(
 }
 
 /// Approve platform to spend user's ckUSDC
+#[allow(dead_code)]
 pub async fn approve_ckusdc_spending(
-    user_principal: Principal,
+    _user_principal: Principal,
     amount_e6: u64,
 ) -> Result<u64, String> {
     let ledger_id = get_ckusdc_ledger_id();
-    let this_canister = ic_cdk::api::id();
+    let this_canister = ic_cdk::api::canister_self();
 
     let approve_arg = ApproveArg {
         from_subaccount: None,
@@ -611,13 +634,14 @@ pub async fn approve_ckusdc_spending(
         created_at_time: Some(ic_cdk::api::time()),
     };
 
-    let (result,): (ApproveResult,) = call(
-        ledger_id,
-        "icrc2_approve",
-        (approve_arg,)
-    )
-    .await
-    .map_err(|e| format!("ICRC-2 approve failed: {:?}", e))?;
+    let response = Call::unbounded_wait(ledger_id, "icrc2_approve")
+        .with_args(&(approve_arg,))
+        .await
+        .map_err(|e| format!("ICRC-2 approve failed: {:?}", e))?;
+
+    let (result,): (ApproveResult,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
 
     match result {
         ApproveResult::Ok(block_index) => {
@@ -636,7 +660,7 @@ pub async fn transfer_from_ckusdc(
     amount_e6: u64,
 ) -> Result<u64, String> {
     let ledger_id = get_ckusdc_ledger_id();
-    let this_canister = ic_cdk::api::id();
+    let this_canister = ic_cdk::api::canister_self();
 
     let transfer_from_arg = TransferFromArg {
         spender_subaccount: get_platform_reserve_subaccount(),
@@ -654,13 +678,14 @@ pub async fn transfer_from_ckusdc(
         created_at_time: Some(ic_cdk::api::time()),
     };
 
-    let (result,): (TransferFromResult,) = call(
-        ledger_id,
-        "icrc2_transfer_from",
-        (transfer_from_arg,)
-    )
-    .await
-    .map_err(|e| format!("ICRC-2 transfer_from failed: {:?}", e))?;
+    let response = Call::unbounded_wait(ledger_id, "icrc2_transfer_from")
+        .with_args(&(transfer_from_arg,))
+        .await
+        .map_err(|e| format!("ICRC-2 transfer_from failed: {:?}", e))?;
+
+    let (result,): (TransferFromResult,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
 
     match result {
         TransferResult::Ok(block_index) => {

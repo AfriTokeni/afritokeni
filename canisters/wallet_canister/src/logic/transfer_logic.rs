@@ -1,6 +1,5 @@
 /// Pure business logic for money transfer operations
 /// No I/O, no async, fully testable
-use shared_types::FiatCurrency;
 
 /// Validates that amount is positive
 pub fn validate_amount_positive(amount: u64) -> Result<(), String> {
@@ -40,20 +39,8 @@ pub fn validate_identifier_not_empty(identifier: &str, field_name: &str) -> Resu
     Ok(())
 }
 
-/// Validates currency matches
-pub fn validate_currency_match(
-    sender_currency: FiatCurrency,
-    recipient_currency: FiatCurrency,
-) -> Result<(), String> {
-    if sender_currency != recipient_currency {
-        return Err(format!(
-            "Currency mismatch: sender has {}, recipient has {}",
-            sender_currency.code(),
-            recipient_currency.code()
-        ));
-    }
-    Ok(())
-}
+// Removed validate_currency_match() - Not needed as wallet_canister only handles same-currency transfers.
+// Cross-currency transfers will be handled by a future exchange service.
 
 /// Calculates new balance after deduction
 pub fn calculate_new_balance(current_balance: u64, amount: u64) -> Result<u64, String> {
@@ -90,21 +77,8 @@ pub fn calculate_fee(amount: u64, fee_basis_points: u64) -> Result<u64, String> 
     Ok(fee)
 }
 
-/// Calculate agent commission from fee
-pub fn calculate_agent_commission(fee: u64, commission_percentage: u64) -> Result<u64, String> {
-    if commission_percentage > 100 {
-        return Err("Commission percentage cannot exceed 100".to_string());
-    }
-    
-    // Commission = (fee * percentage) / 100
-    let commission = fee
-        .checked_mul(commission_percentage)
-        .ok_or_else(|| "Commission calculation would overflow".to_string())?
-        .checked_div(100)
-        .ok_or_else(|| "Commission calculation division error".to_string())?;
-    
-    Ok(commission)
-}
+// Removed calculate_agent_commission() - Agent commission tracking is handled by agent_canister.
+// This function was never used in wallet_canister and belongs in the agent domain.
 
 #[cfg(test)]
 mod tests {
@@ -174,22 +148,7 @@ mod tests {
         assert_eq!(result.unwrap_err(), "Cannot transfer to yourself");
     }
 
-    // ============================================================================
-    // Currency Validation Tests
-    // ============================================================================
-
-    #[test]
-    fn test_validate_currency_match_same() {
-        assert!(validate_currency_match(FiatCurrency::KES, FiatCurrency::KES).is_ok());
-        assert!(validate_currency_match(FiatCurrency::UGX, FiatCurrency::UGX).is_ok());
-    }
-
-    #[test]
-    fn test_validate_currency_match_different() {
-        let result = validate_currency_match(FiatCurrency::KES, FiatCurrency::UGX);
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Currency mismatch"));
-    }
+    // Currency validation tests removed - function was unused and has been removed
 
     // ============================================================================
     // Balance Calculation Tests
@@ -280,33 +239,7 @@ mod tests {
         assert!(result.unwrap_err().contains("overflow"));
     }
 
-    // ============================================================================
-    // Agent Commission Tests
-    // ============================================================================
-
-    #[test]
-    fn test_calculate_agent_commission_valid() {
-        // 10% commission
-        assert_eq!(calculate_agent_commission(1000, 10).unwrap(), 100);
-        
-        // 50% commission
-        assert_eq!(calculate_agent_commission(1000, 50).unwrap(), 500);
-        
-        // 100% commission
-        assert_eq!(calculate_agent_commission(1000, 100).unwrap(), 1000);
-    }
-
-    #[test]
-    fn test_calculate_agent_commission_zero() {
-        assert_eq!(calculate_agent_commission(1000, 0).unwrap(), 0);
-    }
-
-    #[test]
-    fn test_calculate_agent_commission_invalid() {
-        let result = calculate_agent_commission(1000, 101);
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("cannot exceed 100"));
-    }
+    // Agent commission tests removed - function was unused and has been removed
 
     // ============================================================================
     // Identifier Validation Tests
@@ -355,8 +288,5 @@ mod tests {
 
         // Self transfer
         assert!(validate_not_self_transfer("user1", "user1").is_err());
-
-        // Currency mismatch
-        assert!(validate_currency_match(FiatCurrency::KES, FiatCurrency::UGX).is_err());
     }
 }

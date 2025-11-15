@@ -12,6 +12,7 @@ pub struct WalletConfig {
     pub escrow: EscrowConfig,
     pub fraud_limits: FraudLimitsConfig,
     pub external_apis: ExternalApisConfig,
+    #[allow(dead_code)] // Loaded from TOML but IDs are set via admin endpoints
     pub canisters: CanistersConfig,
 }
 
@@ -39,7 +40,9 @@ pub struct FraudLimitsConfig {
 pub struct CurrencyFraudLimits {
     pub max_transaction_amount: u64,
     pub suspicious_threshold: u64,
+    /// Daily transaction count limit (enforced in transfer_fiat if configured)
     pub max_daily_transactions: Option<usize>,
+    /// Daily total amount limit (enforced in transfer_fiat if configured)
     pub max_daily_amount: Option<u64>,
 }
 
@@ -51,7 +54,11 @@ pub struct ExternalApisConfig {
 
 #[derive(SerdeDeserialize, Clone, Debug)]
 pub struct CanistersConfig {
+    /// Default from TOML - actual ID is set via admin endpoint set_data_canister_id()
+    #[allow(dead_code)]
     pub data_canister_id: String,
+    /// Default from TOML - actual ID is set via admin endpoint set_user_canister_id()
+    #[allow(dead_code)]
     pub user_canister_id: String,
 }
 

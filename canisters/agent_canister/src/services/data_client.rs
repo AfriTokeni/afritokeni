@@ -15,6 +15,7 @@ pub use shared_types::{
     AgentBalance,
     AgentTransactionStatus,
     MonthlySettlement,
+    AgentActivity,
 };
 
 // ============================================================================
@@ -242,14 +243,49 @@ pub async fn mark_settlement_paid(settlement_id: &str) -> Result<MonthlySettleme
 
 pub async fn get_settlements_for_month(month: &str) -> Result<Vec<MonthlySettlement>, String> {
     let canister_id = get_data_canister_id()?;
-    
+
     let response = Call::unbounded_wait(canister_id, "get_settlements_for_month")
         .with_arg(month.to_string())
         .await
         .map_err(|e| format!("Failed to call data_canister: {:?}", e))?;
-    
+
     let (result,): (Result<Vec<MonthlySettlement>, String>,) = candid::decode_args(&response.into_bytes())
         .map_err(|e| format!("Failed to decode response: {:?}", e))?;
-    
+
+    result
+}
+
+// ============================================================================
+// Agent Activity Operations (Fraud Detection)
+// ============================================================================
+
+/// Get agent activity for fraud detection
+/// Returns None if no activity record exists yet
+pub async fn get_agent_activity(agent_id: &str, currency: &str) -> Result<Option<AgentActivity>, String> {
+    let canister_id = get_data_canister_id()?;
+
+    let response = Call::unbounded_wait(canister_id, "get_agent_activity")
+        .with_args(&(agent_id.to_string(), currency.to_string()))
+        .await
+        .map_err(|e| format!("Failed to call data_canister: {:?}", e))?;
+
+    let (result,): (Result<Option<AgentActivity>, String>,) = candid::decode_args(&response.into_bytes())
+        .map_err(|e| format!("Failed to decode response: {:?}", e))?;
+
+    result
+}
+
+/// Store or update agent activity for fraud detection
+pub async fn store_agent_activity(activity: AgentActivity) -> Result<AgentActivity, String> {
+    let canister_id = get_data_canister_id()?;
+
+    let response = Call::unbounded_wait(canister_id, "store_agent_activity")
+        .with_arg(activity)
+        .await
+        .map_err(|e| format!("Failed to call data_canister: {:?}", e))?;
+
+    let (result,): (Result<AgentActivity, String>,) = candid::decode_args(&response.into_bytes())
+        .map_err(|e| format!("Failed to decode response: {:?}", e))?;
+
     result
 }

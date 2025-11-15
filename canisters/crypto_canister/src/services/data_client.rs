@@ -1,6 +1,6 @@
 use ic_cdk::call::Call;
 use shared_types::{
-    FiatCurrency, CryptoType, Transaction, Escrow, EscrowStatus, CryptoBalance,
+    Transaction, Escrow, EscrowStatus, CryptoBalance,
 };
 
 use crate::config;
@@ -58,6 +58,7 @@ pub async fn store_transaction(transaction: &Transaction) -> Result<(), String> 
 }
 
 /// Get user transactions from data canister (paginated)
+#[allow(dead_code)]
 pub async fn get_user_transactions(
     user_id: &str,
     limit: Option<usize>,

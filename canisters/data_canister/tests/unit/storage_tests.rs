@@ -2,19 +2,21 @@
 
 #[cfg(test)]
 mod user_storage_tests {
-    use crate::common::test_data;
+    // Test data constants
+    const USER_ID_1: &str = "user_001";
+    const USER_ID_2: &str = "user_002";
 
     #[test]
     fn test_user_id_format() {
-        let user_id = test_data::USER_ID_1;
+        let user_id = USER_ID_1;
         assert!(user_id.starts_with("user_"));
         assert!(!user_id.is_empty());
     }
 
     #[test]
     fn test_unique_user_ids() {
-        let id1 = test_data::USER_ID_1;
-        let id2 = test_data::USER_ID_2;
+        let id1 = USER_ID_1;
+        let id2 = USER_ID_2;
         assert_ne!(id1, id2);
     }
 

@@ -8,6 +8,9 @@ mod swap_tests;
 mod escrow_tests;
 mod cleanup_tests;
 mod fraud_detection_tests;
+mod slippage_tests;
+mod error_sanitization_tests;
+mod refactored_buy_sell_tests;
 
 /// Helper to create PocketIC instance with all required canisters
 pub fn setup_test_environment() -> (PocketIc, Principal, Principal, Principal, Principal) {

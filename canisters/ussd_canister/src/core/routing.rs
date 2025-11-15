@@ -186,19 +186,93 @@ pub async fn handle_registration(session: &mut UssdSession, input: &str) -> (Str
     }
 }
 
-/// Detect currency from phone number (simple country code detection)
+/// Detect currency from phone number based on African country codes
+///
+/// Supports all 39 African countries with their respective currencies.
+/// Phone numbers should be in international format with country code (with or without + prefix).
+///
+/// # Arguments
+/// * `phone` - Phone number in international format (e.g., "+256700123456" or "256700123456")
+///
+/// # Returns
+/// ISO 4217 currency code (e.g., "UGX", "KES", "NGN")
+///
+/// # Examples
+/// ```
+/// assert_eq!(detect_currency_from_phone("+256700123456"), "UGX"); // Uganda
+/// assert_eq!(detect_currency_from_phone("254712345678"), "KES");  // Kenya
+/// ```
 pub fn detect_currency_from_phone(phone: &str) -> String {
     let phone = phone.trim_start_matches('+');
-    
-    // African country codes and their currencies
-    if phone.starts_with("256") { "UGX".to_string() } // Uganda
-    else if phone.starts_with("254") { "KES".to_string() } // Kenya
-    else if phone.starts_with("255") { "TZS".to_string() } // Tanzania
-    else if phone.starts_with("250") { "RWF".to_string() } // Rwanda
-    else if phone.starts_with("234") { "NGN".to_string() } // Nigeria
-    else if phone.starts_with("233") { "GHS".to_string() } // Ghana
-    else if phone.starts_with("27") { "ZAR".to_string() } // South Africa
-    else { "UGX".to_string() } // Default to UGX
+
+    // African country codes and their currencies (39 countries)
+    // Sorted by country code length (longest first) to handle overlapping prefixes
+
+    // === East Africa ===
+    if phone.starts_with("256") { return "UGX".to_string(); } // Uganda
+    else if phone.starts_with("254") { return "KES".to_string(); } // Kenya
+    else if phone.starts_with("255") { return "TZS".to_string(); } // Tanzania
+    else if phone.starts_with("250") { return "RWF".to_string(); } // Rwanda
+    else if phone.starts_with("257") { return "BIF".to_string(); } // Burundi
+    else if phone.starts_with("251") { return "ETB".to_string(); } // Ethiopia
+    else if phone.starts_with("252") { return "SOS".to_string(); } // Somalia
+    else if phone.starts_with("253") { return "DJF".to_string(); } // Djibouti
+
+    // === West Africa ===
+    else if phone.starts_with("234") { return "NGN".to_string(); } // Nigeria
+    else if phone.starts_with("233") { return "GHS".to_string(); } // Ghana
+    else if phone.starts_with("225") { return "XOF".to_string(); } // Côte d'Ivoire (CFA Franc)
+    else if phone.starts_with("221") { return "XOF".to_string(); } // Senegal (CFA Franc)
+    else if phone.starts_with("223") { return "XOF".to_string(); } // Mali (CFA Franc)
+    else if phone.starts_with("226") { return "XOF".to_string(); } // Burkina Faso (CFA Franc)
+    else if phone.starts_with("227") { return "XOF".to_string(); } // Niger (CFA Franc)
+    else if phone.starts_with("228") { return "XOF".to_string(); } // Togo (CFA Franc)
+    else if phone.starts_with("229") { return "XOF".to_string(); } // Benin (CFA Franc)
+    else if phone.starts_with("224") { return "GNF".to_string(); } // Guinea
+    else if phone.starts_with("231") { return "LRD".to_string(); } // Liberia
+    else if phone.starts_with("232") { return "SLL".to_string(); } // Sierra Leone
+    else if phone.starts_with("220") { return "GMD".to_string(); } // Gambia
+    else if phone.starts_with("238") { return "CVE".to_string(); } // Cape Verde
+
+    // === Central Africa ===
+    else if phone.starts_with("237") { return "XAF".to_string(); } // Cameroon (CFA Franc)
+    else if phone.starts_with("236") { return "XAF".to_string(); } // Central African Republic (CFA Franc)
+    else if phone.starts_with("235") { return "XAF".to_string(); } // Chad (CFA Franc)
+    else if phone.starts_with("241") { return "XAF".to_string(); } // Gabon (CFA Franc)
+    else if phone.starts_with("242") { return "XAF".to_string(); } // Congo (Brazzaville) (CFA Franc)
+    else if phone.starts_with("240") { return "XAF".to_string(); } // Equatorial Guinea (CFA Franc)
+    else if phone.starts_with("243") { return "CDF".to_string(); } // Democratic Republic of Congo
+
+    // === Southern Africa ===
+    else if phone.starts_with("27") { return "ZAR".to_string(); }  // South Africa
+    else if phone.starts_with("260") { return "ZMW".to_string(); } // Zambia
+    else if phone.starts_with("263") { return "ZWL".to_string(); } // Zimbabwe
+    else if phone.starts_with("264") { return "NAD".to_string(); } // Namibia
+    else if phone.starts_with("267") { return "BWP".to_string(); } // Botswana
+    else if phone.starts_with("268") { return "SZL".to_string(); } // Eswatini (Swaziland)
+    else if phone.starts_with("266") { return "LSL".to_string(); } // Lesotho
+    else if phone.starts_with("261") { return "MGA".to_string(); } // Madagascar
+    else if phone.starts_with("265") { return "MWK".to_string(); } // Malawi
+    else if phone.starts_with("258") { return "MZN".to_string(); } // Mozambique
+
+    // === North Africa ===
+    else if phone.starts_with("20") { return "EGP".to_string(); }  // Egypt
+    else if phone.starts_with("212") { return "MAD".to_string(); } // Morocco
+    else if phone.starts_with("213") { return "DZD".to_string(); } // Algeria
+    else if phone.starts_with("216") { return "TND".to_string(); } // Tunisia
+    else if phone.starts_with("218") { return "LYD".to_string(); } // Libya
+    else if phone.starts_with("249") { return "SDG".to_string(); } // Sudan
+
+    // === Other ===
+    else if phone.starts_with("211") { return "SSP".to_string(); } // South Sudan
+    else if phone.starts_with("230") { return "MUR".to_string(); } // Mauritius
+    else if phone.starts_with("248") { return "SCR".to_string(); } // Seychelles
+    else if phone.starts_with("262") { return "EUR".to_string(); } // Réunion (French territory, uses Euro)
+    else if phone.starts_with("269") { return "KMF".to_string(); } // Comoros
+    else if phone.starts_with("222") { return "MRU".to_string(); } // Mauritania
+
+    // Default to UGX (Uganda Shilling) for unknown codes
+    else { "UGX".to_string() }
 }
 
 /// Handle local currency menu

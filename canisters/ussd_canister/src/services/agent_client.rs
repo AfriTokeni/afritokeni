@@ -361,12 +361,51 @@ pub struct AgentInfo {
 
 /// Get nearby agents (simplified - in real implementation would use geolocation)
 /// For USSD, we just return available agents for the currency
+///
+/// # Implementation Status
+/// **TODO:** This function is a placeholder pending agent_canister endpoint implementation.
+///
+/// **Required Candid endpoint in agent_canister:**
+/// ```candid
+/// get_nearby_agents : (currency: text, limit: opt nat32) -> (Result<vec AgentInfo, text>) query;
+/// ```
+///
+/// **Implementation Plan:**
+/// 1. Add `get_nearby_agents` query method to agent_canister
+/// 2. Implement geolocation-based agent discovery (optional for MVP)
+/// 3. Return agents sorted by:
+///    - Availability (active status)
+///    - Rating (user reviews)
+///    - Distance (if GPS coordinates available)
+///    - Liquidity (sufficient balance for transactions)
+/// 4. Add caching to reduce inter-canister calls
+///
+/// **Current Behavior:**
+/// Returns empty list. USSD "Find Agent" flow will show "No agents available"
+/// message to users until this endpoint is implemented.
+///
+/// **Security Notes:**
+/// - Query method for read-only access (no state changes)
+/// - Should NOT expose sensitive agent data (PINs, full balances)
+/// - Rate limit to prevent enumeration attacks
 pub async fn get_nearby_agents(currency: String) -> Result<Vec<AgentInfo>, String> {
-    // For now, return mock data since we don't have a get_nearby_agents endpoint yet
-    // In production, this would call the agent_canister
     ic_cdk::println!("📤 [AGENT_CLIENT] Getting nearby agents for currency: {}", currency);
-    
-    // TODO: Implement actual endpoint in agent_canister
-    // For now, return empty list
+
+    // TODO: Uncomment when agent_canister endpoint is implemented
+    // let canister_id = get_agent_canister_id()?;
+    //
+    // let response = Call::unbounded_wait(canister_id, "get_nearby_agents")
+    //     .with_args(&(currency.clone(), Some(10u32)))
+    //     .await
+    //     .map_err(|e| format!("❌ [AGENT_CLIENT] Call failed: {:?}", e))?;
+    //
+    // let (result,): (Result<Vec<AgentInfo>, String>,) = response
+    //     .candid_tuple()
+    //     .map_err(|e| format!("❌ [AGENT_CLIENT] Decode failed: {}", e))?;
+    //
+    // result
+
+    // Placeholder: Return empty list until endpoint is implemented
+    ic_cdk::println!("⚠️ [AGENT_CLIENT] get_nearby_agents not yet implemented - returning empty list");
     Ok(Vec::new())
 }

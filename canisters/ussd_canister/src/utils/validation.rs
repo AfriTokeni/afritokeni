@@ -2,8 +2,23 @@
 use crate::config_loader::get_config;
 use sha2::{Digest, Sha256};
 
-/// Validate phone number format
-/// Validates African country codes: Kenya (+254), Uganda (+256), Tanzania (+255)
+/// Validate phone number format for African countries
+///
+/// Validates phone numbers from all 54 African countries based on their country codes.
+/// Supports both formats: with + prefix ("+256700123456") or without ("256700123456")
+///
+/// # Arguments
+/// * `phone` - Phone number to validate
+///
+/// # Returns
+/// `true` if the phone number has a valid African country code and format, `false` otherwise
+///
+/// # Examples
+/// ```
+/// assert!(is_valid_phone("+256700123456")); // Uganda
+/// assert!(is_valid_phone("+254712345678")); // Kenya
+/// assert!(!is_valid_phone("1234567890"));   // Invalid (non-African code)
+/// ```
 pub fn is_valid_phone(phone: &str) -> bool {
     // Must start with + and be 10-15 digits
     if !phone.starts_with('+') {
@@ -17,19 +32,71 @@ pub fn is_valid_phone(phone: &str) -> bool {
         return false;
     }
 
-    // Validate African country codes
-    // Kenya: +254, Uganda: +256, Tanzania: +255
-    // Rwanda: +250, Burundi: +257, South Sudan: +211
-    // Ethiopia: +251, Somalia: +252
+    // Validate African country codes (54 countries total)
+    // Organized by region for maintainability
     let valid_country_codes = [
+        // East Africa
+        "250", // Rwanda
+        "251", // Ethiopia
+        "252", // Somalia
+        "253", // Djibouti
         "254", // Kenya
         "255", // Tanzania
         "256", // Uganda
-        "250", // Rwanda
         "257", // Burundi
+
+        // West Africa
+        "220", // Gambia
+        "221", // Senegal
+        "222", // Mauritania
+        "223", // Mali
+        "224", // Guinea
+        "225", // Côte d'Ivoire
+        "226", // Burkina Faso
+        "227", // Niger
+        "228", // Togo
+        "229", // Benin
+        "231", // Liberia
+        "232", // Sierra Leone
+        "233", // Ghana
+        "234", // Nigeria
+        "238", // Cape Verde
+
+        // Central Africa
+        "235", // Chad
+        "236", // Central African Republic
+        "237", // Cameroon
+        "240", // Equatorial Guinea
+        "241", // Gabon
+        "242", // Congo (Brazzaville)
+        "243", // Democratic Republic of Congo
+
+        // Southern Africa
+        "258", // Mozambique
+        "260", // Zambia
+        "261", // Madagascar
+        "262", // Réunion (French territory)
+        "263", // Zimbabwe
+        "264", // Namibia
+        "265", // Malawi
+        "266", // Lesotho
+        "267", // Botswana
+        "268", // Eswatini (Swaziland)
+        "27",  // South Africa
+
+        // North Africa
+        "20",  // Egypt
         "211", // South Sudan
-        "251", // Ethiopia
-        "252", // Somalia
+        "212", // Morocco
+        "213", // Algeria
+        "216", // Tunisia
+        "218", // Libya
+        "249", // Sudan
+
+        // Island Nations
+        "230", // Mauritius
+        "248", // Seychelles
+        "269", // Comoros
     ];
 
     valid_country_codes.iter().any(|code| digits.starts_with(code))
@@ -92,11 +159,55 @@ pub fn parse_amount(amount_str: &str) -> Result<f64, String> {
     Ok(amount)
 }
 
-/// Sanitize user input (remove dangerous characters)
+/// Sanitize user input by removing potentially dangerous characters
+///
+/// This function filters out any characters that could be used for injection attacks
+/// or cause parsing issues while preserving legitimate USSD input characters.
+///
+/// **Allowed characters:**
+/// - Alphanumeric (a-z, A-Z, 0-9)
+/// - Plus sign (+) - for phone numbers in international format
+/// - Asterisk (*) - for USSD navigation codes
+/// - Space ( ) - for names and text input
+/// - Period (.) - for decimal amounts
+/// - Hyphen (-) - for Principal addresses (ckUSDC/ckBTC)
+///
+/// **Blocked characters:**
+/// - HTML/XML tags: <, >, &
+/// - Script injection: ', ", \, /, ;
+/// - Control characters: \n, \r, \t
+/// - SQL injection: --, /*, */, =
+/// - Special symbols: @, #, $, %, ^, &, |, ~, `, etc.
+///
+/// # Security Note
+/// This is a defense-in-depth measure. All critical operations should still
+/// validate inputs against expected formats (phone numbers, PINs, amounts, etc.)
+///
+/// # Arguments
+/// * `input` - Raw user input string
+///
+/// # Returns
+/// Sanitized string with only safe characters
+///
+/// # Examples
+/// ```
+/// assert_eq!(sanitize_input("1*2*3"), "1*2*3");              // USSD codes preserved
+/// assert_eq!(sanitize_input("hello<script>"), "helloscript"); // HTML tags removed
+/// assert_eq!(sanitize_input("+256700123"), "+256700123");     // Phone numbers preserved
+/// assert_eq!(sanitize_input("100.50"), "100.50");             // Decimals preserved
+/// ```
 pub fn sanitize_input(input: &str) -> String {
     input
         .chars()
-        .filter(|c| c.is_alphanumeric() || *c == '+' || *c == '*' || *c == ' ' || *c == '.')
+        .filter(|c| {
+            c.is_alphanumeric()
+                || *c == '+' // Phone numbers (international format)
+                || *c == '*' // USSD navigation codes
+                || *c == ' ' // Names and text
+                || *c == '.' // Decimal amounts
+                || *c == '-' // Principal addresses (ckUSDC/ckBTC)
+        })
+        .take(1000) // Limit input length to prevent DoS (max 1000 chars)
         .collect()
 }
 

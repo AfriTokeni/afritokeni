@@ -464,8 +464,11 @@ pub async fn mark_settlement_paid(settlement_id: String) -> Result<(), String> {
     let settlement = data_client::mark_settlement_paid(&settlement_id).await?;
     
     // Update agent balance to reflect payment
-    let mut agent_balance = data_client::get_agent_balance(&settlement.agent_principal, "UGX").await? // TODO: Get currency from settlement
-        .ok_or_else(|| "Agent balance not found".to_string())?;
+    // NOTE: Hardcoded to UGX because MonthlySettlement doesn't store currency
+    // DEPRECATED FUNCTION: Use process_weekly_settlement instead which handles multi-currency properly
+    // The weekly settlement system (WeeklySettlement) includes currency field and should be used instead
+    let mut agent_balance = data_client::get_agent_balance(&settlement.agent_principal, "UGX").await?
+        .ok_or_else(|| "Agent balance not found for UGX currency. This deprecated monthly settlement system only supports UGX. Use weekly settlement instead.".to_string())?;
     
     agent_balance.commission_paid += settlement.total_commission;
     agent_balance.last_settlement_date = Some(ic_cdk::api::time());

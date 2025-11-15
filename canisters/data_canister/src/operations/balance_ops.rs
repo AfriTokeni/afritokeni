@@ -11,6 +11,19 @@ pub fn deposit_fiat(
     currency: FiatCurrency,
     description: Option<String>,
 ) -> Result<Transaction, String> {
+    // Input validation
+    if user_id.is_empty() {
+        return Err("User ID cannot be empty".to_string());
+    }
+    if amount == 0 {
+        return Err("Deposit amount must be greater than zero".to_string());
+    }
+    if let Some(ref desc) = description {
+        if desc.len() > 500 {
+            return Err("Description too long (max 500 characters)".to_string());
+        }
+    }
+
     // Verify user exists
     if !state.users.contains_key(&user_id) {
         return Err("User not found".to_string());
@@ -71,6 +84,22 @@ pub fn transfer_fiat(
     currency: FiatCurrency,
     description: Option<String>,
 ) -> Result<Transaction, String> {
+    // Input validation
+    if from_user.is_empty() || to_user.is_empty() {
+        return Err("User IDs cannot be empty".to_string());
+    }
+    if from_user == to_user {
+        return Err("Cannot transfer to yourself".to_string());
+    }
+    if amount == 0 {
+        return Err("Transfer amount must be greater than zero".to_string());
+    }
+    if let Some(ref desc) = description {
+        if desc.len() > 500 {
+            return Err("Description too long (max 500 characters)".to_string());
+        }
+    }
+
     // Verify users exist
     if !state.users.contains_key(&from_user) {
         return Err("Sender not found".to_string());
@@ -150,6 +179,19 @@ pub fn withdraw_fiat(
     currency: FiatCurrency,
     description: Option<String>,
 ) -> Result<Transaction, String> {
+    // Input validation
+    if user_id.is_empty() {
+        return Err("User ID cannot be empty".to_string());
+    }
+    if amount == 0 {
+        return Err("Withdrawal amount must be greater than zero".to_string());
+    }
+    if let Some(ref desc) = description {
+        if desc.len() > 500 {
+            return Err("Description too long (max 500 characters)".to_string());
+        }
+    }
+
     // Verify user exists
     if !state.users.contains_key(&user_id) {
         return Err("User not found".to_string());
@@ -211,6 +253,14 @@ pub fn update_crypto_balance(
     ckbtc_delta: i64,
     ckusdc_delta: i64,
 ) -> Result<(), String> {
+    // Input validation
+    if user_id.is_empty() {
+        return Err("User ID cannot be empty".to_string());
+    }
+    if ckbtc_delta == 0 && ckusdc_delta == 0 {
+        return Err("At least one balance delta must be non-zero".to_string());
+    }
+
     // Verify user exists
     if !state.users.contains_key(&user_id) {
         return Err("User not found".to_string());

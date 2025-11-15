@@ -406,16 +406,17 @@ pub struct WithdrawalTransaction {
     pub confirmed_at: Option<u64>,
 }
 
+/// Agent balance tracking for credit-based settlement system
 #[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct AgentBalance {
     pub agent_id: String,
     pub currency: String,
-    pub total_deposits: u64,
-    pub total_withdrawals: u64,
-    pub commission_earned: u64,
-    pub commission_paid: u64,
-    pub outstanding_balance: i64,  // NEW: Can be negative (owes platform) or positive (platform owes agent)
-    pub credit_limit: u64,          // NEW: Maximum negative outstanding balance allowed
+    pub total_deposits: u64,        // COUNT of deposits (not total amount)
+    pub total_withdrawals: u64,     // COUNT of withdrawals (not total amount)
+    pub commission_earned: u64,     // Total commission earned (in currency units)
+    pub commission_paid: u64,       // Total commission paid out (in currency units)
+    pub outstanding_balance: i64,   // Signed balance: negative = agent owes platform, positive = platform owes agent
+    pub credit_limit: u64,           // Maximum negative outstanding balance allowed
     pub last_settlement_date: Option<u64>,
     pub last_updated: u64,
 }
@@ -450,6 +451,23 @@ pub struct AgentCreditConfig {
     pub credit_limit: u64,
     pub created_at: u64,
     pub updated_at: u64,
+}
+
+/// Agent activity tracking for fraud detection
+/// Tracks deposit/withdrawal patterns and velocity for risk analysis
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct AgentActivity {
+    pub agent_id: String,
+    pub currency: String,
+    pub deposits_today: u64,
+    pub withdrawals_today: u64,
+    pub deposit_volume_today: u64,
+    pub withdrawal_volume_today: u64,
+    pub operations_last_hour: Vec<u64>,  // timestamps in nanoseconds
+    pub operations_last_24h: Vec<u64>,   // timestamps in nanoseconds
+    pub user_agent_pairs: Vec<(String, u64)>,  // (user_id, count) - using Vec for Candid compatibility
+    pub last_reset: u64,  // timestamp of last daily reset in nanoseconds
+    pub last_updated: u64,
 }
 
 // ============================================================================

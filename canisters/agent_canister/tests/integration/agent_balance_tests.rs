@@ -92,8 +92,9 @@ fn test_agent_balance_tracking_after_deposit() {
     
     let balance_response: Result<AgentBalanceResponse, String> = decode_one(&result).unwrap();
     let balance = balance_response.expect("Failed to get agent balance");
-    
-    assert_eq!(balance.total_deposits, 100000);
+
+    // total_deposits is now a COUNT of deposit operations, not sum of amounts
+    assert_eq!(balance.total_deposits, 1, "Expected 1 deposit operation");
     assert_eq!(balance.commission_earned, 9000); // 90% of 10000 commission
     assert_eq!(balance.commission_pending, 9000);
 }

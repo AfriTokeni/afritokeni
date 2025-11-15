@@ -7,6 +7,72 @@ use shared_types::CryptoType;
 
 use crate::config;
 
+/// Default slippage tolerance in basis points (1% = 100 basis points)
+#[allow(dead_code)]
+const DEFAULT_SLIPPAGE_BP: u64 = 100; // 1%
+
+/// Maximum allowed slippage in basis points (5% = 500 basis points)
+const MAX_SLIPPAGE_BP: u64 = 500; // 5%
+
+/// Calculates minimum output amount based on expected output and slippage tolerance
+/// Returns Err if slippage exceeds maximum allowed
+pub fn calculate_min_output_with_slippage(
+    expected_output: u64,
+    slippage_bp: u64,
+) -> Result<u64, String> {
+    if slippage_bp > MAX_SLIPPAGE_BP {
+        return Err(format!(
+            "Slippage tolerance too high: {}%. Maximum allowed: {}%",
+            slippage_bp / 100,
+            MAX_SLIPPAGE_BP / 100
+        ));
+    }
+
+    // Calculate minimum output: expected_output * (1 - slippage_bp/10000)
+    let slippage_factor = 10000u64.checked_sub(slippage_bp)
+        .ok_or("Invalid slippage calculation")?;
+
+    let min_output = expected_output
+        .checked_mul(slippage_factor)
+        .ok_or("Slippage calculation overflow")?
+        .checked_div(10000)
+        .ok_or("Slippage calculation division error")?;
+
+    Ok(min_output)
+}
+
+/// Validates that actual output meets minimum slippage requirements
+pub fn validate_slippage(
+    expected_output: u64,
+    actual_output: u64,
+    max_slippage_bp: u64,
+) -> Result<(), String> {
+    if actual_output >= expected_output {
+        // No slippage or positive slippage (better than expected)
+        return Ok(());
+    }
+
+    // Calculate actual slippage
+    let slippage = expected_output.saturating_sub(actual_output);
+    let slippage_bp = slippage
+        .checked_mul(10000)
+        .ok_or("Slippage calculation overflow")?
+        .checked_div(expected_output)
+        .ok_or("Slippage calculation division error")?;
+
+    if slippage_bp > max_slippage_bp {
+        return Err(format!(
+            "Slippage too high: {}%. Received {} instead of expected {}. Maximum allowed: {}%",
+            slippage_bp as f64 / 100.0,
+            actual_output,
+            expected_output,
+            max_slippage_bp as f64 / 100.0
+        ));
+    }
+
+    Ok(())
+}
+
 /// Swap tokens via DEX (Sonic)
 pub async fn swap_tokens(
     from_token: CryptoType,
@@ -122,5 +188,64 @@ mod tests {
         let spread_bp = 50u64; // 0.5%
         let expected_output = amount - (amount * spread_bp / 10000);
         assert_eq!(expected_output, 99500);
+    }
+
+    #[test]
+    fn test_calculate_min_output_with_slippage_1_percent() {
+        let expected = 1000u64;
+        let slippage_bp = 100; // 1%
+        let min_output = calculate_min_output_with_slippage(expected, slippage_bp).unwrap();
+        assert_eq!(min_output, 990); // 1% slippage = 99% of expected
+    }
+
+    #[test]
+    fn test_calculate_min_output_with_slippage_5_percent() {
+        let expected = 1000u64;
+        let slippage_bp = 500; // 5%
+        let min_output = calculate_min_output_with_slippage(expected, slippage_bp).unwrap();
+        assert_eq!(min_output, 950); // 5% slippage = 95% of expected
+    }
+
+    #[test]
+    fn test_calculate_min_output_with_slippage_exceeds_max() {
+        let expected = 1000u64;
+        let slippage_bp = 600; // 6% - exceeds MAX_SLIPPAGE_BP
+        let result = calculate_min_output_with_slippage(expected, slippage_bp);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Slippage tolerance too high"));
+    }
+
+    #[test]
+    fn test_validate_slippage_within_tolerance() {
+        let expected = 1000u64;
+        let actual = 990u64; // 1% slippage
+        let max_slippage_bp = 200; // 2% tolerance
+        assert!(validate_slippage(expected, actual, max_slippage_bp).is_ok());
+    }
+
+    #[test]
+    fn test_validate_slippage_exceeds_tolerance() {
+        let expected = 1000u64;
+        let actual = 900u64; // 10% slippage
+        let max_slippage_bp = 500; // 5% tolerance
+        let result = validate_slippage(expected, actual, max_slippage_bp);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Slippage too high"));
+    }
+
+    #[test]
+    fn test_validate_slippage_better_than_expected() {
+        let expected = 1000u64;
+        let actual = 1050u64; // Better than expected (positive slippage)
+        let max_slippage_bp = 100;
+        assert!(validate_slippage(expected, actual, max_slippage_bp).is_ok());
+    }
+
+    #[test]
+    fn test_validate_slippage_exact_match() {
+        let expected = 1000u64;
+        let actual = 1000u64; // Exact match
+        let max_slippage_bp = 100;
+        assert!(validate_slippage(expected, actual, max_slippage_bp).is_ok());
     }
 }

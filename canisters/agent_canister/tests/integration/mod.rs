@@ -135,13 +135,13 @@ impl TestEnv {
         // Install user canister
         let user_canister_id = pic.create_canister();
         pic.add_cycles(user_canister_id, 2_000_000_000_000);
-        let user_init_arg = encode_one(data_canister_id.to_text()).unwrap();
+        let user_init_arg = encode_args((data_canister_id,)).unwrap();
         pic.install_canister(user_canister_id, user_wasm, user_init_arg, None);
         
         // Install wallet canister
         let wallet_canister_id = pic.create_canister();
         pic.add_cycles(wallet_canister_id, 2_000_000_000_000);
-        let wallet_init_arg = encode_one(data_canister_id.to_text()).unwrap();
+        let wallet_init_arg = encode_args((data_canister_id,)).unwrap();
         pic.install_canister(wallet_canister_id, wallet_wasm, wallet_init_arg, None);
         
         // Install agent canister
@@ -150,7 +150,7 @@ impl TestEnv {
         pic.install_canister(agent_canister_id, agent_wasm, vec![], None);
         
         // Configure user canister
-        let config_data_user = encode_one(data_canister_id.to_text()).unwrap();
+        let config_data_user = encode_args((data_canister_id,)).unwrap();
         pic.update_call(
             user_canister_id,
             Principal::anonymous(),
@@ -176,23 +176,23 @@ impl TestEnv {
         ).expect("Failed to set user canister ID in wallet canister");
         
         // Configure agent canister with other canister IDs
-        let config_data = encode_one(data_canister_id.to_text()).unwrap();
+        let config_data = encode_args((data_canister_id,)).unwrap();
         pic.update_call(
             agent_canister_id,
             Principal::anonymous(),
             "set_data_canister_id",
             config_data,
         ).expect("Failed to set data canister ID in agent canister");
-        
-        let config_user = encode_one(user_canister_id.to_text()).unwrap();
+
+        let config_user = encode_args((user_canister_id,)).unwrap();
         pic.update_call(
             agent_canister_id,
             Principal::anonymous(),
             "set_user_canister_id",
             config_user,
         ).expect("Failed to set user canister ID in agent canister");
-        
-        let config_wallet = encode_one(wallet_canister_id.to_text()).unwrap();
+
+        let config_wallet = encode_args((wallet_canister_id,)).unwrap();
         pic.update_call(
             agent_canister_id,
             Principal::anonymous(),
@@ -208,7 +208,7 @@ impl TestEnv {
             "add_authorized_canister",
             auth_agent,
         ).expect("Failed to authorize agent canister");
-        
+
         let auth_user = encode_one(user_canister_id.to_text()).unwrap();
         pic.update_call(
             data_canister_id,
@@ -216,7 +216,7 @@ impl TestEnv {
             "add_authorized_canister",
             auth_user,
         ).expect("Failed to authorize user canister");
-        
+
         let auth_wallet = encode_one(wallet_canister_id.to_text()).unwrap();
         pic.update_call(
             data_canister_id,
@@ -224,20 +224,20 @@ impl TestEnv {
             "add_authorized_canister",
             auth_wallet,
         ).expect("Failed to authorize wallet canister");
-        
+
         // Authorize agent canister to call user and wallet canisters
         pic.update_call(
             user_canister_id,
             Principal::anonymous(),
             "add_authorized_canister",
-            encode_one(agent_canister_id.to_text()).unwrap(),
+            encode_args((agent_canister_id,)).unwrap(),
         ).expect("Failed to authorize agent canister in user canister");
-        
+
         pic.update_call(
             wallet_canister_id,
             Principal::anonymous(),
             "add_authorized_canister",
-            encode_one(agent_canister_id).unwrap(),
+            encode_args((agent_canister_id,)).unwrap(),
         ).expect("Failed to authorize agent canister in wallet canister");
         
         Self {
