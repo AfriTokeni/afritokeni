@@ -13,7 +13,7 @@ pub fn validate_crypto_address(address: &str, crypto_type: &str) -> Result<(), S
                 return Err("Invalid Bitcoin address length".to_string());
             }
         }
-        "USDC" | "Ethereum" | "CkUSDC" => {
+        "USDC" | "Ethereum" | "CkUSD" => {
             // ckUSDC on ICP uses IC Principal addresses, not Ethereum addresses
             // IC Principal format: base32 with hyphens, ending in "-cai"
             // Example: rrkah-fqaaa-aaaaa-aaaaq-cai
@@ -84,7 +84,7 @@ pub fn validate_crypto_calculation_inputs(
     }
     
     match crypto_type {
-        "CkBTC" | "BTC" | "CkUSDC" | "USDC" => Ok(()),
+        "CkBTC" | "BTC" | "CkUSD" | "USDC" => Ok(()),
         _ => Err(format!("Unsupported crypto type: {}", crypto_type)),
     }
 }
@@ -141,7 +141,7 @@ mod tests {
     fn test_validate_crypto_address_ethereum_valid() {
         assert!(validate_crypto_address("0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0", "USDC").is_ok());
         assert!(validate_crypto_address("0x0000000000000000000000000000000000000000", "Ethereum").is_ok());
-        assert!(validate_crypto_address("0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF", "CkUSDC").is_ok());
+        assert!(validate_crypto_address("0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF", "CkUSD").is_ok());
     }
 
     #[test]
@@ -211,7 +211,7 @@ mod tests {
     #[test]
     fn test_validate_crypto_calculation_inputs_valid() {
         assert!(validate_crypto_calculation_inputs(100_000_000, "CkBTC").is_ok());
-        assert!(validate_crypto_calculation_inputs(1000, "CkUSDC").is_ok());
+        assert!(validate_crypto_calculation_inputs(1000, "CkUSD").is_ok());
         assert!(validate_crypto_calculation_inputs(1, "BTC").is_ok());
         assert!(validate_crypto_calculation_inputs(1, "USDC").is_ok());
     }

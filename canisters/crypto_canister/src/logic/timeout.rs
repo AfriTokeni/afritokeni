@@ -66,16 +66,22 @@ impl TransactionTimer {
     }
 
     /// Gets elapsed time in nanoseconds
+    /// Utility methods for debugging and monitoring - available for future use
+    #[allow(dead_code)]
     pub fn elapsed_ns(&self) -> u64 {
         time().saturating_sub(self.start_time)
     }
 
     /// Gets elapsed time in seconds
+    /// Utility methods for debugging and monitoring - available for future use
+    #[allow(dead_code)]
     pub fn elapsed_seconds(&self) -> f64 {
         self.elapsed_ns() as f64 / 1_000_000_000.0
     }
 
     /// Gets remaining time in nanoseconds
+    /// Utility methods for debugging and monitoring - available for future use
+    #[allow(dead_code)]
     pub fn remaining_ns(&self) -> u64 {
         self.timeout_ns.saturating_sub(self.elapsed_ns())
     }
@@ -83,6 +89,7 @@ impl TransactionTimer {
 
 /// Helper to wrap async operations with timeout checking
 /// Usage: wrap with periodic timeout checks in long-running operations
+/// Advanced timeout wrapper - currently using TransactionTimer directly, kept for future complex operations
 #[allow(dead_code)]
 pub struct TimeoutGuard {
     timer: TransactionTimer,
@@ -90,6 +97,7 @@ pub struct TimeoutGuard {
     check_interval_ns: u64,
 }
 
+#[allow(dead_code)]
 impl TimeoutGuard {
     /// Creates a new timeout guard with default check interval (1 second)
     pub fn new(operation_name: &str) -> Self {

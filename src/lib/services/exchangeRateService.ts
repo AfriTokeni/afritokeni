@@ -4,7 +4,7 @@
  *
  * IMPORTANT: The actual exchange MUST go through the AfriTokeni crypto_canister
  * which automatically:
- * 1. Takes user's input tokens (ckBTC or ckUSDC)
+ * 1. Takes user's input tokens (ckBTC or ckUSD)
  * 2. Deducts 0.5% spread and sends it to DAO treasury
  * 3. Swaps remaining 99.5% for output tokens
  * 4. Sends output tokens to user

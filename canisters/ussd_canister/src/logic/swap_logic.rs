@@ -7,14 +7,14 @@ use crate::logic::validation;
 #[derive(Debug, Clone, PartialEq)]
 pub enum CryptoType {
     CkBTC,
-    CkUSDC,
+    CkUSD,
 }
 
 impl CryptoType {
     pub fn from_menu_choice(choice: &str) -> Option<Self> {
         match choice {
             "1" => Some(CryptoType::CkBTC),
-            "2" => Some(CryptoType::CkUSDC),
+            "2" => Some(CryptoType::CkUSD),
             _ => None,
         }
     }
@@ -22,7 +22,7 @@ impl CryptoType {
     pub fn to_string(&self) -> &str {
         match self {
             CryptoType::CkBTC => "CkBTC",
-            CryptoType::CkUSDC => "CkUSDC",
+            CryptoType::CkUSD => "CkUSD",
         }
     }
 }
@@ -110,14 +110,14 @@ mod tests {
     #[test]
     fn test_crypto_type_from_menu_choice() {
         assert_eq!(CryptoType::from_menu_choice("1"), Some(CryptoType::CkBTC));
-        assert_eq!(CryptoType::from_menu_choice("2"), Some(CryptoType::CkUSDC));
+        assert_eq!(CryptoType::from_menu_choice("2"), Some(CryptoType::CkUSD));
         assert_eq!(CryptoType::from_menu_choice("3"), None);
     }
 
     #[test]
     fn test_crypto_type_to_string() {
         assert_eq!(CryptoType::CkBTC.to_string(), "CkBTC");
-        assert_eq!(CryptoType::CkUSDC.to_string(), "CkUSDC");
+        assert_eq!(CryptoType::CkUSD.to_string(), "CkUSD");
     }
 
     #[test]
@@ -159,7 +159,7 @@ mod tests {
         assert!(result.is_ok());
         let (from, to) = result.unwrap();
         assert_eq!(from, CryptoType::CkBTC);
-        assert_eq!(to, CryptoType::CkUSDC);
+        assert_eq!(to, CryptoType::CkUSD);
     }
 
     #[test]

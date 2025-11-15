@@ -179,6 +179,10 @@ pub fn parse_amount(amount_str: &str) -> Result<f64, String> {
 /// - SQL injection: --, /*, */, =
 /// - Special symbols: @, #, $, %, ^, &, |, ~, `, etc.
 ///
+/// **Blocked sequences:**
+/// - SQL comments: --, /*, */
+/// - Command chaining: &&, ||
+///
 /// # Security Note
 /// This is a defense-in-depth measure. All critical operations should still
 /// validate inputs against expected formats (phone numbers, PINs, amounts, etc.)
@@ -197,17 +201,64 @@ pub fn parse_amount(amount_str: &str) -> Result<f64, String> {
 /// assert_eq!(sanitize_input("100.50"), "100.50");             // Decimals preserved
 /// ```
 pub fn sanitize_input(input: &str) -> String {
-    input
-        .chars()
-        .filter(|c| {
-            c.is_alphanumeric()
-                || *c == '+' // Phone numbers (international format)
-                || *c == '*' // USSD navigation codes
-                || *c == ' ' // Names and text
-                || *c == '.' // Decimal amounts
-                || *c == '-' // Principal addresses (ckUSDC/ckBTC)
+    // Step 1: Remove dangerous multi-character sequences
+    let mut cleaned = input.to_string();
+
+    // SQL comment sequences
+    cleaned = cleaned.replace("--", "");
+    cleaned = cleaned.replace("/*", "");
+    cleaned = cleaned.replace("*/", "");
+
+    // Command chaining sequences
+    cleaned = cleaned.replace("&&", "");
+    cleaned = cleaned.replace("||", "");
+
+    // Step 2: Strip leading/trailing USSD markers (* and #)
+    cleaned = cleaned.trim_start_matches('*').trim_end_matches('#').to_string();
+
+    // Step 3: Convert to char vec for context-aware filtering
+    let chars: Vec<char> = cleaned.chars().collect();
+
+    // Step 4: Filter with context awareness
+    let mut filtered = Vec::new();
+    for (i, &c) in chars.iter().enumerate() {
+        if c.is_alphanumeric() || c == '+' || c == '*' || c == ' ' {
+            filtered.push(c);
+        } else if c == '.' {
+            // Keep period only if surrounded by digits
+            let prev_is_digit = i > 0 && chars.get(i - 1).map(|ch| ch.is_numeric()).unwrap_or(false);
+            let next_is_digit = chars.get(i + 1).map(|ch| ch.is_numeric()).unwrap_or(false);
+            if prev_is_digit && next_is_digit {
+                filtered.push(c);
+            }
+        } else if c == '-' {
+            // Keep hyphen only if surrounded by alphanumeric
+            let prev_is_alnum = i > 0 && chars.get(i - 1).map(|ch| ch.is_alphanumeric()).unwrap_or(false);
+            let next_is_alnum = chars.get(i + 1).map(|ch| ch.is_alphanumeric()).unwrap_or(false);
+            if prev_is_alnum && next_is_alnum {
+                filtered.push(c);
+            }
+        }
+    }
+
+    // Step 5: Collapse multiple consecutive spaces and limit length
+    let mut prev_was_space = false;
+    filtered
+        .iter()
+        .filter_map(|&c| {
+            if c == ' ' {
+                if prev_was_space {
+                    None
+                } else {
+                    prev_was_space = true;
+                    Some(c)
+                }
+            } else {
+                prev_was_space = false;
+                Some(c)
+            }
         })
-        .take(1000) // Limit input length to prevent DoS (max 1000 chars)
+        .take(1000)
         .collect()
 }
 

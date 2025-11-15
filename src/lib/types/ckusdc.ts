@@ -1,17 +1,17 @@
 /**
- * ckUSDC (Chain-Key USDC) Types for AfriTokeni
+ * ckUSD (Chain-Key USDC) Types for AfriTokeni
  *
- * ckUSDC is an ICP-native representation of USDC stablecoin
+ * ckUSD is an ICP-native representation of USDC stablecoin
  * Provides price stability for African financial transactions
  */
 
 // import { Principal } from '@dfinity/principal'; // Use when connecting to ICP mainnet canisters
 
 /**
- * ckUSDC configuration for connecting to ICP canisters
+ * ckUSD configuration for connecting to ICP canisters
  */
-export interface CkUSDCConfig {
-  /** Ledger canister ID for ckUSDC balance tracking */
+export interface CkUSDConfig {
+  /** Ledger canister ID for ckUSD balance tracking */
   ledgerCanisterId: string;
   /** Minter canister ID for deposits/withdrawals */
   minterCanisterId: string;
@@ -24,40 +24,40 @@ export interface CkUSDCConfig {
 }
 
 /**
- * ckUSDC transaction types
+ * ckUSD transaction types
  */
-export type CkUSDCTransactionType =
-  | "deposit" // USDC → ckUSDC (Ethereum to ICP)
-  | "withdrawal" // ckUSDC → USDC (ICP to Ethereum)
-  | "transfer" // ckUSDC → ckUSDC (ICP to ICP)
-  | "exchange_buy" // Local currency → ckUSDC via agent
-  | "exchange_sell"; // ckUSDC → Local currency via agent
+export type CkUSDTransactionType =
+  | "deposit" // USDC → ckUSD (Ethereum to ICP)
+  | "withdrawal" // ckUSD → USDC (ICP to Ethereum)
+  | "transfer" // ckUSD → ckUSD (ICP to ICP)
+  | "exchange_buy" // Local currency → ckUSD via agent
+  | "exchange_sell"; // ckUSD → Local currency via agent
 
 /**
- * ckUSDC transaction status
+ * ckUSD transaction status
  */
-export type CkUSDCTransactionStatus =
+export type CkUSDTransactionStatus =
   | "pending" // Waiting for confirmation
   | "confirming" // Ethereum transaction confirming
-  | "minting" // ckUSDC being minted on ICP
+  | "minting" // ckUSD being minted on ICP
   | "completed" // Transaction successful
   | "failed" // Transaction failed
   | "expired"; // Transaction expired (24h timeout)
 
 /**
- * ckUSDC transaction record
+ * ckUSD transaction record
  */
-export interface CkUSDCTransaction {
+export interface CkUSDTransaction {
   /** Unique transaction ID */
   id: string;
   /** User ID who initiated transaction */
   userId: string;
   /** Transaction type */
-  type: CkUSDCTransactionType;
-  /** Amount in ckUSDC (smallest unit: 1e-6) */
+  type: CkUSDTransactionType;
+  /** Amount in ckUSD (smallest unit: 1e-6) */
   amount: number;
   /** Transaction status */
-  status: CkUSDCTransactionStatus;
+  status: CkUSDTransactionStatus;
   /** Ethereum transaction hash (for deposits/withdrawals) */
   ethTxHash?: string;
   /** ICP transaction hash */
@@ -85,9 +85,9 @@ export interface CkUSDCTransaction {
 }
 
 /**
- * ckUSDC balance information
+ * ckUSD balance information
  */
-export interface CkUSDCBalance {
+export interface CkUSDBalance {
   /** Balance in USDC (e.g., "100.50") */
   balanceUSDC: string;
   /** Equivalent in user's preferred local currency */
@@ -99,9 +99,9 @@ export interface CkUSDCBalance {
 }
 
 /**
- * ckUSDC deposit request
+ * ckUSD deposit request
  */
-export interface CkUSDCDepositRequest {
+export interface CkUSDDepositRequest {
   /** Amount in USDC to deposit */
   amount: number;
   /** User's Principal ID on ICP */
@@ -111,9 +111,9 @@ export interface CkUSDCDepositRequest {
 }
 
 /**
- * ckUSDC deposit response
+ * ckUSD deposit response
  */
-export interface CkUSDCDepositResponse {
+export interface CkUSDDepositResponse {
   /** Success status */
   success: boolean;
   /** Transaction ID */
@@ -129,10 +129,10 @@ export interface CkUSDCDepositResponse {
 }
 
 /**
- * ckUSDC withdrawal request
+ * ckUSD withdrawal request
  */
-export interface CkUSDCWithdrawalRequest {
-  /** Amount in ckUSDC to withdraw */
+export interface CkUSDWithdrawalRequest {
+  /** Amount in ckUSD to withdraw */
   amount: number;
   /** Destination Ethereum address */
   ethereumAddress: string;
@@ -141,9 +141,9 @@ export interface CkUSDCWithdrawalRequest {
 }
 
 /**
- * ckUSDC withdrawal response
+ * ckUSD withdrawal response
  */
-export interface CkUSDCWithdrawalResponse {
+export interface CkUSDWithdrawalResponse {
   /** Success status */
   success: boolean;
   /** Transaction ID */
@@ -159,10 +159,10 @@ export interface CkUSDCWithdrawalResponse {
 }
 
 /**
- * ckUSDC transfer request (ICP to ICP)
+ * ckUSD transfer request (ICP to ICP)
  */
-export interface CkUSDCTransferRequest {
-  /** Amount in ckUSDC to transfer */
+export interface CkUSDTransferRequest {
+  /** Amount in ckUSD to transfer */
   amount: number;
   /** Recipient's Principal ID or phone number */
   recipient: string;
@@ -173,9 +173,9 @@ export interface CkUSDCTransferRequest {
 }
 
 /**
- * ckUSDC transfer response
+ * ckUSD transfer response
  */
-export interface CkUSDCTransferResponse {
+export interface CkUSDTransferResponse {
   /** Success status */
   success: boolean;
   /** Transaction ID */
@@ -189,10 +189,10 @@ export interface CkUSDCTransferResponse {
 }
 
 /**
- * ckUSDC exchange request (via agent)
+ * ckUSD exchange request (via agent)
  */
-export interface CkUSDCExchangeRequest {
-  /** Amount in ckUSDC (for sell) or local currency (for buy) */
+export interface CkUSDExchangeRequest {
+  /** Amount in ckUSD (for sell) or local currency (for buy) */
   amount: number;
   /** Local currency code */
   currency: string;
@@ -210,16 +210,16 @@ export interface CkUSDCExchangeRequest {
 }
 
 /**
- * ckUSDC exchange response
+ * ckUSD exchange response
  */
-export interface CkUSDCExchangeResponse {
+export interface CkUSDExchangeResponse {
   /** Success status */
   success: boolean;
   /** Transaction ID */
   transactionId?: string;
   /** Exchange rate used */
   exchangeRate: number;
-  /** Amount in ckUSDC */
+  /** Amount in ckUSD */
   ckusdcAmount: number;
   /** Amount in local currency */
   localCurrencyAmount: number;
@@ -236,12 +236,12 @@ export interface CkUSDCExchangeResponse {
 }
 
 /**
- * ckUSDC exchange rate information
+ * ckUSD exchange rate information
  */
-export interface CkUSDCExchangeRate {
+export interface CkUSDExchangeRate {
   /** Currency code */
   currency: string;
-  /** Rate: 1 ckUSDC = X local currency */
+  /** Rate: 1 ckUSD = X local currency */
   rate: number;
   /** Last update timestamp */
   lastUpdated: Date;
@@ -283,16 +283,16 @@ export const HELPER_CONTRACT_ABI = [
 ];
 
 /**
- * ckUSDC constants
+ * ckUSD constants
  */
 export const CKUSDC_CONSTANTS = {
-  /** Decimals for ckUSDC (same as USDC) */
+  /** Decimals for ckUSD (same as USDC) */
   DECIMALS: 6,
   /** Minimum deposit amount in USDC */
   MIN_DEPOSIT: 1,
   /** Maximum deposit amount in USDC */
   MAX_DEPOSIT: 10000,
-  /** Minimum transfer amount in ckUSDC */
+  /** Minimum transfer amount in ckUSD */
   MIN_TRANSFER: 0.01,
   /** Transaction expiration time in milliseconds (24 hours) */
   TX_EXPIRATION_MS: 24 * 60 * 60 * 1000,
@@ -305,7 +305,7 @@ export const CKUSDC_CONSTANTS = {
 /**
  * Sepolia testnet configuration
  */
-export const SEPOLIA_CONFIG: CkUSDCConfig = {
+export const SEPOLIA_CONFIG: CkUSDConfig = {
   ledgerCanisterId: "", // To be filled after deployment
   minterCanisterId: "", // To be filled after deployment
   helperContractAddress: "", // To be filled from tutorial
@@ -316,7 +316,7 @@ export const SEPOLIA_CONFIG: CkUSDCConfig = {
 /**
  * Mainnet configuration (for future use)
  */
-export const MAINNET_CONFIG: CkUSDCConfig = {
+export const MAINNET_CONFIG: CkUSDConfig = {
   ledgerCanisterId: "", // To be filled after mainnet deployment
   minterCanisterId: "", // To be filled after mainnet deployment
   helperContractAddress: "", // To be filled after mainnet deployment

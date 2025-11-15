@@ -1,0 +1,50 @@
+{
+  "network": "local",
+  "configured_at": "2025-11-15T14:52:59Z",
+  "architecture": {
+    "data_canister": {
+      "id": "uxrrr-q7777-77774-qaaaq-cai",
+      "authorized_callers": [
+        "uzt4z-lp777-77774-qaabq-cai",
+        "umunu-kh777-77774-qaaca-cai",
+        "ucwa4-rx777-77774-qaada-cai",
+        "ulvla-h7777-77774-qaacq-cai"
+      ],
+      "description": "Storage layer - only domain canisters can access"
+    },
+    "domain_canisters": {
+      "user_canister": {
+        "id": "uzt4z-lp777-77774-qaabq-cai",
+        "authorized_callers": ["ufxgi-4p777-77774-qaadq-cai"],
+        "can_call": ["uxrrr-q7777-77774-qaaaq-cai"]
+      },
+      "wallet_canister": {
+        "id": "umunu-kh777-77774-qaaca-cai",
+        "authorized_callers": ["ufxgi-4p777-77774-qaadq-cai"],
+        "can_call": ["uxrrr-q7777-77774-qaaaq-cai", "uzt4z-lp777-77774-qaabq-cai"]
+      },
+      "crypto_canister": {
+        "id": "ucwa4-rx777-77774-qaada-cai",
+        "authorized_callers": ["ufxgi-4p777-77774-qaadq-cai"],
+        "can_call": ["uxrrr-q7777-77774-qaaaq-cai"]
+      },
+      "agent_canister": {
+        "id": "ulvla-h7777-77774-qaacq-cai",
+        "authorized_callers": ["ufxgi-4p777-77774-qaadq-cai"],
+        "can_call": ["uxrrr-q7777-77774-qaaaq-cai", "umunu-kh777-77774-qaaca-cai"]
+      }
+    },
+    "presentation_layer": {
+      "ussd_canister": {
+        "id": "ufxgi-4p777-77774-qaadq-cai",
+        "can_call": [
+          "uzt4z-lp777-77774-qaabq-cai",
+          "umunu-kh777-77774-qaaca-cai",
+          "ucwa4-rx777-77774-qaada-cai",
+          "ulvla-h7777-77774-qaacq-cai"
+        ],
+        "description": "Presentation layer - can only call domain canisters"
+      }
+    }
+  }
+}

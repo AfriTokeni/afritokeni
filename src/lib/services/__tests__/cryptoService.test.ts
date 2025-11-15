@@ -2,10 +2,10 @@
  * Crypto Service Tests
  *
  * Test Coverage:
- * - Buy crypto (ckBTC, ckUSDC)
+ * - Buy crypto (ckBTC, ckUSD)
  * - Sell crypto
  * - Send crypto to external addresses
- * - Swap crypto (ckBTC ↔ ckUSDC)
+ * - Swap crypto (ckBTC ↔ ckUSD)
  * - Escrow operations (create, verify, cancel)
  * - Balance queries
  * - Conversion utilities
@@ -57,11 +57,11 @@ describe("CryptoService", () => {
       });
     });
 
-    it("should buy ckUSDC with fiat", async () => {
+    it("should buy ckUSD with fiat", async () => {
       const mockResponse = {
         transaction_id: "tx_buy_usdc_001",
         fiat_amount: 100_000n,
-        crypto_type: "ckUSDC",
+        crypto_type: "ckUSD",
         timestamp: BigInt(Date.now()),
         exchange_rate: 3_700, // 3,700 UGX per USDC (number, not bigint)
         crypto_amount: 27_000n, // $270 USDC
@@ -74,7 +74,7 @@ describe("CryptoService", () => {
       const result = await CryptoService.buyCrypto({
         userIdentifier: TEST_USER_ID,
         pin: TEST_USER_PIN,
-        cryptoType: "ckUSDC",
+        cryptoType: "ckUSD",
         currency: "UGX",
         fiatAmount: 100_000,
       });
@@ -167,11 +167,11 @@ describe("CryptoService", () => {
       });
     });
 
-    it("should sell ckUSDC for fiat", async () => {
+    it("should sell ckUSD for fiat", async () => {
       const mockResponse = {
         transaction_id: "tx_sell_usdc_001",
         fiat_amount: 370_000n, // Fiat received for $100 USDC
-        crypto_type: "ckUSDC",
+        crypto_type: "ckUSD",
         timestamp: BigInt(Date.now()),
         exchange_rate: 3_700,
         crypto_amount: 10_000n, // $100 USDC
@@ -184,7 +184,7 @@ describe("CryptoService", () => {
       const result = await CryptoService.sellCrypto({
         userIdentifier: TEST_USER_ID,
         pin: TEST_USER_PIN,
-        cryptoType: "ckUSDC",
+        cryptoType: "ckUSD",
         currency: "UGX",
         cryptoAmount: 10_000,
       });
@@ -235,14 +235,14 @@ describe("CryptoService", () => {
       });
     });
 
-    it("should send ckUSDC to ICP principal", async () => {
+    it("should send ckUSD to ICP principal", async () => {
       const mockTxId = "usdc_tx_xyz789";
       vi.spyOn(cryptoCanisterService, "sendCrypto").mockResolvedValue(mockTxId);
 
       const result = await CryptoService.sendCrypto({
         userIdentifier: TEST_USER_ID,
         pin: TEST_USER_PIN,
-        cryptoType: "ckUSDC",
+        cryptoType: "ckUSD",
         toAddress: "aaaaa-aa",
         amount: 10_000,
       });
@@ -268,7 +268,7 @@ describe("CryptoService", () => {
   });
 
   describe("swapCrypto", () => {
-    it("should swap ckBTC to ckUSDC", async () => {
+    it("should swap ckBTC to ckUSD", async () => {
       const mockResponse = {
         transaction_id: "tx_swap_001",
         from_amount: 100_000n,
@@ -286,7 +286,7 @@ describe("CryptoService", () => {
         userIdentifier: TEST_USER_ID,
         pin: TEST_USER_PIN,
         fromCrypto: "ckBTC",
-        toCrypto: "ckUSDC",
+        toCrypto: "ckUSD",
         amount: 100_000,
       });
 
@@ -295,12 +295,12 @@ describe("CryptoService", () => {
         user_identifier: TEST_USER_ID,
         pin: TEST_USER_PIN,
         from_crypto: "ckBTC",
-        to_crypto: "ckUSDC",
+        to_crypto: "ckUSD",
         amount: 100_000n,
       });
     });
 
-    it("should swap ckUSDC to ckBTC", async () => {
+    it("should swap ckUSD to ckBTC", async () => {
       const mockResponse = {
         transaction_id: "tx_swap_002",
         from_amount: 100_000n, // $1,000 USDC
@@ -317,7 +317,7 @@ describe("CryptoService", () => {
       const result = await CryptoService.swapCrypto({
         userIdentifier: TEST_USER_ID,
         pin: TEST_USER_PIN,
-        fromCrypto: "ckUSDC",
+        fromCrypto: "ckUSD",
         toCrypto: "ckBTC",
         amount: 100_000,
       });
@@ -336,7 +336,7 @@ describe("CryptoService", () => {
           userIdentifier: TEST_USER_ID,
           pin: TEST_USER_PIN,
           fromCrypto: "ckBTC",
-          toCrypto: "ckUSDC",
+          toCrypto: "ckUSD",
           amount: 100_000,
         }),
       ).rejects.toThrow("Insufficient liquidity");
@@ -359,13 +359,13 @@ describe("CryptoService", () => {
       );
     });
 
-    it("should check ckUSDC balance", async () => {
+    it("should check ckUSD balance", async () => {
       const mockBalance = 50_000n; // $500 USDC
       vi.spyOn(cryptoCanisterService, "checkCryptoBalance").mockResolvedValue(
         mockBalance,
       );
 
-      const result = await CryptoService.checkBalance(TEST_USER_ID, "ckUSDC");
+      const result = await CryptoService.checkBalance(TEST_USER_ID, "ckUSD");
 
       expect(result).toBe(mockBalance);
     });
@@ -557,11 +557,11 @@ describe("CryptoService", () => {
         );
       });
 
-      it("should format ckUSDC amounts", () => {
-        expect(CryptoService.formatAmount(10_000, "ckUSDC")).toBe(
+      it("should format ckUSD amounts", () => {
+        expect(CryptoService.formatAmount(10_000, "ckUSD")).toBe(
           "100.00 USDC",
         );
-        expect(CryptoService.formatAmount(5_050, "ckUSDC")).toBe("50.50 USDC");
+        expect(CryptoService.formatAmount(5_050, "ckUSD")).toBe("50.50 USDC");
       });
     });
   });

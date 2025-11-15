@@ -176,7 +176,7 @@ pub async fn calculate_crypto_from_fiat(
     // Get crypto price in USD
     let crypto_usd_price = match crypto_type {
         "CkBTC" | "BTC" => get_btc_usd_price().await?,
-        "CkUSDC" | "USDC" => get_usdc_usd_price().await?,
+        "CkUSD" | "USDC" => get_usdc_usd_price().await?,
         _ => return Err(format!("Unsupported crypto type: {}", crypto_type)),
     };
 
@@ -186,7 +186,7 @@ pub async fn calculate_crypto_from_fiat(
     // Convert to smallest unit (satoshis for BTC, cents for USDC)
     let multiplier = match crypto_type {
         "CkBTC" | "BTC" => 100_000_000.0, // 8 decimals
-        "CkUSDC" | "USDC" => 1_000_000.0,  // 6 decimals
+        "CkUSD" | "USDC" => 1_000_000.0,  // 6 decimals
         _ => return Err("Invalid crypto type".to_string()),
     };
 
@@ -204,7 +204,7 @@ pub async fn calculate_fiat_from_crypto(
     // Convert from smallest unit to whole units
     let divisor = match crypto_type {
         "CkBTC" | "BTC" => 100_000_000.0,
-        "CkUSDC" | "USDC" => 1_000_000.0,
+        "CkUSD" | "USDC" => 1_000_000.0,
         _ => return Err(format!("Unsupported crypto type: {}", crypto_type)),
     };
 
@@ -213,7 +213,7 @@ pub async fn calculate_fiat_from_crypto(
     // Get crypto price in USD
     let crypto_usd_price = match crypto_type {
         "CkBTC" | "BTC" => get_btc_usd_price().await?,
-        "CkUSDC" | "USDC" => get_usdc_usd_price().await?,
+        "CkUSD" | "USDC" => get_usdc_usd_price().await?,
         _ => return Err("Invalid crypto type".to_string()),
     };
 

@@ -93,7 +93,7 @@ pub async fn handle_buy_usdc(text: &str, session: &mut UssdSession) -> (String, 
                 user_profile.id.clone(),
                 amount_cents,
                 currency_enum,
-                shared_types::CryptoType::CkUSDC,
+                shared_types::CryptoType::CkUSD,
                 pin.to_string()
             ).await {
                 Ok(tx_result) => {

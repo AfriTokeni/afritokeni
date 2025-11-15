@@ -5,13 +5,13 @@ use std::collections::HashMap;
 
 use crate::utils::constants::SESSION_TIMEOUT_NANOS;
 
-// Mock time for tests
-#[cfg(not(test))]
+// Mock time for tests - use target_arch to cover both internal and external tests
+#[cfg(target_arch = "wasm32")]
 use ic_cdk::api::time;
 
-#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
 fn time() -> u64 {
-    1731574800000000000 // Fixed timestamp for tests
+    1731574800000000000 // Fixed timestamp for tests (2024-11-14 09:00:00 UTC)
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, CandidType)]

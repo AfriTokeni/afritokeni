@@ -12,7 +12,8 @@
  */
 
 import { Actor, HttpAgent } from "@dfinity/agent";
-import { idlFactory, type _SERVICE } from "$/declarations/agent_canister";
+import { idlFactory } from "$/declarations/agent_canister/agent_canister.did.js";
+import type { _SERVICE } from "$/declarations/agent_canister/agent_canister.did.d.ts";
 import { AGENT_CANISTER_ID, IC_HOST } from "./config";
 import type {
   CreateDepositRequest,

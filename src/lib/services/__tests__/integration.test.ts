@@ -373,7 +373,7 @@ describe("Integration Tests - End-to-End Flows", () => {
 
   describe("Multi-Currency Swap Flow", () => {
     it("should complete BTC → USDC → Fiat flow with fee collection", async () => {
-      // Step 1: Swap ckBTC to ckUSDC
+      // Step 1: Swap ckBTC to ckUSD
       const mockSwapResponse = {
         transaction_id: "tx_swap_001",
         from_amount: 100_000n, // 0.001 BTC
@@ -391,18 +391,18 @@ describe("Integration Tests - End-to-End Flows", () => {
         userIdentifier: TEST_USER_ID,
         pin: TEST_USER_PIN,
         fromCrypto: "ckBTC",
-        toCrypto: "ckUSDC",
+        toCrypto: "ckUSD",
         amount: 100_000,
       });
 
       expect(Number(swapResult.spread_amount)).toBe(50); // Spread collected
       expect(Number(swapResult.to_amount)).toBe(95_000);
 
-      // Step 2: Sell ckUSDC for fiat
+      // Step 2: Sell ckUSD for fiat
       const mockSellResponse = {
         transaction_id: "tx_sell_usdc_001",
         fiat_amount: 351_500n, // Fiat received for USDC
-        crypto_type: "ckUSDC",
+        crypto_type: "ckUSD",
         timestamp: BigInt(Date.now()),
         exchange_rate: 3_700, // UGX per USDC
         crypto_amount: 95_000n,
@@ -415,7 +415,7 @@ describe("Integration Tests - End-to-End Flows", () => {
       const sellResult = await CryptoService.sellCrypto({
         userIdentifier: TEST_USER_ID,
         pin: TEST_USER_PIN,
-        cryptoType: "ckUSDC",
+        cryptoType: "ckUSD",
         currency: "UGX",
         cryptoAmount: 95_000,
       });
@@ -465,7 +465,7 @@ describe("Integration Tests - End-to-End Flows", () => {
         fiatAmount: 1_000_000,
       });
 
-      // 3. Swap to ckUSDC
+      // 3. Swap to ckUSD
       vi.spyOn(cryptoCanisterService, "swapCrypto").mockResolvedValue({
         transaction_id: "tx_swap_001",
         from_amount: 1_000_000n,
@@ -479,15 +479,15 @@ describe("Integration Tests - End-to-End Flows", () => {
         userIdentifier: TEST_USER_ID,
         pin: TEST_USER_PIN,
         fromCrypto: "ckBTC",
-        toCrypto: "ckUSDC",
+        toCrypto: "ckUSD",
         amount: 1_000_000,
       });
 
-      // 4. Sell ckUSDC
+      // 4. Sell ckUSD
       vi.spyOn(cryptoCanisterService, "sellCrypto").mockResolvedValue({
         transaction_id: "tx_sell_001",
         fiat_amount: 3_515_000n, // Fiat received
-        crypto_type: "ckUSDC",
+        crypto_type: "ckUSD",
         timestamp: BigInt(Date.now()),
         exchange_rate: 3_700,
         crypto_amount: 950_000n,
@@ -496,7 +496,7 @@ describe("Integration Tests - End-to-End Flows", () => {
       await CryptoService.sellCrypto({
         userIdentifier: TEST_USER_ID,
         pin: TEST_USER_PIN,
-        cryptoType: "ckUSDC",
+        cryptoType: "ckUSD",
         currency: "UGX",
         cryptoAmount: 950_000,
       });

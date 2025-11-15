@@ -189,7 +189,7 @@ fn test_buy_usdc_success() {
         user_identifier: user_id.clone(),
         fiat_amount: 1_500_000, // 15,000 KES
         currency: "KES".to_string(),
-        crypto_type: "CkUSDC".to_string(),
+        crypto_type: "CkUSD".to_string(),
         pin: pin.to_string(),
     };
     
@@ -206,10 +206,10 @@ fn test_buy_usdc_success() {
     
     // Verify response
     assert!(buy_response.crypto_amount > 0, "Should receive USDC");
-    assert_eq!(buy_response.crypto_type, "CkUSDC");
+    assert_eq!(buy_response.crypto_type, "CkUSD");
     
     // Verify USDC balance
-    let balance = get_crypto_balance(&pic, crypto_canister, &user_id, "CkUSDC");
+    let balance = get_crypto_balance(&pic, crypto_canister, &user_id, "CkUSD");
     assert_eq!(balance, buy_response.crypto_amount);
 }
 

@@ -350,7 +350,7 @@ fn test_buy_sell_ckusdc_round_trip() {
         user_identifier: user_id.clone(),
         fiat_amount: 1_500_000,
         currency: "KES".to_string(),
-        crypto_type: "CkUSDC".to_string(),
+        crypto_type: "CkUSD".to_string(),
         pin: pin.to_string(),
         device_fingerprint: None,
         geo_location: None,
@@ -363,7 +363,7 @@ fn test_buy_sell_ckusdc_round_trip() {
     let buy_result: Result<BuyCryptoResponse, String> = decode_one(&response).unwrap();
     let buy_response = buy_result.expect("Buy USDC should succeed");
 
-    assert_eq!(buy_response.crypto_type, "CkUSDC", "Should buy USDC");
+    assert_eq!(buy_response.crypto_type, "CkUSD", "Should buy USDC");
     assert!(buy_response.crypto_amount > 0, "Should receive USDC");
 
     // Fund user's ledger account so they can transfer USDC tokens when selling
@@ -376,7 +376,7 @@ fn test_buy_sell_ckusdc_round_trip() {
         user_identifier: user_id.clone(),
         crypto_amount: buy_response.crypto_amount / 2,
         currency: "KES".to_string(),
-        crypto_type: "CkUSDC".to_string(),
+        crypto_type: "CkUSD".to_string(),
         pin: pin.to_string(),
         device_fingerprint: None,
         geo_location: None,
@@ -389,7 +389,7 @@ fn test_buy_sell_ckusdc_round_trip() {
     let sell_result: Result<BuyCryptoResponse, String> = decode_one(&response).unwrap();
     let sell_response = sell_result.expect("Sell USDC should succeed");
 
-    assert_eq!(sell_response.crypto_type, "CkUSDC", "Should sell USDC");
+    assert_eq!(sell_response.crypto_type, "CkUSD", "Should sell USDC");
     assert!(sell_response.fiat_amount > 0, "Should receive fiat");
 }
 

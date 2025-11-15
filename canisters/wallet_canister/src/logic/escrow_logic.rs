@@ -61,7 +61,7 @@ pub fn calculate_escrow_creation_delta(amount: u64, crypto_type: CryptoType) -> 
     let amount_i64 = -(amount as i64);
     match crypto_type {
         CryptoType::CkBTC => (amount_i64, 0),
-        CryptoType::CkUSDC => (0, amount_i64),
+        CryptoType::CkUSD => (0, amount_i64),
     }
 }
 
@@ -70,7 +70,7 @@ pub fn calculate_escrow_claim_delta(amount: u64, crypto_type: CryptoType) -> (i6
     let amount_i64 = amount as i64;
     match crypto_type {
         CryptoType::CkBTC => (amount_i64, 0),
-        CryptoType::CkUSDC => (0, amount_i64),
+        CryptoType::CkUSD => (0, amount_i64),
     }
 }
 
@@ -243,7 +243,7 @@ mod tests {
 
     #[test]
     fn test_calculate_escrow_creation_delta_ckusdc() {
-        let (btc_delta, usdc_delta) = calculate_escrow_creation_delta(1000, CryptoType::CkUSDC);
+        let (btc_delta, usdc_delta) = calculate_escrow_creation_delta(1000, CryptoType::CkUSD);
         assert_eq!(btc_delta, 0);
         assert_eq!(usdc_delta, -1000);
     }
@@ -257,7 +257,7 @@ mod tests {
 
     #[test]
     fn test_calculate_escrow_claim_delta_ckusdc() {
-        let (btc_delta, usdc_delta) = calculate_escrow_claim_delta(1000, CryptoType::CkUSDC);
+        let (btc_delta, usdc_delta) = calculate_escrow_claim_delta(1000, CryptoType::CkUSD);
         assert_eq!(btc_delta, 0);
         assert_eq!(usdc_delta, 1000);
     }

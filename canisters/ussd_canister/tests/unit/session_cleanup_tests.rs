@@ -44,7 +44,7 @@ mod session_expiration_tests {
 
     #[test]
     fn test_session_last_activity_tracking() {
-        let session1 = UssdSession::new("test1".to_string(), "+256700123456".to_string());
+        let _session1 = UssdSession::new("test1".to_string(), "+256700123456".to_string());
         let mut session2 = UssdSession::new("test2".to_string(), "+254712345678".to_string());
 
         let initial_activity = session2.last_activity;
@@ -64,28 +64,24 @@ mod session_cleanup_tests {
     #[test]
     fn test_cleanup_expired_sessions_function_exists() {
         // Test that cleanup_expired_sessions function is available
-        let cleaned = cleanup_expired_sessions();
-        // Should not panic, returns number of cleaned sessions
-        assert!(cleaned >= 0, "cleanup_expired_sessions should return non-negative count");
+        let _cleaned = cleanup_expired_sessions();
+        // Should not panic, returns number of cleaned sessions (u32 is always >= 0)
     }
 
     #[test]
     fn test_get_active_session_count_function() {
         // Test that get_active_session_count function is available
-        let count = get_active_session_count();
-        assert!(count >= 0, "get_active_session_count should return non-negative count");
+        let _count = get_active_session_count();
+        // Should not panic, returns count (usize is always >= 0)
     }
 
     #[test]
     fn test_cleanup_deterministic_behavior() {
         // Cleanup should be deterministic (not use heartbeats)
         // This test verifies the function can be called multiple times safely
-        let count1 = cleanup_expired_sessions();
-        let count2 = cleanup_expired_sessions();
-
-        // Both calls should succeed without panic
-        assert!(count1 >= 0, "First cleanup should succeed");
-        assert!(count2 >= 0, "Second cleanup should succeed");
+        let _count1 = cleanup_expired_sessions();
+        let _count2 = cleanup_expired_sessions();
+        // Both calls should succeed without panic (u32 is always >= 0, no assertion needed)
     }
 }
 

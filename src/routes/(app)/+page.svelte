@@ -91,7 +91,7 @@
         <p
           class="mb-3 text-sm leading-relaxed text-gray-600 sm:mb-4 sm:text-base"
         >
-          AfriTokeni holds ckBTC/ckUSDC in escrow. Agents can't disappear with
+          AfriTokeni holds ckBTC/ckUSD in escrow. Agents can't disappear with
           your money. 6-digit codes + 24hr refunds.
         </p>
         <div
@@ -195,12 +195,12 @@
       <h2
         class="mb-3 px-4 text-2xl font-bold text-gray-900 sm:mb-4 sm:px-0 sm:text-3xl md:text-4xl lg:text-5xl"
       >
-        ckBTC + ckUSDC Instant Transfers
+        ckBTC + ckUSD Instant Transfers
       </h2>
       <p
         class="mx-auto max-w-3xl px-4 text-base text-gray-600 sm:px-0 sm:text-lg lg:text-xl"
       >
-        Send ckBTC (Bitcoin) or ckUSDC (stablecoin) in under 1 second with
+        Send ckBTC (Bitcoin) or ckUSD (stablecoin) in under 1 second with
         ~$0.01 fees. Choose speed or stability.
       </p>
     </div>
@@ -279,7 +279,7 @@
     >
       <div class="mb-4 text-center sm:mb-6">
         <h3 class="mb-2 text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
-          ckBTC + ckUSDC via USSD
+          ckBTC + ckUSD via USSD
         </h3>
         <p class="px-4 text-sm text-gray-600 sm:px-0 sm:text-base">
           Menu-driven interface - works on any phone, no internet needed
@@ -296,7 +296,7 @@
         <div class="mb-4 space-y-1 text-gray-300">
           <div>1. Local Currency (UGX)</div>
           <div>2. Bitcoin (ckBTC)</div>
-          <div>3. USDC (ckUSDC)</div>
+          <div>3. USDC (ckUSD)</div>
           <div>4. DAO Governance</div>
           <div>5. Help</div>
         </div>
@@ -318,7 +318,7 @@
           <div
             class="h-1.5 w-1.5 rounded-full bg-green-500 sm:h-2 sm:w-2"
           ></div>
-          <span>ckUSDC (Stable)</span>
+          <span>ckUSD (Stable)</span>
         </div>
         <div class="flex items-center gap-2">
           <div
@@ -344,12 +344,12 @@
       <h2
         class="mb-2 px-4 text-xl font-bold text-gray-900 sm:mb-3 sm:px-0 sm:text-2xl md:mb-4 md:text-3xl lg:text-4xl"
       >
-        ckBTC + ckUSDC Banking
+        ckBTC + ckUSD Banking
       </h2>
       <p
         class="mx-auto max-w-3xl px-4 text-sm text-gray-600 sm:px-0 sm:text-base md:text-lg lg:text-xl"
       >
-        ckBTC (ICP Bitcoin - fast) + ckUSDC (stablecoin - no volatility) for 39
+        ckBTC (ICP Bitcoin - fast) + ckUSD (stablecoin - no volatility) for 39
         African currencies. USSD or web.
       </p>
 
@@ -536,7 +536,7 @@
               Full Dashboard
             </h3>
             <p class="text-sm text-gray-600 sm:text-base">
-              Complete crypto banking: ckBTC + ckUSDC with charts & analytics
+              Complete crypto banking: ckBTC + ckUSD with charts & analytics
             </p>
           </div>
 

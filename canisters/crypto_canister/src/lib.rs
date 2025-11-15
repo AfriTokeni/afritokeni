@@ -251,6 +251,11 @@ async fn set_crypto_balance_for_testing(
     let delta_btc: i64 = ckbtc as i64 - current_btc as i64;
     let delta_usdc: i64 = ckusdc as i64 - current_usdc as i64;
 
+    // Skip update if both deltas are zero (no change needed)
+    if delta_btc == 0 && delta_usdc == 0 {
+        return Ok(());
+    }
+
     // Apply deltas via normal balance update mechanism
     services::data_client::update_crypto_balance(&user_identifier, delta_btc, delta_usdc).await
 }
@@ -264,7 +269,7 @@ fn check_caller_authorized() -> Result<(), String> {
     if config::is_test_mode() {
         return Ok(());
     }
-    let caller = ic_cdk::api::caller();
+    let caller = ic_cdk::api::msg_caller();
     if !config::is_authorized(&caller) {
         return Err("Unauthorized caller canister".to_string());
     }
@@ -339,17 +344,19 @@ async fn perform_buy_crypto_security_checks(request: &BuyCryptoRequest) -> Resul
     // 1. Verify user exists
     logic::transaction_helpers::verify_user_exists(&request.user_identifier).await?;
 
-    // 2. Verify PIN with exponential backoff
-    let audit_context = format!(
-        "Invalid PIN | Amount: {} {} | Device: {:?} | Location: {:?}",
-        request.fiat_amount, request.currency, request.device_fingerprint, request.geo_location
-    );
-    logic::transaction_helpers::verify_pin_with_backoff(
-        &request.user_identifier,
-        &request.pin,
-        "buy_crypto",
-        &audit_context,
-    ).await?;
+    // 2. Verify PIN with exponential backoff (only if config requires it)
+    if config::require_pin_for_operation("purchase") {
+        let audit_context = format!(
+            "Invalid PIN | Amount: {} {} | Device: {:?} | Location: {:?}",
+            request.fiat_amount, request.currency, request.device_fingerprint, request.geo_location
+        );
+        logic::transaction_helpers::verify_pin_with_backoff(
+            &request.user_identifier,
+            &request.pin,
+            "buy_crypto",
+            &audit_context,
+        ).await?;
+    }
 
     // 3. Check operation rate limit
     let rate_limit_context = format!(
@@ -448,7 +455,7 @@ async fn execute_crypto_purchase(
         CryptoType::CkBTC => {
             services::ledger_client::transfer_ckbtc_to_user(user_principal, crypto_amount).await?
         },
-        CryptoType::CkUSDC => {
+        CryptoType::CkUSD => {
             services::ledger_client::transfer_ckusdc_to_user(user_principal, crypto_amount).await?
         },
     };
@@ -632,17 +639,19 @@ async fn perform_sell_crypto_initial_checks(request: &SellCryptoRequest) -> Resu
     // 1. Verify user exists
     logic::transaction_helpers::verify_user_exists(&request.user_identifier).await?;
 
-    // 2. Verify PIN with exponential backoff
-    let audit_context = format!(
-        "Invalid PIN | Amount: {} {} | Device: {:?} | Location: {:?}",
-        request.crypto_amount, request.crypto_type, request.device_fingerprint, request.geo_location
-    );
-    logic::transaction_helpers::verify_pin_with_backoff(
-        &request.user_identifier,
-        &request.pin,
-        "sell_crypto",
-        &audit_context,
-    ).await?;
+    // 2. Verify PIN with exponential backoff (only if config requires it)
+    if config::require_pin_for_operation("sale") {
+        let audit_context = format!(
+            "Invalid PIN | Amount: {} {} | Device: {:?} | Location: {:?}",
+            request.crypto_amount, request.crypto_type, request.device_fingerprint, request.geo_location
+        );
+        logic::transaction_helpers::verify_pin_with_backoff(
+            &request.user_identifier,
+            &request.pin,
+            "sell_crypto",
+            &audit_context,
+        ).await?;
+    }
 
     // 3. Check operation rate limit
     let rate_limit_context = format!(
@@ -675,7 +684,7 @@ async fn execute_crypto_sale(
     let user_principal = services::ledger_client::get_user_principal(user_identifier).await?;
     let crypto_balance = match crypto_type {
         CryptoType::CkBTC => services::ledger_client::get_user_ckbtc_balance(user_principal).await?,
-        CryptoType::CkUSDC => services::ledger_client::get_user_ckusdc_balance(user_principal).await?,
+        CryptoType::CkUSD => services::ledger_client::get_user_ckusdc_balance(user_principal).await?,
     };
     logic::crypto_logic::validate_sufficient_crypto_balance(crypto_balance, crypto_amount)?;
 
@@ -713,7 +722,7 @@ async fn execute_crypto_sale(
         CryptoType::CkBTC => {
             services::ledger_client::transfer_from_ckbtc(user_principal, crypto_amount).await?
         },
-        CryptoType::CkUSDC => {
+        CryptoType::CkUSD => {
             services::ledger_client::transfer_from_ckusdc(user_principal, crypto_amount).await?
         },
     };
@@ -816,33 +825,39 @@ async fn send_crypto(request: SendCryptoRequest) -> Result<String, String> {
     let crypto_type_str = format!("{:?}", crypto_type);
     logic::crypto_logic::validate_crypto_address(&request.to_address, &crypto_type_str)?;
 
+    // Validate address format if security config requires it
+    validate_crypto_address_if_required(&request.to_address, &crypto_type_str)?;
+
     // 1. Verify user exists
     timer.check_timeout()?;
     let user_exists = services::user_client::user_exists(&request.user_identifier).await?;
     if !user_exists {
         return Err("User not found".to_string());
     }
-    
-    // 2. Check PIN attempts allowed (exponential backoff)
-    timer.check_timeout()?;
-    logic::fraud_detection::check_pin_attempts_allowed(&request.user_identifier)?;
 
-    // 3. Verify PIN
-    timer.check_timeout()?;
-    let verified = services::user_client::verify_pin(&request.user_identifier, &request.pin).await?;
-    if !verified {
-        logic::fraud_detection::record_failed_pin_attempt(&request.user_identifier)?;
-        audit::log_failure(
-            "failed_pin_send_crypto",
-            Some(request.user_identifier.clone()),
-            format!("Invalid PIN | Amount: {} {} | To: {} | Device: {:?} | Location: {:?}",
-                request.amount, request.crypto_type, request.to_address, request.device_fingerprint, request.geo_location)
-        );
-        return Err("Invalid PIN".to_string());
+    // 2. Verify PIN (only if config requires it)
+    if config::require_pin_for_operation("transfer") {
+        // Check PIN attempts allowed (exponential backoff)
+        timer.check_timeout()?;
+        logic::fraud_detection::check_pin_attempts_allowed(&request.user_identifier)?;
+
+        // Verify PIN
+        timer.check_timeout()?;
+        let verified = services::user_client::verify_pin(&request.user_identifier, &request.pin).await?;
+        if !verified {
+            logic::fraud_detection::record_failed_pin_attempt(&request.user_identifier)?;
+            audit::log_failure(
+                "failed_pin_send_crypto",
+                Some(request.user_identifier.clone()),
+                format!("Invalid PIN | Amount: {} {} | To: {} | Device: {:?} | Location: {:?}",
+                    request.amount, request.crypto_type, request.to_address, request.device_fingerprint, request.geo_location)
+            );
+            return Err("Invalid PIN".to_string());
+        }
+        logic::fraud_detection::reset_pin_attempts(&request.user_identifier);
     }
-    logic::fraud_detection::reset_pin_attempts(&request.user_identifier);
-    
-    // 4. Check operation rate limit
+
+    // 3. Check operation rate limit
     timer.check_timeout()?;
     if !logic::fraud_detection::check_operation_rate_limit(&request.user_identifier, "send_crypto")? {
         audit::log_failure(
@@ -853,12 +868,12 @@ async fn send_crypto(request: SendCryptoRequest) -> Result<String, String> {
         return Err("Operation rate limit exceeded. Please try again later".to_string());
     }
 
-    // 5. Comprehensive fraud check
+    // 4. Comprehensive fraud check
     timer.check_timeout()?;
     let fraud_check = logic::fraud_detection::check_transaction(
         &request.user_identifier,
         request.amount,
-        "USD",
+        &crypto_type_str,
         "send_crypto",
         request.device_fingerprint.as_deref(),
         request.geo_location.as_deref(),
@@ -883,8 +898,8 @@ async fn send_crypto(request: SendCryptoRequest) -> Result<String, String> {
                 request.amount, request.crypto_type, request.to_address, fraud_check.risk_score, fraud_check.warnings)
         );
     }
-    
-    // 6. Record device and location
+
+    // 5. Record device and location
     if let Some(fingerprint) = &request.device_fingerprint {
         logic::fraud_detection::record_device_fingerprint(&request.user_identifier, fingerprint)?;
         audit::log_success(
@@ -901,26 +916,77 @@ async fn send_crypto(request: SendCryptoRequest) -> Result<String, String> {
             format!("Location: {}", location)
         );
     }
-    
-    // 7. Check crypto balance
+
+    // 6. Get network fee from config
+    let cfg = config::get_config();
+    let network_fee = match crypto_type {
+        CryptoType::CkBTC => cfg.fees.btc_network_fee_satoshis,
+        CryptoType::CkUSD => cfg.fees.usdc_network_fee_cents,
+    };
+
+    // 7. Validate minimum transfer amount
+    let min_transfer = match crypto_type {
+        CryptoType::CkBTC => cfg.tokens.ckbtc.min_transfer_amount,
+        CryptoType::CkUSD => cfg.tokens.ckusdc.min_transfer_amount,
+    };
+
+    if request.amount < min_transfer {
+        return Err(format!(
+            "Amount {} below minimum transfer amount: {}",
+            request.amount, min_transfer
+        ));
+    }
+
+    // 8. Check crypto balance (must cover amount + network fee)
     timer.check_timeout()?;
     let (ckbtc_balance, ckusdc_balance) = services::data_client::get_crypto_balance(&request.user_identifier).await?;
     let crypto_balance = match crypto_type {
         CryptoType::CkBTC => ckbtc_balance,
-        CryptoType::CkUSDC => ckusdc_balance,
+        CryptoType::CkUSD => ckusdc_balance,
     };
 
-    logic::crypto_logic::validate_sufficient_crypto_balance(crypto_balance, request.amount)?;
+    let total_required = request.amount.checked_add(network_fee)
+        .ok_or("Amount + network fee would overflow")?;
 
-    // 8. Deduct crypto from user's balance
+    if crypto_balance < total_required {
+        return Err(format!(
+            "Insufficient balance. Need {} (amount) + {} (network fee) = {}. Have: {}",
+            request.amount, network_fee, total_required, crypto_balance
+        ));
+    }
+
+    // 9. Deduct crypto from user's balance (amount + network fee)
     timer.check_timeout()?;
+    let total_to_deduct = request.amount + network_fee;
     let (ckbtc_delta, ckusdc_delta) = match crypto_type {
-        CryptoType::CkBTC => (-(request.amount as i64), 0),
-        CryptoType::CkUSDC => (0, -(request.amount as i64)),
+        CryptoType::CkBTC => (-(total_to_deduct as i64), 0),
+        CryptoType::CkUSD => (0, -(total_to_deduct as i64)),
     };
     services::data_client::update_crypto_balance(&request.user_identifier, ckbtc_delta, ckusdc_delta).await?;
 
-    // 9. Record transaction
+    // 10. Transfer network fee to company wallet as platform revenue
+    let company_principal = config::get_company_wallet_principal()?;
+    // Resolve company principal to user_id (required for data canister operations)
+    timer.check_timeout()?;
+    let company_user_id = services::user_client::resolve_user_id(&company_principal.to_string()).await?;
+
+    let (company_btc_delta, company_usdc_delta) = match crypto_type {
+        CryptoType::CkBTC => (network_fee as i64, 0),
+        CryptoType::CkUSD => (0, network_fee as i64),
+    };
+    services::data_client::update_crypto_balance(
+        &company_user_id,
+        company_btc_delta,
+        company_usdc_delta
+    ).await?;
+
+    audit::log_success(
+        "network_fee_collected",
+        Some(request.user_identifier.clone()),
+        format!("Network fee collected: {} {} (send_crypto)", network_fee, crypto_type_str)
+    );
+
+    // 11. Record transaction
     timer.check_timeout()?;
     let timestamp = time();
     let transaction = Transaction {
@@ -933,13 +999,13 @@ async fn send_crypto(request: SendCryptoRequest) -> Result<String, String> {
         status: TransactionStatus::Completed,
         created_at: timestamp,
         completed_at: Some(timestamp),
-        description: Some(format!("Sent {} {} to {}",
-            request.amount, crypto_type_str, request.to_address)),
+        description: Some(format!("Sent {} {} to {} (network fee: {} {})",
+            request.amount, crypto_type_str, request.to_address, network_fee, crypto_type_str)),
     };
 
     services::data_client::store_transaction(&transaction).await?;
 
-    // 10. Record transaction for velocity tracking
+    // 12. Record transaction for velocity tracking
     logic::fraud_detection::record_transaction(
         &request.user_identifier,
         request.amount,
@@ -947,12 +1013,20 @@ async fn send_crypto(request: SendCryptoRequest) -> Result<String, String> {
         "send_crypto",
     )?;
 
-    // 11. Audit successful transaction
+    // 13. Log transaction if security config requires it
+    log_transaction_if_required(
+        "send_crypto_completed",
+        &request.user_identifier,
+        &format!("Sent {} {} to {} | Network Fee: {} | Total Deducted: {} | TX: {}",
+            request.amount, crypto_type_str, request.to_address, network_fee, total_to_deduct, transaction.id)
+    );
+
+    // 14. Audit successful transaction
     audit::log_success(
         "send_crypto_completed",
         Some(request.user_identifier.clone()),
-        format!("Sent {} {} to {} | TX: {}",
-            request.amount, crypto_type_str, request.to_address, transaction.id)
+        format!("Sent {} {} to {} | Network Fee: {} | Total Deducted: {} | TX: {}",
+            request.amount, crypto_type_str, request.to_address, network_fee, total_to_deduct, transaction.id)
     );
 
     Ok(transaction.id)
@@ -967,7 +1041,7 @@ async fn check_crypto_balance(user_identifier: String, crypto_type: String) -> R
     
     let balance = match crypto_type {
         CryptoType::CkBTC => ckbtc_balance,
-        CryptoType::CkUSDC => ckusdc_balance,
+        CryptoType::CkUSD => ckusdc_balance,
     };
     
     Ok(balance)
@@ -1019,7 +1093,7 @@ async fn swap_crypto(request: SwapCryptoRequest) -> Result<SwapCryptoResponse, S
     let (ckbtc_balance, ckusdc_balance) = services::data_client::get_crypto_balance(&user_id).await?;
     let from_balance = match from_crypto {
         CryptoType::CkBTC => ckbtc_balance,
-        CryptoType::CkUSDC => ckusdc_balance,
+        CryptoType::CkUSD => ckusdc_balance,
     };
 
     logic::crypto_logic::validate_sufficient_crypto_balance(from_balance, request.amount)?;
@@ -1033,7 +1107,20 @@ async fn swap_crypto(request: SwapCryptoRequest) -> Result<SwapCryptoResponse, S
     timer.check_timeout()?;
     // Estimate expected output (1:1 for simplicity, real implementation would use oracle)
     let expected_output = swap_amount;
-    let slippage_bp = 100; // 1% slippage tolerance
+
+    // Get slippage tolerance from config
+    let cfg = config::get_config();
+    let slippage_bp = cfg.exchange.slippage.default_tolerance;
+    let max_slippage = cfg.exchange.slippage.max_tolerance;
+
+    // Validate slippage is within allowed range
+    if slippage_bp > max_slippage {
+        return Err(format!(
+            "Slippage tolerance {} exceeds maximum allowed: {}",
+            slippage_bp, max_slippage
+        ));
+    }
+
     let min_output = services::dex_client::calculate_min_output_with_slippage(expected_output, slippage_bp)?;
 
     // 6. Perform swap via DEX with slippage protection
@@ -1054,12 +1141,12 @@ async fn swap_crypto(request: SwapCryptoRequest) -> Result<SwapCryptoResponse, S
     timer.check_timeout()?;
     let (from_delta_btc, from_delta_usdc) = match from_crypto {
         CryptoType::CkBTC => (-(request.amount as i64), 0),
-        CryptoType::CkUSDC => (0, -(request.amount as i64)),
+        CryptoType::CkUSD => (0, -(request.amount as i64)),
     };
 
     let (to_delta_btc, to_delta_usdc) = match to_crypto {
         CryptoType::CkBTC => (to_amount as i64, 0),
-        CryptoType::CkUSDC => (0, to_amount as i64),
+        CryptoType::CkUSD => (0, to_amount as i64),
     };
 
     let total_btc_delta = from_delta_btc + to_delta_btc;
@@ -1120,6 +1207,21 @@ async fn create_escrow(request: CreateEscrowRequest) -> Result<CreateEscrowRespo
     // Validate inputs
     logic::escrow_logic::validate_escrow_amount(request.amount)?;
     let crypto_type = parse_crypto_type(&request.crypto_type)?;
+    let crypto_type_str = format!("{:?}", crypto_type);
+
+    // Validate minimum escrow amount from config
+    let cfg = config::get_config();
+    let min_escrow = match crypto_type {
+        CryptoType::CkBTC => cfg.escrow.min_btc_escrow_satoshis,
+        CryptoType::CkUSD => cfg.escrow.min_usdc_escrow_cents,
+    };
+
+    if request.amount < min_escrow {
+        return Err(format!(
+            "Escrow amount {} below minimum: {}",
+            request.amount, min_escrow
+        ));
+    }
 
     // 1. Verify user exists
     timer.check_timeout()?;
@@ -1127,27 +1229,30 @@ async fn create_escrow(request: CreateEscrowRequest) -> Result<CreateEscrowRespo
     if !user_exists {
         return Err("User not found".to_string());
     }
-    
-    // 2. Check PIN attempts allowed (exponential backoff)
-    timer.check_timeout()?;
-    logic::fraud_detection::check_pin_attempts_allowed(&request.user_identifier)?;
 
-    // 3. Verify PIN
-    timer.check_timeout()?;
-    let verified = services::user_client::verify_pin(&request.user_identifier, &request.pin).await?;
-    if !verified {
-        logic::fraud_detection::record_failed_pin_attempt(&request.user_identifier)?;
-        audit::log_failure(
-            "failed_pin_create_escrow",
-            Some(request.user_identifier.clone()),
-            format!("Invalid PIN | Amount: {} {} | Agent: {} | Device: {:?} | Location: {:?}",
-                request.amount, request.crypto_type, request.agent_id, request.device_fingerprint, request.geo_location)
-        );
-        return Err("Invalid PIN".to_string());
+    // 2. Verify PIN (only if config requires it)
+    if config::require_pin_for_operation("escrow") {
+        // Check PIN attempts allowed (exponential backoff)
+        timer.check_timeout()?;
+        logic::fraud_detection::check_pin_attempts_allowed(&request.user_identifier)?;
+
+        // Verify PIN
+        timer.check_timeout()?;
+        let verified = services::user_client::verify_pin(&request.user_identifier, &request.pin).await?;
+        if !verified {
+            logic::fraud_detection::record_failed_pin_attempt(&request.user_identifier)?;
+            audit::log_failure(
+                "failed_pin_create_escrow",
+                Some(request.user_identifier.clone()),
+                format!("Invalid PIN | Amount: {} {} | Agent: {} | Device: {:?} | Location: {:?}",
+                    request.amount, request.crypto_type, request.agent_id, request.device_fingerprint, request.geo_location)
+            );
+            return Err("Invalid PIN".to_string());
+        }
+        logic::fraud_detection::reset_pin_attempts(&request.user_identifier);
     }
-    logic::fraud_detection::reset_pin_attempts(&request.user_identifier);
 
-    // 4. Check operation rate limit
+    // 3. Check operation rate limit
     timer.check_timeout()?;
     if !logic::fraud_detection::check_operation_rate_limit(&request.user_identifier, "create_escrow")? {
         audit::log_failure(
@@ -1158,12 +1263,12 @@ async fn create_escrow(request: CreateEscrowRequest) -> Result<CreateEscrowRespo
         return Err("Operation rate limit exceeded. Please try again later".to_string());
     }
 
-    // 5. Comprehensive fraud check
+    // 4. Comprehensive fraud check
     timer.check_timeout()?;
     let fraud_check = logic::fraud_detection::check_transaction(
         &request.user_identifier,
         request.amount,
-        "USD",
+        &crypto_type_str,
         "create_escrow",
         request.device_fingerprint.as_deref(),
         request.geo_location.as_deref(),
@@ -1188,8 +1293,8 @@ async fn create_escrow(request: CreateEscrowRequest) -> Result<CreateEscrowRespo
                 request.amount, request.crypto_type, request.agent_id, fraud_check.risk_score, fraud_check.warnings)
         );
     }
-    
-    // 6. Record device and location
+
+    // 5. Record device and location
     if let Some(fingerprint) = &request.device_fingerprint {
         logic::fraud_detection::record_device_fingerprint(&request.user_identifier, fingerprint)?;
         audit::log_success(
@@ -1206,31 +1311,31 @@ async fn create_escrow(request: CreateEscrowRequest) -> Result<CreateEscrowRespo
             format!("Location: {}", location)
         );
     }
-    
-    // 7. Check crypto balance
+
+    // 6. Check crypto balance
     timer.check_timeout()?;
     let (ckbtc_balance, ckusdc_balance) = services::data_client::get_crypto_balance(&request.user_identifier).await?;
     let crypto_balance = match crypto_type {
         CryptoType::CkBTC => ckbtc_balance,
-        CryptoType::CkUSDC => ckusdc_balance,
+        CryptoType::CkUSD => ckusdc_balance,
     };
 
     logic::crypto_logic::validate_sufficient_crypto_balance(crypto_balance, request.amount)?;
 
-    // 8. Generate escrow code
+    // 7. Generate escrow code
     let timestamp = time();
     let code = logic::escrow_logic::generate_escrow_code(timestamp, &request.user_identifier);
 
-    // 9. Calculate expiration
+    // 8. Calculate expiration
     let expiration_ns = config::get_escrow_expiration_ns();
     let expires_at = logic::escrow_logic::calculate_expiration_time(timestamp, expiration_ns)?;
 
-    // 10. Deduct crypto from user's balance
+    // 9. Deduct crypto from user's balance
     timer.check_timeout()?;
     let (ckbtc_delta, ckusdc_delta) = logic::escrow_logic::calculate_escrow_creation_delta(request.amount, crypto_type);
     services::data_client::update_crypto_balance(&request.user_identifier, ckbtc_delta, ckusdc_delta).await?;
 
-    // 11. Create escrow in data canister
+    // 10. Create escrow in data canister
     timer.check_timeout()?;
     let escrow = Escrow {
         code: code.clone(),
@@ -1245,23 +1350,31 @@ async fn create_escrow(request: CreateEscrowRequest) -> Result<CreateEscrowRespo
     };
 
     services::data_client::create_escrow(&escrow).await?;
-    
-    // 8. Record transaction for velocity tracking
+
+    // 11. Record transaction for velocity tracking
     logic::fraud_detection::record_transaction(
         &request.user_identifier,
         request.amount,
         "USD",
         "create_escrow",
     )?;
-    
-    // 9. Audit successful escrow creation
+
+    // 12. Log transaction if security config requires it
+    log_transaction_if_required(
+        "escrow_created",
+        &request.user_identifier,
+        &format!("Created escrow {} | Amount: {} {} | Agent: {} | Expires: {}",
+            code, request.amount, request.crypto_type, request.agent_id, expires_at)
+    );
+
+    // 13. Audit successful escrow creation
     audit::log_success(
         "escrow_created",
         Some(request.user_identifier.clone()),
         format!("Created escrow {} | Amount: {} {} | Agent: {} | Expires: {}",
             code, request.amount, request.crypto_type, request.agent_id, expires_at)
     );
-    
+
     Ok(CreateEscrowResponse {
         code,
         amount: request.amount,
@@ -1479,7 +1592,7 @@ async fn cleanup_expired_escrows() -> Result<CleanupResult, String> {
             escrows_refunded += 1;
             match escrow.crypto_type {
                 CryptoType::CkBTC => total_refunded_btc += escrow.amount,
-                CryptoType::CkUSDC => total_refunded_usdc += escrow.amount,
+                CryptoType::CkUSD => total_refunded_usdc += escrow.amount,
             }
             
             ic_cdk::println!("🔄 Refunded expired escrow: code={}, user={}, amount={} {:?}",
@@ -1563,8 +1676,48 @@ fn get_dex_provider() -> String {
 fn parse_crypto_type(crypto_type_str: &str) -> Result<CryptoType, String> {
     match crypto_type_str {
         "CkBTC" | "BTC" => Ok(CryptoType::CkBTC),
-        "CkUSDC" | "USDC" => Ok(CryptoType::CkUSDC),
+        "CkUSD" | "USDC" => Ok(CryptoType::CkUSD),
         _ => Err(format!("Invalid crypto type: {}", crypto_type_str)),
+    }
+}
+
+/// Validate crypto address format if security config requires it
+fn validate_crypto_address_if_required(address: &str, crypto_type: &str) -> Result<(), String> {
+    // Check if validation is required by config
+    if !config::should_validate_address(crypto_type) {
+        return Ok(());
+    }
+
+    // Perform basic format validation
+    match crypto_type {
+        "BTC" | "CkBTC" => {
+            // BTC addresses: bc1 (bech32), 1 (P2PKH), 3 (P2SH)
+            if address.starts_with("bc1") || address.starts_with('1') || address.starts_with('3') {
+                Ok(())
+            } else {
+                Err(format!("Invalid BTC address format: {}", address))
+            }
+        },
+        "ETH" | "USDC" | "CkUSD" => {
+            // ETH addresses: 0x followed by 40 hex chars
+            if address.starts_with("0x") && address.len() == 42 {
+                Ok(())
+            } else {
+                Err(format!("Invalid ETH/USDC address format: {}", address))
+            }
+        },
+        _ => Ok(()),
+    }
+}
+
+/// Log transaction if security config requires it
+fn log_transaction_if_required(operation: &str, user_id: &str, details: &str) {
+    if config::should_log_transaction() {
+        audit::log_success(
+            operation,
+            Some(user_id.to_string()),
+            details.to_string()
+        );
     }
 }
 

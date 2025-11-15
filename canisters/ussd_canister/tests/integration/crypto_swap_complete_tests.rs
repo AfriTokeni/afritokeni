@@ -73,7 +73,7 @@ fn test_swap_usdc_to_btc_success() {
     env.setup_test_user_with_balances(phone, "Swap", "USDCtoBTC", "swapusdc@test.com", "UGX", "1234", 0, 0, 100000)
         .expect("Setup");
     // Step 1: Get confirmation
-    let (response, cont) = env.process_ussd(&sess, phone, "4*2*1*50000");
+    let (_response, cont) = env.process_ussd(&sess, phone, "4*2*1*50000");
     assert!(cont, "Should continue for confirmation");
     // Step 2: Confirm and execute
     let (response, _) = env.process_ussd(&sess, phone, "4*2*1*50000*1*1234");
@@ -178,7 +178,7 @@ fn test_swap_cancel_at_confirmation() {
     env.setup_test_user_with_balances(phone, "Swap", "Cancel", "swapcancel@test.com", "UGX", "1234", 0, 100000, 0)
         .expect("Setup");
     // Step 1: Get to confirmation
-    let (response, cont) = env.process_ussd(&sess, phone, "4*1*2*50000");
+    let (_response, cont) = env.process_ussd(&sess, phone, "4*1*2*50000");
     assert!(cont, "Should show confirmation");
     // Step 2: Cancel (2 instead of 1)
     let (response, _) = env.process_ussd(&sess, phone, "4*1*2*50000*2");

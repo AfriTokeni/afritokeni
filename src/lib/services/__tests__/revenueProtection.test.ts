@@ -3,7 +3,7 @@
  *
  * These tests verify that the platform collects 0.5% fees on ALL operations.
  * This is CRITICAL because the old architecture allowed users to bypass fees
- * by calling ckBTC/ckUSDC ledgers directly.
+ * by calling ckBTC/ckUSD ledgers directly.
  *
  * Test Coverage:
  * ✅ Crypto buy operations collect 0.5% platform fee
@@ -66,7 +66,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
       });
     });
 
-    it("should collect 0.5% platform fee on ckUSDC buy", async () => {
+    it("should collect 0.5% platform fee on ckUSD buy", async () => {
       const fiatAmount = 50_000; // 50,000 UGX
       const _expectedFee = calculateExpectedFee(fiatAmount); // Fee collected on backend
 
@@ -74,7 +74,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
         crypto_amount: 13_500n, // ~$13.50 USDC
         exchange_rate: 3_700, // 3,700 UGX per USDC (number, not bigint)
         fiat_amount: BigInt(fiatAmount),
-        crypto_type: "ckUSDC",
+        crypto_type: "ckUSD",
         timestamp: BigInt(Math.floor(Date.now() / 1000)),
         transaction_id: "tx_buy_usdc_001",
       });
@@ -82,7 +82,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
       const result = await CryptoService.buyCrypto({
         userIdentifier: TEST_USER_ID,
         pin: TEST_USER_PIN,
-        cryptoType: "ckUSDC",
+        cryptoType: "ckUSD",
         currency: "UGX",
         fiatAmount,
       });
@@ -101,7 +101,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
         crypto_amount: 1_000n,
         exchange_rate: 3_700, // number, not bigint
         fiat_amount: BigInt(fiatAmount),
-        crypto_type: "ckUSDC",
+        crypto_type: "ckUSD",
         timestamp: BigInt(Math.floor(Date.now() / 1000)),
         transaction_id: "tx_buy_small_001",
       });
@@ -109,7 +109,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
       const result = await CryptoService.buyCrypto({
         userIdentifier: TEST_USER_ID,
         pin: TEST_USER_PIN,
-        cryptoType: "ckUSDC",
+        cryptoType: "ckUSD",
         currency: "UGX",
         fiatAmount,
       });
@@ -150,7 +150,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
       expect(result.fiat_amount).toBe(BigInt(fiatAmount));
     });
 
-    it("should collect 0.5% platform fee on ckUSDC sell", async () => {
+    it("should collect 0.5% platform fee on ckUSD sell", async () => {
       const cryptoAmount = 10_000; // $100 USDC
       const fiatAmount = 370_000; // UGX received
       const _expectedFee = calculateExpectedFee(370_000); // Fee collected on backend
@@ -159,7 +159,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
         crypto_amount: BigInt(cryptoAmount),
         exchange_rate: 3_700, // number, not bigint
         fiat_amount: BigInt(fiatAmount),
-        crypto_type: "ckUSDC",
+        crypto_type: "ckUSD",
         timestamp: BigInt(Math.floor(Date.now() / 1000)),
         transaction_id: "tx_sell_usdc_001",
       });
@@ -167,7 +167,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
       const result = await CryptoService.sellCrypto({
         userIdentifier: TEST_USER_ID,
         pin: TEST_USER_PIN,
-        cryptoType: "ckUSDC",
+        cryptoType: "ckUSD",
         currency: "UGX",
         cryptoAmount,
       });
@@ -180,7 +180,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
   });
 
   describe("Crypto Swap - Spread Collection", () => {
-    it("should collect 0.5% spread on ckBTC → ckUSDC swap", async () => {
+    it("should collect 0.5% spread on ckBTC → ckUSD swap", async () => {
       const fromAmount = 100_000n; // 0.001 BTC
       const expectedSpread = 50n; // 0.5% in basis points
 
@@ -197,7 +197,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
         userIdentifier: TEST_USER_ID,
         pin: TEST_USER_PIN,
         fromCrypto: "ckBTC",
-        toCrypto: "ckUSDC",
+        toCrypto: "ckUSD",
         amount: Number(fromAmount),
       });
 
@@ -206,7 +206,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
       expect(Number(result.spread_amount)).toBe(50); // 50 basis points = 0.5%
     });
 
-    it("should collect 0.5% spread on ckUSDC → ckBTC swap", async () => {
+    it("should collect 0.5% spread on ckUSD → ckBTC swap", async () => {
       const fromAmount = 100_000n; // $1,000 USDC
       const expectedSpread = 50n;
 
@@ -222,7 +222,7 @@ describe("Revenue Protection Tests - CRITICAL", () => {
       const result = await CryptoService.swapCrypto({
         userIdentifier: TEST_USER_ID,
         pin: TEST_USER_PIN,
-        fromCrypto: "ckUSDC",
+        fromCrypto: "ckUSD",
         toCrypto: "ckBTC",
         amount: Number(fromAmount),
       });

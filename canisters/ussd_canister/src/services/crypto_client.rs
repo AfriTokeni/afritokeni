@@ -404,7 +404,7 @@ pub async fn check_crypto_balance(user_identifier: String, crypto_type: CryptoTy
     // Convert CryptoType to string for the API
     let crypto_type_str = match crypto_type {
         CryptoType::CkBTC => "CkBTC",
-        CryptoType::CkUSDC => "CkUSDC",
+        CryptoType::CkUSD => "CkUSD",
     };
     
     ic_cdk::println!("📤 [CRYPTO_CLIENT] Calling check_crypto_balance: user={}, type={}", 

@@ -13,7 +13,7 @@
   let currentUser = $state<any>(null);
   let balance = $state(0);
   let showPinModal = $state(false);
-  let estimatedFee = $state(0.01); // ckUSDC network fee estimate (minimal)
+  let estimatedFee = $state(0.01); // ckUSD network fee estimate (minimal)
 
   onMount(async () => {
     currentUser = await getUserData();
@@ -82,14 +82,14 @@
       const transactionId = await cryptoService.sendCrypto({
         userIdentifier,
         pin,
-        cryptoType: "ckUSDC",
+        cryptoType: "ckUSD",
         toAddress: recipientAddress,
         amount: amountSmallest,
       });
 
       toast.show(
         "success",
-        `ckUSDC sent successfully! TX: ${transactionId.substring(0, 8)}...`,
+        `ckUSD sent successfully! TX: ${transactionId.substring(0, 8)}...`,
       );
 
       // Reset form
@@ -105,7 +105,7 @@
     } catch (error: any) {
       console.error("Send failed:", error);
       const errorMessage =
-        error?.message || error?.toString() || "Failed to send ckUSDC";
+        error?.message || error?.toString() || "Failed to send ckUSD";
       toast.show("error", errorMessage);
       showPinModal = false;
     } finally {
@@ -127,7 +127,7 @@
     >
       <ArrowLeft class="h-5 w-5" />
     </button>
-    <h1 class="text-2xl font-bold">Send ckUSDC</h1>
+    <h1 class="text-2xl font-bold">Send ckUSD</h1>
   </div>
 
   <div class="space-y-6 rounded-xl border border-gray-200 bg-white p-6">
@@ -149,7 +149,7 @@
 
     <div>
       <label for="amount" class="mb-2 block text-sm font-medium text-gray-700">
-        Amount (ckUSDC)
+        Amount (ckUSD)
       </label>
       <input
         id="amount"

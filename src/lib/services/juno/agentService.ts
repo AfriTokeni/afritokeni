@@ -1,6 +1,18 @@
 /**
  * Agent Service
  * Handles all agent operations with Juno DB
+ *
+ * ⚠️ DEPRECATED: This service uses Juno datastore for agent data.
+ *
+ * MIGRATION STATUS: Agent business data should come from agent_canister.
+ * - Agent balances → agent_canister.get_agent_balance()
+ * - Agent operations (deposits/withdrawals) → agent_canister
+ * - Agent commissions → agent_canister
+ *
+ * Agent METADATA (location, business name, ratings) MAY remain in Juno
+ * as UI-only data, but all financial operations must use agent_canister.
+ *
+ * DO NOT use for new features. Use agentCanisterService for business logic.
  */
 
 import { listDocs, setDoc, getDoc } from "@junobuild/core";

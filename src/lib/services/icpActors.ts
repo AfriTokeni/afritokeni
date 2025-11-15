@@ -22,7 +22,7 @@ export const CKBTC_LEDGER_CANISTER_ID =
   getEnv("CANISTER_ID_CKBTC_LEDGER") || "mxzaz-hqaaa-aaaar-qaada-cai";
 export const CKBTC_MINTER_CANISTER_ID = "mqygn-kiaaa-aaaar-qaadq-cai"; // No local minter yet
 
-// ckUSDC Canister ID - use local dfx if available, otherwise mainnet
+// ckUSD Canister ID - use local dfx if available, otherwise mainnet
 export const CKUSDC_LEDGER_CANISTER_ID =
   getEnv("CANISTER_ID_CKUSDC_LEDGER") || "xevnm-gaaaa-aaaar-qafnq-cai";
 
@@ -235,10 +235,10 @@ export async function getCkBTCMinterActor(): Promise<ActorSubclass<any>> {
 }
 
 /**
- * Get ckUSDC Ledger Actor (ICRC-1)
+ * Get ckUSD Ledger Actor (ICRC-1)
  * Used for balance queries and transfers
  */
-export async function getCkUSDCLedgerActor(): Promise<ActorSubclass<any>> {
+export async function getCkUSDLedgerActor(): Promise<ActorSubclass<any>> {
   const agent = await createAgent();
 
   return Actor.createActor(ICRC1_IDL, {

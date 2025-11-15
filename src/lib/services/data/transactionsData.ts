@@ -41,7 +41,9 @@ export async function fetchTransactions(
         `Failed to fetch demo transactions: ${response.statusText}`,
       );
     }
-    const transactions = await response.json();
+    const data = await response.json();
+    // Extract array from "user-transactions" key
+    const transactions = Array.isArray(data) ? data : data["user-transactions"] || [];
     return maxTransactions
       ? transactions.slice(0, maxTransactions)
       : transactions;

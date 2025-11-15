@@ -4,6 +4,8 @@
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
 
+/// Test helper structs - may be used in future request validation tests
+#[allow(dead_code)]
 #[derive(Clone, Debug, CandidType, Deserialize)]
 struct HttpRequest {
     url: String,
@@ -12,6 +14,8 @@ struct HttpRequest {
     headers: Vec<(String, String)>,
 }
 
+/// Test helper structs - may be used in future request validation tests
+#[allow(dead_code)]
 #[derive(Clone, Debug, CandidType, Serialize)]
 struct HttpResponse {
     status_code: u16,

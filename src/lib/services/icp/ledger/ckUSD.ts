@@ -36,7 +36,7 @@ import { listDocs, setDoc } from "@junobuild/core";
 import {
   CKUSD_CONSTANTS,
   type CkUSDBalance,
-  type CkUSDConfig,
+  type CkUSDonfig,
   type CkUSDExchangeRequest,
   type CkUSDExchangeResponse,
   type CkUSDTransaction,
@@ -74,7 +74,7 @@ export interface EthereumDepositAddress {
  * SECURITY: All methods respect non-custodial architecture
  */
 export class CkUSDService {
-  private static config: CkUSDConfig = {
+  private static config: CkUSDonfig = {
     ledgerCanisterId: CKUSD_LEDGER_CANISTER_ID,
     network: "mainnet",
   };
@@ -82,14 +82,14 @@ export class CkUSDService {
   /**
    * Initialize ckUSD service with configuration
    */
-  static initialize(config: Partial<CkUSDConfig>) {
+  static initialize(config: Partial<CkUSDonfig>) {
     this.config = { ...this.config, ...config };
   }
 
   /**
    * Get current configuration
    */
-  static getConfig(): CkUSDConfig {
+  static getConfig(): CkUSDonfig {
     return this.config;
   }
 

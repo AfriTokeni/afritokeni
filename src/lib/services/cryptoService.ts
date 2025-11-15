@@ -7,10 +7,10 @@
  * ⚠️ DO NOT use direct ledger calls (ckBTC.ts/ckUSD.ts) for buy/sell/swap operations!
  *
  * Handles:
- * - Buy ckBTC/ckUSDC with fiat (collects 0.5% fee)
- * - Sell ckBTC/ckUSDC for fiat (collects 0.5% fee)
+ * - Buy ckBTC/ckUSD with fiat (collects 0.5% fee)
+ * - Sell ckBTC/ckUSD for fiat (collects 0.5% fee)
  * - Send crypto to external addresses
- * - Swap ckBTC ↔ ckUSDC (collects 0.5% spread)
+ * - Swap ckBTC ↔ ckUSD (collects 0.5% spread)
  * - Escrow for crypto-to-cash with agents
  */
 
@@ -34,7 +34,7 @@ import type {
 export interface BuyCryptoParams {
   userIdentifier: string; // Phone number or user ID
   pin: string;
-  cryptoType: "ckBTC" | "ckUSDC";
+  cryptoType: "ckBTC" | "ckUSD";
   currency: string; // e.g., "UGX"
   fiatAmount: number; // Amount in fiat currency
   deviceFingerprint?: string;
@@ -47,7 +47,7 @@ export interface BuyCryptoParams {
 export interface SellCryptoParams {
   userIdentifier: string;
   pin: string;
-  cryptoType: "ckBTC" | "ckUSDC";
+  cryptoType: "ckBTC" | "ckUSD";
   currency: string;
   cryptoAmount: number; // Amount in satoshis/smallest unit
   deviceFingerprint?: string;
@@ -60,7 +60,7 @@ export interface SellCryptoParams {
 export interface SendCryptoParams {
   userIdentifier: string;
   pin: string;
-  cryptoType: "ckBTC" | "ckUSDC";
+  cryptoType: "ckBTC" | "ckUSD";
   toAddress: string; // ICP principal or external address
   amount: number; // Amount in satoshis/smallest unit
   deviceFingerprint?: string;
@@ -73,8 +73,8 @@ export interface SendCryptoParams {
 export interface SwapCryptoParams {
   userIdentifier: string;
   pin: string;
-  fromCrypto: "ckBTC" | "ckUSDC";
-  toCrypto: "ckBTC" | "ckUSDC";
+  fromCrypto: "ckBTC" | "ckUSD";
+  toCrypto: "ckBTC" | "ckUSD";
   amount: number; // Amount in satoshis/smallest unit
 }
 
@@ -85,7 +85,7 @@ export interface CreateEscrowParams {
   userIdentifier: string;
   pin: string;
   agentId: string;
-  cryptoType: "ckBTC" | "ckUSDC";
+  cryptoType: "ckBTC" | "ckUSD";
   amount: number; // Amount in satoshis/smallest unit
   deviceFingerprint?: string;
   geoLocation?: string;
@@ -158,7 +158,7 @@ export class CryptoService {
   }
 
   /**
-   * Swap between cryptocurrencies (ckBTC ↔ ckUSDC)
+   * Swap between cryptocurrencies (ckBTC ↔ ckUSD)
    * Routes through crypto_canister to collect 0.5% spread
    */
   static async swapCrypto(
@@ -178,12 +178,12 @@ export class CryptoService {
   /**
    * Check crypto balance
    * @param userIdentifier - User ID or phone number
-   * @param cryptoType - "ckBTC" or "ckUSDC"
-   * @returns Balance in smallest unit (satoshis for ckBTC, cents for ckUSDC)
+   * @param cryptoType - "ckBTC" or "ckUSD"
+   * @returns Balance in smallest unit (satoshis for ckBTC, cents for ckUSD)
    */
   static async checkBalance(
     userIdentifier: string,
-    cryptoType: "ckBTC" | "ckUSDC",
+    cryptoType: "ckBTC" | "ckUSD",
   ): Promise<bigint> {
     return await cryptoCanisterService.checkCryptoBalance(
       userIdentifier,
@@ -263,14 +263,14 @@ export class CryptoService {
   }
 
   /**
-   * Convert smallest unit to ckUSDC
+   * Convert smallest unit to ckUSD
    */
   static smallestToUSDC(smallest: number): number {
     return smallest / 100; // Assuming 2 decimal places
   }
 
   /**
-   * Convert ckUSDC to smallest unit
+   * Convert ckUSD to smallest unit
    */
   static usdcToSmallest(usdc: number): number {
     return Math.round(usdc * 100);
@@ -279,7 +279,7 @@ export class CryptoService {
   /**
    * Format crypto amount for display
    */
-  static formatAmount(amount: number, cryptoType: "ckBTC" | "ckUSDC"): string {
+  static formatAmount(amount: number, cryptoType: "ckBTC" | "ckUSD"): string {
     if (cryptoType === "ckBTC") {
       return `${this.satoshisToBTC(amount).toFixed(8)} BTC`;
     } else {

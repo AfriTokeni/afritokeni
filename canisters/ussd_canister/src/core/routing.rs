@@ -349,7 +349,7 @@ pub async fn handle_local_currency_menu(text: &str, session: &mut UssdSession) -
                 Err(_) => 0.0,
             };
             
-            let ckusdc = match crate::services::crypto_client::check_crypto_balance(user_profile.id.clone(), shared_types::CryptoType::CkUSDC).await {
+            let ckusdc = match crate::services::crypto_client::check_crypto_balance(user_profile.id.clone(), shared_types::CryptoType::CkUSD).await {
                 Ok(e6) => e6 as f64 / 1_000_000.0,
                 Err(_) => 0.0,
             };
@@ -534,7 +534,7 @@ pub async fn handle_usdc_menu(text: &str, session: &mut UssdSession) -> (String,
 
             let ckusdc = match crate::services::crypto_client::check_crypto_balance(
                 user_profile.id,
-                shared_types::CryptoType::CkUSDC
+                shared_types::CryptoType::CkUSD
             ).await {
                 Ok(e6) => e6 as f64 / 1_000_000.0,
                 Err(_) => 0.0,

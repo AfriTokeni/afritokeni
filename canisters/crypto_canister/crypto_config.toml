@@ -85,9 +85,9 @@ max_single_transfer_satoshis = 100000000  # 1 BTC max transfer
 max_daily_transfer_satoshis = 500000000   # 5 BTC max daily
 
 [limits.usdc]
-# USDC-specific limits (in cents)
-max_single_transfer_cents = 100000000     # $1,000,000 max transfer
-max_daily_transfer_cents = 500000000      # $5,000,000 max daily
+# USDC-specific limits (in e6 units - USDC uses 6 decimals)
+max_single_transfer_cents = 1000000000000     # $1,000,000 max transfer (1M × 1e6)
+max_daily_transfer_cents = 5000000000000      # $5,000,000 max daily (5M × 1e6)
 
 [external_apis]
 # Exchange rate API endpoints
@@ -97,12 +97,6 @@ exchangerate_api_url = "https://api.exchangerate-api.com/v4/latest/USD"
 # API rate limiting
 max_api_calls_per_minute = 10
 api_timeout_seconds = 30
-
-[canisters]
-# Canister IDs (will be set during deployment)
-data_canister_id = ""
-user_canister_id = ""
-wallet_canister_id = ""
 
 [security]
 # Security settings
@@ -118,3 +112,27 @@ validate_eth_addresses = true
 # Transaction monitoring
 log_all_transactions = true
 log_suspicious_activity = true
+
+[fraud_detection]
+# Rate limiting per operation (per hour)
+max_buys_per_hour = 10
+max_sells_per_hour = 10
+max_transfers_per_hour = 10
+max_escrows_per_hour = 2
+
+# General transaction limits
+max_transactions_per_minute = 10
+max_transactions_per_hour = 50
+
+# Velocity limits (in cents)
+max_24h_volume_cents = 10000000  # $100,000
+max_1h_volume_cents = 1000000    # $10,000
+
+# Risk thresholds (in cents)
+suspicious_amount_cents = 50000   # $500
+high_risk_amount_cents = 100000   # $1,000
+
+# PIN attempt limits
+max_pin_attempts = 5
+initial_backoff_ns = 60000000000     # 1 minute
+max_backoff_ns = 3600000000000       # 1 hour

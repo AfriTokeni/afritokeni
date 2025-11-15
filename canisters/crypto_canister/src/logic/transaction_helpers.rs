@@ -207,7 +207,7 @@ pub async fn get_crypto_balance_by_type(
     let (ckbtc_balance, ckusdc_balance) = data_client::get_crypto_balance(user_identifier).await?;
     let balance = match crypto_type {
         CryptoType::CkBTC => ckbtc_balance,
-        CryptoType::CkUSDC => ckusdc_balance,
+        CryptoType::CkUSD => ckusdc_balance,
     };
     Ok(balance)
 }
@@ -222,7 +222,7 @@ pub fn calculate_crypto_delta(amount: u64, crypto_type: CryptoType, is_credit: b
 
     match crypto_type {
         CryptoType::CkBTC => (signed_amount, 0i64),
-        CryptoType::CkUSDC => (0i64, signed_amount),
+        CryptoType::CkUSD => (0i64, signed_amount),
     }
 }
 
@@ -254,14 +254,14 @@ mod tests {
 
     #[test]
     fn test_calculate_crypto_delta_usdc_credit() {
-        let (btc, usdc) = calculate_crypto_delta(500, CryptoType::CkUSDC, true);
+        let (btc, usdc) = calculate_crypto_delta(500, CryptoType::CkUSD, true);
         assert_eq!(btc, 0);
         assert_eq!(usdc, 500);
     }
 
     #[test]
     fn test_calculate_crypto_delta_usdc_debit() {
-        let (btc, usdc) = calculate_crypto_delta(500, CryptoType::CkUSDC, false);
+        let (btc, usdc) = calculate_crypto_delta(500, CryptoType::CkUSD, false);
         assert_eq!(btc, 0);
         assert_eq!(usdc, -500);
     }

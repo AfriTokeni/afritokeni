@@ -107,7 +107,7 @@
         userIdentifier: $principalId || "",
         pin: pin,
         fromCrypto: "ckBTC",
-        toCrypto: "ckUSDC",
+        toCrypto: "ckUSD",
         amount: amountSatoshis,
       });
 
@@ -118,7 +118,7 @@
 
       toast.show(
         "success",
-        `Swapped ${fromBTC.toFixed(8)} ckBTC for ${toUSDC.toFixed(2)} ckUSDC (${spread.toFixed(2)} spread)`,
+        `Swapped ${fromBTC.toFixed(8)} ckBTC for ${toUSDC.toFixed(2)} ckUSD (${spread.toFixed(2)} spread)`,
       );
 
       // Refresh balances
@@ -224,7 +224,7 @@
 
     <div>
       <label for="to" class="mb-2 block text-sm font-medium text-gray-700">
-        To (ckUSDC)
+        To (ckUSD)
       </label>
       <input
         id="to"
@@ -275,7 +275,7 @@
       {:else if parseFloat(fromAmount) > userBalance}
         Insufficient Balance
       {:else}
-        Exchange to ckUSDC
+        Exchange to ckUSD
       {/if}
     </button>
   </div>

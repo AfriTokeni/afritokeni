@@ -15,11 +15,11 @@ fn test_withdraw_flow_navigation() {
     env.set_fiat_balance(&user_id, "UGX", 500_000).expect("Should set balance");
     
     let session_id = "withdraw_test_1";
-    
+
     // Navigate to Local Currency -> Withdraw
-    let (response, continue_session) = env.process_ussd(session_id, phone, "1");
+    let (_response, continue_session) = env.process_ussd(session_id, phone, "1");
     assert!(continue_session, "Should show local currency menu");
-    
+
     let (response, continue_session) = env.process_ussd(session_id, phone, "1*4");
     assert!(continue_session, "Should start withdraw flow");
     assert!(response.contains("amount") || response.contains("Enter") || response.contains("withdraw"), 
@@ -119,12 +119,12 @@ fn test_withdraw_requires_agent_id() {
     env.set_fiat_balance(&user_id, "UGX", 100_000).expect("Should set balance");
     
     let session_id = "withdraw_test_5";
-    
+
     // Navigate to withdraw and enter amount
     env.process_ussd(session_id, phone, "1");
-    let (response, continue_session) = env.process_ussd(session_id, phone, "1*4");
+    let (_response, continue_session) = env.process_ussd(session_id, phone, "1*4");
     assert!(continue_session, "Should start withdraw flow");
-    
+
     // After entering amount (use 100000, the minimum for UGX), should ask for agent ID
     let (response, continue_session) = env.process_ussd(session_id, phone, "1*4*100000");
     assert!(continue_session, "Should continue to ask for agent");
@@ -164,17 +164,17 @@ fn test_withdraw_step_by_step() {
     env.set_fiat_balance(&user_id, "UGX", 200_000).expect("Should set balance");
     
     let session_id = "withdraw_test_7";
-    
+
     // Step 1: Main menu
-    let (response, continue_session) = env.process_ussd(session_id, phone, "");
+    let (_response, continue_session) = env.process_ussd(session_id, phone, "");
     assert!(continue_session, "Should show main menu");
-    
+
     // Step 2: Select Local Currency
     let (response, continue_session) = env.process_ussd(session_id, phone, "1");
     assert!(continue_session, "Should show local currency menu");
-    assert!(response.contains("Withdraw") || response.contains("withdraw"), 
+    assert!(response.contains("Withdraw") || response.contains("withdraw"),
         "Should show withdraw option. Got: {}", response);
-    
+
     // Step 3: Select Withdraw
     let (response, continue_session) = env.process_ussd(session_id, phone, "1*4");
     assert!(continue_session, "Should start withdraw flow");
@@ -205,7 +205,7 @@ fn test_withdraw_balance_check_before() {
     // Now try to withdraw (should work if balance is sufficient)
     let session_id_2 = "withdraw_test_8_withdraw";
     env.process_ussd(session_id_2, phone, "1");
-    let (response, continue_session) = env.process_ussd(session_id_2, phone, "1*4");
+    let (_response, continue_session) = env.process_ussd(session_id_2, phone, "1*4");
     assert!(continue_session, "Should allow withdraw with sufficient balance");
 }
 

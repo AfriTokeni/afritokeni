@@ -3,6 +3,8 @@
 
 use candid::{CandidType, Deserialize};
 
+/// Test helper structs - may be used in future request validation tests
+#[allow(dead_code)]
 #[derive(Clone, Debug, CandidType, Deserialize)]
 struct HttpRequest {
     url: String,

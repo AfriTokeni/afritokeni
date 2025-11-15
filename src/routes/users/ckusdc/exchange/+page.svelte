@@ -82,7 +82,7 @@
     if (amountNum > userBalance) {
       toast.show(
         "error",
-        `Insufficient balance. You have ${userBalance.toFixed(2)} ckUSDC`,
+        `Insufficient balance. You have ${userBalance.toFixed(2)} ckUSD`,
       );
       return;
     }
@@ -106,7 +106,7 @@
       const result = await cryptoService.swapCrypto({
         userIdentifier: $principalId || "",
         pin: pin,
-        fromCrypto: "ckUSDC",
+        fromCrypto: "ckUSD",
         toCrypto: "ckBTC",
         amount: amountSmallestUnit,
       });
@@ -158,7 +158,7 @@
     >
       <ArrowLeft class="h-5 w-5" />
     </button>
-    <h1 class="text-2xl font-bold">Exchange ckUSDC</h1>
+    <h1 class="text-2xl font-bold">Exchange ckUSD</h1>
   </div>
 
   <div class="space-y-6 rounded-xl border border-gray-200 bg-white p-6">
@@ -196,7 +196,7 @@
 
     <div>
       <label for="from" class="mb-2 block text-sm font-medium text-gray-700">
-        From (ckUSDC)
+        From (ckUSD)
       </label>
       <input
         id="from"

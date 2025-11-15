@@ -1,6 +1,17 @@
 /**
  * Transaction Service
  * Handles all transaction-related operations with Juno DB
+ *
+ * ⚠️ DEPRECATED: This service uses Juno datastore for transaction data.
+ *
+ * MIGRATION STATUS: Transactions should be stored in domain canisters, not Juno.
+ * - Fiat transactions → wallet_canister
+ * - Crypto transactions → crypto_canister
+ * - Agent operations → agent_canister
+ * - Transaction history → data_canister.get_user_transactions()
+ *
+ * This file is kept for backward compatibility with admin dashboard.
+ * DO NOT use for new features. Use domain canister services instead.
  */
 
 import { listDocs, type Doc } from "@junobuild/core";

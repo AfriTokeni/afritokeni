@@ -15,6 +15,12 @@
 use ic_cdk::call::Call;
 use candid::{CandidType, Deserialize, Principal};
 use crate::config;
+use std::cell::RefCell;
+
+// API rate limiting state
+thread_local! {
+    static API_CALL_TRACKER: RefCell<Vec<u64>> = RefCell::new(Vec::new());
+}
 
 #[derive(CandidType, Deserialize)]
 struct HttpRequest {
@@ -43,16 +49,50 @@ struct HttpResponse {
     body: Vec<u8>,
 }
 
+/// Check API rate limit and enforce max calls per minute
+fn check_api_rate_limit() -> Result<(), String> {
+    let cfg = config::get_config();
+    let max_calls = cfg.external_apis.max_api_calls_per_minute;
+
+    API_CALL_TRACKER.with(|tracker| {
+        let mut calls = tracker.borrow_mut();
+        let now = ic_cdk::api::time();
+        let minute_ago = now.saturating_sub(60_000_000_000); // 60 seconds in nanoseconds
+
+        // Remove calls older than 1 minute
+        calls.retain(|&t| t > minute_ago);
+
+        // Check if we've exceeded the limit
+        if calls.len() >= max_calls as usize {
+            return Err(format!(
+                "API rate limit exceeded. Max {} calls per minute. Try again later.",
+                max_calls
+            ));
+        }
+
+        // Record this call
+        calls.push(now);
+        Ok(())
+    })
+}
+
 /// Get BTC price in USD from CoinGecko
 pub async fn get_btc_usd_price() -> Result<f64, String> {
     // In test mode, return mock value (PocketIC can't make HTTP outcalls)
     if config::is_test_mode() {
         return Ok(50_000.0); // Mock: $50k per BTC for tests
     }
-    
+
+    // Check API rate limit before making the call
+    check_api_rate_limit()?;
+
+    let cfg = config::get_config();
+    let timeout_seconds = cfg.external_apis.api_timeout_seconds;
+    let cycles = 20_000_000_000u128; // 20 billion cycles for HTTP outcall
+
     let api_url = config::get_coingecko_api_url();
     let url = format!("{}?ids=bitcoin&vs_currencies=usd", api_url);
-    
+
     let request = HttpRequest {
         url,
         method: HttpMethod::GET,
@@ -60,17 +100,19 @@ pub async fn get_btc_usd_price() -> Result<f64, String> {
         body: None,
         max_response_bytes: Some(1000),
     };
-    
+
     let management_canister = Principal::management_canister();
-    
-    let response_bytes = Call::unbounded_wait(management_canister, "http_request")
+
+    let response_bytes = Call::bounded_wait(management_canister, "http_request")
         .with_arg(request)
+        .with_cycles(cycles)
+        .change_timeout(timeout_seconds as u32)
         .await
-        .map_err(|e| format!("HTTP request failed: {:?}", e))?;
-    
+        .map_err(|e| format!("HTTP request failed or timed out after {}s: {:?}", timeout_seconds, e))?;
+
     let (response,): (HttpResponse,) = candid::decode_args(&response_bytes.into_bytes())
         .map_err(|e| format!("Failed to decode response: {:?}", e))?;
-    
+
     parse_coingecko_response(&response, "bitcoin")
 }
 
@@ -80,10 +122,17 @@ pub async fn get_usdc_usd_price() -> Result<f64, String> {
     if config::is_test_mode() {
         return Ok(1.0); // Mock: $1 per USDC for tests
     }
-    
+
+    // Check API rate limit before making the call
+    check_api_rate_limit()?;
+
+    let cfg = config::get_config();
+    let timeout_seconds = cfg.external_apis.api_timeout_seconds;
+    let cycles = 20_000_000_000u128; // 20 billion cycles for HTTP outcall
+
     let api_url = config::get_coingecko_api_url();
     let url = format!("{}?ids=usd-coin&vs_currencies=usd", api_url);
-    
+
     let request = HttpRequest {
         url,
         method: HttpMethod::GET,
@@ -91,17 +140,19 @@ pub async fn get_usdc_usd_price() -> Result<f64, String> {
         body: None,
         max_response_bytes: Some(1000),
     };
-    
+
     let management_canister = Principal::management_canister();
-    
-    let response_bytes = Call::unbounded_wait(management_canister, "http_request")
+
+    let response_bytes = Call::bounded_wait(management_canister, "http_request")
         .with_arg(request)
+        .with_cycles(cycles)
+        .change_timeout(timeout_seconds as u32)
         .await
-        .map_err(|e| format!("HTTP request failed: {:?}", e))?;
-    
+        .map_err(|e| format!("HTTP request failed or timed out after {}s: {:?}", timeout_seconds, e))?;
+
     let (response,): (HttpResponse,) = candid::decode_args(&response_bytes.into_bytes())
         .map_err(|e| format!("Failed to decode response: {:?}", e))?;
-    
+
     parse_coingecko_response(&response, "usd-coin")
 }
 
@@ -111,7 +162,14 @@ pub async fn get_fiat_to_usd_rate(currency_code: &str) -> Result<f64, String> {
     if config::is_test_mode() {
         return get_mock_fiat_rate(currency_code);
     }
-    
+
+    // Check API rate limit before making the call
+    check_api_rate_limit()?;
+
+    let cfg = config::get_config();
+    let timeout_seconds = cfg.external_apis.api_timeout_seconds;
+    let cycles = 20_000_000_000u128; // 20 billion cycles for HTTP outcall
+
     let api_url = config::get_exchangerate_api_url();
     let request = HttpRequest {
         url: api_url,
@@ -120,17 +178,19 @@ pub async fn get_fiat_to_usd_rate(currency_code: &str) -> Result<f64, String> {
         body: None,
         max_response_bytes: Some(10000),
     };
-    
+
     let management_canister = Principal::management_canister();
-    
-    let response_bytes = Call::unbounded_wait(management_canister, "http_request")
+
+    let response_bytes = Call::bounded_wait(management_canister, "http_request")
         .with_arg(request)
+        .with_cycles(cycles)
+        .change_timeout(timeout_seconds as u32)
         .await
-        .map_err(|e| format!("HTTP request failed: {:?}", e))?;
-    
+        .map_err(|e| format!("HTTP request failed or timed out after {}s: {:?}", timeout_seconds, e))?;
+
     let (response,): (HttpResponse,) = candid::decode_args(&response_bytes.into_bytes())
         .map_err(|e| format!("Failed to decode response: {:?}", e))?;
-    
+
     parse_exchangerate_response(&response, currency_code)
 }
 
@@ -164,7 +224,7 @@ pub async fn calculate_crypto_from_fiat(
     // Get crypto price in USD
     let crypto_usd_price = match crypto_type {
         "CkBTC" | "BTC" => get_btc_usd_price().await?,
-        "CkUSDC" | "USDC" => get_usdc_usd_price().await?,
+        "CkUSD" | "USDC" => get_usdc_usd_price().await?,
         _ => return Err(format!("Unsupported crypto type: {}", crypto_type)),
     };
     
@@ -174,7 +234,7 @@ pub async fn calculate_crypto_from_fiat(
     // Convert to smallest unit (satoshis for BTC, cents for USDC)
     let multiplier = match crypto_type {
         "CkBTC" | "BTC" => 100_000_000.0, // 8 decimals
-        "CkUSDC" | "USDC" => 1_000_000.0,  // 6 decimals
+        "CkUSD" | "USDC" => 1_000_000.0,  // 6 decimals
         _ => return Err("Invalid crypto type".to_string()),
     };
     
@@ -190,7 +250,7 @@ pub async fn calculate_fiat_from_crypto(
     // Convert from smallest unit to whole units
     let divisor = match crypto_type {
         "CkBTC" | "BTC" => 100_000_000.0,
-        "CkUSDC" | "USDC" => 1_000_000.0,
+        "CkUSD" | "USDC" => 1_000_000.0,
         _ => return Err(format!("Unsupported crypto type: {}", crypto_type)),
     };
     
@@ -199,7 +259,7 @@ pub async fn calculate_fiat_from_crypto(
     // Get crypto price in USD
     let crypto_usd_price = match crypto_type {
         "CkBTC" | "BTC" => get_btc_usd_price().await?,
-        "CkUSDC" | "USDC" => get_usdc_usd_price().await?,
+        "CkUSD" | "USDC" => get_usdc_usd_price().await?,
         _ => return Err("Invalid crypto type".to_string()),
     };
     

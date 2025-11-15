@@ -17,8 +17,8 @@ pub struct CryptoConfig {
     pub company_wallet: CompanyWalletConfig,
     pub limits: LimitsConfig,
     pub external_apis: ExternalApisConfig,
-    pub canisters: CanistersConfig,
     pub security: SecurityConfig,
+    pub fraud_detection: FraudDetectionConfig,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -34,6 +34,8 @@ pub struct ExchangeConfig {
     pub spread_basis_points: u64,
     pub dex_provider: String,
     pub sonic: SonicConfig,
+    /// Alternative DEX configuration - currently using Sonic, IcpSwap available as fallback
+    #[allow(dead_code)]
     pub icpswap: IcpSwapConfig,
     pub slippage: SlippageConfig,
 }
@@ -45,6 +47,8 @@ pub struct SonicConfig {
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct IcpSwapConfig {
+    /// IcpSwap router canister ID - unused while Sonic is primary DEX
+    #[allow(dead_code)]
     pub router_canister: String,
 }
 
@@ -71,6 +75,8 @@ pub struct TokensConfig {
 #[derive(Deserialize, Clone, Debug)]
 pub struct TokenConfig {
     pub ledger: String,
+    /// Token decimals - may be needed for UI conversions or precise calculations
+    #[allow(dead_code)]
     pub decimals: u8,
     pub min_transfer_amount: u64,
 }
@@ -123,13 +129,6 @@ pub struct ExternalApisConfig {
 }
 
 #[derive(Deserialize, Clone, Debug)]
-pub struct CanistersConfig {
-    pub data_canister_id: String,
-    pub user_canister_id: String,
-    pub wallet_canister_id: String,
-}
-
-#[derive(Deserialize, Clone, Debug)]
 pub struct SecurityConfig {
     pub require_pin_for_transfers: bool,
     pub require_pin_for_purchases: bool,
@@ -139,6 +138,23 @@ pub struct SecurityConfig {
     pub validate_eth_addresses: bool,
     pub log_all_transactions: bool,
     pub log_suspicious_activity: bool,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct FraudDetectionConfig {
+    pub max_buys_per_hour: usize,
+    pub max_sells_per_hour: usize,
+    pub max_transfers_per_hour: usize,
+    pub max_escrows_per_hour: usize,
+    pub max_transactions_per_minute: usize,
+    pub max_transactions_per_hour: usize,
+    pub max_24h_volume_cents: u64,
+    pub max_1h_volume_cents: u64,
+    pub suspicious_amount_cents: u64,
+    pub high_risk_amount_cents: u64,
+    pub max_pin_attempts: u32,
+    pub initial_backoff_ns: u64,
+    pub max_backoff_ns: u64,
 }
 
 // Runtime state
@@ -267,6 +283,42 @@ pub fn disable_test_mode() {
 
 pub fn is_test_mode() -> bool {
     TEST_MODE.with(|mode| *mode.borrow())
+}
+
+// ============================================================================
+// Security Configuration Helpers
+// ============================================================================
+
+/// Check if PIN is required for the given operation
+pub fn require_pin_for_operation(operation: &str) -> bool {
+    let cfg = get_config();
+    match operation {
+        "transfer" => cfg.security.require_pin_for_transfers,
+        "purchase" => cfg.security.require_pin_for_purchases,
+        "sale" => cfg.security.require_pin_for_sales,
+        "escrow" => cfg.security.require_pin_for_escrow,
+        _ => false,
+    }
+}
+
+/// Check if address validation is required for the given crypto type
+pub fn should_validate_address(crypto_type: &str) -> bool {
+    let cfg = get_config();
+    match crypto_type {
+        "BTC" | "CkBTC" => cfg.security.validate_btc_addresses,
+        "ETH" | "USDC" | "CkUSD" => cfg.security.validate_eth_addresses,
+        _ => false,
+    }
+}
+
+/// Check if all transactions should be logged
+pub fn should_log_transaction() -> bool {
+    get_config().security.log_all_transactions
+}
+
+/// Check if suspicious activity should be logged
+pub fn should_log_suspicious_activity() -> bool {
+    get_config().security.log_suspicious_activity
 }
 
 // ============================================================================

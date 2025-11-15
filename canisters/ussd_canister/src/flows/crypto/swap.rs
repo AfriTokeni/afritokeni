@@ -202,8 +202,8 @@ async fn execute_swap(
 
     // Map choices to crypto types
     let (from_crypto, to_crypto) = match (from_choice, to_choice) {
-        ("1", "2") => ("CkBTC", "CkUSDC"),
-        ("2", "1") => ("CkUSDC", "CkBTC"),
+        ("1", "2") => ("CkBTC", "CkUSD"),
+        ("2", "1") => ("CkUSD", "CkBTC"),
         _ => {
             session.clear_data();
             return (format!("❌ {}\n\n0. {}",
@@ -214,7 +214,7 @@ async fn execute_swap(
 
     let from_type = match from_crypto {
         "CkBTC" => shared_types::CryptoType::CkBTC,
-        "CkUSDC" => shared_types::CryptoType::CkUSDC,
+        "CkUSD" => shared_types::CryptoType::CkUSD,
         _ => {
             session.clear_data();
             return (format!("Invalid crypto type\n\n0. {}",
@@ -224,7 +224,7 @@ async fn execute_swap(
 
     let to_type = match to_crypto {
         "CkBTC" => shared_types::CryptoType::CkBTC,
-        "CkUSDC" => shared_types::CryptoType::CkUSDC,
+        "CkUSD" => shared_types::CryptoType::CkUSD,
         _ => {
             session.clear_data();
             return (format!("Invalid crypto type\n\n0. {}",

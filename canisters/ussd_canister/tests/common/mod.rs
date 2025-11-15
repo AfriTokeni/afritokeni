@@ -29,6 +29,8 @@ pub fn create_session_at(phone: &str, session_id: &str, menu: &str, step: u32) -
 }
 
 /// Test phone numbers for different scenarios
+/// Test constants for various phone number formats and session types - available for future tests
+#[allow(dead_code)]
 pub mod test_phones {
     pub const VALID_KENYA: &str = "+254712345678";
     pub const VALID_UGANDA: &str = "+256700123456";
@@ -39,6 +41,8 @@ pub mod test_phones {
 }
 
 /// Test session IDs
+/// Test constants for various phone number formats and session types - available for future tests
+#[allow(dead_code)]
 pub mod test_sessions {
     pub const NORMAL: &str = "test_session_123";
     pub const PLAYGROUND: &str = "playground_session_456";

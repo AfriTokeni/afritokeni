@@ -17,11 +17,11 @@ fn test_usdc_balance_check() {
     let session_id = "usdc_test_1";
     
     // Navigate to USDC menu -> Check Balance
-    let (response, continue_session) = env.process_ussd(session_id, phone, "3");
+    let (_response, continue_session) = env.process_ussd(session_id, phone, "3");
     assert!(continue_session, "Should show USDC menu");
-    assert!(response.contains("USDC"), 
-        "Should show USDC menu. Got: {}", response);
-    
+    assert!(_response.contains("USDC"),
+        "Should show USDC menu. Got: {}", _response);
+
     // Check balance
     let (response, _) = env.process_ussd(session_id, phone, "3*1");
     assert!(response.contains("1.00") || response.contains("ckUSDC"), 
@@ -63,11 +63,11 @@ fn test_buy_usdc_flow_navigation() {
     env.set_fiat_balance(&user_id, "UGX", 1_000_000).expect("Should set balance");
     
     let session_id = "usdc_test_3";
-    
+
     // Navigate to USDC menu -> Buy USDC
-    let (response, continue_session) = env.process_ussd(session_id, phone, "3");
+    let (_response, continue_session) = env.process_ussd(session_id, phone, "3");
     assert!(continue_session, "Should show USDC menu");
-    
+
     let (response, continue_session) = env.process_ussd(session_id, phone, "3*3");
     assert!(continue_session, "Should start buy flow");
     assert!(response.contains("amount") || response.contains("Enter") || response.contains("UGX"), 
@@ -110,11 +110,11 @@ fn test_send_usdc_flow_navigation() {
     env.set_crypto_balance(&user_id, 0, 100_000_000).expect("Should set balance"); // 100 USDC
     
     let session_id = "usdc_test_5";
-    
+
     // Navigate to USDC menu -> Send USDC
-    let (response, continue_session) = env.process_ussd(session_id, phone, "3");
+    let (_response, continue_session) = env.process_ussd(session_id, phone, "3");
     assert!(continue_session, "Should show USDC menu");
-    
+
     let (response, continue_session) = env.process_ussd(session_id, phone, "3*5");
     assert!(continue_session, "Should start send flow");
     assert!(response.contains("address") || response.contains("recipient") || response.contains("Enter"), 
@@ -159,11 +159,11 @@ fn test_sell_usdc_flow_navigation() {
     env.set_crypto_balance(&user_id, 0, 100_000_000).expect("Should set balance"); // 100 USDC
     
     let session_id = "usdc_test_7";
-    
+
     // Navigate to USDC menu -> Sell USDC
-    let (response, continue_session) = env.process_ussd(session_id, phone, "3");
+    let (_response, continue_session) = env.process_ussd(session_id, phone, "3");
     assert!(continue_session, "Should show USDC menu");
-    
+
     let (response, continue_session) = env.process_ussd(session_id, phone, "3*4");
     assert!(continue_session, "Should start sell flow");
     assert!(response.contains("amount") || response.contains("Enter") || response.contains("USDC"), 

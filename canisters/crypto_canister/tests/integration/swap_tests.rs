@@ -70,7 +70,7 @@ fn test_swap_btc_to_usdc_success() {
     let swap_request = SwapCryptoRequest {
         user_identifier: user_id.clone(),
         from_crypto: "CkBTC".to_string(),
-        to_crypto: "CkUSDC".to_string(),
+        to_crypto: "CkUSD".to_string(),
         amount: buy_response.crypto_amount,
         pin: pin.to_string(),
     };
@@ -87,7 +87,7 @@ fn test_swap_btc_to_usdc_success() {
     
     // Verify balances
     let btc_balance = get_crypto_balance(&pic, crypto_canister, &user_id, "CkBTC");
-    let usdc_balance = get_crypto_balance(&pic, crypto_canister, &user_id, "CkUSDC");
+    let usdc_balance = get_crypto_balance(&pic, crypto_canister, &user_id, "CkUSD");
     
     assert_eq!(btc_balance, 0, "BTC balance should be 0");
     assert_eq!(usdc_balance, swap_response.to_amount, "USDC balance should match");

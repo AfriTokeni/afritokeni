@@ -60,7 +60,7 @@ pub async fn handle_send_usdc(text: &str, session: &mut UssdSession) -> (String,
             // Check USDC balance
             match crate::services::crypto_client::check_crypto_balance(
                 user_profile.id.clone(),
-                shared_types::CryptoType::CkUSDC
+                shared_types::CryptoType::CkUSD
             ).await {
                 Ok(balance_e6) => {
                     if balance_e6 < amount_e6 {
@@ -111,7 +111,7 @@ pub async fn handle_send_usdc(text: &str, session: &mut UssdSession) -> (String,
                 user_profile.id.clone(),
                 usdc_address.clone(),
                 amount_e6,
-                shared_types::CryptoType::CkUSDC,
+                shared_types::CryptoType::CkUSD,
                 pin.to_string()
             ).await {
                 Ok(_tx_id) => {

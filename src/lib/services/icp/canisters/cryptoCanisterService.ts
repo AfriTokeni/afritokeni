@@ -1,7 +1,7 @@
 /**
  * Crypto Canister Service
  *
- * Handles all cryptocurrency operations (ckBTC, ckUSDC):
+ * Handles all cryptocurrency operations (ckBTC, ckUSD):
  * - Buy/Sell crypto with fiat
  * - Send crypto to external addresses
  * - Swap between cryptocurrencies
@@ -11,7 +11,8 @@
  */
 
 import { Actor, HttpAgent } from "@dfinity/agent";
-import { idlFactory, type _SERVICE } from "$/declarations/crypto_canister";
+import { idlFactory } from "$/declarations/crypto_canister/crypto_canister.did.js";
+import type { _SERVICE } from "$/declarations/crypto_canister/crypto_canister.did.d.ts";
 import { CRYPTO_CANISTER_ID, IC_HOST } from "./config";
 import type {
   BuyCryptoRequest,
@@ -98,7 +99,7 @@ export class CryptoCanisterService {
   }
 
   /**
-   * Swap between cryptocurrencies (ckBTC ↔ ckUSDC)
+   * Swap between cryptocurrencies (ckBTC ↔ ckUSD)
    * Collects 0.5% spread automatically
    */
   async swapCrypto(request: SwapCryptoRequest): Promise<SwapCryptoResponse> {
@@ -114,7 +115,7 @@ export class CryptoCanisterService {
   /**
    * Check crypto balance
    * @param userIdentifier - User ID or phone number
-   * @param cryptoType - "ckBTC" or "ckUSDC"
+   * @param cryptoType - "ckBTC" or "ckUSD"
    */
   async checkCryptoBalance(
     userIdentifier: string,

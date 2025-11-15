@@ -1,10 +1,10 @@
 /**
- * ckUSDC Service for AfriTokeni
+ * ckUSD Service for AfriTokeni
  *
- * Handles all ckUSDC operations for both SMS/USSD and Web users:
- * - Deposits (USDC → ckUSDC via Ethereum bridge)
- * - Withdrawals (ckUSDC → USDC)
- * - Transfers (ckUSDC between ICP users)
+ * Handles all ckUSD operations for both SMS/USSD and Web users:
+ * - Deposits (USDC → ckUSD via Ethereum bridge)
+ * - Withdrawals (ckUSD → USDC)
+ * - Transfers (ckUSD between ICP users)
  * - Balance queries
  * - Exchange rate fetching
  * - Exchange operations with agents
@@ -16,26 +16,26 @@ import { Principal } from "@dfinity/principal";
 import { Actor, AnonymousIdentity, HttpAgent } from "@dfinity/agent";
 import { nanoid } from "nanoid";
 import {
-  getCkUSDCLedgerActor,
+  getCkUSDLedgerActor,
   toPrincipal,
   toSubaccount,
 } from "./icpActors.js";
 import type { SatelliteOptions } from "@junobuild/core";
 import { getDoc, listDocs, setDoc } from "@junobuild/core";
 import type {
-  CkUSDCBalance,
-  CkUSDCConfig,
-  CkUSDCDepositRequest,
-  CkUSDCDepositResponse,
-  CkUSDCExchangeRate,
-  CkUSDCExchangeRequest,
-  CkUSDCExchangeResponse,
-  CkUSDCTransaction,
-  CkUSDCTransactionStatus,
-  CkUSDCTransferRequest,
-  CkUSDCTransferResponse,
-  CkUSDCWithdrawalRequest,
-  CkUSDCWithdrawalResponse,
+  CkUSDBalance,
+  CkUSDConfig,
+  CkUSDDepositRequest,
+  CkUSDDepositResponse,
+  CkUSDExchangeRate,
+  CkUSDExchangeRequest,
+  CkUSDExchangeResponse,
+  CkUSDTransaction,
+  CkUSDTransactionStatus,
+  CkUSDTransferRequest,
+  CkUSDTransferResponse,
+  CkUSDWithdrawalRequest,
+  CkUSDWithdrawalResponse,
 } from "../types/ckusdc.js";
 import {
   CKUSDC_CONSTANTS,
@@ -65,8 +65,8 @@ declare global {
   }
 }
 
-export class CkUSDCService {
-  private static config: CkUSDCConfig = SEPOLIA_CONFIG;
+export class CkUSDService {
+  private static config: CkUSDConfig = SEPOLIA_CONFIG;
 
   // Default satellite configuration for SMS/USSD operations
   private static defaultSatellite: SatelliteOptions = {
@@ -79,16 +79,16 @@ export class CkUSDCService {
   };
 
   /**
-   * Initialize ckUSDC service with configuration
+   * Initialize ckUSD service with configuration
    */
-  static initialize(config: Partial<CkUSDCConfig>) {
+  static initialize(config: Partial<CkUSDConfig>) {
     this.config = { ...this.config, ...config };
   }
 
   /**
    * Get current configuration
    */
-  static getConfig(): CkUSDCConfig {
+  static getConfig(): CkUSDConfig {
     return this.config;
   }
 
@@ -105,7 +105,7 @@ export class CkUSDCService {
   // ==================== BALANCE OPERATIONS ====================
 
   /**
-   * Get ckUSDC balance for a user
+   * Get ckUSD balance for a user
    * @param principalId - User's Principal ID
    * @param useSatellite - Whether to use satellite configuration (true for SMS/USSD, false for web)
    * @param isDemoMode - Whether in demo mode (uses Juno transactions)
@@ -114,18 +114,18 @@ export class CkUSDCService {
     principalId: string,
     useSatellite?: boolean,
     _isDemoMode = false,
-  ): Promise<CkUSDCBalance> {
+  ): Promise<CkUSDBalance> {
     try {
       // MOCK MODE: Return mock for unit tests or playground
       if (shouldUseMocks()) {
-        console.log("✅ Mock mode: Returning mock ckUSDC balance");
+        console.log("✅ Mock mode: Returning mock ckUSD balance");
         return MOCK_CKUSDC_BALANCE;
       }
 
       // PRODUCTION/INTEGRATION MODE: Query ICP canister
-      console.log("🚀 Production: Querying ICP for ckUSDC balance...");
+      console.log("🚀 Production: Querying ICP for ckUSD balance...");
       const principal = toPrincipal(principalId);
-      const ledgerActor = await getCkUSDCLedgerActor();
+      const ledgerActor = await getCkUSDLedgerActor();
       const balance = await ledgerActor.icrc1_balance_of({
         owner: principal,
         subaccount: toSubaccount(),
@@ -133,20 +133,20 @@ export class CkUSDCService {
 
       const balanceAmount =
         Number(balance) / Math.pow(10, CKUSDC_CONSTANTS.DECIMALS);
-      console.log(`✅ ckUSDC balance from ICP: ${balanceAmount} USDC`);
+      console.log(`✅ ckUSD balance from ICP: ${balanceAmount} USDC`);
 
       return {
         balanceUSDC: this.formatAmount(balanceAmount),
         lastUpdated: new Date(),
       };
     } catch (error) {
-      console.error("Error fetching ckUSDC balance:", error);
-      throw new Error("Failed to fetch ckUSDC balance");
+      console.error("Error fetching ckUSD balance:", error);
+      throw new Error("Failed to fetch ckUSD balance");
     }
   }
 
   /**
-   * Get ckUSDC balance with local currency equivalent
+   * Get ckUSD balance with local currency equivalent
    * @param principalId - User's Principal ID
    * @param currency - Local currency code (e.g., 'KES', 'NGN')
    * @param useSatellite - Whether to use satellite configuration (true for SMS/USSD, false for web)
@@ -155,7 +155,7 @@ export class CkUSDCService {
     principalId: string,
     currency: string,
     useSatellite?: boolean,
-  ): Promise<CkUSDCBalance> {
+  ): Promise<CkUSDBalance> {
     const balance = await this.getBalance(principalId, useSatellite);
     const exchangeRate = await this.getExchangeRate(currency);
 
@@ -233,14 +233,14 @@ export class CkUSDCService {
   }
 
   /**
-   * Deposit USDC to get ckUSDC
+   * Deposit USDC to get ckUSD
    * @param request - Deposit request with amount and principal ID
    * @param useSatellite - Whether to use satellite configuration (true for SMS/USSD, false for web)
    */
   static async deposit(
-    request: CkUSDCDepositRequest,
+    request: CkUSDDepositRequest,
     useSatellite?: boolean,
-  ): Promise<CkUSDCDepositResponse> {
+  ): Promise<CkUSDDepositResponse> {
     try {
       // Validate amount
       if (request.amount < CKUSDC_CONSTANTS.MIN_DEPOSIT) {
@@ -289,7 +289,7 @@ export class CkUSDCService {
 
       // Step 4: Store transaction in Juno database
       const transactionId = nanoid();
-      const transaction: CkUSDCTransaction = {
+      const transaction: CkUSDTransaction = {
         id: transactionId,
         userId: request.principalId,
         type: "deposit",
@@ -336,19 +336,19 @@ export class CkUSDCService {
   // ==================== WITHDRAWAL OPERATIONS ====================
 
   /**
-   * Withdraw ckUSDC to get USDC on Ethereum
+   * Withdraw ckUSD to get USDC on Ethereum
    * @param request - Withdrawal request with amount, principal ID, and Ethereum address
    * @param useSatellite - Whether to use satellite configuration (true for SMS/USSD, false for web)
    */
   static async withdraw(
-    request: CkUSDCWithdrawalRequest,
+    request: CkUSDWithdrawalRequest,
     useSatellite?: boolean,
-  ): Promise<CkUSDCWithdrawalResponse> {
+  ): Promise<CkUSDWithdrawalResponse> {
     try {
       // Validate amount
       if (request.amount < CKUSDC_CONSTANTS.MIN_TRANSFER) {
         throw new Error(
-          `Minimum withdrawal is ${CKUSDC_CONSTANTS.MIN_TRANSFER} ckUSDC`,
+          `Minimum withdrawal is ${CKUSDC_CONSTANTS.MIN_TRANSFER} ckUSD`,
         );
       }
 
@@ -376,7 +376,7 @@ export class CkUSDCService {
 
       // Store withdrawal transaction
       const transactionId = nanoid();
-      const transaction: CkUSDCTransaction = {
+      const transaction: CkUSDTransaction = {
         id: transactionId,
         userId: request.principalId,
         type: "withdrawal",
@@ -408,10 +408,10 @@ export class CkUSDCService {
         estimatedProcessingTime: 10, // ~10 minutes
       };
     } catch (error: any) {
-      console.error("Error withdrawing ckUSDC:", error);
+      console.error("Error withdrawing ckUSD:", error);
       return {
         success: false,
-        error: error.message || "Failed to withdraw ckUSDC",
+        error: error.message || "Failed to withdraw ckUSD",
       };
     }
   }
@@ -419,21 +419,21 @@ export class CkUSDCService {
   // ==================== TRANSFER OPERATIONS ====================
 
   /**
-   * Transfer ckUSDC between ICP users
+   * Transfer ckUSD between ICP users
    * @param request - Transfer request with amount, sender, and recipient principal IDs
    * @param useSatellite - Whether to use satellite configuration (true for SMS/USSD, false for web)
    * @param isDemoMode - Whether in demo mode
    */
   static async transfer(
-    request: CkUSDCTransferRequest,
+    request: CkUSDTransferRequest,
     useSatellite?: boolean,
     isDemoMode = false,
-  ): Promise<CkUSDCTransferResponse> {
+  ): Promise<CkUSDTransferResponse> {
     try {
       // Validate amount
       if (request.amount < CKUSDC_CONSTANTS.MIN_TRANSFER) {
         throw new Error(
-          `Minimum transfer is ${CKUSDC_CONSTANTS.MIN_TRANSFER} ckUSDC`,
+          `Minimum transfer is ${CKUSDC_CONSTANTS.MIN_TRANSFER} ckUSD`,
         );
       }
 
@@ -479,7 +479,7 @@ export class CkUSDCService {
       }
       const fee = 0.001;
 
-      const transaction: CkUSDCTransaction = {
+      const transaction: CkUSDTransaction = {
         id: transactionId,
         userId: request.senderId,
         type: "transfer",
@@ -511,10 +511,10 @@ export class CkUSDCService {
         fee,
       };
     } catch (error: any) {
-      console.error("Error transferring ckUSDC:", error);
+      console.error("Error transferring ckUSD:", error);
       return {
         success: false,
-        error: error.message || "Failed to transfer ckUSDC",
+        error: error.message || "Failed to transfer ckUSD",
         fee: 0,
       };
     }
@@ -523,14 +523,14 @@ export class CkUSDCService {
   // ==================== EXCHANGE OPERATIONS ====================
 
   /**
-   * Exchange ckUSDC with local currency via agent
+   * Exchange ckUSD with local currency via agent
    * @param request - Exchange request with amount, type, currency, user and agent IDs
    * @param useSatellite - Whether to use satellite configuration (true for SMS/USSD, false for web)
    */
   static async exchange(
-    request: CkUSDCExchangeRequest,
+    request: CkUSDExchangeRequest,
     useSatellite?: boolean,
-  ): Promise<CkUSDCExchangeResponse> {
+  ): Promise<CkUSDExchangeResponse> {
     try {
       // Get exchange rate
       const exchangeRate = await this.getExchangeRate(request.currency);
@@ -540,11 +540,11 @@ export class CkUSDCService {
       let localCurrencyAmount: number;
 
       if (request.type === "buy") {
-        // User buying ckUSDC with local currency
+        // User buying ckUSD with local currency
         localCurrencyAmount = request.amount;
         ckusdcAmount = localCurrencyAmount / exchangeRate.rate;
       } else {
-        // User selling ckUSDC for local currency
+        // User selling ckUSD for local currency
         ckusdcAmount = request.amount;
         localCurrencyAmount = ckusdcAmount * exchangeRate.rate;
       }
@@ -559,7 +559,7 @@ export class CkUSDCService {
 
       // Create and store exchange transaction
       const transactionId = nanoid();
-      const transaction: CkUSDCTransaction = {
+      const transaction: CkUSDTransaction = {
         id: transactionId,
         userId: request.userId,
         type: request.type === "buy" ? "exchange_buy" : "exchange_sell",
@@ -602,7 +602,7 @@ export class CkUSDCService {
         exchangeCode,
       };
     } catch (error: any) {
-      console.error("Error exchanging ckUSDC:", error);
+      console.error("Error exchanging ckUSD:", error);
       return {
         success: false,
         exchangeRate: 0,
@@ -611,17 +611,17 @@ export class CkUSDCService {
         fee: 0,
         feePercentage: 0,
         agentCommission: 0,
-        error: error.message || "Failed to exchange ckUSDC",
+        error: error.message || "Failed to exchange ckUSD",
       };
     }
   }
   // ==================== EXCHANGE RATE OPERATIONS ====================
 
   /**
-   * Get ckUSDC exchange rate for a currency
-   * ckUSDC is pegged 1:1 with USD, so we fetch real USD exchange rates from CoinGecko
+   * Get ckUSD exchange rate for a currency
+   * ckUSD is pegged 1:1 with USD, so we fetch real USD exchange rates from CoinGecko
    */
-  static async getExchangeRate(currency: string): Promise<CkUSDCExchangeRate> {
+  static async getExchangeRate(currency: string): Promise<CkUSDExchangeRate> {
     try {
       // MOCK MODE: Return mock for unit tests or playground
       if (shouldUseMocks()) {
@@ -631,7 +631,7 @@ export class CkUSDCService {
 
       const currencyUpper = currency.toUpperCase();
 
-      // ckUSDC is pegged 1:1 with USD, so we just need USD to local currency rate
+      // ckUSD is pegged 1:1 with USD, so we just need USD to local currency rate
       // Use exchangerate-api.com (free, no key needed, supports all currencies)
       const response = await fetch(
         `https://api.exchangerate-api.com/v4/latest/USD`,
@@ -665,7 +665,7 @@ export class CkUSDCService {
    */
   static async getExchangeRates(
     currencies: string[],
-  ): Promise<CkUSDCExchangeRate[]> {
+  ): Promise<CkUSDExchangeRate[]> {
     const rates = await Promise.all(
       currencies.map((currency) => this.getExchangeRate(currency)),
     );
@@ -675,7 +675,7 @@ export class CkUSDCService {
   // ==================== UTILITY FUNCTIONS ====================
 
   /**
-   * Format ckUSDC amount for display
+   * Format ckUSD amount for display
    */
   static formatAmount(amount: number): string {
     const amountInUSDC = amount / Math.pow(10, CKUSDC_CONSTANTS.DECIMALS);
@@ -683,7 +683,7 @@ export class CkUSDCService {
   }
 
   /**
-   * Parse ckUSDC amount from string
+   * Parse ckUSD amount from string
    */
   static parseAmount(amountStr: string): number {
     const amount = parseFloat(amountStr);
@@ -729,7 +729,7 @@ export class CkUSDCService {
   static async getAgentExchangeRequests(
     agentId?: string,
     useSatellite?: boolean,
-  ): Promise<CkUSDCTransaction[]> {
+  ): Promise<CkUSDTransaction[]> {
     try {
       if (!agentId) {
         console.log("No agent ID provided, returning empty array");
@@ -751,7 +751,7 @@ export class CkUSDCService {
       // Filter transactions for this agent that are exchanges
       const agentExchanges = results.items
         .map((item) => {
-          const data = item.data as CkUSDCTransaction;
+          const data = item.data as CkUSDTransaction;
           return {
             ...data,
             createdAt: new Date(data.createdAt),
@@ -779,7 +779,7 @@ export class CkUSDCService {
    */
   static async updateTransactionStatus(
     transactionId: string,
-    status: CkUSDCTransactionStatus,
+    status: CkUSDTransactionStatus,
     useSatellite?: boolean,
   ): Promise<boolean> {
     try {
@@ -835,27 +835,27 @@ export class CkUSDCService {
     useSatellite?: boolean,
   ): Promise<{ success: boolean; message: string }> {
     try {
-      // Map status to CkUSDCTransactionStatus
-      let ckUSDCStatus: CkUSDCTransactionStatus;
+      // Map status to CkUSDTransactionStatus
+      let ckUSDStatus: CkUSDTransactionStatus;
       switch (status) {
         case "completed":
-          ckUSDCStatus = "completed";
+          ckUSDStatus = "completed";
           break;
         case "failed":
-          ckUSDCStatus = "failed";
+          ckUSDStatus = "failed";
           break;
         case "confirmed":
-          ckUSDCStatus = "confirming";
+          ckUSDStatus = "confirming";
           break;
         case "pending":
         default:
-          ckUSDCStatus = "pending";
+          ckUSDStatus = "pending";
           break;
       }
 
       const success = await this.updateTransactionStatus(
         transactionId,
-        ckUSDCStatus,
+        ckUSDStatus,
         useSatellite,
       );
 
@@ -888,10 +888,10 @@ export class CkUSDCService {
   /**
    * Format exchange requests for agent interface
    * Used by agent pages to display pending exchange requests
-   * @param exchanges - Array of ckUSDC exchange transactions
+   * @param exchanges - Array of ckUSD exchange transactions
    * @param useSatellite - Whether to use satellite configuration (true for SMS/USSD, false for web)
    */
-  static formatExchangeRequestsForAgent(exchanges: CkUSDCTransaction[]): Array<{
+  static formatExchangeRequestsForAgent(exchanges: CkUSDTransaction[]): Array<{
     id: string;
     customerName: string;
     customerPhone: string;
@@ -952,7 +952,7 @@ export class CkUSDCService {
   static async getTransaction(
     transactionId: string,
     useSatellite?: boolean,
-  ): Promise<CkUSDCTransaction | null> {
+  ): Promise<CkUSDTransaction | null> {
     try {
       const satellite = this.getSatelliteConfig(useSatellite);
       const result = await getDoc({
@@ -984,7 +984,7 @@ export class CkUSDCService {
   static async getTransactionHistory(
     userId: string,
     useSatellite?: boolean,
-  ): Promise<CkUSDCTransaction[]> {
+  ): Promise<CkUSDTransaction[]> {
     try {
       const satellite = this.getSatelliteConfig(useSatellite);
       const results = await listDocs({
@@ -1037,7 +1037,7 @@ export class CkUSDCService {
   }
 
   /**
-   * Get ckUSDC ledger canister actor
+   * Get ckUSD ledger canister actor
    */
   private static async getLedgerActor() {
     const agent = await this.createAgent();
@@ -1082,7 +1082,7 @@ export class CkUSDCService {
   }
 
   /**
-   * Get ckUSDC minter canister actor
+   * Get ckUSD minter canister actor
    */
   private static async getMinterActor() {
     const agent = await this.createAgent();

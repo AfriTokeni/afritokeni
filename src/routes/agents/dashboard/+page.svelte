@@ -547,7 +547,7 @@
     </div>
   </div>
 
-  <!-- ckBTC and ckUSDC Balance Cards -->
+  <!-- ckBTC and ckUSD Balance Cards -->
   <div class="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 md:gap-6">
     <CkBTCBalanceCard showActions={false} />
     <CkUSDBalanceCard showActions={false} />

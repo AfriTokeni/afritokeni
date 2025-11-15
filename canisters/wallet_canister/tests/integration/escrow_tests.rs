@@ -258,12 +258,12 @@ fn test_escrow_ckusdc() {
     env.update_crypto_balance(&user_id, 0, 100000).expect("Should set crypto balance");
     
     // Create USDC escrow
-    let escrow_response = env.create_escrow(&user_id, &agent_id, 50000, "CkUSDC", "1234")
+    let escrow_response = env.create_escrow(&user_id, &agent_id, 50000, "CkUSD", "1234")
         .expect("Escrow creation should succeed");
     
-    assert_eq!(escrow_response.crypto_type, "CkUSDC");
+    assert_eq!(escrow_response.crypto_type, "CkUSD");
     
     // Verify escrow
     let escrow = env.get_escrow(&escrow_response.code).expect("Should get escrow");
-    assert_eq!(escrow.crypto_type, CryptoType::CkUSDC);
+    assert_eq!(escrow.crypto_type, CryptoType::CkUSD);
 }

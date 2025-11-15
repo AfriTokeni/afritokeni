@@ -1,6 +1,18 @@
 import { listDocs, getDoc } from "@junobuild/core";
 import type { UserProfile, UserStats, UserActivity } from "$lib/types/admin";
 
+/**
+ * ⚠️ DEPRECATED: This service uses Juno datastore for user data.
+ *
+ * MIGRATION STATUS: User data should be fetched from user_canister, not Juno.
+ * - User profiles → user_canister.get_user_profile()
+ * - User authentication → user_canister (PIN verification, etc.)
+ * - User roles → user_canister.user_type field
+ *
+ * This file is kept for backward compatibility with admin dashboard.
+ * DO NOT use for new features. Use userCanisterService instead.
+ */
+
 const COLLECTION = "users";
 
 /**

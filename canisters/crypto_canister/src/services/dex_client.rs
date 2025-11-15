@@ -107,12 +107,12 @@ async fn swap_via_sonic(
     // Get token ledger principals
     let from_principal = match from_token {
         CryptoType::CkBTC => config::get_ckbtc_ledger()?,
-        CryptoType::CkUSDC => config::get_ckusdc_ledger()?,
+        CryptoType::CkUSD => config::get_ckusdc_ledger()?,
     };
     
     let to_principal = match to_token {
         CryptoType::CkBTC => config::get_ckbtc_ledger()?,
-        CryptoType::CkUSDC => config::get_ckusdc_ledger()?,
+        CryptoType::CkUSD => config::get_ckusdc_ledger()?,
     };
     
     // Sonic swap parameters

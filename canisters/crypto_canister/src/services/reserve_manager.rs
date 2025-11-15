@@ -107,11 +107,11 @@ pub async fn rebalance_reserve(btc_price_usd: f64) -> Result<RebalanceResult, St
     let (from_token, to_token, swap_amount_usd) = if ckbtc_value_usd > target_btc_value_usd {
         // Too much BTC, swap BTC -> USDC
         let excess_btc_usd = ckbtc_value_usd - target_btc_value_usd;
-        ("CkBTC".to_string(), "CkUSDC".to_string(), excess_btc_usd)
+        ("CkBTC".to_string(), "CkUSD".to_string(), excess_btc_usd)
     } else {
         // Too much USDC, swap USDC -> BTC
         let excess_usdc_usd = ckusdc_value_usd - target_usdc_value_usd;
-        ("CkUSDC".to_string(), "CkBTC".to_string(), excess_usdc_usd)
+        ("CkUSD".to_string(), "CkBTC".to_string(), excess_usdc_usd)
     };
     
     // Convert USD amount to token amount
@@ -131,8 +131,8 @@ pub async fn rebalance_reserve(btc_price_usd: f64) -> Result<RebalanceResult, St
     let min_output = (expected_output as f64 * (1.0 - slippage_tolerance)) as u64;
     
     // Execute swap via Sonic DEX
-    let from_crypto = if from_token == "CkBTC" { CryptoType::CkBTC } else { CryptoType::CkUSDC };
-    let to_crypto = if to_token == "CkBTC" { CryptoType::CkBTC } else { CryptoType::CkUSDC };
+    let from_crypto = if from_token == "CkBTC" { CryptoType::CkBTC } else { CryptoType::CkUSD };
+    let to_crypto = if to_token == "CkBTC" { CryptoType::CkBTC } else { CryptoType::CkUSD };
     
     let amount_received = dex_client::swap_tokens(
         from_crypto,
@@ -180,13 +180,13 @@ pub async fn check_reserve_sufficient(
     
     let sufficient = match crypto_type {
         CryptoType::CkBTC => reserve.ckbtc_balance >= amount,
-        CryptoType::CkUSDC => reserve.ckusdc_balance >= amount,
+        CryptoType::CkUSD => reserve.ckusdc_balance >= amount,
     };
     
     if !sufficient {
         let balance = match crypto_type {
             CryptoType::CkBTC => reserve.ckbtc_balance,
-            CryptoType::CkUSDC => reserve.ckusdc_balance,
+            CryptoType::CkUSD => reserve.ckusdc_balance,
         };
         
         audit::log_failure(

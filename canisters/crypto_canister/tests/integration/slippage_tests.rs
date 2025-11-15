@@ -75,7 +75,7 @@ fn test_swap_crypto_with_slippage_protection() {
     let swap_request = SwapCryptoRequest {
         user_identifier: user_id.clone(),
         from_crypto: "CkBTC".to_string(),
-        to_crypto: "CkUSDC".to_string(),
+        to_crypto: "CkUSD".to_string(),
         amount: buy_response.crypto_amount,
         pin: pin.to_string(),
     };
@@ -104,7 +104,7 @@ fn test_swap_crypto_with_slippage_protection() {
 
     // Verify balances
     let btc_balance = get_crypto_balance(&pic, crypto_canister, &user_id, "CkBTC");
-    let usdc_balance = get_crypto_balance(&pic, crypto_canister, &user_id, "CkUSDC");
+    let usdc_balance = get_crypto_balance(&pic, crypto_canister, &user_id, "CkUSD");
 
     assert_eq!(btc_balance, 0, "BTC balance should be 0 after swap");
     assert_eq!(usdc_balance, swap_response.to_amount, "USDC balance should match swap output");
@@ -127,7 +127,7 @@ fn test_swap_validates_slippage_after_execution() {
         user_identifier: user_id.clone(),
         fiat_amount: 1_500_000,
         currency: "KES".to_string(),
-        crypto_type: "CkUSDC".to_string(),
+        crypto_type: "CkUSD".to_string(),
         pin: pin.to_string(),
     };
 
@@ -141,7 +141,7 @@ fn test_swap_validates_slippage_after_execution() {
     // Swap USDC to BTC
     let swap_request = SwapCryptoRequest {
         user_identifier: user_id.clone(),
-        from_crypto: "CkUSDC".to_string(),
+        from_crypto: "CkUSD".to_string(),
         to_crypto: "CkBTC".to_string(),
         amount: buy_response.crypto_amount,
         pin: pin.to_string(),
@@ -199,7 +199,7 @@ fn test_large_swap_respects_slippage() {
     let swap_request = SwapCryptoRequest {
         user_identifier: user_id.clone(),
         from_crypto: "CkBTC".to_string(),
-        to_crypto: "CkUSDC".to_string(),
+        to_crypto: "CkUSD".to_string(),
         amount: buy_response.crypto_amount,
         pin: pin.to_string(),
     };
@@ -262,9 +262,9 @@ fn test_multiple_swaps_all_protected() {
 
     for i in 0..3 {
         let (from_crypto, to_crypto) = if i % 2 == 0 {
-            ("CkBTC".to_string(), "CkUSDC".to_string())
+            ("CkBTC".to_string(), "CkUSD".to_string())
         } else {
-            ("CkUSDC".to_string(), "CkBTC".to_string())
+            ("CkUSD".to_string(), "CkBTC".to_string())
         };
 
         // Get current balance to determine how much we can swap
@@ -342,7 +342,7 @@ fn test_slippage_validation_would_catch_extreme_deviation() {
     let swap_request = SwapCryptoRequest {
         user_identifier: user_id.clone(),
         from_crypto: "CkBTC".to_string(),
-        to_crypto: "CkUSDC".to_string(),
+        to_crypto: "CkUSD".to_string(),
         amount: buy_response.crypto_amount,
         pin: pin.to_string(),
     };

@@ -189,6 +189,51 @@ fn configure_canisters(
     // Crypto canister needs tokens to fulfill buy orders
     fund_ledger_account(pic, ckbtc_ledger, crypto_canister, 1_000_000_000_000); // 10,000 ckBTC (8 decimals)
     fund_ledger_account(pic, ckusdc_ledger, crypto_canister, 1_000_000_000_000); // 10,000 ckUSDC (6 decimals)
+
+    // Create company wallet user for fee collection
+    // The company wallet principal is "aaaaa-aa" (management canister)
+    create_company_wallet_user(pic, user_canister);
+}
+
+/// Create the company wallet user for platform fee collection
+fn create_company_wallet_user(pic: &PocketIc, user_canister: Principal) {
+    use candid::CandidType;
+    use serde::Deserialize;
+
+    #[derive(CandidType, Deserialize)]
+    struct RegisterUserRequest {
+        phone_number: Option<String>,
+        principal_id: Option<String>,
+        pin: String,
+        first_name: String,
+        last_name: String,
+        email: String,
+        preferred_currency: String,
+    }
+
+    // Company wallet principal from crypto_config.toml
+    let company_principal = "aaaaa-aa";
+
+    let request = RegisterUserRequest {
+        phone_number: None,
+        principal_id: Some(company_principal.to_string()),
+        pin: "0000".to_string(),  // Dummy PIN for company wallet
+        first_name: "AfriTokeni".to_string(),
+        last_name: "Platform".to_string(),
+        email: "platform@afritokeni.com".to_string(),
+        preferred_currency: "KES".to_string(),  // Kenya Shilling
+    };
+
+    let args = encode_args((request,)).unwrap();
+    let response = pic.update_call(
+        user_canister,
+        Principal::anonymous(),
+        "register_user",
+        args,
+    ).expect("Failed to register company wallet user");
+
+    let result: Result<String, String> = decode_one(&response).unwrap();
+    result.expect("Company wallet registration failed");
 }
 
 /// Fund a ledger account for testing

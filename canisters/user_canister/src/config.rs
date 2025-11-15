@@ -165,3 +165,40 @@ pub fn verify_authorized_caller() -> Result<(), String> {
     })
 }
 
+/// Verify caller is authenticated (not anonymous)
+///
+/// Use this for public endpoints that should be callable by any authenticated user,
+/// but not by the anonymous principal (to prevent spam/abuse).
+///
+/// # Authorization Levels
+/// 1. Controller - Always allowed
+/// 2. Test mode - All callers allowed
+/// 3. Authenticated users - Any non-anonymous principal
+/// 4. Anonymous principal - BLOCKED
+///
+/// # Returns
+/// * `Ok(())` if caller is authenticated
+/// * `Err` if caller is anonymous
+pub fn verify_caller_is_authenticated() -> Result<(), String> {
+    let caller = ic_cdk::api::msg_caller();
+
+    // Controllers always authorized
+    if ic_cdk::api::is_controller(&caller) {
+        return Ok(());
+    }
+
+    // Check if test mode is enabled
+    let test_mode = TEST_MODE.with(|mode| *mode.borrow());
+    if test_mode {
+        return Ok(());
+    }
+
+    // Block anonymous principal (2vxsx-fae)
+    if caller == Principal::anonymous() {
+        return Err("Anonymous calls not allowed. Please authenticate with Internet Identity.".to_string());
+    }
+
+    // All other authenticated principals are allowed
+    Ok(())
+}
+

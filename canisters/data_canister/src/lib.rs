@@ -378,6 +378,27 @@ async fn update_user_phone(request: shared_types::UpdateUserPhoneRequest) -> Res
     })
 }
 
+/// Update user type (canister only - User ↔ Agent ↔ Admin)
+#[update]
+async fn update_user_type(user_id: String, user_type: UserType) -> Result<(), String> {
+    verify_canister_access()?;
+
+    STATE.with(|state| {
+        let mut state = state.borrow_mut();
+
+        // Check if user exists
+        let user = state.users.get_mut(&user_id)
+            .ok_or_else(|| format!("User not found: {}", user_id))?;
+
+        // Update user type
+        user.user_type = user_type;
+
+        ic_cdk::println!("✅ User type updated: {} → {:?}", user_id, user_type);
+
+        Ok(())
+    })
+}
+
 /// Update KYC status (canister only - for compliance)
 #[update]
 async fn update_kyc_status(user_id: String, status: KYCStatus) -> Result<(), String> {

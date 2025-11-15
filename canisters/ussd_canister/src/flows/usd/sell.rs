@@ -75,7 +75,7 @@ pub async fn handle_sell_usdc(text: &str, session: &mut UssdSession) -> (String,
             // Check USDC balance from crypto canister
             match crate::services::crypto_client::check_crypto_balance(
                 user_profile.id.clone(),
-                shared_types::CryptoType::CkUSDC
+                shared_types::CryptoType::CkUSD
             ).await {
                 Ok(balance_e6) => {
                     let usdc_balance = balance_e6 as f64 / 1_000_000.0;
@@ -217,7 +217,7 @@ pub async fn handle_sell_usdc(text: &str, session: &mut UssdSession) -> (String,
             match crate::services::crypto_client::sell_crypto(
                 user_profile.id.clone(),
                 amount_e6,
-                shared_types::CryptoType::CkUSDC,
+                shared_types::CryptoType::CkUSD,
                 currency_enum,
                 pin
             ).await {
@@ -305,7 +305,7 @@ async fn execute_sell_usdc_raw(
     match crate::services::crypto_client::sell_crypto(
         user_profile.id.clone(),
         amount_e6,
-        shared_types::CryptoType::CkUSDC,
+        shared_types::CryptoType::CkUSD,
         currency_enum,
         pin.to_string()
     ).await {

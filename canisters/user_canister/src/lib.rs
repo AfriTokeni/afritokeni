@@ -19,6 +19,7 @@ pub struct UserProfile {
     pub email: String,
     pub preferred_currency: String,
     pub kyc_status: String,
+    pub user_type: String,  // "User", "Agent", or "Admin"
     pub created_at: u64,
     pub last_active: u64,
 }
@@ -43,6 +44,7 @@ impl From<User> for UserProfile {
             email: user.email,
             preferred_currency: user.preferred_currency.to_string(),
             kyc_status: format!("{:?}", user.kyc_status),
+            user_type: format!("{:?}", user.user_type),  // "User", "Agent", or "Admin"
             created_at: user.created_at,
             last_active: user.last_active,
         }
@@ -54,10 +56,14 @@ impl From<User> for UserProfile {
 // ============================================================================
 
 /// Register new user
+///
+/// This endpoint is publicly callable by any authenticated user (with Internet Identity).
+/// Anonymous calls are blocked to prevent spam.
 #[update]
 async fn register_user(request: RegisterUserRequest) -> Result<String, String> {
-    config::verify_authorized_caller()?;
-    
+    // Allow any authenticated user to register (but block anonymous)
+    config::verify_caller_is_authenticated()?;
+
     ic_cdk::println!("📥 User Canister received register_user:");
     ic_cdk::println!("  phone_number: {:?}", request.phone_number);
     ic_cdk::println!("  principal_id: {:?}", request.principal_id);
@@ -518,6 +524,56 @@ async fn get_user_principal(user_id: String) -> Result<Option<String>, String> {
     let user = services::data_client::get_user(&user_id).await?;
 
     Ok(user.and_then(|u| u.principal_id))
+}
+
+/// Set user type (User → Agent or Agent → User)
+///
+/// # Arguments
+/// * `user_identifier` - Phone number, principal ID, or user ID
+/// * `new_user_type` - "User", "Agent", or "Admin"
+///
+/// # Returns
+/// * `Ok(())` if user type changed successfully
+/// * `Err` if user not found or invalid user type
+///
+/// # Security
+/// - Requires authorized canister or controller
+/// - Only supports: "User", "Agent", "Admin"
+#[update]
+async fn set_user_type(user_identifier: String, new_user_type: String) -> Result<(), String> {
+    config::verify_authorized_caller()?;
+
+    // Parse user type
+    let user_type = match new_user_type.as_str() {
+        "User" => UserType::User,
+        "Agent" => UserType::Agent,
+        "Admin" => UserType::Admin,
+        _ => return Err(format!("Invalid user type: {}. Must be 'User', 'Agent', or 'Admin'", new_user_type)),
+    };
+
+    // Get user
+    let user = if let Some(u) = services::data_client::get_user_by_phone(&user_identifier).await? {
+        u
+    } else if let Some(u) = services::data_client::get_user_by_principal(&user_identifier).await? {
+        u
+    } else if let Some(u) = services::data_client::get_user(&user_identifier).await? {
+        u
+    } else {
+        return Err(format!("User not found: {}", user_identifier));
+    };
+
+    // Update user type
+    services::data_client::update_user_type(&user.id, user_type).await?;
+
+    audit::log_success(
+        "set_user_type",
+        Some(user.id.clone()),
+        format!("Changed user type to {:?}", user_type),
+    );
+
+    ic_cdk::println!("✅ User type updated: {} → {:?}", user.id, user_type);
+
+    Ok(())
 }
 
 // ============================================================================

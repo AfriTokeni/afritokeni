@@ -17,11 +17,11 @@ fn test_bitcoin_balance_check() {
     let session_id = "btc_test_1";
     
     // Navigate to Bitcoin menu -> Check Balance
-    let (response, continue_session) = env.process_ussd(session_id, phone, "2");
+    let (_response, continue_session) = env.process_ussd(session_id, phone, "2");
     assert!(continue_session, "Should show Bitcoin menu");
-    assert!(response.contains("Bitcoin") || response.contains("BTC"), 
-        "Should show Bitcoin menu. Got: {}", response);
-    
+    assert!(_response.contains("Bitcoin") || _response.contains("BTC"),
+        "Should show Bitcoin menu. Got: {}", _response);
+
     // Check balance
     let (response, _) = env.process_ussd(session_id, phone, "2*1");
     assert!(response.contains("1.00000000") || response.contains("ckBTC"), 
@@ -63,11 +63,11 @@ fn test_buy_bitcoin_flow_navigation() {
     env.set_fiat_balance(&user_id, "UGX", 1_000_000).expect("Should set balance");
     
     let session_id = "btc_test_3";
-    
+
     // Navigate to Bitcoin menu -> Buy Bitcoin
-    let (response, continue_session) = env.process_ussd(session_id, phone, "2");
+    let (_response, continue_session) = env.process_ussd(session_id, phone, "2");
     assert!(continue_session, "Should show Bitcoin menu");
-    
+
     let (response, continue_session) = env.process_ussd(session_id, phone, "2*3");
     assert!(continue_session, "Should start buy flow");
     assert!(response.contains("amount") || response.contains("Enter") || response.contains("UGX"), 
@@ -110,11 +110,11 @@ fn test_send_bitcoin_flow_navigation() {
     env.set_crypto_balance(&user_id, 50_000_000, 0).expect("Should set balance"); // 0.5 BTC
     
     let session_id = "btc_test_5";
-    
+
     // Navigate to Bitcoin menu -> Send Bitcoin
-    let (response, continue_session) = env.process_ussd(session_id, phone, "2");
+    let (_response, continue_session) = env.process_ussd(session_id, phone, "2");
     assert!(continue_session, "Should show Bitcoin menu");
-    
+
     let (response, continue_session) = env.process_ussd(session_id, phone, "2*5");
     assert!(continue_session, "Should start send flow");
     assert!(response.contains("address") || response.contains("recipient") || response.contains("Enter"), 
@@ -159,11 +159,11 @@ fn test_sell_bitcoin_flow_navigation() {
     env.set_crypto_balance(&user_id, 100_000_000, 0).expect("Should set balance"); // 1 BTC
     
     let session_id = "btc_test_7";
-    
+
     // Navigate to Bitcoin menu -> Sell Bitcoin
-    let (response, continue_session) = env.process_ussd(session_id, phone, "2");
+    let (_response, continue_session) = env.process_ussd(session_id, phone, "2");
     assert!(continue_session, "Should show Bitcoin menu");
-    
+
     let (response, continue_session) = env.process_ussd(session_id, phone, "2*4");
     assert!(continue_session, "Should start sell flow");
     assert!(response.contains("amount") || response.contains("Enter") || response.contains("BTC"), 

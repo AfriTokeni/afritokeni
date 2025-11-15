@@ -57,26 +57,29 @@ fn test_send_crypto_btc_success() {
     let buy_response = buy_result.expect("Buy should succeed");
     
     // Now send crypto
+    let send_amount = buy_response.crypto_amount / 2;
     let send_request = SendCryptoRequest {
         user_identifier: user_id.clone(),
         to_address: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa".to_string(), // Valid BTC address
-        amount: buy_response.crypto_amount / 2,
+        amount: send_amount,
         crypto_type: "CkBTC".to_string(),
         pin: pin.to_string(),
     };
-    
+
     let args = encode_args((send_request,)).unwrap();
     let response = pic.update_call(crypto_canister, Principal::anonymous(), "send_crypto", args)
         .expect("Failed to call send_crypto");
-    
+
     let result: Result<String, String> = decode_one(&response).unwrap();
     let tx_id = result.expect("Send crypto failed");
-    
+
     assert!(!tx_id.is_empty(), "Should return transaction ID");
-    
-    // Verify balance reduced
+
+    // Verify balance reduced (sent amount + network fee of 1000 sats)
+    let network_fee = 1000; // btc_network_fee_satoshis from crypto_config.toml
+    let expected_balance = buy_response.crypto_amount - send_amount - network_fee;
     let balance = get_crypto_balance(&pic, crypto_canister, &user_id, "CkBTC");
-    assert_eq!(balance, buy_response.crypto_amount / 2, "Balance should be half");
+    assert_eq!(balance, expected_balance, "Balance should be initial - sent - network_fee");
 }
 
 #[test]
@@ -93,7 +96,7 @@ fn test_send_crypto_usdc_success() {
         user_identifier: user_id.clone(),
         fiat_amount: 1_500_000,
         currency: "KES".to_string(),
-        crypto_type: "CkUSDC".to_string(),
+        crypto_type: "CkUSD".to_string(),
         pin: pin.to_string(),
     };
     
@@ -109,7 +112,7 @@ fn test_send_crypto_usdc_success() {
         user_identifier: user_id.clone(),
         to_address: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0".to_string(), // Valid ETH address
         amount: buy_response.crypto_amount / 2,
-        crypto_type: "CkUSDC".to_string(),
+        crypto_type: "CkUSD".to_string(),
         pin: pin.to_string(),
     };
     

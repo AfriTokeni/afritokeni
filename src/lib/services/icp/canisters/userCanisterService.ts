@@ -10,7 +10,8 @@
  */
 
 import { Actor, HttpAgent } from "@dfinity/agent";
-import { idlFactory, type _SERVICE } from "$/declarations/user_canister";
+import { idlFactory } from "$/declarations/user_canister/user_canister.did.js";
+import type { _SERVICE } from "$/declarations/user_canister/user_canister.did.d.ts";
 import { USER_CANISTER_ID, IC_HOST } from "./config";
 import type {
   RegisterUserRequest,
@@ -205,6 +206,22 @@ export class UserCanisterService {
       principalId,
       phoneNumber,
     );
+
+    if ("Err" in result) {
+      throw new Error(result.Err);
+    }
+  }
+
+  /**
+   * Set user type (User → Agent or Agent → User)
+   * @param userIdentifier - Phone number, principal ID, or user ID
+   * @param newUserType - "User", "Agent", or "Admin"
+   */
+  async setUserType(
+    userIdentifier: string,
+    newUserType: string,
+  ): Promise<void> {
+    const result = await this.actor.set_user_type(userIdentifier, newUserType);
 
     if ("Err" in result) {
       throw new Error(result.Err);

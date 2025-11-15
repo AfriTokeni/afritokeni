@@ -377,7 +377,7 @@ async fn create_escrow(request: CreateEscrowRequest) -> Result<CreateEscrowRespo
     // 2. Parse crypto type
     let crypto_type = match request.crypto_type.as_str() {
         "CkBTC" => CryptoType::CkBTC,
-        "CkUSDC" => CryptoType::CkUSDC,
+        "CkUSD" => CryptoType::CkUSD,
         _ => return Err(format!("Invalid crypto type: {}", request.crypto_type)),
     };
     

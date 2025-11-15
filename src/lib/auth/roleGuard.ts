@@ -5,12 +5,11 @@
  * Since SSR is disabled, all auth checks happen client-side.
  *
  * Security: Client-side guards are UI-only. Real security is enforced
- * by Juno's managed/controllers permissions on collections.
+ * by canister access control (Controller/AuthorizedCanister/UserSelf).
  */
 
 import { get } from "svelte/store";
 import { goto } from "$app/navigation";
-import { getDoc } from "@junobuild/core";
 import { browser } from "$app/environment";
 import { toast } from "$lib/stores/toast";
 import { authUser, junoInitialized, type AuthUser } from "$lib/stores/auth";
@@ -60,7 +59,7 @@ async function waitForJunoInitialization(timeoutMs = 10000): Promise<boolean> {
 }
 
 /**
- * Fetch user role from Juno with caching
+ * Fetch user role from user_canister with caching
  */
 async function fetchUserRole(principalId: string): Promise<UserRole | null> {
   if (roleCache.has(principalId)) {
@@ -68,19 +67,25 @@ async function fetchUserRole(principalId: string): Promise<UserRole | null> {
   }
 
   try {
-    const roleDoc = await getDoc({
-      collection: "user_roles",
-      key: principalId,
-    });
+    // Dynamic import to avoid SSR issues
+    const { userCanisterService } = await import(
+      "$lib/services/icp/canisters/userCanisterService"
+    );
 
-    const role = (roleDoc?.data as { role?: string } | undefined)?.role;
+    // Use update call (not query) since it makes inter-canister calls to data_canister
+    const userProfile = await userCanisterService.getUserByPrincipalUpdate(
+      principalId
+    );
+
+    // user_type is "User", "Agent", or "Admin" from canister
+    const role = userProfile.user_type.toLowerCase() as UserRole;
 
     if (role && ["user", "agent", "admin"].includes(role)) {
-      roleCache.set(principalId, role as UserRole);
-      return role as UserRole;
+      roleCache.set(principalId, role);
+      return role;
     }
   } catch (error) {
-    console.error("❌ Failed to load user role:", error);
+    console.error("❌ Failed to load user role from user_canister:", error);
   }
 
   return null;

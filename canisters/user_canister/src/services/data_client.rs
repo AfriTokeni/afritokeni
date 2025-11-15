@@ -1,5 +1,5 @@
 use ic_cdk::call::Call;
-use shared_types::{User, CreateUserData, CreateUserRequest, UpdateUserPhoneRequest};
+use shared_types::{User, CreateUserData, CreateUserRequest, UpdateUserPhoneRequest, UserType};
 
 use crate::config;
 
@@ -147,6 +147,22 @@ pub async fn update_user_phone(user_id: &str, phone_number: &str) -> Result<(), 
         .candid_tuple()
         .map_err(|e| format!("Decode failed: {}", e))?;
     
+    result
+}
+
+/// Update user type in data canister
+pub async fn update_user_type(user_id: &str, user_type: UserType) -> Result<(), String> {
+    let canister_id = config::get_data_canister_id()?;
+
+    let response = Call::unbounded_wait(canister_id, "update_user_type")
+        .with_args(&(user_id.to_string(), user_type))
+        .await
+        .map_err(|e| format!("Call failed: {:?}", e))?;
+
+    let (result,): (Result<(), String>,) = response
+        .candid_tuple()
+        .map_err(|e| format!("Decode failed: {}", e))?;
+
     result
 }
 

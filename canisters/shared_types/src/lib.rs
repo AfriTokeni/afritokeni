@@ -136,7 +136,7 @@ pub enum KYCStatus {
 #[derive(CandidType, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CryptoType {
     CkBTC,
-    CkUSDC,
+    CkUSD,
 }
 
 /// CreateUserData - MUST match Data Canister's definition EXACTLY

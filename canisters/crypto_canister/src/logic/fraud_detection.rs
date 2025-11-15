@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use crate::config;
 
 // Use mock time in tests, real time in production
 #[cfg(not(test))]
@@ -92,25 +91,7 @@ thread_local! {
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
-
-#[allow(dead_code)]
-const MAX_TRANSACTIONS_PER_MINUTE: usize = 10;
-const MAX_TRANSACTIONS_PER_HOUR: usize = 50;
-const MAX_24H_VOLUME_CENTS: u64 = 10_000_000; // $100,000
-const MAX_1H_VOLUME_CENTS: u64 = 1_000_000;   // $10,000
-const SUSPICIOUS_AMOUNT_CENTS: u64 = 50_000;  // $500
-const HIGH_RISK_AMOUNT_CENTS: u64 = 100_000;  // $1,000
-
-// Per-operation limits
-const MAX_BUYS_PER_HOUR: usize = 20;
-const MAX_SELLS_PER_HOUR: usize = 20;
-const MAX_TRANSFERS_PER_HOUR: usize = 10;
-const MAX_ESCROWS_PER_HOUR: usize = 5;
-
-// PIN attempt limits
-const MAX_PIN_ATTEMPTS: u32 = 5;
-const INITIAL_BACKOFF_NS: u64 = 60_000_000_000; // 1 minute
-const MAX_BACKOFF_NS: u64 = 3600_000_000_000;   // 1 hour
+// All configuration values are now loaded from crypto_config.toml via config module
 
 // ============================================================================
 // RATE LIMITING
@@ -120,30 +101,33 @@ const MAX_BACKOFF_NS: u64 = 3600_000_000_000;   // 1 hour
 
 /// Check per-operation rate limit
 pub fn check_operation_rate_limit(user_id: &str, operation: &str) -> Result<bool, String> {
+    use crate::config;
+    let cfg = config::get_config();
+
     OPERATION_LIMITS.with(|limits| {
         let mut limits = limits.borrow_mut();
         let now = time();
         let hour_ago = now.saturating_sub(3600_000_000_000); // 1 hour in nanoseconds
-        
+
         let key = (user_id.to_string(), operation.to_string());
         let timestamps = limits.entry(key).or_insert_with(Vec::new);
-        
+
         // Remove old timestamps
         timestamps.retain(|&ts| ts > hour_ago);
-        
-        // Check operation-specific limit
+
+        // Check operation-specific limit from config
         let max_for_operation = match operation {
-            "buy_crypto" => MAX_BUYS_PER_HOUR,
-            "sell_crypto" => MAX_SELLS_PER_HOUR,
-            "send_crypto" => MAX_TRANSFERS_PER_HOUR,
-            "create_escrow" => MAX_ESCROWS_PER_HOUR,
-            _ => MAX_TRANSACTIONS_PER_HOUR,
+            "buy_crypto" => cfg.fraud_detection.max_buys_per_hour,
+            "sell_crypto" => cfg.fraud_detection.max_sells_per_hour,
+            "send_crypto" => cfg.fraud_detection.max_transfers_per_hour,
+            "create_escrow" => cfg.fraud_detection.max_escrows_per_hour,
+            _ => cfg.fraud_detection.max_transactions_per_hour,
         };
-        
+
         if timestamps.len() >= max_for_operation {
             return Ok(false); // Operation rate limit exceeded
         }
-        
+
         // Add current timestamp
         timestamps.push(now);
         Ok(true)
@@ -156,6 +140,9 @@ pub fn check_operation_rate_limit(user_id: &str, operation: &str) -> Result<bool
 
 /// Check if PIN attempts are allowed (with exponential backoff)
 pub fn check_pin_attempts_allowed(user_id: &str) -> Result<bool, String> {
+    use crate::config;
+    let cfg = config::get_config();
+
     PIN_ATTEMPTS.with(|attempts| {
         let attempts = attempts.borrow();
         let now = time();
@@ -167,35 +154,39 @@ pub fn check_pin_attempts_allowed(user_id: &str) -> Result<bool, String> {
                 let remaining_secs = remaining_ns / 1_000_000_000;
                 return Err(format!("Too many failed PIN attempts. Try again in {} seconds", remaining_secs));
             }
-            
+
             // Check if max attempts exceeded
-            if *count >= MAX_PIN_ATTEMPTS {
+            if *count >= cfg.fraud_detection.max_pin_attempts {
                 return Err("Maximum PIN attempts exceeded. Account temporarily locked".to_string());
             }
         }
-        
+
         Ok(true)
     })
 }
 
 /// Record failed PIN attempt (with exponential backoff)
 pub fn record_failed_pin_attempt(user_id: &str) -> Result<(), String> {
+    use crate::config;
+    let cfg = config::get_config();
+
     PIN_ATTEMPTS.with(|attempts| {
         let mut attempts = attempts.borrow_mut();
         let now = time();
-        
+
         let (new_count, backoff_duration) = if let Some((count, _last_attempt, _backoff_until)) = attempts.get(user_id) {
             let new_count = count + 1;
             // Exponential backoff: 1min, 2min, 4min, 8min, 16min, ...
-            let backoff = (INITIAL_BACKOFF_NS * 2_u64.pow(new_count.saturating_sub(1))).min(MAX_BACKOFF_NS);
+            let backoff = (cfg.fraud_detection.initial_backoff_ns * 2_u64.pow(new_count.saturating_sub(1)))
+                .min(cfg.fraud_detection.max_backoff_ns);
             (new_count, backoff)
         } else {
-            (1, INITIAL_BACKOFF_NS)
+            (1, cfg.fraud_detection.initial_backoff_ns)
         };
-        
+
         let backoff_until = now + backoff_duration;
         attempts.insert(user_id.to_string(), (new_count, now, backoff_until));
-        
+
         Ok(())
     })
 }
@@ -256,39 +247,42 @@ pub fn record_transaction(
 
 /// Check velocity limits
 pub fn check_velocity_limits(user_id: &str, amount: u64) -> Result<Vec<String>, String> {
+    use crate::config;
+    let cfg = config::get_config();
+
     VELOCITY_DATA.with(|data| {
         let data = data.borrow();
         let mut warnings = Vec::new();
-        
+
         if let Some(velocity) = data.get(user_id) {
             // Check 1-hour volume
-            if velocity.total_1h + amount > MAX_1H_VOLUME_CENTS {
+            if velocity.total_1h + amount > cfg.fraud_detection.max_1h_volume_cents {
                 warnings.push(format!(
                     "High transaction volume in last hour: ${:.2}",
                     (velocity.total_1h + amount) as f64 / 100.0
                 ));
             }
-            
+
             // Check 24-hour volume
-            if velocity.total_24h + amount > MAX_24H_VOLUME_CENTS {
+            if velocity.total_24h + amount > cfg.fraud_detection.max_24h_volume_cents {
                 warnings.push(format!(
                     "High transaction volume in last 24 hours: ${:.2}",
                     (velocity.total_24h + amount) as f64 / 100.0
                 ));
             }
-            
+
             // Check transaction frequency
             let now = time();
             let hour_ago = now.saturating_sub(3600_000_000_000);
             let recent_count = velocity.transactions.iter()
                 .filter(|tx| tx.timestamp > hour_ago)
                 .count();
-            
-            if recent_count >= MAX_TRANSACTIONS_PER_HOUR {
+
+            if recent_count >= cfg.fraud_detection.max_transactions_per_hour {
                 warnings.push(format!("High transaction frequency: {} transactions in last hour", recent_count));
             }
         }
-        
+
         Ok(warnings)
     })
 }
@@ -424,6 +418,7 @@ pub fn check_transaction(
     device_fingerprint: Option<&str>,
     geo_location: Option<&str>,
 ) -> Result<FraudCheckResult, String> {
+    use crate::config;
     let mut warnings = Vec::new();
     let mut risk_score = 0;
 
@@ -437,7 +432,7 @@ pub fn check_transaction(
             cfg.limits.btc.max_single_transfer_satoshis,
             cfg.limits.btc.max_daily_transfer_satoshis
         ),
-        ("CkUSDC" | "USDC", "send_crypto") => (
+        ("CkUSD" | "USDC", "send_crypto") => (
             cfg.limits.usdc.max_single_transfer_cents,
             cfg.limits.usdc.max_daily_transfer_cents
         ),
@@ -457,18 +452,27 @@ pub fn check_transaction(
         ),
     };
 
+    // Helper to format amounts based on currency
+    let format_amount = |amt: u64| -> f64 {
+        match currency {
+            "CkBTC" | "BTC" => amt as f64 / 100_000_000.0,  // Satoshis: 8 decimals
+            "CkUSD" | "USDC" => amt as f64 / 1_000_000.0,  // USDC: 6 decimals
+            _ => amt as f64 / 100.0,  // Fiat: 2 decimals (cents)
+        }
+    };
+
     // Check 1: Amount-based risk using config limits
     // Flag if amount > 5% of max single limit (early warning)
     let warning_threshold = max_single / 20;
     if amount > warning_threshold {
-        warnings.push(format!("Large transaction amount: ${:.2}", amount as f64 / 100.0));
+        warnings.push(format!("Large transaction amount: ${:.2}", format_amount(amount)));
         risk_score += 20;
     }
 
     // Flag if amount > 10% of max single limit (high risk)
     let high_risk_threshold = max_single / 10;
     if amount > high_risk_threshold {
-        warnings.push(format!("Very large transaction: ${:.2}", amount as f64 / 100.0));
+        warnings.push(format!("Very large transaction: ${:.2}", format_amount(amount)));
         risk_score += 30;
     }
 
@@ -476,8 +480,8 @@ pub fn check_transaction(
     if amount > max_single {
         return Err(format!(
             "Transaction amount ${:.2} exceeds maximum allowed ${:.2}",
-            amount as f64 / 100.0,
-            max_single as f64 / 100.0
+            format_amount(amount),
+            format_amount(max_single)
         ));
     }
     
@@ -499,8 +503,8 @@ pub fn check_transaction(
             if velocity.total_24h + amount > max_daily {
                 return Err(format!(
                     "Daily transaction limit exceeded. Total: ${:.2}, Limit: ${:.2}",
-                    (velocity.total_24h + amount) as f64 / 100.0,
-                    max_daily as f64 / 100.0
+                    format_amount(velocity.total_24h + amount),
+                    format_amount(max_daily)
                 ));
             }
         }
@@ -533,22 +537,29 @@ pub fn check_transaction(
         }
     }
     
-    // Check 5: Operation-specific rate limit
-    match check_operation_rate_limit(user_id, operation) {
-        Ok(allowed) => {
-            if !allowed {
-                warnings.push(format!("Operation rate limit exceeded for {}", operation));
-                risk_score += 30;
-            }
-        }
-        Err(e) => return Err(e),
-    }
-    
+    // NOTE: Operation-specific rate limit is checked before calling check_transaction
+    // to avoid double-counting timestamps. Each operation (buy_crypto, sell_crypto,
+    // send_crypto, create_escrow) checks the rate limit explicitly before calling
+    // this function, so we don't check it again here.
+
     // Determine action based on risk score
     let should_block = risk_score >= 80;
     let requires_manual_review = risk_score >= 50;
     let is_suspicious = !warnings.is_empty();
-    
+
+    // Log suspicious activity if security config requires it
+    #[cfg(not(test))]
+    {
+        if is_suspicious && config::should_log_suspicious_activity() {
+            shared_types::audit::log_success(
+                "suspicious_activity_detected",
+                Some(user_id.to_string()),
+                format!("Operation: {} | Amount: {} {} | Risk Score: {} | Warnings: {:?} | Device: {:?} | Location: {:?}",
+                    operation, amount, currency, risk_score, warnings, device_fingerprint, geo_location)
+            );
+        }
+    }
+
     Ok(FraudCheckResult {
         is_suspicious,
         should_block,
@@ -565,15 +576,19 @@ pub fn check_transaction(
 /// Check if amount is suspicious
 #[allow(dead_code)]
 pub fn is_suspicious_amount(amount: u64, _currency: &str) -> bool {
-    amount > SUSPICIOUS_AMOUNT_CENTS
+    use crate::config;
+    let cfg = config::get_config();
+    amount > cfg.fraud_detection.suspicious_amount_cents
 }
 
 /// Calculate risk score
 #[allow(dead_code)]
 pub fn calculate_risk_score(amount: u64, _currency: &str) -> u32 {
-    if amount > HIGH_RISK_AMOUNT_CENTS {
+    use crate::config;
+    let cfg = config::get_config();
+    if amount > cfg.fraud_detection.high_risk_amount_cents {
         50
-    } else if amount > SUSPICIOUS_AMOUNT_CENTS {
+    } else if amount > cfg.fraud_detection.suspicious_amount_cents {
         30
     } else {
         0
@@ -593,77 +608,85 @@ pub fn should_block_transaction(risk_score: u32) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+    use crate::config;
+
     #[test]
     fn test_rate_limit() {
+        config::init_config();
+        let cfg = config::get_config();
         let user_id = "test_user";
 
         // First call should succeed
         assert!(check_operation_rate_limit(user_id, "buy_crypto").unwrap());
 
-        // Should allow up to MAX_BUYS_PER_HOUR
-        for _ in 1..MAX_BUYS_PER_HOUR {
+        // Should allow up to max_buys_per_hour
+        for _ in 1..cfg.fraud_detection.max_buys_per_hour {
             assert!(check_operation_rate_limit(user_id, "buy_crypto").unwrap());
         }
 
         // Next call should fail
         assert!(!check_operation_rate_limit(user_id, "buy_crypto").unwrap());
     }
-    
+
     #[test]
     fn test_operation_rate_limit() {
+        config::init_config();
+        let cfg = config::get_config();
         let user_id = "test_user";
-        
-        // Should allow up to MAX_BUYS_PER_HOUR
-        for _ in 0..MAX_BUYS_PER_HOUR {
+
+        // Should allow up to max_buys_per_hour
+        for _ in 0..cfg.fraud_detection.max_buys_per_hour {
             assert!(check_operation_rate_limit(user_id, "buy_crypto").unwrap());
         }
-        
+
         // Next call should fail
         assert!(!check_operation_rate_limit(user_id, "buy_crypto").unwrap());
-        
+
         // Different operation should still work
         assert!(check_operation_rate_limit(user_id, "sell_crypto").unwrap());
     }
     
     #[test]
     fn test_pin_attempts_backoff() {
+        config::init_config();
+        let cfg = config::get_config();
         let user_id = "test_user";
-        
+
         // First attempt should be allowed
         assert!(check_pin_attempts_allowed(user_id).is_ok());
-        
+
         // Record failed attempts
         for _ in 0..3 {
             record_failed_pin_attempt(user_id).unwrap();
             // Advance time past backoff period (4 minutes after 3rd attempt)
             MOCK_TIME.with(|t| *t.borrow_mut() += 300_000_000_000); // +5 minutes
         }
-        
+
         // Should still be allowed (under max, and past backoff)
         assert!(check_pin_attempts_allowed(user_id).is_ok());
-        
+
         // Record more failures to reach max
-        for _ in 0..2 {
+        for _ in 0..(cfg.fraud_detection.max_pin_attempts - 3) {
             record_failed_pin_attempt(user_id).unwrap();
         }
-        
-        // Should be blocked now (5 attempts = max)
+
+        // Should be blocked now (max_pin_attempts = 5 by default)
         assert!(check_pin_attempts_allowed(user_id).is_err());
     }
     
     #[test]
     fn test_velocity_tracking() {
+        config::init_config();
         let user_id = "test_user";
-        
+
         // Record some transactions
         record_transaction(user_id, 10_000, "USD", "buy_crypto").unwrap();
         record_transaction(user_id, 20_000, "USD", "buy_crypto").unwrap();
-        
+
         // Check velocity
         let warnings = check_velocity_limits(user_id, 5_000).unwrap();
         assert!(warnings.is_empty()); // Should be under limits
-        
+
         // Try large amount
         let warnings = check_velocity_limits(user_id, 2_000_000).unwrap();
         assert!(!warnings.is_empty()); // Should trigger warning

@@ -57,7 +57,7 @@ export interface AgentKYCData {
 
 export interface User {
   id: string;
-  principalId?: string; // ICP Principal ID for blockchain operations (ckBTC, ckUSDC)
+  principalId?: string; // ICP Principal ID for blockchain operations (ckBTC, ckUSD)
   firstName: string;
   lastName: string;
   email: string;

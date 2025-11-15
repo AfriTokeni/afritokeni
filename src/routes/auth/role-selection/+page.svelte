@@ -3,7 +3,6 @@
   import { ArrowRight, Shield, User } from "@lucide/svelte";
   import { toast } from "$lib/stores/toast";
   import { authUser } from "$lib/stores/auth";
-  import { setDoc } from "@junobuild/core";
   import { onMount } from "svelte";
 
   type UserRole = "user" | "agent";
@@ -26,70 +25,90 @@
     try {
       const principalId = $authUser.key;
 
-      // 1. Save role to user_roles collection
-      await setDoc({
-        collection: "user_roles",
-        doc: {
-          key: principalId,
-          data: {
-            role: selectedRole,
-            createdAt: new Date().toISOString(),
-            lastLogin: new Date().toISOString(),
-          },
-        },
-      });
+      // Default PIN for web users (they should change it later)
+      const defaultPin = "0000";
 
-      // 2. Create user profile in users collection
-      await setDoc({
-        collection: "users",
-        doc: {
-          key: principalId,
-          data: {
-            id: principalId,
-            firstName: "User", // TODO: Get from profile or generate
-            lastName: principalId.substring(0, 8),
-            email: principalId,
-            userType: selectedRole,
-            isVerified: true,
-            kycStatus: "not_started",
-            createdAt: new Date().toISOString(),
-            authMethod: "web",
-          },
-        },
-      });
+      // 1. Register user in user_canister (always creates as "User" type)
+      try {
+        // Dynamic import to avoid SSR issues with process.env
+        const { userCanisterService } = await import(
+          "$lib/services/icp/canisters/userCanisterService"
+        );
 
-      // 3. If agent, create agent record
-      if (selectedRole === "agent") {
-        await setDoc({
-          collection: "agents",
-          doc: {
-            key: `agent_${principalId}`,
-            data: {
-              userId: principalId,
-              businessName: `Agent ${principalId.substring(0, 8)}`,
-              location: {
-                country: "Uganda",
-                city: "Kampala",
-                address: "Kampala, Uganda",
-                coordinates: { lat: 0.3476, lng: 32.5825 },
-              },
-              isActive: true,
-              status: "available",
-              cashBalance: 0,
-              digitalBalance: 0,
-              commissionRate: 2.5,
-            },
-          },
+        await userCanisterService.registerUser({
+          phone_number: [], // No phone for web users
+          principal_id: [principalId],
+          first_name: "User", // Placeholder - user should update in profile
+          last_name: principalId.substring(0, 8), // Short ID as last name
+          email: `${principalId.substring(0, 8)}@afritokeni.app`, // Placeholder email
+          preferred_currency: "UGX",
+          pin: defaultPin, // User must change this in settings
         });
+
+        console.log(`✅ User registered in user_canister as User (default)`);
+
+        // If agent role selected, upgrade user type to Agent
+        if (selectedRole === "agent") {
+          await userCanisterService.setUserType(principalId, "Agent");
+          console.log("✅ User upgraded to Agent type in user_canister");
+        }
+      } catch (regError: any) {
+        // User might already exist (e.g., from USSD registration)
+        if (regError.message && regError.message.includes("already exists")) {
+          console.log("⚠️ User already exists in canister, continuing...");
+
+          // Still try to set user type if agent
+          if (selectedRole === "agent") {
+            const { userCanisterService } = await import(
+              "$lib/services/icp/canisters/userCanisterService"
+            );
+            await userCanisterService.setUserType(principalId, "Agent");
+            console.log("✅ Existing user upgraded to Agent type");
+          }
+        } else {
+          throw regError;
+        }
       }
+
+      // 2. If agent, create agent metadata in Juno (for location, business name, etc.)
+      if (selectedRole === "agent") {
+        // Dynamic import to avoid SSR issues
+        const { AgentService } = await import("$lib/services/agentService");
+
+        await AgentService.createAgent({
+          userId: principalId,
+          businessName: `Agent ${principalId.substring(0, 8)}`,
+          location: {
+            country: "Uganda",
+            state: "Central",
+            city: "Kampala",
+            address: "Kampala, Uganda",
+            coordinates: { lat: 0.3476, lng: 32.5825 },
+          },
+          isActive: true,
+          status: "available",
+          commissionRate: 0.02, // 2% commission
+        });
+
+        console.log("✅ Agent metadata created in Juno");
+      }
+
+      // 3. Show success message
+      toast.show(
+        "success",
+        `Welcome! Your account has been set up as ${selectedRole}.${selectedRole === "user" ? "" : " Don't forget to change your PIN in settings!"}`,
+      );
 
       // 4. Redirect to appropriate dashboard
       const targetPath =
         selectedRole === "agent" ? "/agents/dashboard" : "/users/dashboard";
       goto(targetPath);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to set user role:", error);
-      toast.show("error", "Failed to complete setup. Please try again.");
+      toast.show(
+        "error",
+        `Failed to complete setup: ${error.message || "Please try again"}`,
+      );
     } finally {
       isLoading = false;
     }

@@ -123,8 +123,14 @@ pub struct TestEnv {
     pub user_canister_id: Principal,
     pub wallet_canister_id: Principal,
     pub crypto_canister_id: Principal,
+    /// Test environment fields - may be used in future integration tests
+    #[allow(dead_code)]
     pub agent_canister_id: Principal,
+    /// Test environment fields - may be used in future integration tests
+    #[allow(dead_code)]
     pub data_canister_id: Principal,
+    /// Test environment fields - may be used in future integration tests
+    #[allow(dead_code)]
     pub ckbtc_ledger_id: Principal,
     pub ckusdc_ledger_id: Principal,
     // Keep for backward compatibility during migration
@@ -496,7 +502,7 @@ impl TestEnv {
         let btc_balance: Result<u64, String> = decode_one(&btc_response).expect("Failed to decode BTC balance");
 
         // Get USDC balance
-        let usdc_arg = encode_args((user_id.clone(), "CkUSDC".to_string())).unwrap();
+        let usdc_arg = encode_args((user_id.clone(), "CkUSD".to_string())).unwrap();
         let usdc_response = self.pic.update_call(
             self.crypto_canister_id,
             Principal::anonymous(),
@@ -630,7 +636,10 @@ impl TestEnv {
         self.set_fiat_balance(&user_id, currency, fiat_balance)?;
 
         // Step 4: Set crypto balances (use user_id, not phone!)
-        self.set_crypto_balance(&user_id, btc_balance, usdc_balance)?;
+        // Skip if both balances are 0 to avoid "At least one balance delta must be non-zero" error
+        if btc_balance > 0 || usdc_balance > 0 {
+            self.set_crypto_balance(&user_id, btc_balance, usdc_balance)?;
+        }
 
         // Step 5: Fund user ledger balances (so they can sell/transfer crypto)
         // This ensures the mock ledgers have actual balances AND allowances that match data_canister

@@ -256,11 +256,11 @@ fn test_balance_after_buy_bitcoin() {
     // Buy Bitcoin: User enters 2000 (meaning 2000.00 UGX)
     env.process_ussd(&sess, phone, "2*3*2000*1234");
 
-    // Check fiat balance (should decrease): 5000.00 - 2000.00 = 3000.00 UGX
+    // Check fiat balance (should decrease): 5000.00 - 2000.00 - 10.00 fee (0.5%) = 2990.00 UGX
     let sess2 = session();
     let (fiat_response, _) = env.process_ussd(&sess2, phone, "1*2");
-    assert!(fiat_response.contains("3,000") || fiat_response.contains("3000"),
-        "Fiat should be 3000.00. Got: {}", fiat_response);
+    assert!(fiat_response.contains("2,990") || fiat_response.contains("2990"),
+        "Fiat should be 2990.00 (after 0.5% fee). Got: {}", fiat_response);
 
     // Check BTC balance (should increase) - use new session
     let sess3 = session();
@@ -272,7 +272,7 @@ fn test_balance_after_buy_bitcoin() {
 #[test]
 fn test_balance_after_withdrawal() {
     let env = get_test_env();
-    let sess = session();
+    let _sess = session();
     let phone = &phone("UGX");
 
     // 300000 cents = 3000.00 UGX
@@ -404,11 +404,11 @@ fn test_balance_check_after_multiple_transactions() {
     let sess2 = session();
     env.process_ussd(&sess2, phone, "3*3*1000*1234");
 
-    // Check final balance: 5000.00 - 1000.00 - 1000.00 = 3000.00 UGX
+    // Check final balance: 5000.00 - 1000.00 - 5.00 - 1000.00 - 5.00 = 2990.00 UGX (0.5% fee each)
     let sess3 = session();
     let (response, _) = env.process_ussd(&sess3, phone, "1*2");
-    assert!(response.contains("3,000") || response.contains("3000"),
-        "Should have 3000.00 left. Got: {}", response);
+    assert!(response.contains("2,990") || response.contains("2990"),
+        "Should have 2990.00 left (after 0.5% fees). Got: {}", response);
 }
 
 // ============================================================================

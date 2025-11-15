@@ -1,13 +1,19 @@
 // Rate limiting to prevent abuse
 use std::cell::RefCell;
 use std::collections::HashMap;
+
+// Only import these when rate limiting is actually enabled (not in test mode)
+#[cfg(not(any(test, feature = "test-utils")))]
 use ic_cdk::api::time;
+#[cfg(not(any(test, feature = "test-utils")))]
 use crate::config_loader::get_config;
+#[cfg(not(any(test, feature = "test-utils")))]
 use crate::utils::constants::NANOS_PER_SECOND;
 
 #[derive(Debug, Clone)]
 struct RateLimitEntry {
     count: u32,
+    #[allow(dead_code)] // Only used in production (not in test mode where rate limiting is disabled)
     window_start: u64,
 }
 

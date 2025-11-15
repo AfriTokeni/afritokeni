@@ -16,7 +16,7 @@
 // ============================================================================
 
 /**
- * Crypto Service - All ckBTC/ckUSDC operations
+ * Crypto Service - All ckBTC/ckUSD operations
  * Routes through crypto_canister to collect platform fees
  */
 export { cryptoService, CryptoService } from "./cryptoService";

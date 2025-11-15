@@ -11,7 +11,8 @@
  */
 
 import { Actor, HttpAgent } from "@dfinity/agent";
-import { idlFactory, type _SERVICE } from "$/declarations/wallet_canister";
+import { idlFactory } from "$/declarations/wallet_canister/wallet_canister.did.js";
+import type { _SERVICE } from "$/declarations/wallet_canister/wallet_canister.did.d.ts";
 import { WALLET_CANISTER_ID, IC_HOST } from "./config";
 import type {
   TransferRequest,
