@@ -593,6 +593,24 @@ pub async fn handle_dao_menu(text: &str, session: &mut UssdSession) -> (String, 
                 TranslationService::translate("back_or_menu", lang));
             (menu, true)
         }
+        "0" => {
+            // Back to main menu (when user presses "0")
+            ic_cdk::println!("⬅️ Navigation: Back to main menu from DAO (0 pressed)");
+            session.current_menu = "main".to_string();
+            session.step = 0;
+            session.clear_data();
+            handle_main_menu("", session).await
+        }
+        "9" => {
+            // Repeat DAO menu (when user presses "9" to repeat menu)
+            let menu = format!("{}\n{}\n1. {}\n2. {}\n\n{}",
+                TranslationService::translate("dao_governance", lang),
+                TranslationService::translate("please_select_option", lang),
+                TranslationService::translate("view_proposals", lang),
+                TranslationService::translate("vote_on_proposals", lang),
+                TranslationService::translate("back_or_menu", lang));
+            (menu, true)
+        }
         "1" if parts.len() == 2 => {
             // View proposals (when text is "5*1")
             crate::flows::dao::proposals::handle_view_proposals(text, session).await
@@ -602,7 +620,7 @@ pub async fn handle_dao_menu(text: &str, session: &mut UssdSession) -> (String, 
             crate::flows::dao::vote::handle_vote(text, session).await
         }
         _ => {
-            (format!("{}\n\n{}", 
+            (format!("{}\n\n{}",
                 TranslationService::translate("invalid_option", lang),
                 TranslationService::translate("back_or_menu", lang)), true)
         }
@@ -632,6 +650,14 @@ pub async fn handle_language_menu(text: &str, session: &mut UssdSession) -> (Str
                 TranslationService::translate("swahili", lang),
                 TranslationService::translate("back_or_menu", lang));
             (menu, true)
+        }
+        "0" => {
+            // Back to main menu (when user presses "0")
+            ic_cdk::println!("⬅️ Navigation: Back to main menu from Language (0 pressed)");
+            session.current_menu = "main".to_string();
+            session.step = 0;
+            session.clear_data();
+            handle_main_menu("", session).await
         }
         "9" => {
             // Repeat menu (when user presses "9" to repeat menu)

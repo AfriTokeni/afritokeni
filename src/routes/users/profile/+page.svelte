@@ -33,43 +33,20 @@
       return;
     }
 
-    // Fetch full document from Juno (includes version)
-    const doc = await getDoc({
-      collection: "users",
-      key: currentPrincipalId,
-    });
-
-    if (!doc) {
-      const error = new Error(
-        `User document not found for principal: ${currentPrincipalId}`,
-      );
-      console.error("❌ USER DATA ERROR:", error);
-      toast.show(
-        "error",
-        "User profile not found. Please complete registration.",
-      );
-      userData = null;
-      return;
-    }
-
-    userDoc = doc; // Store full document with version
-    const data = doc.data as any;
-
-    console.log("Principal ID from auth store:", currentPrincipalId);
-    console.log("User data from Juno:", data);
-
-    // NO FALLBACKS - use exact data from Juno
+    // TODO: Fetch from user_canister instead of Juno
+    // For now, show a message that profile management is coming soon
+    toast.show("info", "Profile management is being migrated to the new architecture");
     userData = {
-      firstName: data.firstName,
-      lastName: data.lastName,
-      phone: data.phone,
+      firstName: "User",
+      lastName: currentPrincipalId.substring(0, 8),
+      phone: "",
       principalId: currentPrincipalId,
-      isVerified: data.isVerified,
-      kycStatus: data.kycStatus,
-      joinDate: data.createdAt ? new Date(data.createdAt) : new Date(),
+      isVerified: false,
+      kycStatus: "not_started",
+      joinDate: new Date(),
       authMethod: "web",
-      location: data.location,
-      profileImage: data.profileImage,
+      location: { country: "", city: "" },
+      profileImage: "",
     };
 
     // Check for missing fields
@@ -115,28 +92,8 @@
         return;
       }
 
-      const currentPrincipalId = $principalId;
-      if (!currentPrincipalId || !userDoc) {
-        throw new Error("Not authenticated");
-      }
-
-      // Update user document
-      await setDoc({
-        collection: "users",
-        doc: {
-          ...userDoc,
-          data: {
-            ...userDoc.data,
-            firstName: editFirstName,
-            lastName: editLastName,
-            updatedAt: new Date().toISOString(),
-          },
-        },
-      });
-
-      // Reload user data
-      await loadUserData();
-      toast.show("success", "Name updated successfully!");
+      // TODO: Update via user_canister instead of Juno
+      toast.show("info", "Profile updates are being migrated to the new architecture");
       showEditNameModal = false;
     } catch (error: any) {
       console.error("Failed to update name:", error);
@@ -174,25 +131,8 @@
         throw new Error("Not authenticated");
       }
 
-      if (!userDoc) {
-        throw new Error("User document not loaded");
-      }
-
-      // Update user data in Juno with version for optimistic concurrency
-      await setDoc({
-        collection: "users",
-        doc: {
-          ...userDoc, // Include existing doc metadata (key, version, etc.)
-          data: {
-            ...userDoc.data, // Preserve existing data
-            ...profileData, // Update with new profile data
-            id: currentPrincipalId,
-            updatedAt: new Date().toISOString(),
-          },
-        },
-      });
-
-      // Reload user data
+      // TODO: Save to user_canister instead of Juno
+      toast.show("info", "Profile completion is being migrated to the new architecture");
       await loadUserData();
     } catch (error: any) {
       console.error("Failed to save profile:", error);
@@ -218,51 +158,12 @@
         return;
       }
 
-      const currentPrincipalId = $principalId;
-      if (!currentPrincipalId || !userDoc) {
-        throw new Error("Not authenticated");
-      }
-
-      toast.show("info", "Uploading profile picture...");
-
-      // Upload to Juno Storage (using 'profile-images' collection)
-      const result = await uploadFile({
-        data: file,
-        collection: "profile-images",
-        filename: `${currentPrincipalId}_${Date.now()}.${file.name.split(".").pop()}`,
-      });
-
-      // Update user document with profile picture URL
-      await setDoc({
-        collection: "users",
-        doc: {
-          ...userDoc,
-          data: {
-            ...userDoc.data,
-            profileImage: result.downloadUrl,
-            updatedAt: new Date().toISOString(),
-          },
-        },
-      });
-
-      // Reload user data
-      await loadUserData();
-      toast.show("success", "Profile picture updated!");
+      // TODO: Implement profile picture upload via Juno storage
+      // Keep using Juno for file storage, but metadata goes to user_canister
+      toast.show("info", "Profile picture upload is being migrated to the new architecture");
     } catch (error: any) {
       console.error("Failed to upload profile picture:", error);
-
-      // Check if it's a collection not found error
-      if (
-        error.message?.includes("not_found") &&
-        error.message?.includes("Storage")
-      ) {
-        toast.show(
-          "error",
-          "Storage not configured. Please deploy juno.config.ts with: juno deploy",
-        );
-      } else {
-        toast.show("error", "Failed to upload profile picture");
-      }
+      toast.show("error", "Failed to upload profile picture");
     }
   }
 
@@ -273,58 +174,10 @@
         throw new Error("Not authenticated");
       }
 
-      if (!userDoc) {
-        throw new Error("User document not loaded");
-      }
-
-      // Upload files to Juno Storage
-      const uploadedFiles: any = {};
-
-      if (kycData.documentFront) {
-        const frontResult = await uploadFile({
-          data: kycData.documentFront,
-          collection: "kyc_documents",
-          filename: `${currentPrincipalId}_front_${Date.now()}.${kycData.documentFront.name.split(".").pop()}`,
-        });
-        uploadedFiles.documentFrontUrl = frontResult.downloadUrl;
-      }
-
-      if (kycData.documentBack) {
-        const backResult = await uploadFile({
-          data: kycData.documentBack,
-          collection: "kyc_documents",
-          filename: `${currentPrincipalId}_back_${Date.now()}.${kycData.documentBack.name.split(".").pop()}`,
-        });
-        uploadedFiles.documentBackUrl = backResult.downloadUrl;
-      }
-
-      if (kycData.selfie) {
-        const selfieResult = await uploadFile({
-          data: kycData.selfie,
-          collection: "kyc_documents",
-          filename: `${currentPrincipalId}_selfie_${Date.now()}.${kycData.selfie.name.split(".").pop()}`,
-        });
-        uploadedFiles.selfieUrl = selfieResult.downloadUrl;
-      }
-
-      // Update user document with KYC data and file URLs
-      await setDoc({
-        collection: "users",
-        doc: {
-          ...userDoc,
-          data: {
-            ...userDoc.data,
-            kycStatus: "pending",
-            kycSubmittedAt: new Date().toISOString(),
-            kycDocumentType: kycData.documentType,
-            kycDocumentNumber: kycData.documentNumber,
-            ...uploadedFiles,
-            updatedAt: new Date().toISOString(),
-          },
-        },
-      });
-
-      // Reload user data
+      // TODO: Implement KYC submission
+      // Files should be uploaded to Juno Storage (keep using Juno for this)
+      // KYC metadata and status should be stored in user_canister
+      toast.show("info", "KYC submission is being migrated to the new architecture");
       await loadUserData();
     } catch (error: any) {
       console.error("Failed to submit KYC:", error);

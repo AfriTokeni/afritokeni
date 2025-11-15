@@ -48,34 +48,11 @@ export async function getUserData() {
     return fetchDemoData(DEMO_PATHS.USER);
   }
 
-  try {
-    // Check if user is authenticated
-    const authenticated = get(isAuthenticated);
-    const principal = get(authPrincipalId);
-
-    if (!authenticated || !principal) {
-      console.warn("⚠️ User not authenticated with Juno");
-      return null;
-    }
-
-    // Fetch user data from Juno datastore
-    console.log("📡 Fetching user data from Juno for principal:", principal);
-    const result = await getDoc({
-      collection: "users",
-      key: principal,
-    });
-
-    if (!result) {
-      console.warn("⚠️ No user data found in Juno for principal:", principal);
-      return null;
-    }
-
-    console.log("✅ User data loaded from Juno");
-    return result.data;
-  } catch (error) {
-    console.error("❌ Failed to fetch user data from Juno:", error);
-    return null;
-  }
+  // In production mode, return null
+  // User data should be fetched from user_canister via userCanisterService
+  // Juno is only used for KYC documents and temporary metadata
+  console.warn("⚠️ getUserData() called in production mode - user data should be fetched from user_canister");
+  return null;
 }
 
 /**

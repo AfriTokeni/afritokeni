@@ -171,6 +171,7 @@ pub fn parse_amount(amount_str: &str) -> Result<f64, String> {
 /// - Space ( ) - for names and text input
 /// - Period (.) - for decimal amounts
 /// - Hyphen (-) - for Principal addresses (ckUSDC/ckBTC)
+/// - Underscore (_) - for user IDs and identifiers
 ///
 /// **Blocked characters:**
 /// - HTML/XML tags: <, >, &
@@ -222,7 +223,7 @@ pub fn sanitize_input(input: &str) -> String {
     // Step 4: Filter with context awareness
     let mut filtered = Vec::new();
     for (i, &c) in chars.iter().enumerate() {
-        if c.is_alphanumeric() || c == '+' || c == '*' || c == ' ' {
+        if c.is_alphanumeric() || c == '+' || c == '*' || c == ' ' || c == '_' {
             filtered.push(c);
         } else if c == '.' {
             // Keep period only if surrounded by digits
@@ -415,6 +416,7 @@ mod tests {
         assert_eq!(sanitize_input("+256700"), "+256700"); // + allowed for phone numbers
         assert_eq!(sanitize_input("123.45"), "123.45"); // . allowed for amounts
         assert_eq!(sanitize_input("test@email"), "testemail"); // @ removed
+        assert_eq!(sanitize_input("user_123456"), "user_123456"); // _ allowed for user IDs
     }
 
     #[test]

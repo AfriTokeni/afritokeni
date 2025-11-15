@@ -26,9 +26,14 @@ fn test_buy_bitcoin_with_ugx() {
     let (btc, _) = env.get_crypto_balance(phone).expect("Get crypto balance");
     assert!(btc > 0, "Should have BTC balance");
 
-    // Verify fiat balance decreased (100,000,000 cents - 10,000,000 cents = 90,000,000 cents)
+    // Verify fiat balance decreased
+    // Initial: 100,000,000 cents (1,000,000.00 UGX)
+    // Purchase: 10,000,000 cents (100,000.00 UGX)
+    // Platform fee (0.5%): 50,000 cents (500.00 UGX)
+    // Total deducted: 10,050,000 cents
+    // Expected balance: 89,950,000 cents (899,500.00 UGX)
     let fiat = env.check_fiat_balance(phone, "UGX").expect("Get fiat balance");
-    assert_eq!(fiat, 90000000, "Fiat should decrease to 90,000,000 cents (900,000.00 UGX)");
+    assert_eq!(fiat, 89950000, "Fiat should decrease to 89,950,000 cents (899,500.00 UGX) after 100,000.00 UGX purchase + 0.5% fee");
 }
 
 #[test]
@@ -37,11 +42,11 @@ fn test_buy_bitcoin_with_kes() {
     let sess = session();
     let phone = &phone("KES");
 
-    // Setup: 5,000,000 cents = 50,000.00 KES
-    env.setup_test_user_with_balances(phone, "KES", "BTCBuyer", "kesbtc@test.com", "KES", "1234", 5000000, 0, 0)
+    // Setup: 6,000,000 cents = 60,000.00 KES (enough for 50,000.00 purchase + 0.5% fee)
+    env.setup_test_user_with_balances(phone, "KES", "BTCBuyer", "kesbtc@test.com", "KES", "1234", 6000000, 0, 0)
         .expect("Setup");
 
-    // Buy with 50,000.00 KES
+    // Buy with 50,000.00 KES (requires 50,000 + 250 fee = 50,250.00 KES total)
     let (response, _) = env.process_ussd(&sess, phone, "2*3*50000*1234");
 
     assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
@@ -57,11 +62,11 @@ fn test_buy_bitcoin_with_tzs() {
     let sess = session();
     let phone = &phone("TZS");
 
-    // Setup: 5,000,000 cents = 50,000.00 TZS
-    env.setup_test_user_with_balances(phone, "TZS", "BTCBuyer", "tzsbtc@test.com", "TZS", "1234", 5000000, 0, 0)
+    // Setup: 6,000,000 cents = 60,000.00 TZS (enough for 50,000.00 purchase + 0.5% fee)
+    env.setup_test_user_with_balances(phone, "TZS", "BTCBuyer", "tzsbtc@test.com", "TZS", "1234", 6000000, 0, 0)
         .expect("Setup");
 
-    // Buy with 50,000.00 TZS
+    // Buy with 50,000.00 TZS (requires 50,000 + 250 fee = 50,250.00 TZS total)
     let (response, _) = env.process_ussd(&sess, phone, "2*3*50000*1234");
 
     assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
@@ -74,11 +79,11 @@ fn test_buy_bitcoin_with_ngn() {
     let sess = session();
     let phone = &phone("NGN");
 
-    // Setup: 5,000,000 cents = 50,000.00 NGN
-    env.setup_test_user_with_balances(phone, "NGN", "BTCBuyer", "ngnbtc@test.com", "NGN", "1234", 5000000, 0, 0)
+    // Setup: 6,000,000 cents = 60,000.00 NGN (enough for 50,000.00 purchase + 0.5% fee)
+    env.setup_test_user_with_balances(phone, "NGN", "BTCBuyer", "ngnbtc@test.com", "NGN", "1234", 6000000, 0, 0)
         .expect("Setup");
 
-    // Buy with 50,000.00 NGN
+    // Buy with 50,000.00 NGN (requires 50,000 + 250 fee = 50,250.00 NGN total)
     let (response, _) = env.process_ussd(&sess, phone, "2*3*50000*1234");
 
     assert!(response.contains("success") || response.contains("Success") || response.contains("purchased"),
@@ -104,10 +109,14 @@ fn test_send_bitcoin_to_valid_address() {
     
     assert!(response.contains("success") || response.contains("Success") || response.contains("sent"),
         "Should send BTC. Got: {}", response);
-    
+
     // Verify balance decreased
+    // Initial: 100,000 sats
+    // Sent: 50,000 sats
+    // Network fee: 1,000 sats
+    // Expected balance: 100,000 - 50,000 - 1,000 = 49,000 sats
     let (btc, _) = env.get_crypto_balance(phone).expect("Get balance");
-    assert_eq!(btc, 50000, "BTC balance should decrease");
+    assert_eq!(btc, 49000, "BTC balance should decrease to 49,000 sats (sent 50,000 + 1,000 network fee)");
 }
 
 #[test]
@@ -176,9 +185,9 @@ fn test_sell_bitcoin_to_ugx() {
     assert!(response.contains("success") || response.contains("Success") || response.contains("sold"),
         "Should sell BTC. Got: {}", response);
 
-    // Verify BTC decreased (200,000 - 100,000 = 100,000)
+    // Verify BTC decreased (200,000 - 100,000 = 100,000 sats)
     let (btc, _) = env.get_crypto_balance(phone).expect("Get balance");
-    assert_eq!(btc, 100000, "BTC should decrease by 100,000 sats");
+    assert_eq!(btc, 100000, "BTC should decrease from 200,000 to 100,000 sats after selling 0.001 BTC");
 
     // Verify fiat increased
     let fiat = env.check_fiat_balance(phone, "UGX").expect("Get fiat");
@@ -217,8 +226,9 @@ fn test_sell_bitcoin_all_balance() {
     assert!(response.contains("success") || response.contains("Success") || response.contains("sold"),
         "Should sell all BTC. Got: {}", response);
 
+    // Verify all BTC was sold (150,000 sats -> 0)
     let (btc, _) = env.get_crypto_balance(phone).expect("Get balance");
-    assert_eq!(btc, 0, "Should have 0 BTC");
+    assert_eq!(btc, 0, "Should have 0 BTC after selling entire balance of 0.0015 BTC");
 }
 
 // ============================================================================
@@ -329,9 +339,9 @@ fn test_buy_bitcoin_wrong_pin() {
     assert!(response.contains("Incorrect") || response.contains("incorrect") || response.contains("Wrong") || response.contains("Invalid"),
         "Should reject wrong PIN. Got: {}", response);
 
-    // Balance should not change (still 10,000,000 cents = 100,000.00 UGX)
+    // Balance should not change when PIN is wrong (still 10,000,000 cents = 100,000.00 UGX)
     let fiat = env.check_fiat_balance(phone, "UGX").expect("Get balance");
-    assert_eq!(fiat, 10000000, "Fiat should not change");
+    assert_eq!(fiat, 10000000, "Fiat should not change after failed PIN verification");
 }
 
 #[test]
@@ -347,9 +357,10 @@ fn test_sell_bitcoin_wrong_pin() {
     
     assert!(response.contains("Incorrect") || response.contains("incorrect") || response.contains("Invalid"),
         "Should reject wrong PIN. Got: {}", response);
-    
+
+    // Balance should remain unchanged after failed PIN verification
     let (btc, _) = env.get_crypto_balance(phone).expect("Get balance");
-    assert_eq!(btc, 100000, "BTC should not change");
+    assert_eq!(btc, 100000, "BTC should not change after failed PIN verification (still 100,000 sats)");
 }
 
 // ============================================================================
@@ -392,11 +403,15 @@ fn test_bitcoin_buy_then_sell() {
         .expect("Setup");
 
     // Buy Bitcoin with 5,000.00 UGX (under fraud limit)
+    // Initial balance: 5,000,000 cents = 50,000.00 UGX
+    // Purchase: 500,000 cents = 5,000.00 UGX
+    // Platform fee (0.5%): 2,500 cents = 25.00 UGX
+    // Total deducted: 502,500 cents
     env.process_ussd(&sess, phone, "2*3*5000*1234");
 
-    // Check BTC balance
+    // Check BTC balance - should have received BTC
     let (btc_after_buy, _) = env.get_crypto_balance(phone).expect("Get balance");
-    assert!(btc_after_buy > 0, "Should have BTC after buy");
+    assert!(btc_after_buy > 0, "Should have BTC after buy (purchased 5,000.00 UGX worth)");
 
     // Sell half (convert sats to BTC for sell command)
     let btc_to_sell = (btc_after_buy / 2) as f64 / 100_000_000.0;
@@ -418,10 +433,14 @@ fn test_bitcoin_buy_then_send() {
         .expect("Setup");
 
     // Buy Bitcoin with 5,000.00 UGX (under fraud limit)
+    // Initial balance: 5,000,000 cents = 50,000.00 UGX
+    // Purchase: 500,000 cents = 5,000.00 UGX
+    // Platform fee (0.5%): 2,500 cents = 25.00 UGX
+    // Total deducted: 502,500 cents
     env.process_ussd(&sess, phone, "2*3*5000*1234");
 
     let (btc_after_buy, _) = env.get_crypto_balance(phone).expect("Get balance");
-    assert!(btc_after_buy > 0, "Should have BTC after buy");
+    assert!(btc_after_buy > 0, "Should have BTC after buy (purchased 5,000.00 UGX worth)");
 
     // Send Bitcoin (send flow expects satoshis)
     env.process_ussd(&sess, phone, &format!("2*5*bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh*{}*1234", btc_after_buy / 2));

@@ -15,18 +15,17 @@
   import { demoMode } from "$lib/stores/demoMode";
   import { fetchAgents } from "$lib/services/data/agentsData";
   import {
-    type Agent as UtilsAgent,
+    type Agent,
     calculateDistance,
     type UserLocation,
   } from "$lib/utils/agents";
-  import type { Agent as DashboardAgent } from "$lib/types/user_dashboard";
   import AgentSearchFilters from "./AgentSearchFilters.svelte";
   import AgentCard from "./AgentCard.svelte";
   import AgentMap from "./AgentMap.svelte";
   import "leaflet/dist/leaflet.css";
 
   // Internal state
-  let agents = $state<UtilsAgent[]>([]);
+  let agents = $state<Agent[]>([]);
   let userLocation = $state<UserLocation | null>(null);
   let searchQuery = $state("");
   let filterRadius = $state(10);
@@ -49,41 +48,13 @@
   async function loadAgents(isDemoMode: boolean) {
     try {
       error = null;
-      const data = await fetchAgents(isDemoMode);
-      // Convert DashboardAgent[] to UtilsAgent[]
-      agents = data.map(mapDashboardAgentToUtilsAgent);
+      agents = await fetchAgents(isDemoMode);
     } catch (err: any) {
       console.error("Error fetching agents:", err);
       error = err.message || "Failed to load agents";
     } finally {
       isLoading = false;
     }
-  }
-
-  // Map DashboardAgent to UtilsAgent
-  function mapDashboardAgentToUtilsAgent(agent: DashboardAgent): UtilsAgent {
-    return {
-      id: agent.id,
-      userId: agent.id, // Use agent ID as userId
-      businessName: agent.name,
-      location: {
-        country: "Uganda", // Default
-        state: "", // Not available in DashboardAgent
-        city: agent.location,
-        address: agent.location,
-        coordinates: {
-          lat: 0.3476, // Default Kampala coordinates
-          lng: 32.5825,
-        },
-      },
-      isActive: agent.available,
-      cashBalance: agent.cashAvailable.UGX,
-      digitalBalance: agent.cashAvailable.USDT,
-      commissionRate: 0.02, // Default 2%
-      createdAt: new Date().toISOString(),
-      rating: agent.rating,
-      reviewCount: 0,
-    };
   }
 
   function requestUserLocation() {

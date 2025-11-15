@@ -98,7 +98,7 @@ fn init() {
 /// ICRC-1 transfer
 #[update]
 fn icrc1_transfer(arg: TransferArg) -> TransferResult {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::caller();
     
     let from = Account {
         owner: caller,
@@ -138,7 +138,7 @@ fn icrc1_transfer(arg: TransferArg) -> TransferResult {
 /// ICRC-2 approve
 #[update]
 fn icrc2_approve(arg: ApproveArg) -> ApproveResult {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::caller();
     
     let from = Account {
         owner: caller,
@@ -166,7 +166,7 @@ fn icrc2_approve(arg: ApproveArg) -> ApproveResult {
 /// ICRC-2 transfer_from
 #[update]
 fn icrc2_transfer_from(arg: TransferFromArg) -> TransferFromResult {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::caller();
 
     let spender = Account {
         owner: caller,
