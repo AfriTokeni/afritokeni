@@ -105,7 +105,7 @@ fn test_ussd_swap_flow_fetches_spread_dynamically() {
     env.register_user_direct("+256700000005", "Test", "User5", "test5@test.com", "UGX", "1234")
         .expect("User registration failed");
 
-    // Get spread from exchange canister
+    // Get spread from crypto_canister
     let spread_bp = env.get_exchange_spread();
     assert_eq!(spread_bp, 50, "Spread should be 50 basis points (0.5%)");
 

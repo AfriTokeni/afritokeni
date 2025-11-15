@@ -21,7 +21,7 @@ service : () -> {
   set_agent_canister_id : (principal) -> (Result);
   // Set Crypto Canister ID
   set_crypto_canister_id : (principal) -> (Result);
-  // Set Exchange Canister ID (for manual configuration)
+  // DEPRECATED: Set Exchange Canister ID (use crypto_canister instead)
   set_exchange_canister_id : (principal) -> ();
   // Set User Canister ID
   set_user_canister_id : (principal) -> (Result);

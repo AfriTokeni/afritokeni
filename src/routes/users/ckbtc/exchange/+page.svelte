@@ -71,7 +71,7 @@
 
     isExchanging = true;
     try {
-      // TODO: Call AfriTokeni Exchange Canister
+      // TODO: Call AfriTokeni crypto_canister for swaps
       // The canister will:
       // 1. Transfer ckBTC from user's principal
       // 2. Deduct 0.5% spread → send to DAO treasury
@@ -86,7 +86,7 @@
 
       if (!$demoMode) {
         throw new Error(
-          "Exchange canister not yet deployed. Please try demo mode.",
+          "Crypto canister not yet deployed. Please try demo mode.",
         );
       }
 

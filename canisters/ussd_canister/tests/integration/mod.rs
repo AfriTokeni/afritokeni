@@ -293,7 +293,7 @@ impl TestEnv {
         candid::decode_args(&response).expect("Failed to decode")
     }
     
-    /// Get exchange spread (stub - exchange canister doesn't exist)
+    /// Get exchange spread (stub - crypto_canister handles swaps in production)
     /// Returns a default spread for testing
     pub fn get_exchange_spread(&self) -> u64 {
         50 // 0.5% default spread

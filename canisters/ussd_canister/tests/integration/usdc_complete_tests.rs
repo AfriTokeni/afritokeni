@@ -1,5 +1,5 @@
 // COMPLETE USDC Integration Tests - ALL COMBINATIONS
-// Tests: USSD -> Business Logic -> Data -> Exchange canister interactions
+// Tests: USSD -> crypto_canister -> Data canister interactions
 use super::*;
 
 // ============================================================================

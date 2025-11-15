@@ -176,7 +176,7 @@ const depositRevenue = await depositCanister.get_total_commission();
 // Fetch from withdrawal canister
 const withdrawalRevenue = await withdrawalCanister.get_total_fees();
 
-// Fetch from exchange canister
+// Fetch from crypto_canister
 const exchangeRevenue = await exchangeCanister.get_total_spread();
 
 // Calculate totals
@@ -259,7 +259,7 @@ fn get_stats() -> WithdrawalStats {
 }
 ```
 
-**exchange_canister:**
+**crypto_canister:** (formerly exchange_canister)
 ```rust
 #[query]
 fn get_stats() -> ExchangeStats {

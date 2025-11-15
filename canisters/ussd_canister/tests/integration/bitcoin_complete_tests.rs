@@ -1,5 +1,5 @@
 // COMPLETE Bitcoin Integration Tests - ALL COMBINATIONS
-// Tests: USSD -> Business Logic -> Data -> Exchange canister interactions
+// Tests: USSD -> crypto_canister -> Data canister interactions
 use super::*;
 
 // ============================================================================
@@ -357,7 +357,7 @@ fn test_sell_bitcoin_wrong_pin() {
 // ============================================================================
 
 #[test]
-fn test_bitcoin_uses_exchange_canister_rate() {
+fn test_bitcoin_uses_crypto_canister_rate() {
     let env = get_test_env();
     let sess = session();
     let phone = &phone("UGX");
@@ -365,9 +365,9 @@ fn test_bitcoin_uses_exchange_canister_rate() {
     env.setup_test_user_with_balances(phone, "BTC", "ExchangeRate", "btcexch@test.com", "UGX", "1234", 0, 0, 0)
         .expect("Setup");
     
-    // Get spread from exchange canister
+    // Get spread from crypto_canister
     let spread = env.get_exchange_spread();
-    assert!(spread > 0, "Exchange canister should provide spread");
+    assert!(spread > 0, "Crypto canister should provide spread");
     
     // Buy Bitcoin should use this rate
     env.set_fiat_balance(phone, "UGX", 1000000).expect("Set balance");

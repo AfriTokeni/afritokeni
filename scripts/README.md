@@ -4,23 +4,23 @@ This directory contains deployment and management scripts for AfriTokeni caniste
 
 ## Scripts Overview
 
-### 🚀 deploy.sh
+### 🚀 deployment/deploy.sh
 **Main deployment script** - Deploys all canisters in the correct order and sets up authorization.
 
 ```bash
-bash scripts/deploy.sh <network> [admin-principal]
+bash scripts/deployment/deploy.sh <network> [admin-principal]
 ```
 
 **Examples:**
 ```bash
 # Deploy to playground
-bash scripts/deploy.sh playground
+bash scripts/deployment/deploy.sh playground
 
 # Deploy to IC mainnet with specific admin
-bash scripts/deploy.sh ic $(dfx identity get-principal)
+bash scripts/deployment/deploy.sh ic $(dfx identity get-principal)
 
 # Deploy to local network
-bash scripts/deploy.sh local
+bash scripts/deployment/deploy.sh local
 ```
 
 **What it does:**
@@ -29,21 +29,21 @@ bash scripts/deploy.sh local
 3. Deploys Domain Canisters (user, wallet, crypto, agent)
 4. Deploys USSD Canister (presentation layer)
 5. Saves deployment info to `deployments/<network>_deployment.json`
-6. Automatically runs `setup-auth.sh`
+6. Automatically runs `deployment/setup-auth.sh`
 
 ---
 
-### 🔐 setup-auth.sh
+### 🔐 deployment/setup-auth.sh
 **Authorization configuration** - Sets up inter-canister permissions.
 
 ```bash
-bash scripts/setup-auth.sh <network>
+bash scripts/deployment/setup-auth.sh <network>
 ```
 
 **Examples:**
 ```bash
-bash scripts/setup-auth.sh playground
-bash scripts/setup-auth.sh ic
+bash scripts/deployment/setup-auth.sh playground
+bash scripts/deployment/setup-auth.sh ic
 ```
 
 **What it does:**
@@ -63,63 +63,63 @@ Data Canister
 
 ---
 
-### 👨‍💼 admin.sh
+### 👨‍💼 ops/admin.sh
 **Admin management** - Manage admin access and perform emergency operations.
 
 ```bash
-bash scripts/admin.sh <command> <network> [principal]
+bash scripts/ops/admin.sh <command> <network> [principal]
 ```
 
 #### Commands:
 
 **add-admin** - Add admin to all canisters
 ```bash
-bash scripts/admin.sh add-admin playground abc123-def456
+bash scripts/ops/admin.sh add-admin playground abc123-def456
 ```
 
 **remove-admin** - Remove admin from all canisters
 ```bash
-bash scripts/admin.sh remove-admin playground abc123-def456
+bash scripts/ops/admin.sh remove-admin playground abc123-def456
 ```
 
 **list-admins** - List all admins (controllers)
 ```bash
-bash scripts/admin.sh list-admins playground
+bash scripts/ops/admin.sh list-admins playground
 ```
 
 **emergency-stop** - Stop all canisters (emergency only!)
 ```bash
-bash scripts/admin.sh emergency-stop playground
+bash scripts/ops/admin.sh emergency-stop playground
 ```
 
 **emergency-start** - Start all canisters
 ```bash
-bash scripts/admin.sh emergency-start playground
+bash scripts/ops/admin.sh emergency-start playground
 ```
 
 **status** - Check status of all canisters
 ```bash
-bash scripts/admin.sh status playground
+bash scripts/ops/admin.sh status playground
 ```
 
 **upgrade** - Upgrade all canisters to latest code
 ```bash
-bash scripts/admin.sh upgrade playground
+bash scripts/ops/admin.sh upgrade playground
 ```
 
 ---
 
-### ✅ test-deployment.sh
+### ✅ deployment/test-deployment.sh
 **Deployment verification** - Test that deployment was successful.
 
 ```bash
-bash scripts/test-deployment.sh <network>
+bash scripts/deployment/test-deployment.sh <network>
 ```
 
 **Examples:**
 ```bash
-bash scripts/test-deployment.sh playground
-bash scripts/test-deployment.sh ic
+bash scripts/deployment/test-deployment.sh playground
+bash scripts/deployment/test-deployment.sh ic
 ```
 
 **What it tests:**
@@ -137,16 +137,16 @@ bash scripts/test-deployment.sh ic
 
 ```bash
 # 1. Make scripts executable
-chmod +x scripts/*.sh
+chmod +x scripts/deployment/*.sh scripts/ops/*.sh
 
 # 2. Deploy to playground
-bash scripts/deploy.sh playground
+bash scripts/deployment/deploy.sh playground
 
 # 3. Test deployment
-bash scripts/test-deployment.sh playground
+bash scripts/deployment/test-deployment.sh playground
 
 # 4. Check status
-bash scripts/admin.sh status playground
+bash scripts/ops/admin.sh status playground
 ```
 
 ### Add Another Admin
@@ -156,24 +156,24 @@ bash scripts/admin.sh status playground
 dfx identity get-principal
 
 # Add as admin
-bash scripts/admin.sh add-admin playground <your-principal>
+bash scripts/ops/admin.sh add-admin playground <your-principal>
 ```
 
 ### Upgrade After Code Changes
 
 ```bash
 # Build and upgrade all canisters
-bash scripts/admin.sh upgrade playground
+bash scripts/ops/admin.sh upgrade playground
 ```
 
 ### Emergency Stop
 
 ```bash
 # Stop all canisters
-bash scripts/admin.sh emergency-stop playground
+bash scripts/ops/admin.sh emergency-stop playground
 
 # Start them again
-bash scripts/admin.sh emergency-start playground
+bash scripts/ops/admin.sh emergency-start playground
 ```
 
 ---
@@ -182,11 +182,14 @@ bash scripts/admin.sh emergency-start playground
 
 ```
 scripts/
-├── deploy.sh              # Main deployment script
-├── setup-auth.sh          # Authorization setup
-├── admin.sh               # Admin management
-├── test-deployment.sh     # Deployment tests
-└── README.md              # This file
+├── deployment/
+│   ├── deploy.sh              # Main deployment script
+│   ├── setup-auth.sh          # Authorization setup
+│   └── test-deployment.sh     # Deployment tests
+├── ops/
+│   ├── admin.sh               # Admin management
+│   └── info.sh                # Deployment info helper
+└── README.md                  # This file
 
 deployments/               # Created by scripts
 ├── playground_deployment.json
@@ -225,7 +228,7 @@ deployments/               # Created by scripts
 
 **Solution**: Re-run authorization setup
 ```bash
-bash scripts/setup-auth.sh playground
+bash scripts/deployment/setup-auth.sh playground
 ```
 
 ### "Canister not found" error
@@ -233,7 +236,7 @@ bash scripts/setup-auth.sh playground
 **Solution**: Check deployment or re-deploy
 ```bash
 cat deployments/playground_deployment.json
-bash scripts/deploy.sh playground
+bash scripts/deployment/deploy.sh playground
 ```
 
 ### Canister out of cycles
@@ -248,7 +251,7 @@ dfx canister deposit-cycles <amount> <canister-id> --network ic
 
 **Solution**: Make scripts executable
 ```bash
-chmod +x scripts/*.sh
+chmod +x scripts/deployment/*.sh scripts/ops/*.sh
 ```
 
 ---

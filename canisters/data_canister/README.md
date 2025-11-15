@@ -30,11 +30,26 @@ The Data Canister is the **storage layer** in AfriTokeni's 3-tier architecture. 
 
 ### Purpose
 
-- ✅ Persist user profiles, balances, transactions, PINs, escrows
-- ✅ Serve data to authorized canisters (Business Logic, USSD, Web)
+- ✅ Persist user profiles, balances, transactions, PINs, escrows, agent activity
+- ✅ Serve data to authorized canisters (Business Logic, USSD, Web, Agent)
 - ✅ Enable non-custodial user self-access
 - ✅ Maintain comprehensive audit trail
-- ❌ NO business logic, validation, or fraud detection
+- ✅ Track agent fraud detection metrics (NEW)
+- ❌ NO business logic, validation logic, or fraud flagging
+
+### CRITICAL: Candid Interface Update Needed
+
+The `get_agent_activity()` and `store_agent_activity()` endpoints are implemented in Rust but **NOT YET** in the Candid interface file (`data_canister.did`).
+
+**Action Required**:
+```bash
+# After updating data_canister Rust code:
+pnpm run canisters:generate
+
+# This will regenerate data_canister.did with new AgentActivity endpoints
+```
+
+**See**: [Candid Interface Update](#candid-interface-update-required) section below
 
 ### Key Characteristics
 
@@ -125,6 +140,7 @@ Response
 - ✅ **Transaction History** - Immutable transaction records
 - ✅ **Escrow System** - Crypto escrow storage
 - ✅ **Settlement Tracking** - Monthly agent settlements
+- ✅ **Agent Activity Tracking** - Fraud detection metrics (velocity, volume, collusion patterns)
 - ✅ **Audit Logging** - Comprehensive audit trail using shared library
 - ✅ **Non-Custodial Access** - Users can query their own data
 
@@ -316,6 +332,53 @@ Get settlements for a month.
 #### `get_agent_settlements(agent_principal: String) -> Result<Vec<MonthlySettlement>, String>`
 Get settlements for an agent.
 
+---
+
+### Agent Activity Operations (NEW - Fraud Detection)
+
+#### `get_agent_activity(agent_id: String, currency: String) -> Result<Option<AgentActivity>, String>`
+Get agent activity metrics for fraud detection analysis.
+
+Returns activity data for a specific agent and currency, including:
+- Daily deposit/withdrawal counts and volumes
+- Hourly and 24-hour operation velocity
+- User-agent pair frequency (for detecting collusion)
+
+```rust
+// Example response
+AgentActivity {
+    agent_id: "agent_001",
+    currency: "UGX",
+    deposits_today: 5,
+    withdrawals_today: 3,
+    deposit_volume_today: 1_000_000,
+    withdrawal_volume_today: 500_000,
+    operations_last_hour: vec![1699459200, 1699459300],
+    operations_last_24h: vec![...],
+    user_agent_pairs: vec![("user123", 2), ("user456", 1)],
+    last_reset: 1699459200,
+    last_updated: 1699459300,
+}
+```
+
+#### `store_agent_activity(activity: AgentActivity) -> Result<AgentActivity, String>`
+Store or update agent activity metrics for fraud detection.
+
+Called by agent_canister after each deposit/withdrawal operation to track:
+- Velocity (operations per hour/day)
+- Volume patterns (high-value transactions)
+- User-agent coordination (same users with multiple agents)
+
+```rust
+// Input validation
+- Agent ID: Non-empty string
+- Currency: 3 uppercase letters (UGX, NGN, KES, etc.)
+```
+
+**Access Control**: Canister-only endpoint via `verify_canister_access()`.
+
+---
+
 #### `get_system_stats() -> Result<SystemStats, String>`
 Get system statistics (admin only).
 
@@ -470,6 +533,32 @@ pub struct Escrow {
 }
 ```
 
+### AgentActivity (NEW - Fraud Detection)
+
+```rust
+pub struct AgentActivity {
+    pub agent_id: String,
+    pub currency: String,                           // e.g., "UGX", "NGN"
+    pub deposits_today: u64,                        // Daily deposit count
+    pub withdrawals_today: u64,                      // Daily withdrawal count
+    pub deposit_volume_today: u64,                   // Total deposit amount
+    pub withdrawal_volume_today: u64,                // Total withdrawal amount
+    pub operations_last_hour: Vec<u64>,             // Timestamps of operations in last hour
+    pub operations_last_24h: Vec<u64>,              // Timestamps of operations in last 24h
+    pub user_agent_pairs: Vec<(String, u32)>,      // (user_id, count) - detect collusion
+    pub last_reset: u64,                            // Timestamp of last daily reset
+    pub last_updated: u64,                          // Timestamp of last update
+}
+```
+
+**Purpose**: Track agent activity patterns for real-time fraud detection:
+- Velocity anomalies (too many operations per hour)
+- Volume thresholds (exceeding daily limits)
+- Coordination patterns (same users working with multiple agents)
+
+**Storage**: Persisted in stable storage via BTreeMap<String, AgentActivity>
+**Key Format**: `"{agent_id}_{currency}"` (e.g., "agent_001_UGX")
+
 ---
 
 ## 🔒 Security
@@ -484,6 +573,24 @@ pub struct Escrow {
 - Max 3 failed attempts
 - 30-minute lockout after 3 failures
 - Automatic reset on successful verification
+
+### Fraud Detection - Agent Activity Tracking (NEW)
+
+**Real-time Agent Risk Assessment**:
+- Tracks daily/hourly operation velocity
+- Monitors transaction volumes
+- Detects user-agent coordination patterns
+- Enables immediate risk flagging
+
+**Data Persisted in Stable Storage**:
+```rust
+thread_local! {
+    static AGENT_ACTIVITIES: RefCell<BTreeMap<String, AgentActivity>>
+        = RefCell::new(BTreeMap::new());
+}
+```
+
+**Pre-upgrade/Post-upgrade hooks ensure data persistence across canister upgrades**.
 
 ### Audit Logging
 
@@ -504,6 +611,7 @@ audit::log_failure("pin_failed", Some(user_id), details);
 - Balance changes (deposit, withdraw, transfer)
 - PIN operations (setup, verified, failed, reset)
 - Escrow operations (stored, updated, deleted)
+- Agent activity tracking (store_agent_activity)
 - Admin operations (canister authorized/removed)
 
 ### Access Control
@@ -536,28 +644,34 @@ sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
 ```
 canisters/data_canister/
 ├── src/
-│   ├── lib.rs                    # Main canister logic (1,105 lines)
-│   ├── models.rs                 # Data models (197 lines)
+│   ├── lib.rs                       # Main canister logic (1,194 lines)
+│   ├── models.rs                    # Data models (197 lines)
 │   ├── operations/
 │   │   ├── mod.rs
-│   │   ├── user_ops.rs           # User CRUD (152 lines)
-│   │   └── balance_ops.rs        # Balance CRUD (265 lines)
+│   │   ├── user_ops.rs              # User CRUD (152 lines)
+│   │   ├── balance_ops.rs           # Balance CRUD (265 lines)
+│   │   └── agent_activity_ops.rs    # Agent fraud detection (287 lines) [NEW]
 │   └── security/
 │       ├── mod.rs
-│       └── pin_ops.rs            # PIN security (312 lines)
+│       └── pin_ops.rs               # PIN security (312 lines)
 ├── tests/
 │   ├── lib.rs
-│   ├── common.rs
-│   ├── integration.rs
+│   ├── integration/
+│   │   ├── mod.rs
+│   │   ├── agent_activity_tests.rs  # Agent activity integration tests [NEW]
+│   │   ├── access_control_tests.rs
+│   │   ├── kyc_workflow_tests.rs
+│   │   └── stable_storage_tests.rs
 │   └── unit/
 │       ├── mod.rs
 │       ├── balance_tests.rs
 │       ├── storage_tests.rs
 │       └── transaction_tests.rs
 ├── Cargo.toml
-├── README.md                     # This file
-├── SECURITY_AUDIT.md             # Security audit report
-└── COVERAGE_REPORT.md            # Test coverage report
+├── README.md                        # This file
+├── TEST_COVERAGE.md                 # Test coverage analysis [NEW]
+├── SECURITY_AUDIT.md                # Security audit report
+└── COVERAGE_REPORT.md               # Test coverage report
 ```
 
 ### Build
@@ -696,12 +810,101 @@ dfx canister call data_canister get_failed_operations '(opt 50)'
 
 ---
 
+## ⚠️ CANDID Interface Update Required
+
+### Current Status
+
+**IMPLEMENTED** ✅:
+- `get_agent_activity(agent_id: String, currency: String) -> Result<Option<AgentActivity>, String>` (query)
+- `store_agent_activity(activity: AgentActivity) -> Result<AgentActivity, String>` (update)
+
+**Location**: `/src/lib.rs` lines 1160-1191
+
+**NOT YET IN CANDID** ❌:
+- The `data_canister.did` file does not include these endpoints
+- Must regenerate after Rust code is finalized
+
+### How to Regenerate
+
+```bash
+# From repository root
+pnpm run canisters:generate
+
+# This will:
+# 1. Build all Rust canisters to WASM
+# 2. Extract Candid interfaces from WASM
+# 3. Generate TypeScript bindings
+# 4. Update data_canister.did with new endpoints
+```
+
+### What Will Be Added to Candid
+
+```candid
+type AgentActivity = record {
+  agent_id : text;
+  currency : text;
+  deposits_today : nat64;
+  withdrawals_today : nat64;
+  deposit_volume_today : nat64;
+  withdrawal_volume_today : nat64;
+  operations_last_hour : vec nat64;
+  operations_last_24h : vec nat64;
+  user_agent_pairs : vec record { text; nat32 };
+  last_reset : nat64;
+  last_updated : nat64;
+};
+
+service : (opt text, opt text) -> {
+  // ... existing endpoints ...
+
+  // NEW ENDPOINTS:
+  get_agent_activity : (text, text) -> (opt AgentActivity) query;
+  store_agent_activity : (AgentActivity) -> (AgentActivity);
+}
+```
+
+### Verification Steps
+
+```bash
+# 1. Check WASM built successfully
+ls -lh target/wasm32-unknown-unknown/release/data_canister.wasm
+
+# 2. Verify Candid was regenerated
+grep "get_agent_activity" canisters/data_canister/data_canister.did
+
+# 3. Check TypeScript bindings
+grep "getAgentActivity" src/dfinity/data_canister/data_canister.did.ts
+
+# 4. Run tests to ensure nothing broke
+cd canisters/data_canister && cargo test --lib
+```
+
+### Integration with Agent Canister
+
+Once Candid is updated, agent_canister can call:
+
+```rust
+use ic_cdk::call;
+
+let activity = call(
+    data_canister_id,
+    "store_agent_activity",
+    (agent_activity,)
+).await?;
+```
+
+**Timeline**: Complete before deploying agent_canister to mainnet.
+
+---
+
 ## 📚 Additional Resources
 
+- [Test Coverage Report](./TEST_COVERAGE.md) - Unit & integration test details
 - [Security Audit Report](./SECURITY_AUDIT.md) - Comprehensive security analysis
 - [Coverage Report](./COVERAGE_REPORT.md) - Test coverage details
 - [Shared Types](../shared_types/src/lib.rs) - Common data types
 - [Business Logic Canister](../business_logic_canister/README.md) - Business rules layer
+- [Agent Activity Operations](./src/operations/agent_activity_ops.rs) - Fraud detection implementation
 
 ---
 

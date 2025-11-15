@@ -2,8 +2,8 @@
 
 **Version:** 0.1.0
 **Status:** ✅ Production Ready
-**Test Coverage:** 100% (Unit + Integration)
-**Security Score:** 9.2/10
+**Test Coverage:** 20 Unit + 79 Integration Tests (100% critical paths)
+**Security Score:** 8.5/10 (Medium findings require attention)
 
 ---
 
@@ -24,10 +24,17 @@ The User Canister is the **authentication and identity management** layer for Af
 ## Features
 
 ### Authentication & Security
-- **Argon2id Password Hashing** (PHC winner, resistant to GPU attacks)
-- **Cryptographic Random Salts** (IC's `raw_rand()` for high-quality entropy)
+- **Argon2id Password Hashing** (PHC winner, resistant to GPU/ASIC attacks)
+  - Memory: 19 MiB, Iterations: 2, Parallelism: 1
+  - Cryptographic random salts from IC's `raw_rand()`
+  - PHC string format for future-proof parameter upgrades
 - **Account Lockout** (3 failed attempts → 30-minute timeout)
-- **Caller Verification** (authorized canisters only)
+- **3-Tier Access Control**
+  - Controller: Full access (canister owner)
+  - AuthorizedCanister: Full access (whitelisted canisters like USSD)
+  - UserSelf: Direct access to own data (in progress)
+- **User Enumeration Prevention** (generic error messages)
+- **Phone & Email Validation** (E.164 format, RFC 5322)
 - **Audit Trail** (all operations logged with correlation IDs)
 
 ### User Management
@@ -268,26 +275,79 @@ AuditEntry {
 
 ## Configuration
 
-### Setting Data Canister ID
+### Required Setup (Production)
+
+**1. Set Data Canister ID** (Required)
 ```bash
-dfx canister call user_canister set_data_canister_id '("lxzze-o7777-77777-aaaaa-cai")'
+dfx canister call user_canister set_data_canister_id "(principal \"$(dfx canister id data_canister)\")"
+```
+- Only callable by controller
+- Must be called before any user operations
+- Configures where user data is stored
+
+**2. Add Authorized Canisters** (Required)
+```bash
+# Add USSD canister
+dfx canister call user_canister add_authorized_canister "(principal \"$(dfx canister id ussd_canister)\")"
+
+# Add Web canister (if using direct API)
+dfx canister call user_canister add_authorized_canister "(principal \"$(dfx canister id web_canister)\")"
+```
+- Only callable by controller
+- Whitelist of canisters allowed to call user_canister
+- Without this, no external calls will succeed
+
+**3. Verify Test Mode is DISABLED** (Critical for Production)
+```bash
+# Test mode is disabled by default - DO NOT enable in production!
+# Test mode bypasses all authorization checks
 ```
 
-### Enabling Test Mode (Development Only)
+### Development-Only Configuration
+
+**Enable Test Mode (for local testing)**
 ```bash
 dfx canister call user_canister enable_test_mode
 ```
 
-⚠️ **WARNING:** Test mode disables authorization checks. Never use in production!
-
-### Adding Authorized Canisters
-```bash
-dfx canister call user_canister add_authorized_canister '("ussd_canister_id")'
-```
+⚠️ **WARNING:** Test mode disables all authorization checks. Use only in development!
+- Allows anyone to call any endpoint without authorization
+- Should never be enabled in production
+- Useful for testing before authorized canisters are configured
 
 ---
 
 ## Security
+
+### Recent Security Improvements
+
+**Version 0.1.0 includes the following security enhancements:**
+
+1. **Argon2id PIN Hashing (Upgraded from HMAC-SHA256)**
+   - Industry-standard password hashing algorithm
+   - Resistant to timing attacks and GPU brute-force
+   - Replaces deprecated HMAC-SHA256 approach
+
+2. **User Enumeration Prevention**
+   - Generic error messages: "Invalid credentials" vs "User not found"
+   - Same error for all failure scenarios (missing user, wrong PIN)
+   - Prevents attackers from discovering registered users
+
+3. **Input Validation Hardening**
+   - E.164 phone format validation (international standard)
+   - RFC 5322 email validation (basic format checking)
+   - All inputs validated before processing
+   - 100% coverage of validation logic with unit tests
+
+4. **Access Control Tiers**
+   - Controller-only operations (configuration)
+   - Authorized canister access (USSD, web canisters)
+   - User self-access for direct profile queries (in development)
+
+5. **Stable Storage with Upgrade Hooks**
+   - `pre_upgrade()` / `post_upgrade()` hooks for persistence
+   - Configuration state survives canister upgrades
+   - Authorized canister list maintained across upgrades
 
 ### PIN Security
 - **Algorithm:** Argon2id (PHC winner)
@@ -344,9 +404,19 @@ open coverage/html/index.html
 ```
 
 ### Test Coverage
-- **Validation Logic:** 100% ✅
-- **Integration Tests:** 142 tests, all passing ✅
-- **Security Features:** PIN lockout, duplicates, errors all tested ✅
+- **Unit Tests:** 20 tests (validation logic 100% coverage) ✅
+- **Integration Tests:** 79 tests (all endpoints, security features) ✅
+- **Total:** 99 tests, all passing
+- **Security Features Tested:** PIN lockout, duplicates, enumeration prevention, access control ✅
+
+**Test Breakdown by Category:**
+- User Registration: 6 tests
+- PIN Security & Verification: 7 tests
+- Access Control: 15+ tests
+- User Enumeration Prevention: 10+ tests
+- Validation Edge Cases: 18+ tests
+- Upgrade Persistence: 18+ tests
+- Audit Logging: 5+ tests
 
 See `COVERAGE_REPORT.md` for details.
 
@@ -488,14 +558,42 @@ dfx canister call user_canister get_audit_stats
 
 ## Dependencies
 
+### Rust Crate Dependencies
 ```toml
 [dependencies]
 candid = "0.10"
 ic-cdk = "0.18"
 ic-cdk-macros = "0.18"
-argon2 = "0.5"           # Password hashing
-shared_types = { path = "../shared_types" }  # Includes audit module
+argon2 = "0.5"           # Password hashing (Argon2id)
+hex = "0.4"              # Hex encoding for hashes
+shared_types = { path = "../shared_types" }  # Audit module
 ```
+
+### Inter-Canister Dependencies
+
+**data_canister** (Required)
+- Stores user data (User records)
+- Stores PIN hashes (sensitive)
+- Tracks failed login attempts and lockout times
+- Must be deployed and configured before user_canister
+
+**Calls Made to data_canister:**
+- `create_user(user_data)` - Register new user
+- `get_user(user_id)` - Look up user by ID
+- `get_user_by_phone(phone)` - Look up user by phone
+- `get_user_by_principal(principal)` - Look up user by principal
+- `store_pin_hash(user_id, hash)` - Store PIN hash
+- `get_pin_hash(user_id)` - Retrieve PIN hash
+- `increment_failed_attempts(user_id)` - Track failed login
+- `reset_pin_attempts(user_id)` - Clear failed attempts on success
+- `is_pin_locked(user_id)` - Check if account is locked
+- `update_user_phone(user_id, phone)` - Link phone to account
+
+**Calling Canisters** (Authorized Clients)
+- `ussd_canister` - USSD interface, calls all user_canister endpoints
+- `web_canister` - Web API, calls user_canister for profile operations
+- `wallet_canister` - May call verify_pin for secure operations
+- `crypto_canister` - May call verify_pin for sensitive transactions
 
 ---
 
@@ -539,13 +637,30 @@ user_canister/
 - [x] Coverage report
 - [x] Documentation
 
-### TODO
-- [ ] Add `pre_upgrade` / `post_upgrade` hooks for audit log persistence
-- [ ] Implement generic error messages to prevent user enumeration
-- [ ] Add environment variable check to prevent test mode in production
-- [ ] Add rate limiting on public endpoints
-- [ ] Add fuzzing tests for input validation
-- [ ] Implement circuit breaker for canister call failures
+### TODO (Next Priority)
+- [ ] **MEDIUM:** Add `UserSelf` access control tier for direct profile access
+  - Allow authenticated principals to query own profiles without intermediary canisters
+  - Reduces inter-canister call overhead
+  - Aligns with wallet_canister and crypto_canister patterns
+
+- [ ] **MEDIUM:** Implement constant-time PIN comparison
+  - Current: Argon2id provides constant-time verification
+  - Consider: Add explicit timing attack protection in verification logic
+
+- [ ] **LOW:** Add environment variable check to prevent test mode in production
+  - Validate that test mode cannot be enabled via hardcoded checks
+  - Use DFX network detection
+
+- [ ] **LOW:** Add rate limiting on public endpoints
+  - Prevent brute force attacks on verify_pin endpoint
+  - Track attempts per phone number
+
+- [ ] **LOW:** Add property-based fuzzing tests for input validation
+  - Use quickcheck or proptest for randomized input testing
+
+- [ ] **LOW:** Implement circuit breaker for canister call failures
+  - Graceful degradation when data_canister is unavailable
+  - Retry logic with backoff
 
 ---
 

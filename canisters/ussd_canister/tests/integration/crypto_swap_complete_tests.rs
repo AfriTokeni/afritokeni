@@ -1,5 +1,5 @@
 // COMPLETE Crypto Swap Integration Tests - ALL COMBINATIONS
-// Tests: USSD -> Business Logic -> Exchange canister for spread
+// Tests: USSD -> crypto_canister for swap operations and spread calculation
 use super::*;
 
 // ============================================================================
@@ -47,9 +47,9 @@ fn test_swap_btc_to_usdc_with_spread() {
     let phone = &phone("UGX");
     env.setup_test_user_with_balances(phone, "Swap", "Spread", "swapspread@test.com", "UGX", "1234", 0, 200000, 0)
         .expect("Setup");
-    // Get spread from exchange canister
+    // Get spread from crypto_canister
     let spread = env.get_exchange_spread();
-    assert!(spread > 0, "Exchange should provide spread");
+    assert!(spread > 0, "Crypto canister should provide spread");
     // Step 1: See confirmation with spread
     let (response, cont) = env.process_ussd(&sess, phone, "4*1*2*100000");
     assert!(cont, "Should show confirmation");
@@ -255,7 +255,7 @@ fn test_swap_all_usdc_to_btc() {
 }
 
 // ============================================================================
-// SWAP WITH EXCHANGE CANISTER SPREAD
+// SWAP WITH CRYPTO CANISTER SPREAD
 // ============================================================================
 
 #[test]
