@@ -24,8 +24,16 @@ export interface Transaction {
 
 /**
  * Fetch transactions from demo data
+ * @param userId - User identifier (optional, for filtering)
+ * @param isDemoMode - Whether to use demo data
+ * @param maxTransactions - Maximum number of transactions to return
+ * @returns Array of transactions
  */
-export async function fetchTransactions(): Promise<Transaction[]> {
+export async function fetchTransactions(
+  userId?: string | null,
+  isDemoMode: boolean = true,
+  maxTransactions?: number,
+): Promise<Transaction[]> {
   try {
     const response = await fetch("/data/demo/transactions.json");
     if (!response.ok) {
@@ -33,7 +41,8 @@ export async function fetchTransactions(): Promise<Transaction[]> {
         `Failed to fetch demo transactions: ${response.statusText}`,
       );
     }
-    return await response.json();
+    const transactions = await response.json();
+    return maxTransactions ? transactions.slice(0, maxTransactions) : transactions;
   } catch (error) {
     console.error("Error loading demo transactions:", error);
     return [];
@@ -107,17 +116,13 @@ export function getTransactionTypeInfo(type: string): {
 }
 
 /**
- * UI helper: Check if transaction is outgoing
+ * UI helper: Check if transaction is outgoing (based on type only)
+ * @param transactionType - Transaction type string
+ * @returns True if transaction is outgoing (withdrawal, send, transfer)
  */
-export function isOutgoingTransaction(
-  transaction: Transaction,
-  userId: string,
-): boolean {
+export function isOutgoingTransaction(transactionType: string): boolean {
   const outgoingTypes = ["withdrawal", "send", "transfer"];
-  return (
-    outgoingTypes.includes(transaction.type.toLowerCase()) ||
-    transaction.fromUser === userId
-  );
+  return outgoingTypes.includes(transactionType.toLowerCase());
 }
 
 /**

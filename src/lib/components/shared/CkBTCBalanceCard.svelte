@@ -51,7 +51,7 @@
   async function loadBalance(isDemoMode: boolean, principal: string | null) {
     try {
       error = null;
-      const satoshis = await fetchCkBTCBalance(principal, isDemoMode);
+      const satoshis = await fetchCkBTCBalance(principal);
       balanceSatoshis = satoshis;
       balanceBTC = satoshisToBTC(satoshis);
       lastUpdated = new Date();

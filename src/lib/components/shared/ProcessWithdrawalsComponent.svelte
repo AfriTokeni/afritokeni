@@ -119,10 +119,17 @@
               req.userId,
             );
 
+            // Extract phone_number from Candid optional type [] | [string]
+            const phoneNumber = Array.isArray(userProfile.phone_number)
+              ? userProfile.phone_number.length > 0
+                ? userProfile.phone_number[0]
+                : req.userId
+              : userProfile.phone_number || req.userId;
+
             return {
               ...req,
               userName: `${userProfile.first_name} ${userProfile.last_name}`,
-              userPhone: userProfile.phone_number,
+              userPhone: phoneNumber,
             };
           } catch (err) {
             // If user lookup fails, keep original data (user_id as fallback)

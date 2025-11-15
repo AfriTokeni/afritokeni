@@ -48,11 +48,21 @@ export async function fetchDAOProposals(
   }
 }
 
-export async function fetchLeaderboard(): Promise<any[]> {
+/**
+ * Fetch leaderboard data (demo mode only)
+ * @param isDemoMode - Whether to use demo data
+ * @param maxEntries - Maximum number of entries to return
+ * @returns Array of leaderboard entries
+ */
+export async function fetchLeaderboard(
+  isDemoMode: boolean = true,
+  maxEntries?: number,
+): Promise<any[]> {
   try {
     const response = await fetch("/data/demo/leaderboard.json");
     if (!response.ok) return [];
-    return await response.json();
+    const entries = await response.json();
+    return maxEntries ? entries.slice(0, maxEntries) : entries;
   } catch {
     return [];
   }
