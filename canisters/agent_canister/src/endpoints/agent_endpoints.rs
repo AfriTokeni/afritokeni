@@ -415,20 +415,21 @@ pub async fn generate_monthly_settlements(month: String) -> Result<Vec<Settlemen
     
     for balance in all_balances {
         let pending_commission = balance.commission_earned.saturating_sub(balance.commission_paid);
-        
+
         // Only create settlement if pending commission exceeds minimum
         if pending_commission >= min_settlement {
             let settlement = shared_types::MonthlySettlement {
                 month: month.clone(),
                 agent_principal: balance.agent_id.clone(),
+                currency: balance.currency.clone(),
                 total_commission: pending_commission,
                 paid: false,
                 paid_date: None,
             };
-            
+
             // Store settlement
             data_client::store_settlement(settlement.clone()).await?;
-            
+
             settlements.push(SettlementResponse {
                 month: month.clone(),
                 agent_id: balance.agent_id,
@@ -450,6 +451,7 @@ pub async fn generate_monthly_settlements(month: String) -> Result<Vec<Settlemen
 }
 
 /// Mark settlement as paid (admin only)
+/// DEPRECATED: Use process_weekly_settlement instead which handles multi-currency properly
 #[update]
 pub async fn mark_settlement_paid(settlement_id: String) -> Result<(), String> {
     // Only controller can mark settlements as paid
@@ -457,31 +459,29 @@ pub async fn mark_settlement_paid(settlement_id: String) -> Result<(), String> {
     if !ic_cdk::api::is_controller(&caller) {
         return Err("Unauthorized: Controller access required".to_string());
     }
-    
+
     audit::log_success("mark_settlement_paid", None, format!("Marking settlement as paid: {}", settlement_id));
-    
+
     // Mark settlement as paid in data canister
     let settlement = data_client::mark_settlement_paid(&settlement_id).await?;
-    
-    // Update agent balance to reflect payment
-    // NOTE: Hardcoded to UGX because MonthlySettlement doesn't store currency
-    // DEPRECATED FUNCTION: Use process_weekly_settlement instead which handles multi-currency properly
-    // The weekly settlement system (WeeklySettlement) includes currency field and should be used instead
-    let mut agent_balance = data_client::get_agent_balance(&settlement.agent_principal, "UGX").await?
-        .ok_or_else(|| "Agent balance not found for UGX currency. This deprecated monthly settlement system only supports UGX. Use weekly settlement instead.".to_string())?;
-    
+
+    // Update agent balance to reflect payment using currency from settlement
+    let mut agent_balance = data_client::get_agent_balance(&settlement.agent_principal, &settlement.currency).await?
+        .ok_or_else(|| format!("Agent balance not found for {} currency", settlement.currency))?;
+
     agent_balance.commission_paid += settlement.total_commission;
     agent_balance.last_settlement_date = Some(ic_cdk::api::time());
     agent_balance.last_updated = ic_cdk::api::time();
-    
+
     data_client::update_agent_balance(agent_balance).await?;
-    
+
     audit::log_success(
         "mark_settlement_paid",
         Some(settlement.agent_principal.clone()),
-        format!("Settlement marked as paid: {}, amount: {}", settlement_id, settlement.total_commission)
+        format!("Settlement marked as paid: {}, currency: {}, amount: {}",
+            settlement_id, settlement.currency, settlement.total_commission)
     );
-    
+
     Ok(())
 }
 

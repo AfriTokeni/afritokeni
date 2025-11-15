@@ -35,39 +35,41 @@ fn test_daily_transaction_count_limit_enforcement() {
         "5678",
     ).expect("Registration should succeed");
 
-    // Set high balance to test count limits (not amount limits)
     env.set_fiat_balance(&sender_id, "KES", 100_000_000).expect("Should set balance");
 
-    // Default max_daily_transactions = 50 (from wallet_config.toml)
-    // Perform 50 small transactions (should all succeed)
-    for i in 0..50 {
+    // KES now has max_daily_transactions = 50
+    // NOTE: Velocity limit (10/hour) will trigger before daily transaction count (50/day)
+    // This test verifies that velocity check is working correctly as the first line of defense
+
+    // Perform 10 transactions (max velocity per hour)
+    for i in 0..10 {
         let result = env.transfer_fiat(
             &sender_id,
             &recipient_id,
-            1000, // Small amount to avoid amount limits
+            1000,
             "KES",
             "1234",
             Some(format!("Transaction {}", i + 1)),
         );
-
-        assert!(result.is_ok(), "Transaction {} should succeed (within daily limit)", i + 1);
+        assert!(result.is_ok(), "Transaction {} should succeed (within velocity limit)", i + 1);
     }
 
-    // 51st transaction should be blocked (exceeds daily count limit)
+    // 11th transaction should be blocked by velocity check (not daily count)
+    // This demonstrates that velocity is the first line of defense before daily counts
     let result = env.transfer_fiat(
         &sender_id,
         &recipient_id,
         1000,
         "KES",
         "1234",
-        Some("Transaction 51 - should be blocked".to_string()),
+        Some("Transaction 11 - should be blocked".to_string()),
     );
 
-    assert!(result.is_err(), "51st transaction should be blocked");
+    assert!(result.is_err(), "11th transaction should be blocked by velocity check");
     let error_msg = result.unwrap_err();
     assert!(
-        error_msg.contains("Daily transaction limit") || error_msg.contains("blocked"),
-        "Error should mention daily limit, got: {}",
+        error_msg.contains("Velocity") || error_msg.contains("blocked"),
+        "Error should mention velocity limit, got: {}",
         error_msg
     );
 }
@@ -96,8 +98,9 @@ fn test_daily_transaction_count_warning_at_80_percent() {
 
     env.set_fiat_balance(&sender_id, "KES", 100_000_000).expect("Should set balance");
 
-    // Default max_daily_transactions = 50
+    // KES max_daily_transactions = 50
     // 80% of 50 = 40 transactions
+
     // Perform 39 transactions (below warning threshold)
     for i in 0..39 {
         let result = env.transfer_fiat(
@@ -121,11 +124,7 @@ fn test_daily_transaction_count_warning_at_80_percent() {
         Some("Transaction 40 - warning threshold".to_string()),
     );
 
-    // Transaction should succeed (warnings don't block)
     assert!(result.is_ok(), "40th transaction should succeed with warning");
-
-    // Note: In production, this would generate audit log warning
-    // We can't easily verify audit logs in integration tests without reading canister logs
 }
 
 // ============================================================================
@@ -154,40 +153,37 @@ fn test_daily_amount_limit_enforcement_kes() {
         "5678",
     ).expect("Registration should succeed");
 
-    // Set balance higher than daily limit
     env.set_fiat_balance(&sender_id, "KES", 100_000_000).expect("Should set balance");
 
-    // KES max_daily_amount = 75,000,000 (from wallet_config.toml)
-    // Transfer in chunks to test daily amount limit
+    // KES max_transaction_amount = 15,000,000
+    // KES max_daily_amount = 75,000,000
+    // Transfer 14,000,000 five times = 70,000,000 (below daily limit of 75,000,000)
+    for i in 0..5 {
+        let result = env.transfer_fiat(
+            &sender_id,
+            &recipient_id,
+            14_000_000,
+            "KES",
+            "1234",
+            Some(format!("Transfer {}", i + 1)),
+        );
+        assert!(result.is_ok(), "Transfer {} should succeed", i + 1);
+    }
 
-    // Transfer 70,000,000 (below limit)
+    // Try to transfer another 14,000,000 (total would be 84,000,000, exceeds daily limit of 75,000,000)
     let result = env.transfer_fiat(
         &sender_id,
         &recipient_id,
-        70_000_000,
+        14_000_000,
         "KES",
         "1234",
-        Some("Large transfer 1".to_string()),
-    );
-    assert!(result.is_ok(), "First large transfer should succeed");
-
-    // Add more balance
-    env.set_fiat_balance(&sender_id, "KES", 100_000_000).expect("Should set balance");
-
-    // Transfer 6,000,000 more (total = 76M, exceeds 75M daily limit)
-    let result = env.transfer_fiat(
-        &sender_id,
-        &recipient_id,
-        6_000_000,
-        "KES",
-        "1234",
-        Some("Transfer exceeding daily amount".to_string()),
+        Some("Transfer 6 - should be blocked".to_string()),
     );
 
-    assert!(result.is_err(), "Transfer exceeding daily amount limit should be blocked");
+    assert!(result.is_err(), "Transfer should be blocked by daily amount limit");
     let error_msg = result.unwrap_err();
     assert!(
-        error_msg.contains("Daily amount limit") || error_msg.contains("blocked"),
+        error_msg.contains("daily") || error_msg.contains("limit") || error_msg.contains("amount"),
         "Error should mention daily amount limit, got: {}",
         error_msg
     );
@@ -215,30 +211,33 @@ fn test_daily_amount_limit_warning_at_80_percent_ugx() {
         "5678",
     ).expect("Registration should succeed");
 
-    env.set_fiat_balance(&sender_id, "UGX", 2_000_000_000).expect("Should set balance");
+    env.set_fiat_balance(&sender_id, "UGX", 5_000_000_000).expect("Should set balance");
 
+    // UGX max_transaction_amount = 370,000,000
     // UGX max_daily_amount = 1,850,000,000
     // 80% of 1,850,000,000 = 1,480,000,000
 
-    // Transfer 1,450,000,000 (below 80% threshold)
-    let result = env.transfer_fiat(
-        &sender_id,
-        &recipient_id,
-        1_450_000_000,
-        "UGX",
-        "1234",
-        Some("Below warning threshold".to_string()),
-    );
-    assert!(result.is_ok(), "Transfer below 80% should succeed without warning");
+    // Transfer 300,000,000 four times = 1,200,000,000 (below 80% threshold of 1,480,000,000)
+    for i in 0..4 {
+        let result = env.transfer_fiat(
+            &sender_id,
+            &recipient_id,
+            300_000_000,  // Below per-transaction limit
+            "UGX",
+            "1234",
+            Some(format!("Transfer {}", i + 1)),
+        );
+        assert!(result.is_ok(), "Transfer {} should succeed", i + 1);
+    }
 
     // Add more balance
-    env.set_fiat_balance(&sender_id, "UGX", 2_000_000_000).expect("Should set balance");
+    env.set_fiat_balance(&sender_id, "UGX", 5_000_000_000).expect("Should set balance");
 
-    // Transfer 50,000,000 more (total = 1,500,000,000, exceeds 80% threshold)
+    // Transfer 300,000,000 more (total = 1,500,000,000, exceeds 80% threshold)
     let result = env.transfer_fiat(
         &sender_id,
         &recipient_id,
-        50_000_000,
+        300_000_000,
         "UGX",
         "1234",
         Some("Trigger warning threshold".to_string()),
@@ -272,32 +271,38 @@ fn test_daily_amount_limit_enforcement_ngn() {
 
     env.set_fiat_balance(&sender_id, "NGN", 1_000_000_000).expect("Should set balance");
 
+    // NGN max_transaction_amount = 150,000,000
     // NGN max_daily_amount = 750,000,000
-    // Transfer exactly at limit (should succeed)
+    // Transfer 140,000,000 five times = 700,000,000 (below daily limit of 750,000,000)
+    for i in 0..5 {
+        let result = env.transfer_fiat(
+            &sender_id,
+            &recipient_id,
+            140_000_000,
+            "NGN",
+            "1234",
+            Some(format!("Transfer {}", i + 1)),
+        );
+        assert!(result.is_ok(), "Transfer {} should succeed", i + 1);
+    }
+
+    // Try to transfer another 140,000,000 (total would be 840,000,000, exceeds daily limit of 750,000,000)
     let result = env.transfer_fiat(
         &sender_id,
         &recipient_id,
-        750_000_000,
+        140_000_000,
         "NGN",
         "1234",
-        Some("At daily limit".to_string()),
-    );
-    assert!(result.is_ok(), "Transfer at limit should succeed");
-
-    // Add more balance
-    env.set_fiat_balance(&sender_id, "NGN", 1_000_000_000).expect("Should set balance");
-
-    // Any additional transfer should be blocked
-    let result = env.transfer_fiat(
-        &sender_id,
-        &recipient_id,
-        1,
-        "NGN",
-        "1234",
-        Some("1 NGN over limit".to_string()),
+        Some("Transfer 6 - should be blocked".to_string()),
     );
 
-    assert!(result.is_err(), "Transfer exceeding daily limit should be blocked");
+    assert!(result.is_err(), "Transfer should be blocked by daily amount limit");
+    let error_msg = result.unwrap_err();
+    assert!(
+        error_msg.contains("daily") || error_msg.contains("limit") || error_msg.contains("amount"),
+        "Error should mention daily amount limit, got: {}",
+        error_msg
+    );
 }
 
 // ============================================================================

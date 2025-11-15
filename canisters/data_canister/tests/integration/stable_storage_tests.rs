@@ -4,7 +4,7 @@
 /// (users, balances, transactions, escrows, agent data) survives canister upgrades.
 /// This is CRITICAL functionality for production stability.
 
-use candid::{encode_one, decode_one, Principal};
+use candid::{encode_one, encode_args, decode_one, Principal};
 use pocket_ic::PocketIc;
 use shared_types::{
     CreateUserRequest, FiatCurrency, KYCStatus, AgentActivity,
@@ -15,8 +15,10 @@ fn get_data_canister_wasm() -> Vec<u8> {
     let wasm_path = std::env::var("DATA_CANISTER_WASM")
         .unwrap_or_else(|_| {
             // Default path relative to workspace root
+            // current_dir when running tests from canisters/data_canister is the crate root
+            // so we need to go up two levels to get to workspace root
             let mut path = std::env::current_dir().unwrap();
-            path.push("target/wasm32-unknown-unknown/release/data_canister.wasm");
+            path.push("../../target/wasm32-unknown-unknown/release/data_canister.wasm");
             path.to_string_lossy().to_string()
         });
 
@@ -44,7 +46,7 @@ fn test_stable_storage_users_survive_upgrade() {
     let user_request = CreateUserRequest {
         user_type_str: "User".to_string(),
         preferred_currency_str: "UGX".to_string(),
-        email: Some("test@example.com".to_string()),
+        email: "test@example.com".to_string(),
         first_name: "John".to_string(),
         last_name: "Doe".to_string(),
         principal_id: Some(Principal::anonymous().to_text()),
@@ -128,7 +130,7 @@ fn test_stable_storage_balances_survive_upgrade() {
     let user_request = CreateUserRequest {
         user_type_str: "User".to_string(),
         preferred_currency_str: "UGX".to_string(),
-        email: Some("test@example.com".to_string()),
+        email: "test@example.com".to_string(),
         first_name: "Test".to_string(),
         last_name: "User".to_string(),
         principal_id: Some(Principal::anonymous().to_text()),
@@ -256,7 +258,7 @@ fn test_stable_storage_agent_activity_survives_upgrade() {
         canister_id,
         Principal::anonymous(),
         "get_agent_activity",
-        encode_one(("agent_001".to_string(), "UGX".to_string())).unwrap(),
+        encode_args(("agent_001", "UGX")).unwrap(),
     ).unwrap();
     let activity_before: Result<Option<AgentActivity>, String> = decode_one(&get_before).unwrap();
     assert!(activity_before.is_ok());
@@ -279,7 +281,7 @@ fn test_stable_storage_agent_activity_survives_upgrade() {
         canister_id,
         Principal::anonymous(),
         "get_agent_activity",
-        encode_one(("agent_001".to_string(), "UGX".to_string())).unwrap(),
+        encode_args(("agent_001", "UGX")).unwrap(),
     ).unwrap();
     let activity_after: Result<Option<AgentActivity>, String> = decode_one(&get_after).unwrap();
     assert!(activity_after.is_ok());
@@ -376,7 +378,7 @@ fn test_stable_storage_multiple_agent_activities_survive_upgrade() {
             canister_id,
             Principal::anonymous(),
             "get_agent_activity",
-            encode_one((activity.agent_id.clone(), activity.currency.clone())).unwrap(),
+            encode_args((activity.agent_id.as_str(), activity.currency.as_str())).unwrap(),
         ).unwrap();
         let retrieved: Result<Option<AgentActivity>, String> = decode_one(&get_result).unwrap();
         assert!(retrieved.is_ok());
@@ -407,7 +409,7 @@ fn test_stable_storage_kyc_status_survives_upgrade() {
     let user_request = CreateUserRequest {
         user_type_str: "User".to_string(),
         preferred_currency_str: "UGX".to_string(),
-        email: Some("kyc@example.com".to_string()),
+        email: "kyc@example.com".to_string(),
         first_name: "KYC".to_string(),
         last_name: "Test".to_string(),
         principal_id: Some(Principal::anonymous().to_text()),
@@ -489,7 +491,7 @@ fn test_stable_storage_empty_state_upgrade() {
     let user_request = CreateUserRequest {
         user_type_str: "User".to_string(),
         preferred_currency_str: "UGX".to_string(),
-        email: Some("post-upgrade@example.com".to_string()),
+        email: "post-upgrade@example.com".to_string(),
         first_name: "Post".to_string(),
         last_name: "Upgrade".to_string(),
         principal_id: Some(Principal::anonymous().to_text()),
@@ -526,7 +528,7 @@ fn test_stable_storage_authorized_canisters_survive_upgrade() {
     );
 
     // Verify authorized canister is set (as controller)
-    let controller_principal = pic.get_controllers(canister_id).unwrap()[0];
+    let controller_principal = pic.get_controllers(canister_id)[0];
     let list_result = pic.query_call(
         canister_id,
         controller_principal,

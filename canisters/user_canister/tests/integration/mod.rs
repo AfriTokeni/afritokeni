@@ -6,6 +6,9 @@ pub mod user_registration_tests;
 pub mod pin_security_tests;
 pub mod access_control_tests;
 pub mod user_enumeration_tests;
+pub mod validation_edge_cases_tests;
+pub mod upgrade_persistence_tests;
+pub mod audit_log_tests;
 
 // ============================================================================
 // Test Environment Setup - User Canister Only

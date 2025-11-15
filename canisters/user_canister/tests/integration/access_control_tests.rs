@@ -10,7 +10,7 @@ fn test_controller_can_call_all_endpoints() {
     let env = TestEnv::new();
 
     // Register a user as controller (test mode is enabled, so all calls work)
-    let user_id = env.register_user(
+    let _user_id = env.register_user(
         Some("+256700111111".to_string()),
         None,
         "Test",
@@ -66,7 +66,7 @@ fn test_authorized_canister_can_access_all_operations() {
     let env = TestEnv::new();
 
     // Register user
-    let user_id = env.register_user(
+    let _user_id = env.register_user(
         Some("+256700111111".to_string()),
         None,
         "Test",

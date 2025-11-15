@@ -16,7 +16,7 @@ fn get_data_canister_wasm() -> Vec<u8> {
     let wasm_path = std::env::var("DATA_CANISTER_WASM")
         .unwrap_or_else(|_| {
             let mut path = std::env::current_dir().unwrap();
-            path.push("target/wasm32-unknown-unknown/release/data_canister.wasm");
+            path.push("../../target/wasm32-unknown-unknown/release/data_canister.wasm");
             path.to_string_lossy().to_string()
         });
 
@@ -39,7 +39,7 @@ fn test_controller_can_add_authorized_canister() {
     );
 
     // Get controller principal
-    let controller = pic.get_controllers(canister_id).unwrap()[0];
+    let controller = pic.get_controllers(canister_id)[0];
 
     // Create a fake authorized canister
     let fake_canister = pic.create_canister();
@@ -123,7 +123,7 @@ fn test_authorized_canister_can_create_user() {
     let user_request = CreateUserRequest {
         user_type_str: "User".to_string(),
         preferred_currency_str: "UGX".to_string(),
-        email: Some("test@example.com".to_string()),
+        email: "test@example.com".to_string(),
         first_name: "Test".to_string(),
         last_name: "User".to_string(),
         principal_id: Some(Principal::anonymous().to_text()),
@@ -165,7 +165,7 @@ fn test_unauthorized_canister_cannot_create_user() {
     let user_request = CreateUserRequest {
         user_type_str: "User".to_string(),
         preferred_currency_str: "UGX".to_string(),
-        email: Some("test@example.com".to_string()),
+        email: "test@example.com".to_string(),
         first_name: "Test".to_string(),
         last_name: "User".to_string(),
         principal_id: Some(Principal::anonymous().to_text()),
@@ -287,7 +287,7 @@ fn test_controller_can_list_authorized_canisters() {
         None,
     );
 
-    let controller = pic.get_controllers(canister_id).unwrap()[0];
+    let controller = pic.get_controllers(canister_id)[0];
 
     let list_result = pic.query_call(
         canister_id,
@@ -347,7 +347,7 @@ fn test_controller_can_remove_authorized_canister() {
         None,
     );
 
-    let controller = pic.get_controllers(canister_id).unwrap()[0];
+    let controller = pic.get_controllers(canister_id)[0];
 
     // Remove the authorized canister
     let remove_result = pic.update_call(
@@ -393,7 +393,7 @@ fn test_authorized_canister_can_update_kyc_status() {
     let user_request = CreateUserRequest {
         user_type_str: "User".to_string(),
         preferred_currency_str: "UGX".to_string(),
-        email: Some("kyc@example.com".to_string()),
+        email: "kyc@example.com".to_string(),
         first_name: "KYC".to_string(),
         last_name: "Test".to_string(),
         principal_id: Some(Principal::anonymous().to_text()),
@@ -440,7 +440,7 @@ fn test_unauthorized_principal_cannot_update_kyc_status() {
     let user_request = CreateUserRequest {
         user_type_str: "User".to_string(),
         preferred_currency_str: "UGX".to_string(),
-        email: Some("kyc@example.com".to_string()),
+        email: "kyc@example.com".to_string(),
         first_name: "KYC".to_string(),
         last_name: "Test".to_string(),
         principal_id: Some(Principal::anonymous().to_text()),
@@ -494,7 +494,7 @@ fn test_multiple_authorized_canisters() {
     let user_request = CreateUserRequest {
         user_type_str: "User".to_string(),
         preferred_currency_str: "UGX".to_string(),
-        email: Some("ussd@example.com".to_string()),
+        email: "ussd@example.com".to_string(),
         first_name: "USSD".to_string(),
         last_name: "User".to_string(),
         principal_id: Some(Principal::anonymous().to_text()),
@@ -512,7 +512,7 @@ fn test_multiple_authorized_canisters() {
     let user_request2 = CreateUserRequest {
         user_type_str: "User".to_string(),
         preferred_currency_str: "UGX".to_string(),
-        email: Some("web@example.com".to_string()),
+        email: "web@example.com".to_string(),
         first_name: "Web".to_string(),
         last_name: "User".to_string(),
         principal_id: Some(Principal::anonymous().to_text()),

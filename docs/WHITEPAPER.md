@@ -129,44 +129,49 @@ AfriTokeni provides **instant, low-cost crypto banking accessible via USSD** on 
 ### 2.2 How It Works
 
 ```
-┌────────────────────────────────────────┐
-│             USER EXPERIENCE            │
-├────────────────────────────────────────┤
-│                                        │
-│  Feature Phone          Smartphone     │
-│  ┌──────────┐          ┌──────────┐    │
-│  │ Dial     │          │  Web     │    │
-│  │ *229#    │          │  App     │    │
-│  │          │          │          │    │
-│  │ USSD     │          │ Full UI  │    │
-│  │ Menu     │          │ Dashboard│    │
-│  └──────────┘          └──────────┘    │
-│       │                     │          │
-│       └─────────┬───────────┘          │
-│                 │                      │
-│                 ▼                      │
-│      ┌─────────────────────┐           │
-│      │  ICP Blockchain     │           │
-│      │  (Juno Platform)    │           │
-│      └─────────────────────┘           │
-│                 │                      │
-│       ┌─────────┴─────────┐            │
-│       │                   │            │
-│       ▼                   ▼            │
-│  ┌─────────┐         ┌─────────┐       │
-│  │ ckBTC   │         │ ckUSDC  │       │
-│  │ Service │         │ Service │       │
-│  └─────────┘         └─────────┘       │
-│       │                   │            │
-│       └─────────┬─────────┘            │
-│                 │                      │
-│                 ▼                      │
-│      ┌─────────────────────┐           │
-│      │  Agent Network      │           │
-│      │  (Cash Exchange)    │           │
-│      └─────────────────────┘           │
-└────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────┐
+│                             USER EXPERIENCE                                 │
+├────────────────────────────────────────────────────────────────────────────┤
+│  Feature Phone              Web Dashboard                 Mobile App (2026)│
+│  ┌──────────┐              ┌──────────────┐              ┌──────────────┐  │
+│  │ Dial     │              │  Svelte Kit  │              │  Native App   │  │
+│  │ *229#    │              │  + Juno HTTP │              │  (roadmap)    │  │
+│  │ USSD     │              │  APIs        │              │  Same APIs    │  │
+│  └────┬─────┘              └────┬─────────┘              └────┬─────────┘  │
+│       │                         │                              │            │
+│       ▼                         ▼                              ▼            │
+│  ┌────────────┐        ┌────────────────┐            ┌────────────────┐     │
+│  │ USSD       │        │ Web Gateway    │            │ Mobile Gateway │     │
+│  │ Canister   │        │ (Juno adapter) │            │ (Planned)      │     │
+│  └────┬───────┘        └──────┬─────────┘            └──────┬─────────┘     │
+│       │                       │                              │            │
+├───────┴───────────────────────┴──────────────┬───────────────┴──────────────┤
+│              DOMAIN BUSINESS LOGIC           │                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │ User Canister│  │ Wallet       │  │ Crypto       │  │ Agent        │      │
+│  │- Registration│  │- Fiat flows  │  │- BTC/USDC    │  │- Cash ramps  │      │
+│  │- PIN auth    │  │- Escrow      │  │- Sonic DEX   │  │- Settlements │      │
+│  └────┬─────────┘  └────┬─────────┘  └────┬─────────┘  └────┬─────────┘      │
+│       │                 │                 │                 │               │
+├───────┴─────────────────┴─────────────────┴─────────────────┴───────────────┤
+│                          DATA CANISTER (Pure CRUD)                          │
+│      • Users • Balances • Transactions • Escrows • Agent ledgers            │
+└──────────────┬──────────────────────────────────────────────────────────────┘
+               ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│                BLOCKCHAIN / LIQUIDITY & CASH LAYERS                         │
+│  ┌───────────┐  ┌───────────┐  ┌─────────────┐  ┌──────────────┐           │
+│  │  ckBTC    │  │  ckUSDC   │  │  Sonic DEX  │  │  Agent Float │           │
+│  │  Ledger   │  │  Ledger   │  │  (Swaps)    │  │  (Cash)      │           │
+│  │  User-    │  │  User-    │  │  BTC↔USDC   │  │  Weekly      │           │
+│  │  owned     │  │  owned     │  │  routing    │  │  settlements │           │
+└──────────────┴──────────────┴───────────────┴───────────────┴──────────────┘
 ```
+
+- **Multiple Entry Points** funnel into the same business logic: USSD (live), Web (live), Mobile (roadmap).
+- **Domain Canisters** enforce validation, fraud detection, and orchestration before any state mutation.
+- **Data Canister** remains a pure storage layer—no business logic, ensuring auditability and upgrades without state loss.
+- **Non-Custodial Crypto + Agent Float** provide simultaneous on-chain control for users and cash liquidity for fiat ramps.
 
 ### 2.3 Key Differentiators
 
@@ -186,116 +191,98 @@ AfriTokeni provides **instant, low-cost crypto banking accessible via USSD** on 
 
 ### 3.1 Technology Stack
 
-**Frontend**:
-- React 19.2 with TypeScript
-- TailwindCSS for styling
-- Vite 7 for build tooling
-- React Router for navigation
+**Frontend (Web + Admin tools)**:
+- SvelteKit 2.48 with Svelte 5 + TypeScript 5.8
+- Flowbite-Svelte + TailwindCSS 4 for the design system
+- Vite 7 toolchain with Vitest + Playwright for testing
+- Zod-powered form validation and schema inference
+- Juno HTTP adapters for low-latency reads from canisters
 
-**Backend**:
-- Juno (ICP) for decentralized storage
-- ICP Canisters for smart contracts
-- ICRC-1 standard for token operations
-- Internet Identity for authentication
+**Backend (Canisters & Services)**:
+- Rust canisters on ICP: User, Wallet, Crypto, Agent, Data, USSD
+- Shared `shared_types` crate for schema parity across services/tests
+- ic-cdk 0.13 stack with PocketIC integration tests (80/80 passing)
+- Juno Functions for webhook bridging (USSD/SMS → ICP)
+- Internet Identity + custom PIN auth for hybrid custody flows
 
-**Blockchain Integration**:
-- ckBTC: ICP-native Bitcoin (1:1 backed)
-- ckUSDC: ICP-native USDC stablecoin
-- Principal-based addressing
-- Chain-key cryptography
+**Blockchain & Liquidity**:
+- ckBTC / ckUSDC ICRC-1 ledgers (user-owned balances)
+- ICRC-2 approvals for non-custodial transfers and Sonic swaps
+- Sonic DEX routing for on-chain BTC↔USDC conversions
+- SNS governance + ckBTC/ckUSDC ledger canisters referenced in dfx.json
 
-**Communication**:
-- Africa's Talking SMS Gateway
-- USSD session management
-- Webhook processing
-- Multi-language support (English, Luganda, Swahili)
+**Communication & Edge**:
+- Africa's Talking USSD + SMS gateway (production short codes)
+- Webhook workers deployed on Juno for stateless session handling
+- Multi-language orchestration (English, Luganda, Swahili) baked into USSD flows
+- Observability via structured ic-cdk logging + deployment scripts (`scripts/admin.sh status`)
 
 ### 3.2 Domain-Driven Canister Architecture
 
 AfriTokeni uses a modern domain-driven architecture with specialized canisters for optimal scalability, security, and maintainability:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    PRESENTATION LAYER                           │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │   Frontend   │  │     USSD     │  │   Web App    │          │
-│  │   Canister   │  │   Canister   │  │  (Juno)      │          │
-│  │   (Juno)     │  │  (Stateless) │  │              │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
-│         │                  │                  │                │
-│         └──────────────────┼──────────────────┘                │
-│                            │                                   │
-└────────────────────────────┼───────────────────────────────────┘
-                             ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                    DOMAIN BUSINESS LOGIC LAYER                  │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │     USER     │  │    WALLET    │  │    CRYPTO    │          │
-│  │   CANISTER   │  │   CANISTER   │  │   CANISTER   │          │
-│  ├──────────────┤  ├──────────────┤  ├──────────────┤          │
-│  │ • Register   │  │ • Transfers  │  │ • Buy/Sell   │          │
-│  │ • Auth/PIN   │  │ • Balances   │  │ • Send BTC   │          │
-│  │ • Profiles   │  │ • Fraud Det. │  │ • Swap       │          │
-│  │ • Linking    │  │ • Escrow     │  │ • DEX Integ. │          │
-│  │ • Principal  │  │ • Fiat Ops   │  │ • ICRC-2     │          │
-│  │ • 400KB      │  │ • 600KB      │  │ • 1.0MB      │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
-│         │                  │                  │                │
-│         └──────────────────┼──────────────────┘                │
-│                            │                                   │
-│  ┌────────────────────────────────────────────────────┐        │
-│  │              AGENT CANISTER                        │        │
-│  ├────────────────────────────────────────────────────┤        │
-│  │ • Credit-based float system (NO upfront deposits)  │        │
-│  │ • Tiered credit limits (1M/5M/10M per currency)    │        │
-│  │ • Weekly settlements                               │        │
-│  │ • Deposits (cash → fiat IOU)                       │        │
-│  │ • Withdrawals (fiat IOU → cash)                    │        │
-│  │ • Multi-currency support (39 currencies)           │        │
-│  │ • Revenue tracking & reporting                     │        │
-│  │ • 700KB                                            │        │
-│  └────────────────────────────────────────────────────┘        │
-│                            │                                   │
-└────────────────────────────┼───────────────────────────────────┘
-                             ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                    DATA & STORAGE LAYER                         │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────┐      │
-│  │         DATA CANISTER (Pure CRUD)                    │      │
-│  │  • User profiles & authentication                    │      │
-│  │  • Fiat balances (39 currencies - IOUs)             │      │
-│  │  • Crypto balance tracking (NOT custody)            │      │
-│  │  • Transaction history                               │      │
-│  │  • Escrow metadata                                   │      │
-│  │  • Deposit/withdrawal records                        │      │
-│  │  • Agent credit & settlement tracking                │      │
-│  │  • NO business logic                                 │      │
-│  │  • 1.1MB                                             │      │
-│  └──────────────────────────────────────────────────────┘      │
-│                            │                                   │
-└────────────────────────────┼───────────────────────────────────┘
-                             ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                    BLOCKCHAIN LAYER (NON-CUSTODIAL)             │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌──────────┐ │
-│  │   ckBTC    │  │   ckUSDC   │  │   Sonic    │  │   SNS    │ │
-│  │   Ledger   │  │   Ledger   │  │    DEX     │  │   DAO    │ │
-│  │            │  │            │  │            │  │          │ │
-│  │ Users own  │  │ Users own  │  │ BTC↔USDC   │  │Governance│ │
-│  │ crypto on  │  │ crypto on  │  │ swaps      │  │          │ │
-│  │ Principal  │  │ Principal  │  │            │  │          │ │
-│  └────────────┘  └────────────┘  └────────────┘  └──────────┘ │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────┐
+│                               External World                               │
+│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐                 │
+│  │ USSD Gateway │     │  Web Clients │     │  Mobile Apps │ (roadmap)       │
+│  └──────┬───────┘     └──────┬───────┘     └──────┬──────┘                 │
+└─────────┼────────────────────┼────────────────────┼─────────────────────────┘
+          │                    │                    │
+┌─────────▼────────┐  ┌────────▼────────────┐  ┌────▼────────────────────┐
+│  USSD Canister   │  │  Web App (Svelte +  │  │  Mobile App (Planned)   │
+│  - Parse USSD    │  │  Juno HTTP Layer)   │  │  - Same domain APIs     │
+│  - Format replies│  │  - UI / analytics   │  │  - Native experience    │
+│  - Session mgmt  │  │  - Canister proxies │  │  - Coming milestone     │
+└─────────┬────────┘  └────────┬────────────┘  └────────┬──────────────────┘
+          │                    │                         │
+          └──────────────┬─────┴──────────────┬──────────┘
+                         ▼                    ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│                         BUSINESS LOGIC LAYER                                │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                      │
+│  │    User      │  │   Wallet     │  │   Crypto     │                      │
+│  │  Canister    │  │  Canister    │  │  Canister    │                      │
+│  │ - User mgmt  │  │ - Transfers  │  │ - BTC/USDC   │                      │
+│  │ - KYC        │  │ - Balances   │  │ - Purchases  │                      │
+│  │ - Auth       │  │ - Escrow     │  │ - Sales      │                      │
+│  └──────────────┘  └──────────────┘  └──────────────┘                      │
+│                                                                            │
+│  ┌──────────────┐                                                          │
+│  │    Agent     │                                                          │
+│  │  Canister    │                                                          │
+│  │ - Deposits   │                                                          │
+│  │ - Withdrawals│                                                          │
+│  │ - Daily settlements                                                     │
+│  └──────────────┘                                                          │
+└────────────────────────────────────────────────────────────────────────────┘
+                         ↓
+┌────────────────────────────────────────────────────────────────────────────┐
+│                             STORAGE LAYER                                  │
+│  ┌────────────────────────────────────────────────────────────────────┐    │
+│  │                        Data Canister                               │    │
+│  │  - Pure CRUD operations                                             │    │
+│  │  - Users, balances, transactions, escrows, settlements              │    │
+│  │  - Can be called by: Domain canisters only                          │    │
+│  └────────────────────────────────────────────────────────────────────┘    │
+└────────────────────────────────────────────────────────────────────────────┘
+                         ↓
+┌────────────────────────────────────────────────────────────────────────────┐
+│                    BLOCKCHAIN LAYER (NON-CUSTODIAL)                        │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌──────────┐             │
+│  │   ckBTC    │  │   ckUSDC   │  │   Sonic    │  │   SNS    │             │
+│  │   Ledger   │  │   Ledger   │  │    DEX     │  │   DAO    │             │
+│  │ Users own  │  │ Users own  │  │ BTC↔USDC   │  │Governance│             │
+│  │ crypto via │  │ crypto via │  │ swaps      │  │community │             │
+│  │ principals │  │ principals │  │            │  │ownership │             │
+│  └────────────┘  └────────────┘  └────────────┘  └──────────┘             │
+└────────────────────────────────────────────────────────────────────────────┘
 ```
+
+**Presentation Layer Status**:
+- **USSD Canister** – Production entry point that handles all feature-phone flows.
+- **Web App (Svelte + Juno)** – Real-time dashboard and admin tooling riding the same domain APIs.
+- **Mobile App (Roadmap)** – Native experience planned for 2026 using identical canister contracts.
 
 **Architecture Benefits**:
 - **Domain Separation**: Each canister handles one business domain
@@ -382,7 +369,7 @@ AfriTokeni uses a modern domain-driven architecture with specialized canisters f
     - Generate withdrawal codes (WTH000001, etc.)
     - Fee calculation (0.5% platform + 2-12% agent)
     - Agent earnings tracking (90% of agent fee)
-  - **Settlements**: Monthly agent payouts
+  - **Settlements**: Weekly agent payouts (auto-generated every Monday)
     - Generate settlement reports
     - Track paid/unpaid status
     - Platform revenue reporting
@@ -402,7 +389,7 @@ AfriTokeni uses a modern domain-driven architecture with specialized canisters f
   - `deposits`: Deposit transaction records
   - `withdrawals`: Withdrawal transaction records
   - `agents`: Agent network information
-  - `settlements`: Monthly settlement data
+  - `settlements`: Weekly settlement data (per credit config)
   - `transactions`: All financial transactions
   - `ckbtc_transactions`: ckBTC-specific operations
   - `ckusdc_transactions`: ckUSDC-specific operations
@@ -427,12 +414,13 @@ AfriTokeni uses a modern domain-driven architecture with specialized canisters f
 
 ### 3.5 Security Architecture
 
-**Multi-Layer Security**:
+-**Multi-Layer Security**:
 - **Principal-based authentication**: ICP cryptographic identities
 - **PIN verification**: 4-digit PIN for USSD users
 - **Rate limiting**: 10 requests/minute per user
 - **Fraud detection**: Automatic blocking of suspicious transactions
 - **Audit logging**: All operations logged for compliance
+- **Independent audit**: Claude Security Review (Q4 2025) covering canister code + infra
 - **Multi-signature**: Large transactions require multiple approvals
 - **Escrow system**: Atomic crypto-to-cash exchanges
 

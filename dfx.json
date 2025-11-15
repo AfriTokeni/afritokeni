@@ -61,6 +61,16 @@
       "package": "ussd_canister",
       "candid": "canisters/ussd_canister/ussd_canister.did"
     },
+    "wallet_canister": {
+      "type": "rust",
+      "package": "wallet_canister",
+      "candid": "canisters/wallet_canister/wallet_canister.did"
+    },
+    "user_canister": {
+      "type": "rust",
+      "package": "user_canister",
+      "candid": "canisters/user_canister/user_canister.did"
+    },
     "satellite": {
       "type": "custom",
       "candid": "src/satellite/satellite.did",

@@ -357,6 +357,7 @@ pub struct AuditEntry {
 pub struct MonthlySettlement {
     pub month: String,             // e.g. "2025-11"
     pub agent_principal: String,   // principal text
+    pub currency: String,          // Currency code (e.g., "UGX", "KES")
     pub total_commission: u64,
     pub paid: bool,
     pub paid_date: Option<u64>,    // seconds since epoch

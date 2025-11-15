@@ -16,7 +16,7 @@ fn get_data_canister_wasm() -> Vec<u8> {
     let wasm_path = std::env::var("DATA_CANISTER_WASM")
         .unwrap_or_else(|_| {
             let mut path = std::env::current_dir().unwrap();
-            path.push("target/wasm32-unknown-unknown/release/data_canister.wasm");
+            path.push("../../target/wasm32-unknown-unknown/release/data_canister.wasm");
             path.to_string_lossy().to_string()
         });
 
@@ -44,7 +44,7 @@ fn create_test_user(pic: &PocketIc, canister_id: Principal, phone: &str, email: 
     let user_request = CreateUserRequest {
         user_type_str: "User".to_string(),
         preferred_currency_str: "UGX".to_string(),
-        email: Some(email.to_string()),
+        email: email.to_string(),
         first_name: "Test".to_string(),
         last_name: "User".to_string(),
         principal_id: Some(Principal::anonymous().to_text()),
@@ -395,7 +395,7 @@ fn test_agent_user_kyc_workflow() {
     let agent_request = CreateUserRequest {
         user_type_str: "Agent".to_string(),
         preferred_currency_str: "UGX".to_string(),
-        email: Some("agent@example.com".to_string()),
+        email: "agent@example.com".to_string(),
         first_name: "Agent".to_string(),
         last_name: "Smith".to_string(),
         principal_id: Some(Principal::anonymous().to_text()),

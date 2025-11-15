@@ -227,23 +227,38 @@ fn test_link_phone_already_registered_fails() {
     // Try to link already-registered phone
     let result = env.link_phone_to_account(&principal, "+256700123456");
     assert!(result.is_err(), "Linking already-registered phone should fail");
-    assert!(result.unwrap_err().contains("already registered"));
+    let error = result.unwrap_err();
+    assert!(
+        error.contains("already be in use") || error.contains("already registered") || error.contains("Unable to link"),
+        "Error should mention phone is unavailable: {}",
+        error
+    );
 }
 
 #[test]
 fn test_verify_pin_for_nonexistent_user() {
     let env = TestEnv::new();
-    
+
     let result = env.verify_pin("+256700999999", "1234");
     assert!(result.is_err(), "Verifying PIN for nonexistent user should fail");
-    assert!(result.unwrap_err().contains("not found"));
+    let error = result.unwrap_err();
+    assert!(
+        error.contains("not found") || error.contains("Invalid credentials"),
+        "Error should be generic: {}",
+        error
+    );
 }
 
 #[test]
 fn test_change_pin_for_nonexistent_user() {
     let env = TestEnv::new();
-    
+
     let result = env.change_pin("+256700999999", "1234", "5678");
     assert!(result.is_err(), "Changing PIN for nonexistent user should fail");
-    assert!(result.unwrap_err().contains("not found"));
+    let error = result.unwrap_err();
+    assert!(
+        error.contains("not found") || error.contains("Invalid credentials"),
+        "Error should be generic: {}",
+        error
+    );
 }

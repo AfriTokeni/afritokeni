@@ -6,7 +6,7 @@
 ///
 /// These are critical for monitoring agent behavior patterns.
 
-use candid::{encode_one, decode_one, Principal};
+use candid::{encode_one, encode_args, decode_one, Principal};
 use pocket_ic::PocketIc;
 use shared_types::AgentActivity;
 
@@ -15,7 +15,7 @@ fn get_data_canister_wasm() -> Vec<u8> {
     let wasm_path = std::env::var("DATA_CANISTER_WASM")
         .unwrap_or_else(|_| {
             let mut path = std::env::current_dir().unwrap();
-            path.push("target/wasm32-unknown-unknown/release/data_canister.wasm");
+            path.push("../../target/wasm32-unknown-unknown/release/data_canister.wasm");
             path.to_string_lossy().to_string()
         });
 
@@ -78,7 +78,7 @@ fn test_store_and_retrieve_agent_activity() {
         canister_id,
         Principal::anonymous(),
         "get_agent_activity",
-        encode_one(("agent_001".to_string(), "UGX".to_string())).unwrap(),
+        encode_args(("agent_001", "UGX")).unwrap(),
     );
 
     assert!(get_result.is_ok());
@@ -122,7 +122,7 @@ fn test_update_existing_agent_activity() {
         canister_id,
         Principal::anonymous(),
         "get_agent_activity",
-        encode_one(("agent_001".to_string(), "UGX".to_string())).unwrap(),
+        encode_args(("agent_001", "UGX")).unwrap(),
     ).unwrap();
 
     let retrieved: Result<Option<AgentActivity>, String> = decode_one(&get_result).unwrap();
@@ -160,7 +160,7 @@ fn test_multiple_currencies_for_same_agent() {
         canister_id,
         Principal::anonymous(),
         "get_agent_activity",
-        encode_one(("agent_001".to_string(), "UGX".to_string())).unwrap(),
+        encode_args(("agent_001", "UGX")).unwrap(),
     ).unwrap();
     let ugx: Result<Option<AgentActivity>, String> = decode_one(&get_ugx).unwrap();
     assert!(ugx.unwrap().is_some());
@@ -169,7 +169,7 @@ fn test_multiple_currencies_for_same_agent() {
         canister_id,
         Principal::anonymous(),
         "get_agent_activity",
-        encode_one(("agent_001".to_string(), "NGN".to_string())).unwrap(),
+        encode_args(("agent_001", "NGN")).unwrap(),
     ).unwrap();
     let ngn: Result<Option<AgentActivity>, String> = decode_one(&get_ngn).unwrap();
     let ngn = ngn.unwrap().unwrap();
@@ -204,7 +204,7 @@ fn test_multiple_agents_same_currency() {
         canister_id,
         Principal::anonymous(),
         "get_agent_activity",
-        encode_one(("agent_001".to_string(), "UGX".to_string())).unwrap(),
+        encode_args(("agent_001", "UGX")).unwrap(),
     ).unwrap();
     let agent1: Result<Option<AgentActivity>, String> = decode_one(&get1).unwrap();
     let agent1 = agent1.unwrap().unwrap();
@@ -214,7 +214,7 @@ fn test_multiple_agents_same_currency() {
         canister_id,
         Principal::anonymous(),
         "get_agent_activity",
-        encode_one(("agent_002".to_string(), "UGX".to_string())).unwrap(),
+        encode_args(("agent_002", "UGX")).unwrap(),
     ).unwrap();
     let agent2: Result<Option<AgentActivity>, String> = decode_one(&get2).unwrap();
     let agent2 = agent2.unwrap().unwrap();
@@ -230,7 +230,7 @@ fn test_get_nonexistent_agent_activity() {
         canister_id,
         Principal::anonymous(),
         "get_agent_activity",
-        encode_one(("agent_999".to_string(), "UGX".to_string())).unwrap(),
+        encode_args(("agent_999", "UGX")).unwrap(),
     ).unwrap();
 
     let retrieved: Result<Option<AgentActivity>, String> = decode_one(&get_result).unwrap();
@@ -260,7 +260,7 @@ fn test_store_activity_with_empty_vectors() {
         canister_id,
         Principal::anonymous(),
         "get_agent_activity",
-        encode_one(("agent_001".to_string(), "UGX".to_string())).unwrap(),
+        encode_args(("agent_001", "UGX")).unwrap(),
     ).unwrap();
 
     let retrieved: Result<Option<AgentActivity>, String> = decode_one(&get_result).unwrap();
@@ -293,7 +293,7 @@ fn test_store_activity_with_large_volumes() {
         canister_id,
         Principal::anonymous(),
         "get_agent_activity",
-        encode_one(("agent_001".to_string(), "UGX".to_string())).unwrap(),
+        encode_args(("agent_001", "UGX")).unwrap(),
     ).unwrap();
 
     let retrieved: Result<Option<AgentActivity>, String> = decode_one(&get_result).unwrap();
@@ -339,7 +339,7 @@ fn test_fraud_detection_metrics_accuracy() {
         canister_id,
         Principal::anonymous(),
         "get_agent_activity",
-        encode_one(("agent_suspicious".to_string(), "UGX".to_string())).unwrap(),
+        encode_args(("agent_suspicious", "UGX")).unwrap(),
     ).unwrap();
 
     let retrieved: Result<Option<AgentActivity>, String> = decode_one(&get_result).unwrap();
@@ -392,7 +392,7 @@ fn test_activity_isolation_between_agents_and_currencies() {
             canister_id,
             Principal::anonymous(),
             "get_agent_activity",
-            encode_one((agent.to_string(), currency.to_string())).unwrap(),
+            encode_args((agent, currency)).unwrap(),
         ).unwrap();
 
         let retrieved: Result<Option<AgentActivity>, String> = decode_one(&get_result).unwrap();
@@ -438,7 +438,7 @@ fn test_concurrent_updates_to_different_activities() {
         canister_id,
         Principal::anonymous(),
         "get_agent_activity",
-        encode_one(("agent_001".to_string(), "UGX".to_string())).unwrap(),
+        encode_args(("agent_001", "UGX")).unwrap(),
     ).unwrap();
     let result1: Result<Option<AgentActivity>, String> = decode_one(&get1).unwrap();
     assert!(result1.unwrap().is_some());

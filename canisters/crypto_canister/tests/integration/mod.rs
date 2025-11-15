@@ -71,8 +71,8 @@ fn configure_canisters(
     wallet_canister: Principal,
     crypto_canister: Principal,
 ) {
-    // Configure user canister (takes String)
-    let args = encode_args((data_canister.to_text(),)).unwrap();
+    // Configure user canister (takes Principal)
+    let args = encode_args((data_canister,)).unwrap();
     pic.update_call(
         user_canister,
         Principal::anonymous(),

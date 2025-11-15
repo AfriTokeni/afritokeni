@@ -55,7 +55,12 @@ fn test_duplicate_phone_registration_fails() {
     );
     
     assert!(result.is_err(), "Duplicate phone should fail");
-    assert!(result.unwrap_err().contains("already exists"));
+    let error = result.unwrap_err();
+    assert!(
+        error.contains("already be in use") || error.contains("Registration failed"),
+        "Error should be generic about duplicate: {}",
+        error
+    );
 }
 
 #[test]
