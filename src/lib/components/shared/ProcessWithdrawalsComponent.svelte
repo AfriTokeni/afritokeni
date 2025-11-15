@@ -79,7 +79,9 @@
 
       if (isDemoMode) {
         // Demo mode - load from JSON
-        const response = await fetch("/data/demo/demo-withdrawal-requests.json");
+        const response = await fetch(
+          "/data/demo/demo-withdrawal-requests.json",
+        );
         if (!response.ok) {
           throw new Error("Failed to load demo withdrawal requests");
         }

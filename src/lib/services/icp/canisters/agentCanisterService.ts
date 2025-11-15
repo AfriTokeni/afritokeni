@@ -34,6 +34,9 @@ import type {
   CurrencyLimitsResponse,
   CanisterStatus,
   SetAgentTierRequest,
+  AgentProfile,
+  CreateAgentProfileRequest,
+  UpdateAgentProfileRequest,
 } from "$/declarations/agent_canister/agent_canister.did";
 
 /**
@@ -326,6 +329,79 @@ export class AgentCanisterService {
     if ("Err" in result) {
       throw new Error(result.Err);
     }
+  }
+
+  // ============================================================================
+  // AGENT PROFILE MANAGEMENT
+  // ============================================================================
+
+  /**
+   * Create agent profile
+   */
+  async createAgentProfile(
+    request: CreateAgentProfileRequest,
+  ): Promise<AgentProfile> {
+    const result = await this.actor.create_agent_profile(request);
+
+    if ("Err" in result) {
+      throw new Error(result.Err);
+    }
+
+    return result.Ok;
+  }
+
+  /**
+   * Get agent profile by user ID
+   * Note: Uses update call because query calls cannot make inter-canister calls
+   */
+  async getAgentProfile(userId: string): Promise<AgentProfile | null> {
+    const result = await this.actor.get_agent_profile_update(userId);
+
+    if ("Err" in result) {
+      throw new Error(result.Err);
+    }
+
+    // Candid optional: [] means None, [value] means Some(value)
+    const profile = result.Ok.length > 0 ? result.Ok[0] : undefined;
+    return profile ?? null;
+  }
+
+  /**
+   * Update agent profile
+   */
+  async updateAgentProfile(
+    request: UpdateAgentProfileRequest,
+  ): Promise<AgentProfile> {
+    const result = await this.actor.update_agent_profile(request);
+
+    if ("Err" in result) {
+      throw new Error(result.Err);
+    }
+
+    return result.Ok;
+  }
+
+  /**
+   * Get nearby agents for agent finder
+   */
+  async getNearbyAgentProfiles(
+    latitude: number,
+    longitude: number,
+    radiusKm: number,
+    limit: bigint,
+  ): Promise<AgentProfile[]> {
+    const result = await this.actor.get_nearby_agent_profiles(
+      latitude,
+      longitude,
+      radiusKm,
+      limit,
+    );
+
+    if ("Err" in result) {
+      throw new Error(result.Err);
+    }
+
+    return result.Ok;
   }
 
   // ============================================================================

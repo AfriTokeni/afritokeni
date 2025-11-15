@@ -289,3 +289,76 @@ pub async fn store_agent_activity(activity: AgentActivity) -> Result<AgentActivi
 
     result
 }
+
+// ============================================================================
+// Agent Profile Operations
+// ============================================================================
+
+/// Create agent profile
+pub async fn create_agent_profile(
+    request: shared_types::CreateAgentProfileRequest,
+) -> Result<shared_types::AgentProfile, String> {
+    let canister_id = get_data_canister_id()?;
+
+    let response = Call::unbounded_wait(canister_id, "create_agent_profile")
+        .with_arg(request)
+        .await
+        .map_err(|e| format!("Failed to call data_canister: {:?}", e))?;
+
+    let (result,): (Result<shared_types::AgentProfile, String>,) = candid::decode_args(&response.into_bytes())
+        .map_err(|e| format!("Failed to decode response: {:?}", e))?;
+
+    result
+}
+
+/// Get agent profile by user_id
+pub async fn get_agent_profile(user_id: &str) -> Result<Option<shared_types::AgentProfile>, String> {
+    let canister_id = get_data_canister_id()?;
+
+    let response = Call::unbounded_wait(canister_id, "get_agent_profile")
+        .with_arg(user_id.to_string())
+        .await
+        .map_err(|e| format!("Failed to call data_canister: {:?}", e))?;
+
+    let (result,): (Result<Option<shared_types::AgentProfile>, String>,) = candid::decode_args(&response.into_bytes())
+        .map_err(|e| format!("Failed to decode response: {:?}", e))?;
+
+    result
+}
+
+/// Update agent profile
+pub async fn update_agent_profile(
+    request: shared_types::UpdateAgentProfileRequest,
+) -> Result<shared_types::AgentProfile, String> {
+    let canister_id = get_data_canister_id()?;
+
+    let response = Call::unbounded_wait(canister_id, "update_agent_profile")
+        .with_arg(request)
+        .await
+        .map_err(|e| format!("Failed to call data_canister: {:?}", e))?;
+
+    let (result,): (Result<shared_types::AgentProfile, String>,) = candid::decode_args(&response.into_bytes())
+        .map_err(|e| format!("Failed to decode response: {:?}", e))?;
+
+    result
+}
+
+/// Get nearby agent profiles
+pub async fn get_nearby_agent_profiles(
+    lat: f64,
+    lng: f64,
+    radius: f64,
+    limit: usize,
+) -> Result<Vec<shared_types::AgentProfile>, String> {
+    let canister_id = get_data_canister_id()?;
+
+    let response = Call::unbounded_wait(canister_id, "get_nearby_agent_profiles")
+        .with_args(&(lat, lng, radius, limit))
+        .await
+        .map_err(|e| format!("Failed to call data_canister: {:?}", e))?;
+
+    let (result,): (Result<Vec<shared_types::AgentProfile>, String>,) = candid::decode_args(&response.into_bytes())
+        .map_err(|e| format!("Failed to decode response: {:?}", e))?;
+
+    result
+}

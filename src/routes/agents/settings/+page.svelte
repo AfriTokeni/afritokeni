@@ -103,24 +103,22 @@
         throw new Error("Not authenticated");
       }
 
-      // Update or create agent document
-      await setDoc({
-        collection: "agents",
-        doc: {
-          ...agentDoc,
-          data: {
-            ...agentDoc?.data,
-            businessName: editBusinessName,
-            phoneNumber: editPhoneNumber,
-            location: editLocation,
-            updatedAt: new Date().toISOString(),
-          },
-        },
-      });
-
-      await loadAgentData($demoMode, currentPrincipalId);
-      toast.show("success", "Profile updated successfully!");
+      // TODO: Implement agent profile update via AgentService
+      // Need to add updateAgentProfile method to AgentService that calls agent_canister
+      toast.show(
+        "warning",
+        "Profile updates coming soon! Enable demo mode to test this feature.",
+      );
       showEditModal = false;
+
+      // Placeholder for future implementation:
+      // await AgentService.updateAgentProfile(currentPrincipalId, {
+      //   businessName: editBusinessName,
+      //   phoneNumber: editPhoneNumber,
+      //   location: parseLocation(editLocation),
+      // });
+      // await loadAgentData($demoMode, currentPrincipalId);
+      // toast.show("success", "Profile updated successfully!");
     } catch (error: any) {
       console.error("Failed to update profile:", error);
       toast.show("error", "Failed to update profile");
@@ -157,20 +155,14 @@
         filename: `${currentPrincipalId}_${Date.now()}.${file.name.split(".").pop()}`,
       });
 
-      await setDoc({
-        collection: "agents",
-        doc: {
-          ...agentDoc,
-          data: {
-            ...agentDoc?.data,
-            profileImage: result.downloadUrl,
-            updatedAt: new Date().toISOString(),
-          },
-        },
-      });
+      // Profile picture URL uploaded to Juno storage
+      // TODO: Store profile picture URL in agent profile (not yet implemented in canisters)
+      console.log("Profile picture uploaded:", result.downloadUrl);
 
-      await loadAgentData($demoMode, $principalId);
-      toast.show("success", "Profile picture updated!");
+      toast.show(
+        "success",
+        "Profile picture uploaded! (Storage in canister coming soon)",
+      );
     } catch (error: any) {
       console.error("Failed to upload profile picture:", error);
       toast.show("error", "Failed to upload profile picture");
@@ -216,30 +208,15 @@
         uploadedFiles.selfieUrl = selfieResult.downloadUrl;
       }
 
-      // Update agent document with KYC data and file URLs
-      await setDoc({
-        collection: "agents",
-        doc: {
-          ...agentDoc,
-          data: {
-            ...agentDoc?.data,
-            kycStatus: "pending",
-            kycSubmittedAt: new Date().toISOString(),
-            kycData: {
-              ...kycData,
-              idDocument: undefined,
-              proofOfAddress: undefined,
-              selfie: undefined,
-              ...uploadedFiles,
-            },
-            updatedAt: new Date().toISOString(),
-          },
-        },
-      });
+      // KYC documents uploaded to Juno
+      // TODO: Update user_canister KYC status (not yet implemented)
+      console.log("KYC documents uploaded:", uploadedFiles);
 
-      toast.show("success", "KYC documents submitted successfully!");
+      toast.show(
+        "success",
+        "KYC documents uploaded! (Status update coming soon)",
+      );
       showKYCModal = false;
-      await loadAgentData($demoMode, $principalId);
     } catch (error: any) {
       console.error("❌ Failed to submit KYC:", error);
       console.error("Error details:", {

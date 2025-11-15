@@ -177,8 +177,6 @@ pub use shared_types::{
     Escrow, EscrowStatus,
     // Agent types
     DepositTransaction, WithdrawalTransaction, AgentBalance, AgentTransactionStatus,
-    // Agent Profile types (composition pattern - separate from User)
-    AgentProfile, AgentStatus, LocationData, CreateAgentProfileRequest, UpdateAgentProfileRequest,
 };
 
 // ============================================================================

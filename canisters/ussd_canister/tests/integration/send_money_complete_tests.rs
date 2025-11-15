@@ -17,7 +17,7 @@ fn test_send_money_ugx_success() {
         .expect("Setup");
     env.setup_test_user_with_balances(receiver, "Receive", "Receiver", "receiver@test.com", "UGX", "1234", 0, 0, 0)
         .expect("Setup");
-    env.set_fiat_balance(sender, "UGX", 500000).expect("Set balance");
+    env.set_fiat_balance(sender, "UGX", 20000000).expect("Set balance"); // 200,000 UGX in cents
     
     // Send money: Menu 1*1 (Send Money) -> recipient -> amount -> PIN
     let (response, _) = env.process_ussd(&sess, sender, &format!("1*1*{}*100000*1234", receiver));
@@ -133,7 +133,7 @@ fn test_send_money_wrong_pin() {
         .expect("Setup");
     env.setup_test_user_with_balances(receiver, "Receive", "Receiver", "recvwrong@test.com", "UGX", "1234", 0, 0, 0)
         .expect("Setup");
-    env.set_fiat_balance(sender, "UGX", 100000).expect("Set balance");
+    env.set_fiat_balance(sender, "UGX", 6000000).expect("Set balance"); // 60,000 UGX in cents (enough for 50,000 + fee)
     
     let (response, _) = env.process_ussd(&sess, sender, &format!("1*1*{}*50000*9999", receiver));
     
@@ -142,7 +142,7 @@ fn test_send_money_wrong_pin() {
     
     // Balance should not change
     let balance = env.check_fiat_balance(sender, "UGX").expect("Get balance");
-    assert_eq!(balance, 100000, "Balance should not change on wrong PIN");
+    assert_eq!(balance, 6000000, "Balance should not change on wrong PIN");
 }
 
 // ============================================================================
@@ -156,8 +156,9 @@ fn test_send_money_nonexistent_recipient() {
     let sender = &phone("UGX");
     let fake_receiver = "+256700999999";
     
-    env.setup_test_user_with_balances(sender, "Send", "Sender", "sendnorecv@test.com", "UGX", "1234", 100000, 0, 0)
+    env.setup_test_user_with_balances(sender, "Send", "Sender", "sendnorecv@test.com", "UGX", "1234", 0, 0, 0)
         .expect("Setup");
+    env.set_fiat_balance(sender, "UGX", 6000000).expect("Set balance"); // 60,000 UGX in cents
     // Don't register receiver
     
     let (response, _) = env.process_ussd(&sess, sender, &format!("1*1*{}*50000*1234", fake_receiver));
@@ -172,8 +173,9 @@ fn test_send_money_to_self() {
     let sess = session();
     let phone = &phone("UGX");
     
-    env.setup_test_user_with_balances(phone, "Send", "Self", "sendself@test.com", "UGX", "1234", 100000, 0, 0)
+    env.setup_test_user_with_balances(phone, "Send", "Self", "sendself@test.com", "UGX", "1234", 0, 0, 0)
         .expect("Setup");
+    env.set_fiat_balance(phone, "UGX", 6000000).expect("Set balance"); // 60,000 UGX in cents
     
     let (response, _) = env.process_ussd(&sess, phone, &format!("1*1*{}*50000*1234", phone));
     
@@ -196,7 +198,7 @@ fn test_send_money_minimum_amount() {
         .expect("Setup");
     env.setup_test_user_with_balances(receiver, "Receive", "Receiver", "recvmin@test.com", "UGX", "1234", 0, 0, 0)
         .expect("Setup");
-    env.set_fiat_balance(sender, "UGX", 10000).expect("Set balance");
+    env.set_fiat_balance(sender, "UGX", 60000).expect("Set balance"); // 600 UGX in cents (enough for 10 + fee)
     
     let (response, _) = env.process_ussd(&sess, sender, &format!("1*1*{}*10*1234", receiver));
     
@@ -215,7 +217,7 @@ fn test_send_money_large_amount() {
         .expect("Setup");
     env.setup_test_user_with_balances(receiver, "Receive", "Receiver", "recvlarge@test.com", "UGX", "1234", 0, 0, 0)
         .expect("Setup");
-    env.set_fiat_balance(sender, "UGX", 5000000).expect("Set balance");
+    env.set_fiat_balance(sender, "UGX", 110000000).expect("Set balance"); // 1,100,000 UGX in cents (enough for 1,000,000 + fee)
     
     let (response, _) = env.process_ussd(&sess, sender, &format!("1*1*{}*1000000*1234", receiver));
     

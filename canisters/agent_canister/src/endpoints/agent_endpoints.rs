@@ -555,6 +555,123 @@ pub async fn get_platform_statistics() -> Result<PlatformStatistics, String> {
     }
     
     stats.total_commission_pending = stats.total_commission_earned.saturating_sub(stats.total_commission_paid);
-    
+
     Ok(stats)
+}
+
+// ============================================================================
+// Agent Profile Management
+// ============================================================================
+
+/// Create agent profile
+///
+/// Creates a new agent profile in data_canister. The user must exist and have user_type = Agent.
+///
+/// # Arguments
+/// * `request` - Agent profile creation request
+///
+/// # Returns
+/// The created agent profile
+///
+/// # Access Control
+/// Authorized canisters only (USSD/Web) or controller
+#[update]
+async fn create_agent_profile(request: shared_types::CreateAgentProfileRequest) -> Result<shared_types::AgentProfile, String> {
+    if !config::is_authorized() {
+        return Err("Unauthorized".to_string());
+    }
+
+    let profile = data_client::create_agent_profile(request.clone()).await?;
+
+    audit::log_success(
+        "create_agent_profile",
+        Some(request.user_id),
+        "Agent profile created successfully".to_string()
+    );
+
+    Ok(profile)
+}
+
+/// Get agent profile by user_id
+///
+/// # Arguments
+/// * `_user_id` - User ID to get profile for (unused - see get_agent_profile_update)
+///
+/// # Returns
+/// Error message directing to use update method
+///
+/// # Access Control
+/// Public query (anyone can view agent profiles)
+#[query]
+fn get_agent_profile(_user_id: String) -> Result<Option<shared_types::AgentProfile>, String> {
+    // Note: This is a query method but needs to call data_canister
+    // In practice, we'd cache this or make it an update call
+    // For now, returning error to indicate this needs to be an update call
+    Err("Use get_agent_profile_update for inter-canister calls".to_string())
+}
+
+/// Get agent profile by user_id (update version for inter-canister calls)
+///
+/// # Arguments
+/// * `user_id` - User ID to get profile for
+///
+/// # Returns
+/// Agent profile if found
+///
+/// # Access Control
+/// Public (anyone can view agent profiles)
+#[update]
+async fn get_agent_profile_update(user_id: String) -> Result<Option<shared_types::AgentProfile>, String> {
+    let profile = data_client::get_agent_profile(&user_id).await?;
+    Ok(profile)
+}
+
+/// Update agent profile
+///
+/// Updates an existing agent profile. Users can only update their own profile.
+/// Authorized canisters and controllers can update any profile.
+///
+/// # Arguments
+/// * `request` - Update request with optional fields
+///
+/// # Returns
+/// Updated agent profile
+///
+/// # Access Control
+/// User accessing their own profile OR authorized canister OR controller
+#[update]
+async fn update_agent_profile(request: shared_types::UpdateAgentProfileRequest) -> Result<shared_types::AgentProfile, String> {
+    // Authorization is handled by data_canister (checks if caller is user or authorized canister)
+    // Agent canister just passes through the request
+
+    let profile = data_client::update_agent_profile(request.clone()).await?;
+
+    audit::log_success(
+        "update_agent_profile",
+        Some(request.user_id),
+        "Agent profile updated successfully".to_string()
+    );
+
+    Ok(profile)
+}
+
+/// Get nearby agent profiles
+///
+/// Finds agents within a specified radius of given coordinates.
+///
+/// # Arguments
+/// * `lat` - Center latitude
+/// * `lng` - Center longitude
+/// * `radius` - Search radius in kilometers
+/// * `limit` - Maximum number of agents to return
+///
+/// # Returns
+/// List of agent profiles within radius, sorted by distance
+///
+/// # Access Control
+/// Public (anyone can search for nearby agents)
+#[update]
+async fn get_nearby_agent_profiles(lat: f64, lng: f64, radius: f64, limit: usize) -> Result<Vec<shared_types::AgentProfile>, String> {
+    let profiles = data_client::get_nearby_agent_profiles(lat, lng, radius, limit).await?;
+    Ok(profiles)
 }

@@ -35,6 +35,8 @@ pub struct DataCanisterState {
     agent_balances: HashMap<String, AgentBalance>,  // key: "agent_id:currency"
     // Agent reviews (added to replace Juno storage)
     agent_reviews: HashMap<String, shared_types::AgentReview>,  // key: review_id
+    // Agent profiles (composition pattern - separate from User, linked via user_id)
+    agent_profiles: HashMap<String, shared_types::AgentProfile>,  // key: user_id
 }
 
 impl DataCanisterState {
@@ -1415,6 +1417,288 @@ async fn delete_review(review_id: String) -> Result<(), String> {
             Err("Review not found".to_string())
         }
     })
+}
+
+// ============================================================================
+// Agent Profile Operations (Composition Pattern - Separate from User)
+// ============================================================================
+
+/// Create agent profile
+///
+/// Creates a new agent profile linked to a user. The user must have user_type = Agent.
+/// Agent profiles are separate from User records (composition pattern).
+///
+/// # Arguments
+/// * `request` - Agent profile creation request
+///
+/// # Returns
+/// The created agent profile with timestamps
+///
+/// # Access Control
+/// Canister-only endpoint (called by agent_canister)
+///
+/// # Validation
+/// - Verifies user exists and has user_type = Agent
+/// - Validates commission rate (0-1)
+/// - Validates location coordinates
+#[update]
+async fn create_agent_profile(request: shared_types::CreateAgentProfileRequest) -> Result<shared_types::AgentProfile, String> {
+    verify_canister_access()?;
+
+    // Validate request
+    if request.business_name.is_empty() {
+        return Err("Business name cannot be empty".to_string());
+    }
+    if request.business_address.is_empty() {
+        return Err("Business address cannot be empty".to_string());
+    }
+    if request.commission_rate < 0.0 || request.commission_rate > 1.0 {
+        return Err("Commission rate must be between 0 and 1".to_string());
+    }
+    if request.location.latitude < -90.0 || request.location.latitude > 90.0 {
+        return Err("Invalid latitude (must be -90 to 90)".to_string());
+    }
+    if request.location.longitude < -180.0 || request.location.longitude > 180.0 {
+        return Err("Invalid longitude (must be -180 to 180)".to_string());
+    }
+
+    STATE.with(|state| {
+        let mut state = state.borrow_mut();
+
+        // Verify user exists and is an agent
+        let user = state.users.get(&request.user_id)
+            .ok_or_else(|| format!("User not found: {}", request.user_id))?;
+
+        if user.user_type != UserType::Agent {
+            return Err(format!("User {} is not an agent (type: {:?})", request.user_id, user.user_type));
+        }
+
+        // Check if agent profile already exists
+        if state.agent_profiles.contains_key(&request.user_id) {
+            return Err(format!("Agent profile already exists for user {}", request.user_id));
+        }
+
+        let now = ic_cdk::api::time() / 1_000_000_000; // Convert to seconds
+
+        let profile = shared_types::AgentProfile {
+            user_id: request.user_id.clone(),
+            business_name: request.business_name,
+            business_address: request.business_address,
+            location: request.location,
+            commission_rate: request.commission_rate,
+            is_active: true, // Default to active
+            status: shared_types::AgentStatus::Available, // Default to available
+            created_at: now,
+            updated_at: now,
+        };
+
+        state.agent_profiles.insert(request.user_id.clone(), profile.clone());
+
+        shared_types::audit::log_success(
+            "create_agent_profile",
+            Some(request.user_id),
+            "Agent profile created successfully".to_string()
+        );
+
+        Ok(profile)
+    })
+}
+
+/// Get agent profile by user_id
+///
+/// # Arguments
+/// * `user_id` - User ID to get profile for
+///
+/// # Returns
+/// Agent profile if found, None otherwise
+///
+/// # Access Control
+/// Public query (anyone can view agent profiles)
+#[query]
+fn get_agent_profile(user_id: String) -> Result<Option<shared_types::AgentProfile>, String> {
+    STATE.with(|state| {
+        let state = state.borrow();
+        Ok(state.agent_profiles.get(&user_id).cloned())
+    })
+}
+
+/// Update agent profile
+///
+/// Updates an existing agent profile. Only updates fields that are Some() in the request.
+///
+/// # Arguments
+/// * `request` - Update request with optional fields
+///
+/// # Returns
+/// Updated agent profile
+///
+/// # Access Control
+/// Canister-only OR user accessing their own profile
+///
+/// # Validation
+/// - Validates commission rate if provided
+/// - Validates location coordinates if provided
+/// - Updates updated_at timestamp
+#[update]
+async fn update_agent_profile(request: shared_types::UpdateAgentProfileRequest) -> Result<shared_types::AgentProfile, String> {
+    // Check if caller is authorized canister OR user accessing their own profile
+    let caller = msg_caller();
+    let is_authorized_canister = AUTHORIZED_CANISTERS.with(|canisters| {
+        canisters.borrow().contains(&caller)
+    });
+    let is_controller = ic_cdk::api::is_controller(&caller);
+
+    // If not authorized canister or controller, verify user is accessing their own profile
+    if !is_authorized_canister && !is_controller {
+        let caller_text = caller.to_text();
+        let is_own_profile = STATE.with(|state| {
+            state.borrow().users.get(&request.user_id)
+                .and_then(|u| u.principal_id.as_ref())
+                .map(|pid| pid == &caller_text)
+                .unwrap_or(false)
+        });
+
+        if !is_own_profile {
+            return Err("Unauthorized: Can only update your own profile".to_string());
+        }
+    }
+
+    // Validate request
+    if let Some(ref commission_rate) = request.commission_rate {
+        if *commission_rate < 0.0 || *commission_rate > 1.0 {
+            return Err("Commission rate must be between 0 and 1".to_string());
+        }
+    }
+    if let Some(ref location) = request.location {
+        if location.latitude < -90.0 || location.latitude > 90.0 {
+            return Err("Invalid latitude (must be -90 to 90)".to_string());
+        }
+        if location.longitude < -180.0 || location.longitude > 180.0 {
+            return Err("Invalid longitude (must be -180 to 180)".to_string());
+        }
+    }
+
+    STATE.with(|state| {
+        let mut state = state.borrow_mut();
+
+        let profile = state.agent_profiles.get_mut(&request.user_id)
+            .ok_or_else(|| format!("Agent profile not found for user {}", request.user_id))?;
+
+        // Update fields if provided
+        if let Some(business_name) = request.business_name {
+            if business_name.is_empty() {
+                return Err("Business name cannot be empty".to_string());
+            }
+            profile.business_name = business_name;
+        }
+        if let Some(business_address) = request.business_address {
+            if business_address.is_empty() {
+                return Err("Business address cannot be empty".to_string());
+            }
+            profile.business_address = business_address;
+        }
+        if let Some(location) = request.location {
+            profile.location = location;
+        }
+        if let Some(commission_rate) = request.commission_rate {
+            profile.commission_rate = commission_rate;
+        }
+        if let Some(status) = request.status {
+            profile.status = status;
+        }
+
+        profile.updated_at = ic_cdk::api::time() / 1_000_000_000;
+
+        shared_types::audit::log_success(
+            "update_agent_profile",
+            Some(request.user_id.clone()),
+            "Agent profile updated successfully".to_string()
+        );
+
+        Ok(profile.clone())
+    })
+}
+
+/// Get nearby agent profiles
+///
+/// Finds agents within a specified radius of given coordinates.
+/// Uses Haversine formula for distance calculation.
+///
+/// # Arguments
+/// * `lat` - Center latitude
+/// * `lng` - Center longitude
+/// * `radius` - Search radius in kilometers
+/// * `limit` - Maximum number of agents to return
+///
+/// # Returns
+/// List of agent profiles within radius, sorted by distance (closest first)
+///
+/// # Access Control
+/// Public query (anyone can search for nearby agents)
+#[query]
+fn get_nearby_agent_profiles(lat: f64, lng: f64, radius: f64, limit: usize) -> Result<Vec<shared_types::AgentProfile>, String> {
+    // Validate inputs
+    if lat < -90.0 || lat > 90.0 {
+        return Err("Invalid latitude (must be -90 to 90)".to_string());
+    }
+    if lng < -180.0 || lng > 180.0 {
+        return Err("Invalid longitude (must be -180 to 180)".to_string());
+    }
+    if radius <= 0.0 {
+        return Err("Radius must be positive".to_string());
+    }
+    if limit == 0 {
+        return Err("Limit must be greater than 0".to_string());
+    }
+
+    STATE.with(|state| {
+        let state = state.borrow();
+
+        // Filter active agents within radius
+        let mut nearby_agents: Vec<(f64, shared_types::AgentProfile)> = state.agent_profiles
+            .values()
+            .filter(|profile| profile.is_active)
+            .filter_map(|profile| {
+                let distance = haversine_distance(lat, lng, profile.location.latitude, profile.location.longitude);
+                if distance <= radius {
+                    Some((distance, profile.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        // Sort by distance (closest first)
+        nearby_agents.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+
+        // Take limit and extract profiles
+        Ok(nearby_agents.into_iter().take(limit).map(|(_, profile)| profile).collect())
+    })
+}
+
+/// Calculate distance between two coordinates using Haversine formula
+///
+/// # Arguments
+/// * `lat1` - Latitude of first point (degrees)
+/// * `lng1` - Longitude of first point (degrees)
+/// * `lat2` - Latitude of second point (degrees)
+/// * `lng2` - Longitude of second point (degrees)
+///
+/// # Returns
+/// Distance in kilometers
+fn haversine_distance(lat1: f64, lng1: f64, lat2: f64, lng2: f64) -> f64 {
+    const EARTH_RADIUS_KM: f64 = 6371.0;
+
+    let lat1_rad = lat1.to_radians();
+    let lat2_rad = lat2.to_radians();
+    let delta_lat = (lat2 - lat1).to_radians();
+    let delta_lng = (lng2 - lng1).to_radians();
+
+    let a = (delta_lat / 2.0).sin().powi(2)
+        + lat1_rad.cos() * lat2_rad.cos() * (delta_lng / 2.0).sin().powi(2);
+    let c = 2.0 * a.sqrt().atan2((1.0 - a).sqrt());
+
+    EARTH_RADIUS_KM * c
 }
 
 // Export Candid interface

@@ -187,20 +187,62 @@ export class AgentService {
       console.log("✅ Agent created in demo mode:", newAgent.id);
       return newAgent;
     } else {
-      // Production mode: Use agent_canister when available
-      // TODO: Implement agent_canister.create_agent() call
-      console.warn(
-        "⚠️  Agent creation in production mode requires agent_canister implementation. Please enable demo mode.",
-      );
-      // For now, redirect to enable demo mode
-      if (typeof window !== "undefined") {
-        alert(
-          "Agent registration requires demo mode. Please enable demo mode in settings.",
+      // Production mode: Call agent_canister
+      try {
+        const result = await agentCanisterService.createAgentProfile({
+          user_id: agent.userId,
+          business_name: agent.businessName,
+          business_address: agent.location.address,
+          location: {
+            country: agent.location.country,
+            state: agent.location.state,
+            city: agent.location.city,
+            address: agent.location.address,
+            latitude: agent.location.coordinates.lat,
+            longitude: agent.location.coordinates.lng,
+          },
+          commission_rate: agent.commissionRate || 0.02,
+        });
+
+        console.log(
+          "✅ Agent created in production mode for user:",
+          result.user_id,
+        );
+
+        // Convert Candid AgentStatus back to string
+        let status: "available" | "busy" | "cash_out" | "offline" = "available";
+        if ("Available" in result.status) status = "available";
+        else if ("Busy" in result.status) status = "busy";
+        else if ("CashOut" in result.status) status = "cash_out";
+        else if ("Offline" in result.status) status = "offline";
+
+        return {
+          id: result.user_id, // Use user_id as agent id
+          userId: result.user_id,
+          businessName: result.business_name,
+          phoneNumber: agent.phoneNumber,
+          email: agent.email,
+          location: {
+            country: result.location.country,
+            state: result.location.state,
+            city: result.location.city,
+            address: result.location.address,
+            coordinates: {
+              lat: result.location.latitude,
+              lng: result.location.longitude,
+            },
+          },
+          isActive: result.is_active,
+          status,
+          commissionRate: result.commission_rate,
+          createdAt: new Date(Number(result.created_at) / 1_000_000), // Convert nanoseconds to ms
+        };
+      } catch (error) {
+        console.error("Failed to create agent in production mode:", error);
+        throw new Error(
+          `Failed to create agent profile: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
-      throw new Error(
-        "Agent creation requires demo mode. Enable demo mode to continue.",
-      );
     }
   }
 
@@ -332,12 +374,46 @@ export class AgentService {
       const agents = this.loadDemoAgents();
       return agents.find((a) => a.userId === userId) || null;
     } else {
-      // Production mode: Call agent_canister when available
-      // TODO: Implement agent_canister.get_agent_by_user(userId) call
-      console.warn(
-        "⚠️  Agent retrieval by user ID in production mode requires agent_canister. Enable demo mode or implement agent_canister.",
-      );
-      return null; // Graceful fallback: no agent found
+      // Production mode: Call agent_canister
+      try {
+        const result = await agentCanisterService.getAgentProfile(userId);
+
+        if (!result) {
+          return null;
+        }
+
+        // Convert Candid AgentStatus back to string
+        let status: "available" | "busy" | "cash_out" | "offline" = "available";
+        if ("Available" in result.status) status = "available";
+        else if ("Busy" in result.status) status = "busy";
+        else if ("CashOut" in result.status) status = "cash_out";
+        else if ("Offline" in result.status) status = "offline";
+
+        return {
+          id: result.user_id, // Use user_id as agent id
+          userId: result.user_id,
+          businessName: result.business_name,
+          phoneNumber: undefined, // Not stored in AgentProfile
+          email: undefined, // Not stored in AgentProfile
+          location: {
+            country: result.location.country,
+            state: result.location.state,
+            city: result.location.city,
+            address: result.location.address,
+            coordinates: {
+              lat: result.location.latitude,
+              lng: result.location.longitude,
+            },
+          },
+          isActive: result.is_active,
+          status,
+          commissionRate: result.commission_rate,
+          createdAt: new Date(Number(result.created_at) / 1_000_000), // Convert nanoseconds to ms
+        };
+      } catch (error) {
+        console.error("Failed to get agent profile:", error);
+        return null; // Graceful fallback: no agent found
+      }
     }
   }
 
@@ -361,12 +437,31 @@ export class AgentService {
       console.log(`✅ Agent ${agentId} status updated to ${status}`);
       return true;
     } else {
-      // Production mode: Call agent_canister when available
-      // TODO: Implement agent_canister.update_agent_status(agentId, status) call
-      console.warn(
-        "⚠️  Agent status update in production mode requires agent_canister. Enable demo mode or implement agent_canister.",
-      );
-      return false; // Graceful fallback: update failed
+      // Production mode: Call agent_canister
+      try {
+        // Map status to Candid enum format
+        const statusMap: Record<string, any> = {
+          available: { Available: null },
+          busy: { Busy: null },
+          cash_out: { CashOut: null },
+          offline: { Offline: null },
+        };
+
+        await agentCanisterService.updateAgentProfile({
+          user_id: agentId,
+          business_name: [],
+          business_address: [],
+          location: [],
+          commission_rate: [],
+          status: [statusMap[status]],
+        });
+
+        console.log(`✅ Agent ${agentId} status updated to ${status}`);
+        return true;
+      } catch (error) {
+        console.error("Failed to update agent status:", error);
+        return false; // Graceful fallback: update failed
+      }
     }
   }
 
@@ -428,12 +523,59 @@ export class AgentService {
         return distA - distB;
       });
     } else {
-      // Production mode: Call agent_canister when available
-      // TODO: Implement agent_canister.get_nearby_agents(lat, lng, radius) call
-      console.warn(
-        "⚠️  Nearby agents search in production mode requires agent_canister. Enable demo mode or implement agent_canister.",
-      );
-      return []; // Graceful fallback: no agents found
+      // Production mode: Call agent_canister
+      try {
+        const results = await agentCanisterService.getNearbyAgentProfiles(
+          lat,
+          lng,
+          radius,
+          BigInt(100), // Limit to 100 results
+        );
+
+        const agents: AgentMetadata[] = results.map((result) => {
+          // Convert Candid AgentStatus back to string
+          let status: "available" | "busy" | "cash_out" | "offline" =
+            "available";
+          if ("Available" in result.status) status = "available";
+          else if ("Busy" in result.status) status = "busy";
+          else if ("CashOut" in result.status) status = "cash_out";
+          else if ("Offline" in result.status) status = "offline";
+
+          return {
+            id: result.user_id,
+            userId: result.user_id,
+            businessName: result.business_name,
+            phoneNumber: undefined,
+            email: undefined,
+            location: {
+              country: result.location.country,
+              state: result.location.state,
+              city: result.location.city,
+              address: result.location.address,
+              coordinates: {
+                lat: result.location.latitude,
+                lng: result.location.longitude,
+              },
+            },
+            isActive: result.is_active,
+            status,
+            commissionRate: result.commission_rate,
+            createdAt: new Date(Number(result.created_at) / 1_000_000),
+          };
+        });
+
+        // Filter by status if specified
+        if (includeStatuses) {
+          return agents.filter((agent) =>
+            includeStatuses.includes(agent.status),
+          );
+        }
+
+        return agents;
+      } catch (error) {
+        console.error("Failed to get nearby agents:", error);
+        return []; // Graceful fallback: no agents found
+      }
     }
   }
 

@@ -44,8 +44,7 @@ export async function getTopTokenHolders(
       return demoData.slice(0, limit).map((entry: any, index: number) => ({
         principal: entry.address || entry.name || `user-${index + 1}`,
         balance: entry.balance || entry.points || 0,
-        percentage:
-          entry.percentage || ((entry.balance || 0) / 1000000) * 100,
+        percentage: entry.percentage || ((entry.balance || 0) / 1000000) * 100,
       }));
     }
     return [];
