@@ -5,12 +5,12 @@
  * in the AfriTokeni platform.
  */
 
-import type { AfricanCurrency } from './currency';
+import type { AfricanCurrency } from "./currency";
 
 /**
  * Agent availability status
  */
-export type AgentStatus = 'available' | 'busy' | 'cash_out' | 'offline';
+export type AgentStatus = "available" | "busy" | "cash_out" | "offline";
 
 /**
  * Agent location information

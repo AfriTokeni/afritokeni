@@ -5,22 +5,22 @@
  * and KYC status in the AfriTokeni platform.
  */
 
-import type { AfricanCurrency } from './currency';
+import type { AfricanCurrency } from "./currency";
 
 /**
  * User role in the platform
  */
-export type UserRole = 'user' | 'agent' | 'admin';
+export type UserRole = "user" | "agent" | "admin";
 
 /**
  * KYC verification status
  */
-export type KYCStatus = 'pending' | 'approved' | 'rejected' | 'not_started';
+export type KYCStatus = "pending" | "approved" | "rejected" | "not_started";
 
 /**
  * User authentication method
  */
-export type AuthMethod = 'internet_identity' | 'phone' | 'email';
+export type AuthMethod = "internet_identity" | "phone" | "email";
 
 /**
  * User profile stored in Juno datastore

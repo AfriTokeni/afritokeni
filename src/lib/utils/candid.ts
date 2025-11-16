@@ -5,8 +5,8 @@
  * Handles optional values, enum conversions, and currency mappings.
  */
 
-import type { AgentStatus } from '$/declarations/agent_canister/agent_canister.did';
-import type { FiatCurrency } from '$/declarations/wallet_canister/wallet_canister.did';
+import type { AgentStatus } from "$/declarations/agent_canister/agent_canister.did";
+import type { FiatCurrency } from "$/declarations/wallet_canister/wallet_canister.did";
 
 /**
  * Unwraps a Candid optional value safely

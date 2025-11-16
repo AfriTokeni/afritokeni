@@ -7,15 +7,15 @@
  * @deprecated Import from '$lib/services/agents' instead
  */
 
-import { getAgentService } from './agents';
+import { getAgentService } from "./agents";
 import type {
   AgentMetadata,
   Agent,
   AgentBalances,
   AgentKYCData,
-  AgentStatus
-} from '$lib/types/agent';
-import type { AfricanCurrency } from '$lib/types/currency';
+  AgentStatus,
+} from "$lib/types/agent";
+import type { AfricanCurrency } from "$lib/types/currency";
 
 // Re-export types for backward compatibility
 export type {
@@ -24,8 +24,8 @@ export type {
   AgentBalances,
   AgentStatus,
   AgentLocation,
-  AgentKYCData
-} from '$lib/types/agent';
+  AgentKYCData,
+} from "$lib/types/agent";
 
 /**
  * Legacy AgentService class
@@ -37,7 +37,7 @@ export class AgentService {
   }
 
   static async createAgent(
-    agent: Omit<AgentMetadata, 'id' | 'createdAt'>
+    agent: Omit<AgentMetadata, "id" | "createdAt">,
   ): Promise<AgentMetadata> {
     return this.service.createAgent(agent);
   }
@@ -46,18 +46,23 @@ export class AgentService {
     return this.service.getAgentMetadata(id);
   }
 
-  static async getAgent(id: string, currency: AfricanCurrency = 'UGX'): Promise<Agent | null> {
+  static async getAgent(
+    id: string,
+    currency: AfricanCurrency = "UGX",
+  ): Promise<Agent | null> {
     return this.service.getAgent(id, currency);
   }
 
   static async getAgentBalances(
     agentId: string,
-    currency: AfricanCurrency = 'UGX'
+    currency: AfricanCurrency = "UGX",
   ): Promise<AgentBalances> {
     return this.service.getAgentBalances(agentId, currency);
   }
 
-  static async getAgentByPrincipal(principalId: string): Promise<AgentMetadata | null> {
+  static async getAgentByPrincipal(
+    principalId: string,
+  ): Promise<AgentMetadata | null> {
     return this.service.getAgentByPrincipal(principalId);
   }
 
@@ -65,11 +70,17 @@ export class AgentService {
     return this.service.getAgentByPrincipal(userId);
   }
 
-  static async updateAgentStatus(agentId: string, status: AgentStatus): Promise<boolean> {
+  static async updateAgentStatus(
+    agentId: string,
+    status: AgentStatus,
+  ): Promise<boolean> {
     return this.service.updateAgentStatus(agentId, status);
   }
 
-  static async updateAgentStatusByUserId(userId: string, status: AgentStatus): Promise<boolean> {
+  static async updateAgentStatusByUserId(
+    userId: string,
+    status: AgentStatus,
+  ): Promise<boolean> {
     return this.service.updateAgentStatusByUserId(userId, status);
   }
 
@@ -77,7 +88,7 @@ export class AgentService {
     lat: number,
     lng: number,
     radius: number = 5,
-    includeStatuses?: AgentStatus[]
+    includeStatuses?: AgentStatus[],
   ): Promise<AgentMetadata[]> {
     return this.service.getNearbyAgents(lat, lng, radius, includeStatuses);
   }
@@ -87,13 +98,19 @@ export class AgentService {
     lng: number,
     radius: number = 5,
     includeStatuses?: AgentStatus[],
-    currency: AfricanCurrency = 'UGX'
+    currency: AfricanCurrency = "UGX",
   ): Promise<Agent[]> {
-    return this.service.getNearbyAgentsWithBalances(lat, lng, radius, includeStatuses, currency);
+    return this.service.getNearbyAgentsWithBalances(
+      lat,
+      lng,
+      radius,
+      includeStatuses,
+      currency,
+    );
   }
 
   static async completeAgentKYC(
-    agentKYCData: AgentKYCData
+    agentKYCData: AgentKYCData,
   ): Promise<{ user: unknown; agent: AgentMetadata }> {
     return this.service.completeAgentKYC(agentKYCData);
   }

@@ -31,7 +31,7 @@
   let showDemoModal = $state(false);
   let showOnboarding = $state(false);
   let showKYCModal = $state(false);
-  import type { AfricanCurrency } from '$lib/types/currency';
+  import type { AfricanCurrency } from "$lib/types/currency";
 
   let selectedCurrency = $state<AfricanCurrency>("UGX");
   let searchQuery = $state("");

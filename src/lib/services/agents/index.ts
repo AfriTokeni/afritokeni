@@ -5,19 +5,19 @@
  * Switches between demo (localStorage) and production (canisters) automatically.
  */
 
-import { browser } from '$app/environment';
-import { ProductionAgentService } from './ProductionAgentService';
-import { DemoAgentService } from './DemoAgentService';
-import type { BaseAgentService } from './BaseAgentService';
+import { browser } from "$app/environment";
+import { ProductionAgentService } from "./ProductionAgentService";
+import { DemoAgentService } from "./DemoAgentService";
+import type { BaseAgentService } from "./BaseAgentService";
 
-const DEMO_MODE_KEY = 'afritokeni_demo_mode';
+const DEMO_MODE_KEY = "afritokeni_demo_mode";
 
 /**
  * Check if demo mode is enabled
  */
 function isDemoMode(): boolean {
   if (!browser) return false;
-  return localStorage.getItem(DEMO_MODE_KEY) === 'true';
+  return localStorage.getItem(DEMO_MODE_KEY) === "true";
 }
 
 /**
@@ -31,7 +31,9 @@ let instance: BaseAgentService | null = null;
  */
 export function getAgentService(): BaseAgentService {
   if (!instance) {
-    instance = isDemoMode() ? new DemoAgentService() : new ProductionAgentService();
+    instance = isDemoMode()
+      ? new DemoAgentService()
+      : new ProductionAgentService();
   }
   return instance;
 }
@@ -49,7 +51,7 @@ export function resetAgentService(): void {
  */
 export function enableDemoMode(): void {
   if (!browser) return;
-  localStorage.setItem(DEMO_MODE_KEY, 'true');
+  localStorage.setItem(DEMO_MODE_KEY, "true");
   resetAgentService();
 }
 
@@ -58,7 +60,7 @@ export function enableDemoMode(): void {
  */
 export function disableDemoMode(): void {
   if (!browser) return;
-  localStorage.setItem(DEMO_MODE_KEY, 'false');
+  localStorage.setItem(DEMO_MODE_KEY, "false");
   resetAgentService();
 }
 
@@ -73,6 +75,6 @@ export function isInDemoMode(): boolean {
 export const AgentService = getAgentService();
 
 // Export types for consumers
-export type { BaseAgentService } from './BaseAgentService';
-export { DemoAgentService } from './DemoAgentService';
-export { ProductionAgentService } from './ProductionAgentService';
+export type { BaseAgentService } from "./BaseAgentService";
+export { DemoAgentService } from "./DemoAgentService";
+export { ProductionAgentService } from "./ProductionAgentService";

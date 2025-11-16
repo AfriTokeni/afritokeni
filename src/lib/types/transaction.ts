@@ -5,31 +5,36 @@
  * in the AfriTokeni platform.
  */
 
-import type { AfricanCurrency } from './currency';
+import type { AfricanCurrency } from "./currency";
 
 /**
  * Transaction type
  */
 export type TransactionType =
-  | 'send'
-  | 'receive'
-  | 'withdraw'
-  | 'deposit'
-  | 'bitcoin_buy'
-  | 'bitcoin_sell'
-  | 'bitcoin_to_fiat'
-  | 'fiat_to_bitcoin'
-  | 'bitcoin_send'
-  | 'bitcoin_receive'
-  | 'usdc_buy'
-  | 'usdc_sell'
-  | 'usdc_send'
-  | 'usdc_receive';
+  | "send"
+  | "receive"
+  | "withdraw"
+  | "deposit"
+  | "bitcoin_buy"
+  | "bitcoin_sell"
+  | "bitcoin_to_fiat"
+  | "fiat_to_bitcoin"
+  | "bitcoin_send"
+  | "bitcoin_receive"
+  | "usdc_buy"
+  | "usdc_sell"
+  | "usdc_send"
+  | "usdc_receive";
 
 /**
  * Transaction status
  */
-export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'cancelled' | 'confirmed';
+export type TransactionStatus =
+  | "pending"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "confirmed";
 
 /**
  * Transaction metadata (flexible for different transaction types)
@@ -47,7 +52,7 @@ export interface Transaction {
   type: TransactionType;
   amount: number;
   fee?: number;
-  currency: AfricanCurrency | 'BTC' | 'USDC';
+  currency: AfricanCurrency | "BTC" | "USDC";
   senderId?: string;
   recipientId?: string;
   recipientPhone?: string;
@@ -83,7 +88,7 @@ export interface TransactionFilters {
   userId?: string;
   type?: TransactionType[];
   status?: TransactionStatus[];
-  currency?: AfricanCurrency | 'BTC' | 'USDC';
+  currency?: AfricanCurrency | "BTC" | "USDC";
   dateFrom?: Date;
   dateTo?: Date;
   minAmount?: number;

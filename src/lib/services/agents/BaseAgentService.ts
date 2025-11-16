@@ -10,16 +10,16 @@ import type {
   AgentBalances,
   Agent,
   AgentKYCData,
-  AgentStatus
-} from '$lib/types/agent';
-import type { AfricanCurrency } from '$lib/types/currency';
+  AgentStatus,
+} from "$lib/types/agent";
+import type { AfricanCurrency } from "$lib/types/currency";
 
 export abstract class BaseAgentService {
   /**
    * Create a new agent profile
    */
   abstract createAgent(
-    agent: Omit<AgentMetadata, 'id' | 'createdAt'>
+    agent: Omit<AgentMetadata, "id" | "createdAt">,
   ): Promise<AgentMetadata>;
 
   /**
@@ -30,30 +30,41 @@ export abstract class BaseAgentService {
   /**
    * Get complete agent profile with balances
    */
-  abstract getAgent(id: string, currency: AfricanCurrency): Promise<Agent | null>;
+  abstract getAgent(
+    id: string,
+    currency: AfricanCurrency,
+  ): Promise<Agent | null>;
 
   /**
    * Get agent by principal ID
    */
-  abstract getAgentByPrincipal(principalId: string): Promise<AgentMetadata | null>;
+  abstract getAgentByPrincipal(
+    principalId: string,
+  ): Promise<AgentMetadata | null>;
 
   /**
    * Get agent balances from domain canisters
    */
   abstract getAgentBalances(
     agentId: string,
-    currency: AfricanCurrency
+    currency: AfricanCurrency,
   ): Promise<AgentBalances>;
 
   /**
    * Update agent status
    */
-  abstract updateAgentStatus(agentId: string, status: AgentStatus): Promise<boolean>;
+  abstract updateAgentStatus(
+    agentId: string,
+    status: AgentStatus,
+  ): Promise<boolean>;
 
   /**
    * Update agent status by user ID
    */
-  abstract updateAgentStatusByUserId(userId: string, status: AgentStatus): Promise<boolean>;
+  abstract updateAgentStatusByUserId(
+    userId: string,
+    status: AgentStatus,
+  ): Promise<boolean>;
 
   /**
    * Get nearby agents (metadata only, no balances)
@@ -62,7 +73,7 @@ export abstract class BaseAgentService {
     lat: number,
     lng: number,
     radius: number,
-    includeStatuses?: AgentStatus[]
+    includeStatuses?: AgentStatus[],
   ): Promise<AgentMetadata[]>;
 
   /**
@@ -73,13 +84,13 @@ export abstract class BaseAgentService {
     lng: number,
     radius: number,
     includeStatuses?: AgentStatus[],
-    currency?: AfricanCurrency
+    currency?: AfricanCurrency,
   ): Promise<Agent[]>;
 
   /**
    * Complete agent KYC and create agent profile
    */
   abstract completeAgentKYC(
-    agentKYCData: AgentKYCData
+    agentKYCData: AgentKYCData,
   ): Promise<{ user: unknown; agent: AgentMetadata }>;
 }

@@ -126,7 +126,7 @@ export interface LocationSuggestion {
 export interface AuthSession {
   userId: string;
   principalId?: string;
-  userType: 'user' | 'agent' | 'admin';
+  userType: "user" | "agent" | "admin";
   isAuthenticated: boolean;
   expiresAt?: Date;
 }
@@ -143,7 +143,7 @@ export interface LoginCredentials {
   emailOrPhone: string;
   password?: string;
   pin?: string;
-  method: 'web' | 'sms';
+  method: "web" | "sms";
 }
 
 // Signup data
@@ -154,6 +154,6 @@ export interface SignupData {
   phoneNumber?: string;
   password?: string;
   pin?: string;
-  userType: 'user' | 'agent';
-  method: 'web' | 'sms';
+  userType: "user" | "agent";
+  method: "web" | "sms";
 }

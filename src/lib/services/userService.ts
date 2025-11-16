@@ -24,7 +24,7 @@ const UserDataFromJunoSchema = z.object({
   isVerified: z.boolean(),
   kycStatus: z.enum(["pending", "approved", "rejected", "not_started"]),
   pin: z.string().optional(),
-  createdAt: z.string()
+  createdAt: z.string(),
 });
 
 export type UserDataFromJuno = z.infer<typeof UserDataFromJunoSchema>;
@@ -295,7 +295,9 @@ export class UserService {
             createdAt: new Date(rawData.createdAt),
           } as User;
         })
-        .filter((user): user is User => user !== null && user.userType === "user")
+        .filter(
+          (user): user is User => user !== null && user.userType === "user",
+        )
         .sort(
           (a, b) =>
             new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime(),

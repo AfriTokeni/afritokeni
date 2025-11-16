@@ -5,62 +5,68 @@
  * All data stored and retrieved from agent_canister, wallet_canister, and user_canister.
  */
 
-import { BaseAgentService } from './BaseAgentService';
-import { agentCanisterService } from '../icp/canisters/agentCanisterService';
-import { walletCanisterService } from '../icp/canisters/walletCanisterService';
-import { userCanisterService } from '../icp/canisters/userCanisterService';
-import { createLogger } from '$lib/utils/secureLogger';
-import { sanitizeError } from '$lib/utils/errorHandler';
-import { validateAgentInput, type AgentInput } from '$lib/utils/validation';
+import { BaseAgentService } from "./BaseAgentService";
+import { agentCanisterService } from "../icp/canisters/agentCanisterService";
+import { walletCanisterService } from "../icp/canisters/walletCanisterService";
+import { userCanisterService } from "../icp/canisters/userCanisterService";
+import { createLogger } from "$lib/utils/secureLogger";
+import { sanitizeError } from "$lib/utils/errorHandler";
+import { validateAgentInput, type AgentInput } from "$lib/utils/validation";
 import {
   convertAgentStatus,
   toCandidAgentStatus,
-  currencyStringToVariant
-} from '$lib/utils/candid';
-import { nanosToDate } from '$lib/utils/time';
+  currencyStringToVariant,
+} from "$lib/utils/candid";
+import { nanosToDate } from "$lib/utils/time";
 import type {
   AgentMetadata,
   AgentBalances,
   Agent,
   AgentKYCData,
-  AgentStatus
-} from '$lib/types/agent';
-import type { AfricanCurrency } from '$lib/types/currency';
+  AgentStatus,
+} from "$lib/types/agent";
+import type { AfricanCurrency } from "$lib/types/currency";
 
-const logger = createLogger('ProductionAgentService');
+const logger = createLogger("ProductionAgentService");
 
 export class ProductionAgentService extends BaseAgentService {
   /**
    * Create a new agent profile
    */
-  async createAgent(agent: Omit<AgentMetadata, 'id' | 'createdAt'>): Promise<AgentMetadata> {
-    logger.debug('createAgent (production mode)', { businessName: agent.businessName });
+  async createAgent(
+    agent: Omit<AgentMetadata, "id" | "createdAt">,
+  ): Promise<AgentMetadata> {
+    logger.debug("createAgent (production mode)", {
+      businessName: agent.businessName,
+    });
 
     // Validate agent input
     try {
       validateAgentInput(agent as AgentInput);
     } catch (error) {
-      throw sanitizeError(error, 'Invalid agent data');
+      throw sanitizeError(error, "Invalid agent data");
     }
 
     // Check if agent already exists
     const existingAgent = await this.getAgentByPrincipal(agent.userId);
     if (existingAgent) {
-      logger.warn('Agent already exists, returning existing profile');
+      logger.warn("Agent already exists, returning existing profile");
       return existingAgent;
     }
 
     try {
-      logger.debug('Creating agent profile in production mode');
+      logger.debug("Creating agent profile in production mode");
 
       // Get user profile to get actual user_id from principal
-      const userProfile = await userCanisterService.getUserByPrincipalUpdate(agent.userId);
+      const userProfile = await userCanisterService.getUserByPrincipalUpdate(
+        agent.userId,
+      );
 
       if (!userProfile) {
         throw new Error(`User not found for principal: ${agent.userId}`);
       }
 
-      logger.debug('Found user profile for principal');
+      logger.debug("Found user profile for principal");
 
       const result = await agentCanisterService.createAgentProfile({
         user_id: userProfile.id,
@@ -72,12 +78,12 @@ export class ProductionAgentService extends BaseAgentService {
           city: agent.location.city,
           address: agent.location.address,
           latitude: agent.location.coordinates.lat,
-          longitude: agent.location.coordinates.lng
+          longitude: agent.location.coordinates.lng,
         },
-        commission_rate: agent.commissionRate || 0.02
+        commission_rate: agent.commissionRate || 0.02,
       });
 
-      logger.info('Agent created in production mode');
+      logger.info("Agent created in production mode");
 
       const status = convertAgentStatus(result.status);
 
@@ -94,16 +100,16 @@ export class ProductionAgentService extends BaseAgentService {
           address: result.location.address,
           coordinates: {
             lat: result.location.latitude,
-            lng: result.location.longitude
-          }
+            lng: result.location.longitude,
+          },
         },
         isActive: result.is_active,
         status,
         commissionRate: result.commission_rate,
-        createdAt: nanosToDate(result.created_at)
+        createdAt: nanosToDate(result.created_at),
       };
     } catch (error) {
-      throw sanitizeError(error, 'Failed to create agent profile');
+      throw sanitizeError(error, "Failed to create agent profile");
     }
   }
 
@@ -130,16 +136,16 @@ export class ProductionAgentService extends BaseAgentService {
           address: result.location.address,
           coordinates: {
             lat: result.location.latitude,
-            lng: result.location.longitude
-          }
+            lng: result.location.longitude,
+          },
         },
         isActive: result.is_active,
         status,
         commissionRate: result.commission_rate,
-        createdAt: nanosToDate(result.created_at)
+        createdAt: nanosToDate(result.created_at),
       };
     } catch (error) {
-      logger.error('Failed to get agent metadata:', error);
+      logger.error("Failed to get agent metadata:", error);
       return null;
     }
   }
@@ -156,34 +162,37 @@ export class ProductionAgentService extends BaseAgentService {
     return {
       ...metadata,
       cashBalance: balances.cashBalance,
-      digitalBalance: balances.digitalBalance
+      digitalBalance: balances.digitalBalance,
     };
   }
 
   /**
    * Get agent by principal ID
    */
-  async getAgentByPrincipal(principalId: string): Promise<AgentMetadata | null> {
+  async getAgentByPrincipal(
+    principalId: string,
+  ): Promise<AgentMetadata | null> {
     try {
-      logger.debug('Fetching agent profile for principal');
+      logger.debug("Fetching agent profile for principal");
 
-      const userProfile = await userCanisterService.getUserByPrincipalUpdate(principalId);
+      const userProfile =
+        await userCanisterService.getUserByPrincipalUpdate(principalId);
 
       if (!userProfile) {
-        logger.debug('No user found for principal');
+        logger.debug("No user found for principal");
         return null;
       }
 
-      logger.debug('Found user profile for principal');
+      logger.debug("Found user profile for principal");
 
       const result = await agentCanisterService.getAgentProfile(userProfile.id);
 
       if (!result) {
-        logger.debug('No agent profile found in agent_canister for user');
+        logger.debug("No agent profile found in agent_canister for user");
         return null;
       }
 
-      logger.debug('Found agent profile');
+      logger.debug("Found agent profile");
 
       const status = convertAgentStatus(result.status);
 
@@ -200,16 +209,16 @@ export class ProductionAgentService extends BaseAgentService {
           address: result.location.address,
           coordinates: {
             lat: result.location.latitude,
-            lng: result.location.longitude
-          }
+            lng: result.location.longitude,
+          },
         },
         isActive: result.is_active,
         status,
         commissionRate: result.commission_rate,
-        createdAt: nanosToDate(result.created_at)
+        createdAt: nanosToDate(result.created_at),
       };
     } catch (error) {
-      logger.error('Failed to get agent profile:', error);
+      logger.error("Failed to get agent profile:", error);
       return null;
     }
   }
@@ -217,14 +226,20 @@ export class ProductionAgentService extends BaseAgentService {
   /**
    * Get agent balances from domain canisters
    */
-  async getAgentBalances(agentId: string, currency: AfricanCurrency): Promise<AgentBalances> {
+  async getAgentBalances(
+    agentId: string,
+    currency: AfricanCurrency,
+  ): Promise<AgentBalances> {
     try {
-      const agentBalance = await agentCanisterService.getAgentBalance(agentId, currency);
+      const agentBalance = await agentCanisterService.getAgentBalance(
+        agentId,
+        currency,
+      );
 
       const currencyVariant = currencyStringToVariant(currency);
       const digitalBalance = await walletCanisterService.getFiatBalance(
         agentId,
-        currencyVariant
+        currencyVariant,
       );
 
       const cashBalance = Number(agentBalance.outstanding_balance);
@@ -237,10 +252,10 @@ export class ProductionAgentService extends BaseAgentService {
         outstandingBalance: Number(agentBalance.outstanding_balance),
         commissionEarned: Number(agentBalance.commission_earned),
         commissionPending: Number(agentBalance.commission_pending),
-        currency
+        currency,
       };
     } catch (error) {
-      logger.error('Error fetching agent balances:', error);
+      logger.error("Error fetching agent balances:", error);
       return {
         cashBalance: 0,
         digitalBalance: 0,
@@ -249,7 +264,7 @@ export class ProductionAgentService extends BaseAgentService {
         outstandingBalance: 0,
         commissionEarned: 0,
         commissionPending: 0,
-        currency
+        currency,
       };
     }
   }
@@ -257,7 +272,10 @@ export class ProductionAgentService extends BaseAgentService {
   /**
    * Update agent status
    */
-  async updateAgentStatus(agentId: string, status: AgentStatus): Promise<boolean> {
+  async updateAgentStatus(
+    agentId: string,
+    status: AgentStatus,
+  ): Promise<boolean> {
     try {
       const candidStatus = toCandidAgentStatus(status);
 
@@ -267,13 +285,13 @@ export class ProductionAgentService extends BaseAgentService {
         business_address: [],
         location: [],
         commission_rate: [],
-        status: [candidStatus]
+        status: [candidStatus],
       });
 
-      logger.debug('Agent status updated in production mode');
+      logger.debug("Agent status updated in production mode");
       return true;
     } catch (error) {
-      logger.error('Failed to update agent status:', error);
+      logger.error("Failed to update agent status:", error);
       return false;
     }
   }
@@ -281,7 +299,10 @@ export class ProductionAgentService extends BaseAgentService {
   /**
    * Update agent status by user ID
    */
-  async updateAgentStatusByUserId(userId: string, status: AgentStatus): Promise<boolean> {
+  async updateAgentStatusByUserId(
+    userId: string,
+    status: AgentStatus,
+  ): Promise<boolean> {
     const agent = await this.getAgentByPrincipal(userId);
     if (!agent) return false;
     return this.updateAgentStatus(agent.id, status);
@@ -294,14 +315,14 @@ export class ProductionAgentService extends BaseAgentService {
     lat: number,
     lng: number,
     radius: number = 5,
-    includeStatuses?: AgentStatus[]
+    includeStatuses?: AgentStatus[],
   ): Promise<AgentMetadata[]> {
     try {
       const results = await agentCanisterService.getNearbyAgentProfiles(
         lat,
         lng,
         radius,
-        BigInt(100)
+        BigInt(100),
       );
 
       const agents: AgentMetadata[] = results.map((result) => ({
@@ -317,13 +338,13 @@ export class ProductionAgentService extends BaseAgentService {
           address: result.location.address,
           coordinates: {
             lat: result.location.latitude,
-            lng: result.location.longitude
-          }
+            lng: result.location.longitude,
+          },
         },
         isActive: result.is_active,
         status: convertAgentStatus(result.status),
         commissionRate: result.commission_rate,
-        createdAt: nanosToDate(result.created_at)
+        createdAt: nanosToDate(result.created_at),
       }));
 
       if (includeStatuses) {
@@ -332,7 +353,7 @@ export class ProductionAgentService extends BaseAgentService {
 
       return agents;
     } catch (error) {
-      logger.error('Failed to get nearby agents:', error);
+      logger.error("Failed to get nearby agents:", error);
       return [];
     }
   }
@@ -345,16 +366,21 @@ export class ProductionAgentService extends BaseAgentService {
     lng: number,
     radius: number = 5,
     includeStatuses?: AgentStatus[],
-    currency: AfricanCurrency = 'UGX'
+    currency: AfricanCurrency = "UGX",
   ): Promise<Agent[]> {
-    const nearbyMetadata = await this.getNearbyAgents(lat, lng, radius, includeStatuses);
+    const nearbyMetadata = await this.getNearbyAgents(
+      lat,
+      lng,
+      radius,
+      includeStatuses,
+    );
 
     const agentPromises = nearbyMetadata.map(async (metadata) => {
       const balances = await this.getAgentBalances(metadata.id, currency);
       return {
         ...metadata,
         cashBalance: balances.cashBalance,
-        digitalBalance: balances.digitalBalance
+        digitalBalance: balances.digitalBalance,
       };
     });
 
@@ -365,46 +391,46 @@ export class ProductionAgentService extends BaseAgentService {
    * Complete agent KYC
    */
   async completeAgentKYC(
-    agentKYCData: AgentKYCData
+    agentKYCData: AgentKYCData,
   ): Promise<{ user: unknown; agent: AgentMetadata }> {
-    const { UserService } = await import('../userService');
+    const { UserService } = await import("../userService");
 
     const userUpdates = {
       firstName: agentKYCData.firstName,
       lastName: agentKYCData.lastName,
       email: agentKYCData.phoneNumber,
-      kycStatus: 'approved' as const,
-      isVerified: true
+      kycStatus: "approved" as const,
+      isVerified: true,
     };
 
     const userUpdateSuccess = await UserService.updateUser(
       agentKYCData.userId,
       userUpdates,
-      'web'
+      "web",
     );
-    if (!userUpdateSuccess) throw new Error('Failed to update user details');
+    if (!userUpdateSuccess) throw new Error("Failed to update user details");
 
     const updatedUser = await UserService.getUserByKey(agentKYCData.userId);
-    if (!updatedUser) throw new Error('Failed to retrieve updated user');
+    if (!updatedUser) throw new Error("Failed to retrieve updated user");
 
     const existingAgent = await this.getAgentByPrincipal(agentKYCData.userId);
     let newAgent: AgentMetadata;
 
     if (existingAgent) {
-      await this.updateAgentStatus(existingAgent.id, 'available');
+      await this.updateAgentStatus(existingAgent.id, "available");
       const updatedAgent = await this.getAgentByPrincipal(agentKYCData.userId);
-      if (!updatedAgent) throw new Error('Failed to retrieve updated agent');
+      if (!updatedAgent) throw new Error("Failed to retrieve updated agent");
       newAgent = updatedAgent;
     } else {
-      const agentData: Omit<AgentMetadata, 'id' | 'createdAt'> = {
+      const agentData: Omit<AgentMetadata, "id" | "createdAt"> = {
         userId: agentKYCData.userId,
         businessName:
           agentKYCData.businessName ||
           `${agentKYCData.firstName} ${agentKYCData.lastName} Agent`,
         location: agentKYCData.location,
         isActive: true,
-        status: 'available',
-        commissionRate: 0.02
+        status: "available",
+        commissionRate: 0.02,
       };
       newAgent = await this.createAgent(agentData);
     }
