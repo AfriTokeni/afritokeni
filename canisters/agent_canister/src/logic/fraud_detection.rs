@@ -233,11 +233,25 @@ pub fn check_volume_limit(
     Ok(())
 }
 
+/// Check rapid transaction threshold (suspic ious_rapid_transactions_threshold)
+/// This blocks transactions when agent exceeds threshold in 1-hour rolling window
+pub fn check_rapid_transaction_threshold(activity: &AgentActivity) -> Result<(), String> {
+    let config = get_config();
+    let threshold = config.fraud.suspicious_rapid_transactions_threshold;
+
+    // Check if agent has exceeded rapid transaction threshold
+    if activity.operations_last_hour.len() as u64 >= threshold {
+        return Err("Too many transactions in short period. Please wait.".to_string());
+    }
+
+    Ok(())
+}
+
 /// Check velocity (operations per time window)
 pub fn check_velocity(activity: &AgentActivity) -> FraudCheckResult {
     let config = get_config();
     let mut warnings = Vec::new();
-    
+
     // Check hourly velocity
     if activity.operations_last_hour.len() as u64 >= config.fraud.max_operations_per_hour {
         warnings.push(format!(
@@ -246,7 +260,7 @@ pub fn check_velocity(activity: &AgentActivity) -> FraudCheckResult {
             config.fraud.max_operations_per_hour
         ));
     }
-    
+
     // Check daily velocity
     if activity.operations_last_24h.len() as u64 >= config.fraud.max_operations_per_day {
         return FraudCheckResult::blocked(format!(
@@ -255,7 +269,7 @@ pub fn check_velocity(activity: &AgentActivity) -> FraudCheckResult {
             config.fraud.max_operations_per_day
         ));
     }
-    
+
     if warnings.is_empty() {
         FraudCheckResult::safe()
     } else {
@@ -295,27 +309,32 @@ pub fn check_deposit_fraud(
     amount: u64,
 ) -> FraudCheckResult {
     let mut all_warnings = Vec::new();
-    
+
+    // Check rapid transaction threshold FIRST (highest priority)
+    if let Err(e) = check_rapid_transaction_threshold(activity) {
+        return FraudCheckResult::blocked(e);
+    }
+
     // Check limits
     if let Err(e) = check_deposit_limit(activity) {
         return FraudCheckResult::blocked(e);
     }
-    
+
     if let Err(e) = check_volume_limit(activity, amount, true) {
         return FraudCheckResult::blocked(e);
     }
-    
+
     // Check velocity
     let velocity_result = check_velocity(activity);
     if velocity_result.should_block {
         return velocity_result;
     }
     all_warnings.extend(velocity_result.warnings);
-    
+
     // Check patterns
     let pattern_result = check_user_agent_patterns(activity, user_id);
     all_warnings.extend(pattern_result.warnings);
-    
+
     if all_warnings.is_empty() {
         FraudCheckResult::safe()
     } else {
@@ -330,27 +349,32 @@ pub fn check_withdrawal_fraud(
     amount: u64,
 ) -> FraudCheckResult {
     let mut all_warnings = Vec::new();
-    
+
+    // Check rapid transaction threshold FIRST (highest priority)
+    if let Err(e) = check_rapid_transaction_threshold(activity) {
+        return FraudCheckResult::blocked(e);
+    }
+
     // Check limits
     if let Err(e) = check_withdrawal_limit(activity) {
         return FraudCheckResult::blocked(e);
     }
-    
+
     if let Err(e) = check_volume_limit(activity, amount, false) {
         return FraudCheckResult::blocked(e);
     }
-    
+
     // Check velocity
     let velocity_result = check_velocity(activity);
     if velocity_result.should_block {
         return velocity_result;
     }
     all_warnings.extend(velocity_result.warnings);
-    
+
     // Check patterns
     let pattern_result = check_user_agent_patterns(activity, user_id);
     all_warnings.extend(pattern_result.warnings);
-    
+
     if all_warnings.is_empty() {
         FraudCheckResult::safe()
     } else {
@@ -530,5 +554,74 @@ mod tests {
         assert!(result.should_block);
         assert_eq!(result.risk_score, 100);
         assert_eq!(result.warnings.len(), 1);
+    }
+
+    #[test]
+    fn test_check_rapid_transaction_threshold_ok() {
+        setup();
+        let mut activity = AgentActivity::new("agent123".to_string(), 1620328630000000000);
+        // Add 4 transactions (below threshold of 5)
+        for _ in 0..4 {
+            activity.operations_last_hour.push(1620328630000000000);
+        }
+
+        let result = check_rapid_transaction_threshold(&activity);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_check_rapid_transaction_threshold_at_threshold() {
+        setup();
+        let mut activity = AgentActivity::new("agent123".to_string(), 1620328630000000000);
+        // Add exactly 5 transactions (at threshold)
+        for _ in 0..5 {
+            activity.operations_last_hour.push(1620328630000000000);
+        }
+
+        let result = check_rapid_transaction_threshold(&activity);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Too many transactions"));
+    }
+
+    #[test]
+    fn test_check_rapid_transaction_threshold_exceeded() {
+        setup();
+        let mut activity = AgentActivity::new("agent123".to_string(), 1620328630000000000);
+        // Add 6 transactions (exceeds threshold)
+        for _ in 0..6 {
+            activity.operations_last_hour.push(1620328630000000000);
+        }
+
+        let result = check_rapid_transaction_threshold(&activity);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Too many transactions"));
+    }
+
+    #[test]
+    fn test_rapid_threshold_integrated_in_deposit_check() {
+        setup();
+        let mut activity = AgentActivity::new("agent123".to_string(), 1620328630000000000);
+        // Add 5 transactions to trigger threshold
+        for _ in 0..5 {
+            activity.operations_last_hour.push(1620328630000000000);
+        }
+
+        let result = check_deposit_fraud(&activity, "user456", 10000);
+        assert!(result.should_block);
+        assert!(result.warnings[0].contains("Too many transactions"));
+    }
+
+    #[test]
+    fn test_rapid_threshold_integrated_in_withdrawal_check() {
+        setup();
+        let mut activity = AgentActivity::new("agent123".to_string(), 1620328630000000000);
+        // Add 5 transactions to trigger threshold
+        for _ in 0..5 {
+            activity.operations_last_hour.push(1620328630000000000);
+        }
+
+        let result = check_withdrawal_fraud(&activity, "user456", 5000);
+        assert!(result.should_block);
+        assert!(result.warnings[0].contains("Too many transactions"));
     }
 }

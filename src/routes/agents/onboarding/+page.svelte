@@ -2,7 +2,7 @@
   import { goto } from "$app/navigation";
   import { principalId } from "$lib/stores/auth";
   import AgentOnboardingModal from "$lib/components/agent/AgentOnboardingModal.svelte";
-  import { AgentService } from "$lib/services/agentService";
+  import { AgentService } from "$lib/services/agents";
   import { onMount } from "svelte";
 
   let showOnboarding = $state(true);

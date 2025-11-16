@@ -5,7 +5,7 @@
  * All data stored and retrieved from agent_canister, wallet_canister, and user_canister.
  */
 
-import { BaseAgentService } from "./BaseAgentService";
+import { BaseAgentService } from "./baseAgentService";
 import { agentCanisterService } from "../icp/canisters/agentCanisterService";
 import { walletCanisterService } from "../icp/canisters/walletCanisterService";
 import { userCanisterService } from "../icp/canisters/userCanisterService";

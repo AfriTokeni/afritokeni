@@ -557,61 +557,6 @@ async fn transfer_fiat(
 // PIN Security
 // ============================================================================
 
-/// Setup PIN (canister only - called during registration)
-///
-/// # DEPRECATED
-/// This endpoint uses the deprecated HMAC-SHA256 PIN hashing system.
-/// HMAC-SHA256 is NOT suitable for password hashing and is vulnerable to
-/// offline brute-force attacks if the hash leaks.
-///
-/// **Migration Path**: Use `store_pin_hash` endpoint with Argon2id hashing:
-/// 1. Hash PIN in user_canister using Argon2id
-/// 2. Call `store_pin_hash` to store the hash in data_canister
-///
-/// **Timeline**: This endpoint will be removed in v2.0.0 (Q1 2026).
-#[deprecated(
-    since = "0.2.0",
-    note = "HMAC-SHA256 is not suitable for password hashing. Use store_pin_hash with Argon2id instead. Will be removed in v2.0.0."
-)]
-#[update]
-async fn setup_user_pin(request: shared_types::SetupPinRequest) -> Result<(), String> {
-    verify_canister_access()?;
-
-    STATE.with(|state| {
-        let mut s = state.borrow_mut();
-        #[allow(deprecated)]
-        security::pin_ops::setup_pin_with_salt(&mut s, request.user_id, &request.pin, request.salt)
-    })
-}
-
-/// Verify PIN (canister only - called during transactions)
-///
-/// # DEPRECATED
-/// This endpoint uses the deprecated HMAC-SHA256 PIN hashing system.
-/// HMAC-SHA256 is NOT suitable for password hashing and is vulnerable to
-/// offline brute-force attacks if the hash leaks.
-///
-/// **Migration Path**: Use the Argon2 verification flow:
-/// 1. Call `get_pin_hash` to retrieve the stored Argon2 hash
-/// 2. Verify PIN in user_canister using `argon2::verify_password`
-/// 3. Call `reset_pin_attempts` on success or `increment_failed_attempts` on failure
-///
-/// **Timeline**: This endpoint will be removed in v2.0.0 (Q1 2026).
-#[deprecated(
-    since = "0.2.0",
-    note = "HMAC-SHA256 is not suitable for password hashing. Use get_pin_hash + Argon2 verification instead. Will be removed in v2.0.0."
-)]
-#[update]
-async fn verify_user_pin(user_id: String, pin: String) -> Result<bool, String> {
-    verify_canister_access()?;
-
-    STATE.with(|state| {
-        let mut s = state.borrow_mut();
-        #[allow(deprecated)]
-        security::pin_ops::verify_pin(&mut s, user_id, &pin)
-    })
-}
-
 /// Check if PIN is locked (canister only)
 #[query]
 fn is_pin_locked(user_id: String) -> Result<bool, String> {
@@ -679,31 +624,6 @@ async fn increment_failed_attempts(user_id: String) -> Result<(), String> {
     
     STATE.with(|state| {
         security::pin_ops::increment_failed_attempts(&mut state.borrow_mut(), user_id)
-    })
-}
-
-/// Change PIN (canister only - requires old PIN verification)
-///
-/// # DEPRECATED
-/// This endpoint uses the deprecated HMAC-SHA256 PIN hashing system.
-///
-/// **Migration Path**: Implement PIN change flow in user_canister:
-/// 1. Verify old PIN using Argon2 verification
-/// 2. Hash new PIN using Argon2id
-/// 3. Call `store_pin_hash` to update the PIN
-///
-/// **Timeline**: This endpoint will be removed in v2.0.0 (Q1 2026).
-#[deprecated(
-    since = "0.2.0",
-    note = "Uses deprecated HMAC-SHA256 system. Implement PIN change in user_canister with Argon2. Will be removed in v2.0.0."
-)]
-#[update]
-async fn change_pin(user_id: String, old_pin: String, new_pin: String, new_salt: String) -> Result<(), String> {
-    verify_canister_access()?;
-
-    STATE.with(|state| {
-        #[allow(deprecated)]
-        security::pin_ops::change_pin(&mut state.borrow_mut(), user_id, &old_pin, &new_pin, new_salt)
     })
 }
 

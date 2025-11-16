@@ -12,7 +12,7 @@
     User,
   } from "@lucide/svelte";
   import { onMount } from "svelte";
-  import { AgentService } from "$lib/services/agentService";
+  import { AgentService } from "$lib/services/agents";
   import {
     AGENT_SETTINGS_CONFIG,
     getSliderLabel,

@@ -4,8 +4,8 @@
   import { principalId } from "$lib/stores/auth";
   import { demoMode } from "$lib/stores/demoMode";
   import { uploadFile } from "@junobuild/core";
-  import { AgentService } from "$lib/services/agentService";
-  import type { AgentMetadata } from "$lib/services/agentService";
+  import { AgentService } from "$lib/services/agents";
+  import type { AgentMetadata } from "$lib/services/agents";
   import AgentProfileHeader from "./AgentProfileHeader.svelte";
   import AgentInfoCards from "./AgentInfoCards.svelte";
   import AgentReviews from "./AgentReviews.svelte";

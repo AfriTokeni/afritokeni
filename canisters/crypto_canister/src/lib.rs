@@ -387,6 +387,12 @@ async fn perform_buy_crypto_security_checks(request: &BuyCryptoRequest) -> Resul
         request.geo_location.as_deref(),
     )?;
 
+    // 6. Check for suspicious transaction amounts
+    logic::security_monitor::check_suspicious_amount(&request.user_identifier, request.fiat_amount);
+
+    // 7. Track transaction velocity
+    logic::security_monitor::track_transaction_velocity(&request.user_identifier);
+
     Ok(())
 }
 
@@ -663,6 +669,15 @@ async fn perform_sell_crypto_initial_checks(request: &SellCryptoRequest) -> Resu
         "sell_crypto",
         &rate_limit_context,
     )?;
+
+    // 4. Check for suspicious transaction amounts (estimate fiat value from crypto)
+    // Note: For sell operations, we approximate amount in cents for logging
+    // This is a rough estimate - actual amount calculated later
+    let estimated_fiat_cents = request.crypto_amount; // Simplified for security logging
+    logic::security_monitor::check_suspicious_amount(&request.user_identifier, estimated_fiat_cents);
+
+    // 5. Track transaction velocity
+    logic::security_monitor::track_transaction_velocity(&request.user_identifier);
 
     Ok(())
 }
@@ -1719,6 +1734,34 @@ fn log_transaction_if_required(operation: &str, user_id: &str, details: &str) {
             details.to_string()
         );
     }
+}
+
+// ============================================================================
+// AUDIT LOG QUERY ENDPOINTS
+// ============================================================================
+
+/// Get general audit log (all operations)
+#[query]
+fn get_audit_log(limit: Option<usize>) -> Vec<shared_types::AuditEntry> {
+    audit::get_audit_log(limit)
+}
+
+/// Get security-specific audit events
+#[query]
+fn get_security_audit_log(limit: Option<usize>) -> Vec<shared_types::AuditEntry> {
+    audit::get_security_audit_log(limit)
+}
+
+/// Get security audit log for a specific user
+#[query]
+fn get_user_security_log(user_id: String, limit: Option<usize>) -> Vec<shared_types::AuditEntry> {
+    audit::get_user_security_log(&user_id, limit)
+}
+
+/// Get failed operations
+#[query]
+fn get_failed_operations(limit: Option<usize>) -> Vec<shared_types::AuditEntry> {
+    audit::get_failed_operations(limit)
 }
 
 // Export Candid interface

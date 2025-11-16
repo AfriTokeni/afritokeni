@@ -7,7 +7,7 @@
 
 import { nanoid } from "nanoid";
 import { browser } from "$app/environment";
-import { BaseAgentService } from "./BaseAgentService";
+import { BaseAgentService } from "./baseAgentService";
 import { createLogger } from "$lib/utils/secureLogger";
 import { validateAgentInput, type AgentInput } from "$lib/utils/validation";
 import { sanitizeError } from "$lib/utils/errorHandler";

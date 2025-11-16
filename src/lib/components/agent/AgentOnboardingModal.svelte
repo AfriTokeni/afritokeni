@@ -20,7 +20,7 @@
   import { principalId } from "$lib/stores/auth";
   import { uploadFile } from "@junobuild/core";
   import { toast } from "$lib/stores/toast";
-  import { AgentService } from "$lib/services/agentService";
+  import { AgentService } from "$lib/services/agents";
   import KYCModal from "$lib/components/shared/KYCModal.svelte";
 
   interface Props {

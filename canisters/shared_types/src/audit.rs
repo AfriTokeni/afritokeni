@@ -82,6 +82,16 @@ pub fn log_failure(action: &str, user_id: Option<String>, details: String) {
     log_audit(action, user_id, details, false);
 }
 
+/// Log a security event (always uses "security_" prefix for easy filtering)
+pub fn log_security_event(event_type: &str, user_id: Option<String>, details: String) {
+    let security_action = if event_type.starts_with("security_") {
+        event_type.to_string()
+    } else {
+        format!("security_{}", event_type)
+    };
+    log_audit(&security_action, user_id, details, false); // Security events marked as failures for alerting
+}
+
 /// Log an inter-canister call (for distributed tracing)
 pub fn log_inter_canister_call(
     target_canister: &str,
@@ -184,6 +194,39 @@ pub fn get_failed_operations(limit: Option<usize>) -> Vec<AuditEntry> {
         log.iter()
             .rev() // Most recent first
             .filter(|entry| !entry.success)
+            .take(limit)
+            .cloned()
+            .collect()
+    })
+}
+
+/// Get security-specific audit entries (all entries with "security_" prefix)
+pub fn get_security_audit_log(limit: Option<usize>) -> Vec<AuditEntry> {
+    AUDIT_LOG.with(|log| {
+        let log = log.borrow();
+        let limit = limit.unwrap_or(100).min(1000);
+
+        log.iter()
+            .rev() // Most recent first
+            .filter(|entry| entry.action.starts_with("security_"))
+            .take(limit)
+            .cloned()
+            .collect()
+    })
+}
+
+/// Get security audit entries for a specific user
+pub fn get_user_security_log(user_id: &str, limit: Option<usize>) -> Vec<AuditEntry> {
+    AUDIT_LOG.with(|log| {
+        let log = log.borrow();
+        let limit = limit.unwrap_or(100).min(1000);
+
+        log.iter()
+            .rev() // Most recent first
+            .filter(|entry| {
+                entry.action.starts_with("security_")
+                && entry.user_id.as_ref().map(|id| id == user_id).unwrap_or(false)
+            })
             .take(limit)
             .cloned()
             .collect()

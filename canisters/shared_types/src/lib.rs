@@ -380,12 +380,20 @@ pub enum CurrencyType {
 // ============================================================================
 // PIN Security Models - SHARED BETWEEN ALL CANISTERS
 // ============================================================================
+//
+// SECURITY ARCHITECTURE (v2.0.0):
+// - PINs are hashed using Argon2id algorithm in user_canister
+// - Argon2 hash includes embedded salt (no separate salt storage needed)
+// - data_canister provides pure storage for the hash string
+// - Failed attempt tracking and lockout managed by data_canister
+//
+// IMPORTANT: This is v2.0.0 - HMAC-SHA256 has been completely removed
+// ============================================================================
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct UserPin {
     pub user_id: String,
     pub pin_hash: String,
-    pub salt: String,
     pub failed_attempts: u32,
     pub locked_until: Option<u64>,
     pub created_at: u64,
@@ -547,13 +555,8 @@ pub struct CreateUserRequest {
     pub phone_number: Option<String>,
 }
 
-/// Request to setup user PIN
-#[derive(CandidType, Deserialize, Clone, Debug)]
-pub struct SetupPinRequest {
-    pub user_id: String,
-    pub pin: String,
-    pub salt: String,
-}
+// REMOVED in v2.0.0: SetupPinRequest (used HMAC-SHA256)
+// Use store_pin_hash() endpoint directly with Argon2 hash from user_canister
 
 /// Request to get fiat balance
 #[derive(CandidType, Deserialize, Clone, Debug)]
@@ -602,14 +605,8 @@ pub struct GetUserTransactionsRequest {
     pub offset: Option<usize>,
 }
 
-/// Request to change PIN
-#[derive(CandidType, Deserialize, Clone, Debug)]
-pub struct ChangePinRequest {
-    pub user_id: String,
-    pub old_pin: String,
-    pub new_pin: String,
-    pub new_salt: String,
-}
+// REMOVED in v2.0.0: ChangePinRequest (used HMAC-SHA256)
+// PIN changes are now handled in user_canister with Argon2 hashing
 
 /// Request to update user phone
 #[derive(CandidType, Deserialize, Clone, Debug)]

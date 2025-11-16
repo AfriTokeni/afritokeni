@@ -67,6 +67,10 @@ pub async fn verify_pin_with_backoff(
             Some(user_identifier.to_string()),
             audit_context.to_string(),
         );
+
+        // Track PIN failure for brute force detection
+        super::security_monitor::track_pin_failure(user_identifier);
+
         return Err("Invalid PIN".to_string());
     }
 

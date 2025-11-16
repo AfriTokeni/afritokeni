@@ -6,9 +6,9 @@
  */
 
 import { browser } from "$app/environment";
-import { ProductionAgentService } from "./ProductionAgentService";
-import { DemoAgentService } from "./DemoAgentService";
-import type { BaseAgentService } from "./BaseAgentService";
+import { ProductionAgentService } from "./productionAgentService";
+import { DemoAgentService } from "./demoAgentService";
+import type { BaseAgentService } from "./baseAgentService";
 
 const DEMO_MODE_KEY = "afritokeni_demo_mode";
 
@@ -75,6 +75,16 @@ export function isInDemoMode(): boolean {
 export const AgentService = getAgentService();
 
 // Export types for consumers
-export type { BaseAgentService } from "./BaseAgentService";
-export { DemoAgentService } from "./DemoAgentService";
-export { ProductionAgentService } from "./ProductionAgentService";
+export type { BaseAgentService } from "./baseAgentService";
+export { DemoAgentService } from "./demoAgentService";
+export { ProductionAgentService } from "./productionAgentService";
+
+// Re-export agent types for convenience
+export type {
+  AgentMetadata,
+  Agent,
+  AgentBalances,
+  AgentStatus,
+  AgentLocation,
+  AgentKYCData,
+} from "$lib/types/agent";

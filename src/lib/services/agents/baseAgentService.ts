@@ -43,6 +43,14 @@ export abstract class BaseAgentService {
   ): Promise<AgentMetadata | null>;
 
   /**
+   * Get agent by user ID (alias for getAgentByPrincipal)
+   * @deprecated Use getAgentByPrincipal for clarity
+   */
+  async getAgentByUserId(userId: string): Promise<AgentMetadata | null> {
+    return this.getAgentByPrincipal(userId);
+  }
+
+  /**
    * Get agent balances from domain canisters
    */
   abstract getAgentBalances(

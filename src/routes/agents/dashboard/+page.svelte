@@ -20,7 +20,7 @@
   import AgentOnboardingModal from "$lib/components/agent/AgentOnboardingModal.svelte";
   import KYCModal from "$lib/components/shared/KYCModal.svelte";
   import DemoModeModal from "$lib/components/dashboard/DemoModeModal.svelte";
-  import { AgentService } from "$lib/services/agentService";
+  import { AgentService } from "$lib/services/agents";
   import { uploadFile } from "@junobuild/core";
   import { toast } from "$lib/stores/toast";
 
