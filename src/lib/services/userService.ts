@@ -1,5 +1,6 @@
 import { nanoid } from "nanoid";
 import { getDoc, listDocs, setDoc } from "@junobuild/core";
+import { z } from "zod";
 import type { User } from "../types/auth";
 import { generatePrincipalFromIdentifier } from "../utils/principalUtils";
 
@@ -12,18 +13,21 @@ import { generatePrincipalFromIdentifier } from "../utils/principalUtils";
  * - Authentication: Use user_canister
  */
 
-export interface UserDataFromJuno {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneNumber?: string;
-  userType: "user" | "agent" | "admin";
-  isVerified: boolean;
-  kycStatus: "pending" | "approved" | "rejected" | "not_started";
-  pin?: string;
-  createdAt: string;
-}
+// Zod schema for runtime validation of Juno data
+const UserDataFromJunoSchema = z.object({
+  id: z.string(),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Invalid email format"),
+  phoneNumber: z.string().optional(),
+  userType: z.enum(["user", "agent", "admin"]),
+  isVerified: z.boolean(),
+  kycStatus: z.enum(["pending", "approved", "rejected", "not_started"]),
+  pin: z.string().optional(),
+  createdAt: z.string()
+});
+
+export type UserDataFromJuno = z.infer<typeof UserDataFromJunoSchema>;
 
 export interface UserPin {
   phoneNumber: string;
@@ -93,7 +97,15 @@ export class UserService {
 
       if (!doc?.data) return null;
 
-      const rawData = doc.data as UserDataFromJuno;
+      // Validate data from Juno with Zod
+      const parseResult = UserDataFromJunoSchema.safeParse(doc.data);
+
+      if (!parseResult.success) {
+        console.error("Invalid user data from Juno:", parseResult.error);
+        return null;
+      }
+
+      const rawData = parseResult.data;
       return {
         id: rawData.id,
         firstName: rawData.firstName,
@@ -182,7 +194,12 @@ export class UserService {
 
       return docs.items
         .map((doc) => {
-          const rawData = doc.data as UserDataFromJuno;
+          const parseResult = UserDataFromJunoSchema.safeParse(doc.data);
+          if (!parseResult.success) {
+            console.warn("Skipping invalid user data:", parseResult.error);
+            return null;
+          }
+          const rawData = parseResult.data;
           return {
             id: rawData.id,
             firstName: rawData.firstName,
@@ -195,6 +212,7 @@ export class UserService {
             createdAt: new Date(rawData.createdAt),
           } as User;
         })
+        .filter((user): user is User => user !== null)
         .filter(
           (user) =>
             user.firstName.toLowerCase().includes(searchLower) ||
@@ -214,7 +232,9 @@ export class UserService {
       });
 
       const userDoc = docs.items.find((doc) => {
-        const data = doc.data as UserDataFromJuno;
+        const parseResult = UserDataFromJunoSchema.safeParse(doc.data);
+        if (!parseResult.success) return false;
+        const data = parseResult.data;
         return (
           data.phoneNumber === phoneNumber ||
           data.email === phoneNumber ||
@@ -224,7 +244,13 @@ export class UserService {
 
       if (!userDoc) return null;
 
-      const rawData = userDoc.data as UserDataFromJuno;
+      const parseResult = UserDataFromJunoSchema.safeParse(userDoc.data);
+      if (!parseResult.success) {
+        console.error("Invalid user data from Juno:", parseResult.error);
+        return null;
+      }
+
+      const rawData = parseResult.data;
       return {
         id: rawData.id,
         firstName: rawData.firstName,
@@ -251,7 +277,12 @@ export class UserService {
 
       return docs.items
         .map((doc) => {
-          const rawData = doc.data as UserDataFromJuno;
+          const parseResult = UserDataFromJunoSchema.safeParse(doc.data);
+          if (!parseResult.success) {
+            console.warn("Skipping invalid user data:", parseResult.error);
+            return null;
+          }
+          const rawData = parseResult.data;
           return {
             id: rawData.id,
             firstName: rawData.firstName,
@@ -264,7 +295,7 @@ export class UserService {
             createdAt: new Date(rawData.createdAt),
           } as User;
         })
-        .filter((user) => user.userType === "user")
+        .filter((user): user is User => user !== null && user.userType === "user")
         .sort(
           (a, b) =>
             new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime(),

@@ -5,10 +5,8 @@
  * Handles optional values, enum conversions, and currency mappings.
  */
 
-import type {
-  AgentStatus,
-  FiatCurrency,
-} from "$declarations/agent_canister/agent_canister.did";
+import type { AgentStatus } from '$/declarations/agent_canister/agent_canister.did';
+import type { FiatCurrency } from '$/declarations/wallet_canister/wallet_canister.did';
 
 /**
  * Unwraps a Candid optional value safely
@@ -17,7 +15,7 @@ import type {
  * @returns The unwrapped value or null if empty
  */
 export function unwrapCandidOptional<T>(opt: [] | [T]): T | null {
-  return opt.length > 0 ? opt[0] : null;
+  return opt.length > 0 ? (opt[0] ?? null) : null;
 }
 
 /**

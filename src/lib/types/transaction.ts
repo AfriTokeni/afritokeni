@@ -1,20 +1,53 @@
+/**
+ * Transaction Type Definitions
+ *
+ * Type-safe definitions for transactions, transfers, and financial operations
+ * in the AfriTokeni platform.
+ */
+
+import type { AfricanCurrency } from './currency';
+
+/**
+ * Transaction type
+ */
+export type TransactionType =
+  | 'send'
+  | 'receive'
+  | 'withdraw'
+  | 'deposit'
+  | 'bitcoin_buy'
+  | 'bitcoin_sell'
+  | 'bitcoin_to_fiat'
+  | 'fiat_to_bitcoin'
+  | 'bitcoin_send'
+  | 'bitcoin_receive'
+  | 'usdc_buy'
+  | 'usdc_sell'
+  | 'usdc_send'
+  | 'usdc_receive';
+
+/**
+ * Transaction status
+ */
+export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'cancelled' | 'confirmed';
+
+/**
+ * Transaction metadata (flexible for different transaction types)
+ */
+export interface TransactionMetadata {
+  [key: string]: string | number | boolean | undefined;
+}
+
+/**
+ * Transaction record
+ */
 export interface Transaction {
   id: string;
   userId: string;
-  type:
-    | "send"
-    | "receive"
-    | "withdraw"
-    | "deposit"
-    | "bitcoin_buy"
-    | "bitcoin_sell"
-    | "bitcoin_to_ugx"
-    | "ugx_to_bitcoin"
-    | "bitcoin_send"
-    | "bitcoin_receive";
+  type: TransactionType;
   amount: number;
   fee?: number;
-  currency: string;
+  currency: AfricanCurrency | 'BTC' | 'USDC';
   senderId?: string;
   recipientId?: string;
   recipientPhone?: string;
@@ -22,7 +55,7 @@ export interface Transaction {
   agentId?: string;
   fromUserId?: string;
   toUserId?: string;
-  status: "pending" | "completed" | "failed" | "cancelled" | "confirmed";
+  status: TransactionStatus;
   smsCommand?: string;
   description?: string;
   createdAt: Date;
@@ -33,9 +66,37 @@ export interface Transaction {
   bitcoinAddress?: string;
   exchangeRate?: number;
   location?: string;
-  metadata?: any;
+  metadata?: TransactionMetadata;
 }
 
+/**
+ * User balance by currency
+ */
 export interface UserBalance {
   [currency: string]: number;
+}
+
+/**
+ * Transaction filter options
+ */
+export interface TransactionFilters {
+  userId?: string;
+  type?: TransactionType[];
+  status?: TransactionStatus[];
+  currency?: AfricanCurrency | 'BTC' | 'USDC';
+  dateFrom?: Date;
+  dateTo?: Date;
+  minAmount?: number;
+  maxAmount?: number;
+}
+
+/**
+ * Paginated transaction results
+ */
+export interface TransactionPage {
+  transactions: Transaction[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
 }

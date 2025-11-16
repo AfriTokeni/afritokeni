@@ -31,7 +31,9 @@
   let showDemoModal = $state(false);
   let showOnboarding = $state(false);
   let showKYCModal = $state(false);
-  let selectedCurrency = $state("UGX");
+  import type { AfricanCurrency } from '$lib/types/currency';
+
+  let selectedCurrency = $state<AfricanCurrency>("UGX");
   let searchQuery = $state("");
   let kycStatus = $state<"pending" | "verified" | "rejected" | "not_started">(
     "not_started",
@@ -275,7 +277,7 @@
     ownerName: agentData?.ownerName,
     email: agentData?.email,
     phone: agentData?.phone,
-    preferredCurrency: selectedCurrency as any,
+    preferredCurrency: selectedCurrency,
     country: agentData?.country,
     city: agentData?.city,
     address: agentData?.address,

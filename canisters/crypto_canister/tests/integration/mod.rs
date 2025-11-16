@@ -11,6 +11,7 @@ mod fraud_detection_tests;
 mod slippage_tests;
 mod error_sanitization_tests;
 mod buy_sell_flow_tests;
+mod security_logging_tests;
 
 /// Helper to create PocketIC instance with all required canisters
 /// Returns: (PocketIc, data_canister, user_canister, wallet_canister, crypto_canister, ckbtc_ledger, ckusdc_ledger)

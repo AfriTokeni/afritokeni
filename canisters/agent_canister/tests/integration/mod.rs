@@ -12,6 +12,8 @@ mod multi_currency_tests;
 mod pin_security_tests;
 mod code_expiration_tests;
 mod concurrent_operations_tests;
+mod enhanced_fraud_detection_tests;
+mod settlement_automation_tests;
 
 // ============================================================================
 // Shared Request/Response Types for Tests
