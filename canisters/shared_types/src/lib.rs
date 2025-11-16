@@ -1,0 +1,687 @@
+use candid::{CandidType, Deserialize};
+
+// ============================================================================
+// Public Modules - Shared functionality across all canisters
+// ============================================================================
+
+pub mod audit;
+
+// ============================================================================
+// Shared Types - Used by ALL canisters
+// ============================================================================
+
+#[derive(CandidType, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UserType {
+    User,
+    Admin,
+    Agent,
+}
+
+#[derive(CandidType, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum FiatCurrency {
+    AOA, BIF, BWP, CDF, CVE, DJF, DZD, EGP, ERN, ETB,
+    GHS, GMD, KES, KMF, LRD, LSL, LYD, MAD, MGA, MRU,
+    MUR, MWK, NAD, NGN, RWF, SCR, SDG, SLL, SOS, SSP,
+    STN, SZL, TND, TZS, UGX, XAF, XOF, ZAR, ZMW
+}
+
+impl FiatCurrency {
+    pub fn from_string(s: &str) -> Result<Self, String> {
+        match s {
+            "AOA" => Ok(FiatCurrency::AOA),
+            "BIF" => Ok(FiatCurrency::BIF),
+            "BWP" => Ok(FiatCurrency::BWP),
+            "CDF" => Ok(FiatCurrency::CDF),
+            "CVE" => Ok(FiatCurrency::CVE),
+            "DJF" => Ok(FiatCurrency::DJF),
+            "DZD" => Ok(FiatCurrency::DZD),
+            "EGP" => Ok(FiatCurrency::EGP),
+            "ERN" => Ok(FiatCurrency::ERN),
+            "ETB" => Ok(FiatCurrency::ETB),
+            "GHS" => Ok(FiatCurrency::GHS),
+            "GMD" => Ok(FiatCurrency::GMD),
+            "KES" => Ok(FiatCurrency::KES),
+            "KMF" => Ok(FiatCurrency::KMF),
+            "LRD" => Ok(FiatCurrency::LRD),
+            "LSL" => Ok(FiatCurrency::LSL),
+            "LYD" => Ok(FiatCurrency::LYD),
+            "MAD" => Ok(FiatCurrency::MAD),
+            "MGA" => Ok(FiatCurrency::MGA),
+            "MRU" => Ok(FiatCurrency::MRU),
+            "MUR" => Ok(FiatCurrency::MUR),
+            "MWK" => Ok(FiatCurrency::MWK),
+            "NAD" => Ok(FiatCurrency::NAD),
+            "NGN" => Ok(FiatCurrency::NGN),
+            "RWF" => Ok(FiatCurrency::RWF),
+            "SCR" => Ok(FiatCurrency::SCR),
+            "SDG" => Ok(FiatCurrency::SDG),
+            "SLL" => Ok(FiatCurrency::SLL),
+            "SOS" => Ok(FiatCurrency::SOS),
+            "SSP" => Ok(FiatCurrency::SSP),
+            "STN" => Ok(FiatCurrency::STN),
+            "SZL" => Ok(FiatCurrency::SZL),
+            "TND" => Ok(FiatCurrency::TND),
+            "TZS" => Ok(FiatCurrency::TZS),
+            "UGX" => Ok(FiatCurrency::UGX),
+            "XAF" => Ok(FiatCurrency::XAF),
+            "XOF" => Ok(FiatCurrency::XOF),
+            "ZAR" => Ok(FiatCurrency::ZAR),
+            "ZMW" => Ok(FiatCurrency::ZMW),
+            _ => Err(format!("Unsupported currency: {}", s)),
+        }
+    }
+    
+    pub fn to_string(&self) -> String {
+        format!("{:?}", self)
+    }
+    
+    pub fn code(&self) -> &'static str {
+        match self {
+            FiatCurrency::AOA => "AOA",
+            FiatCurrency::BIF => "BIF",
+            FiatCurrency::BWP => "BWP",
+            FiatCurrency::CDF => "CDF",
+            FiatCurrency::CVE => "CVE",
+            FiatCurrency::DJF => "DJF",
+            FiatCurrency::DZD => "DZD",
+            FiatCurrency::EGP => "EGP",
+            FiatCurrency::ERN => "ERN",
+            FiatCurrency::ETB => "ETB",
+            FiatCurrency::GHS => "GHS",
+            FiatCurrency::GMD => "GMD",
+            FiatCurrency::KES => "KES",
+            FiatCurrency::KMF => "KMF",
+            FiatCurrency::LRD => "LRD",
+            FiatCurrency::LSL => "LSL",
+            FiatCurrency::LYD => "LYD",
+            FiatCurrency::MAD => "MAD",
+            FiatCurrency::MGA => "MGA",
+            FiatCurrency::MRU => "MRU",
+            FiatCurrency::MUR => "MUR",
+            FiatCurrency::MWK => "MWK",
+            FiatCurrency::NAD => "NAD",
+            FiatCurrency::NGN => "NGN",
+            FiatCurrency::RWF => "RWF",
+            FiatCurrency::SCR => "SCR",
+            FiatCurrency::SDG => "SDG",
+            FiatCurrency::SLL => "SLL",
+            FiatCurrency::SOS => "SOS",
+            FiatCurrency::SSP => "SSP",
+            FiatCurrency::STN => "STN",
+            FiatCurrency::SZL => "SZL",
+            FiatCurrency::TND => "TND",
+            FiatCurrency::TZS => "TZS",
+            FiatCurrency::UGX => "UGX",
+            FiatCurrency::XAF => "XAF",
+            FiatCurrency::XOF => "XOF",
+            FiatCurrency::ZAR => "ZAR",
+            FiatCurrency::ZMW => "ZMW",
+        }
+    }
+    
+    pub fn from_code(code: &str) -> Option<Self> {
+        Self::from_string(code).ok()
+    }
+}
+
+#[derive(CandidType, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum KYCStatus {
+    NotStarted,
+    Pending,
+    Approved,
+    Rejected,
+}
+
+/// Crypto currency types
+#[derive(CandidType, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CryptoType {
+    CkBTC,
+    CkUSD,
+}
+
+/// CreateUserData - MUST match Data Canister's definition EXACTLY
+/// Field order is critical for Candid encoding!
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct CreateUserData {
+    pub user_type: UserType,
+    pub preferred_currency: FiatCurrency, 
+    pub email: String,
+    pub first_name: String,
+    pub last_name: String,
+    pub principal_id: Option<String>,
+    pub phone_number: Option<String>,
+}
+
+/// User - MUST match Data Canister's Candid definition EXACTLY (including field order!)
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct User {
+    pub id: String,
+    pub user_type: UserType,
+    pub preferred_currency: FiatCurrency,
+    pub created_at: u64,
+    pub last_active: u64,
+    pub email: String,
+    pub is_verified: bool,
+    pub kyc_status: KYCStatus,
+    pub first_name: String,
+    pub last_name: String,
+    pub principal_id: Option<String>,
+    pub phone_number: Option<String>,
+}
+
+// ============================================================================
+// Agent Profile Models - Separate from User for clean composition
+// ============================================================================
+
+/// Agent status - availability for transactions
+#[derive(CandidType, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AgentStatus {
+    Available,
+    Busy,
+    CashOut,
+    Offline,
+}
+
+/// Location data for agent business address and coordinates
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct LocationData {
+    pub country: String,
+    pub state: String,
+    pub city: String,
+    pub address: String,
+    pub latitude: f64,
+    pub longitude: f64,
+}
+
+/// Agent Profile - Stores agent-specific metadata (composition, not inheritance)
+/// Linked to User via user_id where user_type = Agent
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct AgentProfile {
+    pub user_id: String,             // Links to User.id (User.user_type must be Agent)
+    pub business_name: String,
+    pub business_address: String,
+    pub location: LocationData,
+    pub commission_rate: f64,        // e.g., 0.02 for 2%
+    pub is_active: bool,
+    pub status: AgentStatus,
+    pub created_at: u64,
+    pub updated_at: u64,
+}
+
+/// Request to create agent profile
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct CreateAgentProfileRequest {
+    pub user_id: String,
+    pub business_name: String,
+    pub business_address: String,
+    pub location: LocationData,
+    pub commission_rate: f64,
+}
+
+/// Request to update agent profile
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct UpdateAgentProfileRequest {
+    pub user_id: String,
+    pub business_name: Option<String>,
+    pub business_address: Option<String>,
+    pub location: Option<LocationData>,
+    pub commission_rate: Option<f64>,
+    pub status: Option<AgentStatus>,
+}
+
+// Helper to deserialize numbers from strings (Candid JSON format)
+#[allow(dead_code)]
+fn deserialize_number_from_string<'de, D>(deserializer: D) -> Result<u64, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::Error;
+    String::deserialize(deserializer)?
+        .parse()
+        .map_err(D::Error::custom)
+}
+
+// ============================================================================
+// Business Logic API Types - Shared between USSD and Business Logic canisters
+// ============================================================================
+
+/// Register user request - SINGLE SOURCE OF TRUTH
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct RegisterUserRequest {
+    pub phone_number: Option<String>,
+    pub principal_id: Option<String>,
+    pub first_name: String,
+    pub last_name: String,
+    pub email: String,
+    pub preferred_currency: String,  // String instead of enum to avoid Candid issues
+    pub pin: String,
+}
+
+/// Simplified fiat balance info for API responses
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct FiatBalanceInfo {
+    pub currency: String,
+    pub balance: u64,
+}
+
+/// User balances response
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct UserBalances {
+    pub fiat_balances: Vec<FiatBalanceInfo>,
+    pub ckbtc_balance: u64,
+    pub ckusdc_balance: u64,
+}
+
+/// Transaction result returned from money transfer operations
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct TransactionResult {
+    pub transaction_id: String,
+    pub from_user: String,
+    pub to_user: String,
+    pub amount: u64,
+    pub currency: String,
+    pub new_balance: u64,
+    pub timestamp: u64,
+}
+
+/// Swap result returned from crypto swap operations
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct SwapResult {
+    pub from_crypto: CryptoType,
+    pub to_crypto: CryptoType,
+    pub from_amount: u64,
+    pub to_amount: u64,
+    pub spread_amount: u64,
+    pub exchange_rate: String,
+    pub tx_id: String,
+    pub timestamp: u64,
+}
+
+// ============================================================================
+// Balance Models - SHARED BETWEEN ALL CANISTERS
+// ============================================================================
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct FiatBalance {
+    pub user_id: String,
+    pub currency: FiatCurrency,
+    pub balance: u64,
+    pub updated_at: u64,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct CryptoBalance {
+    pub user_id: String,
+    pub ckbtc: u64,
+    pub ckusdc: u64,
+    pub updated_at: u64,
+}
+
+// ============================================================================
+// Transaction Models - SHARED BETWEEN ALL CANISTERS
+// ============================================================================
+
+#[derive(CandidType, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum TransactionType {
+    DepositFiat,
+    WithdrawFiat,
+    TransferFiat,
+    BuyCrypto,
+    SellCrypto,
+    TransferCrypto,
+    SwapCrypto,
+    EscrowCreate,
+    EscrowClaim,
+    EscrowCancel,
+    AgentCommission,
+}
+
+#[derive(CandidType, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum TransactionStatus {
+    Pending,
+    Completed,
+    Failed,
+    Cancelled,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct Transaction {
+    pub id: String,
+    pub transaction_type: TransactionType,
+    pub from_user: Option<String>,
+    pub to_user: Option<String>,
+    pub amount: u64,
+    pub currency_type: CurrencyType,
+    pub status: TransactionStatus,
+    pub created_at: u64,
+    pub completed_at: Option<u64>,
+    pub description: Option<String>,
+}
+
+/// TransactionRecord - simplified version for business logic layer
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct TransactionRecord {
+    pub id: String,
+    pub transaction_type: String,
+    pub from_user: Option<String>,
+    pub to_user: Option<String>,
+    pub amount: u64,
+    pub currency: String,
+    pub timestamp: u64,
+    pub status: String,
+}
+
+#[derive(CandidType, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum CurrencyType {
+    Fiat(FiatCurrency),
+    Crypto(CryptoType),
+}
+
+// ============================================================================
+// PIN Security Models - SHARED BETWEEN ALL CANISTERS
+// ============================================================================
+//
+// SECURITY ARCHITECTURE (v2.0.0):
+// - PINs are hashed using Argon2id algorithm in user_canister
+// - Argon2 hash includes embedded salt (no separate salt storage needed)
+// - data_canister provides pure storage for the hash string
+// - Failed attempt tracking and lockout managed by data_canister
+//
+// IMPORTANT: This is v2.0.0 - HMAC-SHA256 has been completely removed
+// ============================================================================
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct UserPin {
+    pub user_id: String,
+    pub pin_hash: String,
+    pub failed_attempts: u32,
+    pub locked_until: Option<u64>,
+    pub created_at: u64,
+    pub updated_at: u64,
+}
+
+// ============================================================================
+// Audit Models - SHARED BETWEEN ALL CANISTERS
+// ============================================================================
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct AuditEntry {
+    pub timestamp: u64,
+    pub action: String,
+    // Principal text of the caller that triggered the event (canister or user)
+    pub caller: String,
+    pub user_id: Option<String>,
+    pub details: String,
+    // Whether the operation succeeded (true) or failed/was denied (false)
+    pub success: bool,
+}
+
+
+// ============================================================================
+// Settlement Models - SHARED
+// ============================================================================
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct MonthlySettlement {
+    pub month: String,             // e.g. "2025-11"
+    pub agent_principal: String,   // principal text
+    pub currency: String,          // Currency code (e.g., "UGX", "KES")
+    pub total_commission: u64,
+    pub paid: bool,
+    pub paid_date: Option<u64>,    // seconds since epoch
+}
+
+// ============================================================================
+// Agent Operations Types (Deposits & Withdrawals)
+// ============================================================================
+
+#[derive(CandidType, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub enum AgentTransactionStatus {
+    Pending,
+    Confirmed,
+    Cancelled,
+    Expired,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct DepositTransaction {
+    pub id: String,
+    pub user_id: String,
+    pub agent_id: String,
+    pub amount: u64,
+    pub currency: String,
+    pub agent_commission: u64,
+    pub agent_keeps: u64,
+    pub platform_revenue: u64,
+    pub deposit_code: String,
+    pub status: AgentTransactionStatus,
+    pub timestamp: u64,
+    pub confirmed_at: Option<u64>,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct WithdrawalTransaction {
+    pub id: String,
+    pub user_id: String,
+    pub agent_id: String,
+    pub amount: u64,
+    pub currency: String,
+    pub agent_fee: u64,
+    pub agent_keeps: u64,
+    pub platform_revenue: u64,
+    pub withdrawal_code: String,
+    pub status: AgentTransactionStatus,
+    pub timestamp: u64,
+    pub confirmed_at: Option<u64>,
+}
+
+/// Agent balance tracking for credit-based settlement system
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct AgentBalance {
+    pub agent_id: String,
+    pub currency: String,
+    pub total_deposits: u64,        // COUNT of deposits (not total amount)
+    pub total_withdrawals: u64,     // COUNT of withdrawals (not total amount)
+    pub commission_earned: u64,     // Total commission earned (in currency units)
+    pub commission_paid: u64,       // Total commission paid out (in currency units)
+    pub outstanding_balance: i64,   // Signed balance: negative = agent owes platform, positive = platform owes agent
+    pub credit_limit: u64,           // Maximum negative outstanding balance allowed
+    pub last_settlement_date: Option<u64>,
+    pub last_updated: u64,
+}
+
+/// Agent tier determines credit limit
+#[derive(CandidType, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub enum AgentTier {
+    New,       // 1M credit limit
+    Trusted,   // 5M credit limit
+    Premium,   // 10M credit limit
+}
+
+impl AgentTier {
+    /// Get default credit limit for this tier
+    /// NOTE: Actual limits should be loaded from agent_config.toml
+    /// These are fallback values only
+    pub fn default_credit_limit(&self) -> u64 {
+        match self {
+            AgentTier::New => 1_000_000,      // 1M - matches agent_config.toml
+            AgentTier::Trusted => 5_000_000,  // 5M - matches agent_config.toml
+            AgentTier::Premium => 10_000_000, // 10M - matches agent_config.toml
+        }
+    }
+}
+
+/// Agent credit configuration per currency
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct AgentCreditConfig {
+    pub agent_id: String,
+    pub currency: String,
+    pub tier: AgentTier,
+    pub credit_limit: u64,
+    pub created_at: u64,
+    pub updated_at: u64,
+}
+
+/// Agent activity tracking for fraud detection
+/// Tracks deposit/withdrawal patterns and velocity for risk analysis
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct AgentActivity {
+    pub agent_id: String,
+    pub currency: String,
+    pub deposits_today: u64,
+    pub withdrawals_today: u64,
+    pub deposit_volume_today: u64,
+    pub withdrawal_volume_today: u64,
+    pub operations_last_hour: Vec<u64>,  // timestamps in nanoseconds
+    pub operations_last_24h: Vec<u64>,   // timestamps in nanoseconds
+    pub user_agent_pairs: Vec<(String, u64)>,  // (user_id, count) - using Vec for Candid compatibility
+    pub last_reset: u64,  // timestamp of last daily reset in nanoseconds
+    pub last_updated: u64,
+}
+
+// ============================================================================
+// Data Canister Request Types - For proper non-deprecated API usage
+// =========================================================================
+
+/// Request to create a user (internal - string types for inter-canister calls)
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct CreateUserRequest {
+    pub user_type_str: String,
+    pub preferred_currency_str: String,
+    pub email: String,
+    pub first_name: String,
+    pub last_name: String,
+    pub principal_id: Option<String>,
+    pub phone_number: Option<String>,
+}
+
+// REMOVED in v2.0.0: SetupPinRequest (used HMAC-SHA256)
+// Use store_pin_hash() endpoint directly with Argon2 hash from user_canister
+
+/// Request to get fiat balance
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct GetFiatBalanceRequest {
+    pub user_id: String,
+    pub currency: String,
+}
+
+/// Request to withdraw fiat
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct WithdrawFiatRequest {
+    pub user_id: String,
+    pub amount: u64,
+    pub currency: String,
+    pub description: Option<String>,
+}
+
+/// Request to set fiat balance
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct SetFiatBalanceRequest {
+    pub user_id: String,
+    pub currency: String,
+    pub amount: u64,
+}
+
+/// Request to verify PIN
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct VerifyPinRequest {
+    pub user_id: String,
+    pub pin: String,
+}
+
+/// Request to update crypto balance
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct UpdateCryptoBalanceRequest {
+    pub user_id: String,
+    pub ckbtc_delta: i64,
+    pub ckusdc_delta: i64,
+}
+
+/// Request to get user transactions
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct GetUserTransactionsRequest {
+    pub user_id: String,
+    pub limit: Option<usize>,
+    pub offset: Option<usize>,
+}
+
+// REMOVED in v2.0.0: ChangePinRequest (used HMAC-SHA256)
+// PIN changes are now handled in user_canister with Argon2 hashing
+
+/// Request to update user phone
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct UpdateUserPhoneRequest {
+    pub user_id: String,
+    pub phone_number: String,
+}
+
+// ============================================================================
+// Escrow Models - SHARED BETWEEN ALL CANISTERS
+// ============================================================================
+
+/// Escrow status
+#[derive(CandidType, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum EscrowStatus {
+    Active,
+    Claimed,
+    Expired,
+    Cancelled,
+}
+
+/// Escrow record
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct Escrow {
+    pub code: String,
+    pub user_id: String,
+    pub agent_id: String,
+    pub amount: u64,
+    pub crypto_type: CryptoType,
+    pub status: EscrowStatus,
+    pub created_at: u64,
+    pub expires_at: u64,
+    pub claimed_at: Option<u64>,
+}
+
+/// Request to create escrow
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct CreateEscrowRequest {
+    pub user_id: String,
+    pub agent_id: String,
+    pub amount: u64,
+    pub crypto_type: CryptoType,
+}
+
+/// Request to verify and claim escrow
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct ClaimEscrowRequest {
+    pub code: String,
+    pub agent_id: String,
+}
+
+// ============================================================================
+// Agent Review Models - SHARED BETWEEN ALL CANISTERS
+// ============================================================================
+
+/// Agent review record
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct AgentReview {
+    pub id: String,
+    pub agent_id: String,
+    pub user_id: String,
+    pub user_name: String,
+    pub rating: u8, // 1-5 stars
+    pub comment: String,
+    pub created_at: u64,
+    pub verified_transaction: Option<String>, // Optional: transaction ID if review is linked to verified transaction
+}
+
+/// Request to create agent review
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct CreateReviewRequest {
+    pub agent_id: String,
+    pub user_id: String,
+    pub user_name: String,
+    pub rating: u8,
+    pub comment: String,
+    pub verified_transaction: Option<String>,
+}

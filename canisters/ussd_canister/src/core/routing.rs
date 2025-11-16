@@ -1,0 +1,766 @@
+// Minimal USSD handlers - to be expanded
+use crate::core::session::UssdSession;
+use crate::utils::translations::{Language, TranslationService};
+
+/// Handle main menu - just show the menu, routing is handled in ussd.rs
+pub async fn handle_main_menu(_text: &str, session: &mut UssdSession) -> (String, bool) {
+    let lang = Language::from_code(&session.language);
+    // Default to UGX if no currency set
+    let currency = session.get_data("currency").unwrap_or_else(|| "UGX".to_string());
+    let menu = TranslationService::get_main_menu(lang, &currency);
+    (menu, true)
+}
+
+/// Handle multi-step registration
+/// Step 0: PIN, Step 1: First name, Step 2: Last name, Step 3: Currency
+pub async fn handle_registration(session: &mut UssdSession, input: &str) -> (String, bool) {
+    let lang = Language::from_code(&session.language);
+    
+    match session.step {
+        0 => {
+            // Step 0: Collect PIN
+            if input.len() != 4 || !input.chars().all(|c| c.is_numeric()) {
+                return (format!("{}\n\n{}", 
+                    TranslationService::translate("invalid_pin_format", lang),
+                    "Enter 4-digit PIN:"), true);
+            }
+            session.set_data("pin", input);
+            session.step = 1;
+            (String::from("Enter your first name:"), true)
+        }
+        1 => {
+            // Step 1: Collect first name
+            if input.trim().is_empty() {
+                return (String::from("First name cannot be empty.\n\nEnter your first name:"), true);
+            }
+            session.set_data("first_name", input.trim());
+            session.step = 2;
+            (String::from("Enter your last name:"), true)
+        }
+        2 => {
+            // Step 2: Collect last name and auto-detect currency
+            if input.trim().is_empty() {
+                return (String::from("Last name cannot be empty.\n\nEnter your last name:"), true);
+            }
+            session.set_data("last_name", input.trim());
+            
+            // Auto-detect currency from phone number
+            let detected_currency = detect_currency_from_phone(&session.phone_number);
+            session.set_data("currency", &detected_currency);
+            session.step = 3;
+            
+            (format!("Detected currency: {}\n\n1. Confirm\n2. Change currency", detected_currency), true)
+        }
+        3 => {
+            // Step 3: Confirm or change currency
+            let currency = if input == "1" {
+                // Confirm detected currency
+                session.get_data("currency").unwrap_or_else(|| "KES".to_string())
+            } else if input == "2" {
+                // Show currency selection
+                session.step = 4; // Go to currency selection step
+                return (String::from("Select your currency:\n1. KES (Kenya)\n2. UGX (Uganda)\n3. TZS (Tanzania)\n4. RWF (Rwanda)\n5. NGN (Nigeria)\n6. GHS (Ghana)\n7. ZAR (South Africa)"), true);
+            } else {
+                return (String::from("Invalid choice.\n\n1. Confirm\n2. Change currency"), true);
+            };
+            
+            // Get collected data
+            let pin = session.get_data("pin").unwrap_or_default();
+            let first_name = session.get_data("first_name").unwrap_or_default();
+            let last_name = session.get_data("last_name").unwrap_or_default();
+            
+            // Register user (USSD users don't have email, generate unique email)
+            let config = crate::config_loader::get_config();
+            let ussd_email = format!("{}@{}", session.phone_number.replace("+", ""), config.ussd_defaults.default_email_domain);
+
+            match crate::services::user_client::register_user(
+                Some(session.phone_number.clone()),
+                None, // No principal for USSD users
+                first_name.clone(),
+                last_name.clone(),
+                ussd_email,
+                pin.clone(),
+                currency.clone()
+            ).await {
+                Ok(_user_id) => {
+                    ic_cdk::println!("✅ User registered: {} {} ({})", first_name, last_name, session.phone_number);
+                    session.current_menu = "main".to_string();
+                    session.step = 0;
+                    session.clear_data();
+                    
+                    // Show main menu with proper translations
+                    let menu = format!("✅ Registration successful!\n\nWelcome {} {}!\n\n{}", 
+                        first_name, last_name,
+                        TranslationService::get_main_menu(lang, &currency));
+                    (menu, true)
+                }
+                Err(e) => {
+                    // Log detailed error for debugging and monitoring
+                    ic_cdk::println!("❌ CRITICAL: Registration failed for {} - Error: {}", session.phone_number, e);
+                    ic_cdk::println!("   Details: name={} {}, currency={}", first_name, last_name, currency);
+                    
+                    session.clear_data();
+                    
+                    // User-friendly error message (hide technical details)
+                    let user_message = if e.contains("already registered") {
+                        "This phone number is already registered.\n\nPlease contact support if you need help.".to_string()
+                    } else {
+                        "We're sorry, registration failed due to a technical issue.\n\nPlease try again later or contact support.".to_string()
+                    };
+                    
+                    (user_message, true)
+                }
+            }
+        }
+        4 => {
+            // Step 4: Manual currency selection (if user chose to change)
+            let currency = match input {
+                "1" => "KES",
+                "2" => "UGX",
+                "3" => "TZS",
+                "4" => "RWF",
+                "5" => "NGN",
+                "6" => "GHS",
+                "7" => "ZAR",
+                _ => {
+                    return (String::from("Invalid choice.\n\nSelect your currency:\n1. KES\n2. UGX\n3. TZS\n4. RWF\n5. NGN\n6. GHS\n7. ZAR"), true);
+                }
+            };
+            
+            session.set_data("currency", currency);
+            
+            // Get collected data
+            let pin = session.get_data("pin").unwrap_or_default();
+            let first_name = session.get_data("first_name").unwrap_or_default();
+            let last_name = session.get_data("last_name").unwrap_or_default();
+            
+            // Register user (USSD users don't have email, generate unique email)
+            let config = crate::config_loader::get_config();
+            let ussd_email = format!("{}@{}", session.phone_number.replace("+", ""), config.ussd_defaults.default_email_domain);
+
+            match crate::services::user_client::register_user(
+                Some(session.phone_number.clone()),
+                None, // No principal for USSD users
+                first_name.clone(),
+                last_name.clone(),
+                ussd_email,
+                pin.clone(),
+                currency.to_string()
+            ).await {
+                Ok(_user_id) => {
+                    ic_cdk::println!("✅ User registered: {} {} ({})", first_name, last_name, session.phone_number);
+                    session.current_menu = "main".to_string();
+                    session.step = 0;
+                    session.clear_data();
+                    
+                    // Show main menu with proper translations
+                    let menu = format!("✅ Registration successful!\n\nWelcome {} {}!\n\n{}", 
+                        first_name, last_name,
+                        TranslationService::get_main_menu(lang, &currency));
+                    (menu, true)
+                }
+                Err(e) => {
+                    // Log detailed error for debugging and monitoring
+                    ic_cdk::println!("❌ CRITICAL: Registration failed for {} - Error: {}", session.phone_number, e);
+                    ic_cdk::println!("   Details: name={} {}, currency={}", first_name, last_name, currency);
+                    
+                    session.clear_data();
+                    
+                    // User-friendly error message (hide technical details)
+                    let user_message = if e.contains("already registered") {
+                        "This phone number is already registered.\n\nPlease contact support if you need help.".to_string()
+                    } else {
+                        "We're sorry, registration failed due to a technical issue.\n\nPlease try again later or contact support.".to_string()
+                    };
+                    
+                    (user_message, true)
+                }
+            }
+        }
+        _ => {
+            // Reset if in invalid state
+            session.step = 0;
+            session.clear_data();
+            (String::from("Welcome to AfriTokeni!\n\nTo get started, please set your 4-digit PIN:\n\nEnter PIN"), true)
+        }
+    }
+}
+
+/// Detect currency from phone number based on African country codes
+///
+/// Supports all 39 African countries with their respective currencies.
+/// Phone numbers should be in international format with country code (with or without + prefix).
+///
+/// # Arguments
+/// * `phone` - Phone number in international format (e.g., "+256700123456" or "256700123456")
+///
+/// # Returns
+/// ISO 4217 currency code (e.g., "UGX", "KES", "NGN")
+///
+/// # Examples
+/// ```
+/// assert_eq!(detect_currency_from_phone("+256700123456"), "UGX"); // Uganda
+/// assert_eq!(detect_currency_from_phone("254712345678"), "KES");  // Kenya
+/// ```
+pub fn detect_currency_from_phone(phone: &str) -> String {
+    let phone = phone.trim().trim_start_matches('+');
+
+    // African country codes and their currencies (39 countries)
+    // Sorted by country code length (longest first) to handle overlapping prefixes
+
+    // === East Africa ===
+    if phone.starts_with("256") { return "UGX".to_string(); } // Uganda
+    else if phone.starts_with("254") { return "KES".to_string(); } // Kenya
+    else if phone.starts_with("255") { return "TZS".to_string(); } // Tanzania
+    else if phone.starts_with("250") { return "RWF".to_string(); } // Rwanda
+    else if phone.starts_with("257") { return "BIF".to_string(); } // Burundi
+    else if phone.starts_with("251") { return "ETB".to_string(); } // Ethiopia
+    else if phone.starts_with("252") { return "SOS".to_string(); } // Somalia
+    else if phone.starts_with("253") { return "DJF".to_string(); } // Djibouti
+
+    // === West Africa ===
+    else if phone.starts_with("234") { return "NGN".to_string(); } // Nigeria
+    else if phone.starts_with("233") { return "GHS".to_string(); } // Ghana
+    else if phone.starts_with("225") { return "XOF".to_string(); } // Côte d'Ivoire (CFA Franc)
+    else if phone.starts_with("221") { return "XOF".to_string(); } // Senegal (CFA Franc)
+    else if phone.starts_with("223") { return "XOF".to_string(); } // Mali (CFA Franc)
+    else if phone.starts_with("226") { return "XOF".to_string(); } // Burkina Faso (CFA Franc)
+    else if phone.starts_with("227") { return "XOF".to_string(); } // Niger (CFA Franc)
+    else if phone.starts_with("228") { return "XOF".to_string(); } // Togo (CFA Franc)
+    else if phone.starts_with("229") { return "XOF".to_string(); } // Benin (CFA Franc)
+    else if phone.starts_with("224") { return "GNF".to_string(); } // Guinea
+    else if phone.starts_with("231") { return "LRD".to_string(); } // Liberia
+    else if phone.starts_with("232") { return "SLL".to_string(); } // Sierra Leone
+    else if phone.starts_with("220") { return "GMD".to_string(); } // Gambia
+    else if phone.starts_with("238") { return "CVE".to_string(); } // Cape Verde
+
+    // === Central Africa ===
+    else if phone.starts_with("237") { return "XAF".to_string(); } // Cameroon (CFA Franc)
+    else if phone.starts_with("236") { return "XAF".to_string(); } // Central African Republic (CFA Franc)
+    else if phone.starts_with("235") { return "XAF".to_string(); } // Chad (CFA Franc)
+    else if phone.starts_with("241") { return "XAF".to_string(); } // Gabon (CFA Franc)
+    else if phone.starts_with("242") { return "XAF".to_string(); } // Congo (Brazzaville) (CFA Franc)
+    else if phone.starts_with("240") { return "XAF".to_string(); } // Equatorial Guinea (CFA Franc)
+    else if phone.starts_with("243") { return "CDF".to_string(); } // Democratic Republic of Congo
+
+    // === Southern Africa ===
+    else if phone.starts_with("27") { return "ZAR".to_string(); }  // South Africa
+    else if phone.starts_with("260") { return "ZMW".to_string(); } // Zambia
+    else if phone.starts_with("263") { return "ZWL".to_string(); } // Zimbabwe
+    else if phone.starts_with("264") { return "NAD".to_string(); } // Namibia
+    else if phone.starts_with("267") { return "BWP".to_string(); } // Botswana
+    else if phone.starts_with("268") { return "SZL".to_string(); } // Eswatini (Swaziland)
+    else if phone.starts_with("266") { return "LSL".to_string(); } // Lesotho
+    else if phone.starts_with("261") { return "MGA".to_string(); } // Madagascar
+    else if phone.starts_with("265") { return "MWK".to_string(); } // Malawi
+    else if phone.starts_with("258") { return "MZN".to_string(); } // Mozambique
+
+    // === North Africa ===
+    else if phone.starts_with("20") { return "EGP".to_string(); }  // Egypt
+    else if phone.starts_with("212") { return "MAD".to_string(); } // Morocco
+    else if phone.starts_with("213") { return "DZD".to_string(); } // Algeria
+    else if phone.starts_with("216") { return "TND".to_string(); } // Tunisia
+    else if phone.starts_with("218") { return "LYD".to_string(); } // Libya
+    else if phone.starts_with("249") { return "SDG".to_string(); } // Sudan
+
+    // === Other ===
+    else if phone.starts_with("211") { return "SSP".to_string(); } // South Sudan
+    else if phone.starts_with("230") { return "MUR".to_string(); } // Mauritius
+    else if phone.starts_with("248") { return "SCR".to_string(); } // Seychelles
+    else if phone.starts_with("262") { return "EUR".to_string(); } // Réunion (French territory, uses Euro)
+    else if phone.starts_with("269") { return "KMF".to_string(); } // Comoros
+    else if phone.starts_with("222") { return "MRU".to_string(); } // Mauritania
+
+    // Default to UGX (Uganda Shilling) for unknown codes
+    else { "UGX".to_string() }
+}
+
+/// Handle local currency menu
+pub async fn handle_local_currency_menu(text: &str, session: &mut UssdSession) -> (String, bool) {
+    let lang = Language::from_code(&session.language);
+    
+    // Parse the text to determine which submenu we're in
+    let parts: Vec<&str> = text.split('*').collect();
+    ic_cdk::println!("🔍 Local currency menu: parts={:?}, len={}", parts, parts.len());
+    
+    // If we have more than 2 parts (e.g., "1*1*phone"), we're in a flow
+    if parts.len() > 2 {
+        ic_cdk::println!("🔍 Checking flow routing, parts[1]={:?}", parts.get(1));
+        // Determine which flow based on second part
+        match parts.get(1) {
+            Some(&"1") => {
+                // Send money flow (1*1 = Local Currency -> Send Money)
+                ic_cdk::println!("✅ Routing to send_money flow");
+                session.current_menu = "send_money".to_string();
+                return crate::flows::local_currency::send_money::handle_send_money(text, session).await;
+            }
+            Some(&"4") => {
+                // Withdraw flow (1*4 = Local Currency -> Withdraw)
+                session.current_menu = "withdraw".to_string();
+                return crate::flows::local_currency::withdraw::handle_withdraw(text, session).await;
+            }
+            _ => {}
+        }
+    }
+    
+    let last_input = parts.last().unwrap_or(&"");
+    let currency = session.get_data("currency").unwrap_or_else(|| "UGX".to_string());
+    
+    ic_cdk::println!("🔍 Matching on last_input='{}', parts.len()={}", last_input, parts.len());
+
+    match *last_input {
+        "1" if parts.len() == 1 => {
+            // Show local currency menu (when text is just "1")
+            ic_cdk::println!("✅ Showing local currency submenu");
+            let menu = format!("{}\n{}\n1. {}\n2. {}\n3. {}\n4. {}\n5. {}\n6. {}\n\n{}",
+                TranslationService::translate("local_currency_menu", lang),
+                TranslationService::translate("please_select_option", lang),
+                TranslationService::translate("send_money", lang),
+                TranslationService::translate("check_balance", lang),
+                TranslationService::translate("deposit", lang),
+                TranslationService::translate("withdraw", lang),
+                TranslationService::translate("transactions", lang),
+                TranslationService::translate("find_agent", lang),
+                TranslationService::translate("back_or_menu", lang));
+            (menu, true)
+        }
+        "2" if parts.len() == 2 => {
+            // Check balance (when text is "1*2")
+            // Get user ID first
+            let user_profile = match crate::services::user_client::get_user_by_phone(session.phone_number.clone()).await {
+                Ok(profile) => profile,
+                Err(_) => return (format!("{}\n\n{}", 
+                    TranslationService::translate("error", lang),
+                    TranslationService::translate("back_or_menu", lang)), true),
+            };
+            
+            let currency_enum = match shared_types::FiatCurrency::from_code(&currency) {
+                Some(c) => c,
+                None => return (format!("Invalid currency\n\n{}", TranslationService::translate("back_or_menu", lang)), true),
+            };
+            
+            let fiat_balance = match crate::services::wallet_client::get_fiat_balance(user_profile.id.clone(), currency_enum).await {
+                Ok(balance_cents) => balance_cents as f64 / 100.0,
+                Err(_) => 0.0,
+            };
+            
+            let ckbtc = match crate::services::crypto_client::check_crypto_balance(user_profile.id.clone(), shared_types::CryptoType::CkBTC).await {
+                Ok(sats) => sats as f64 / 100_000_000.0,
+                Err(_) => 0.0,
+            };
+            
+            let ckusdc = match crate::services::crypto_client::check_crypto_balance(user_profile.id.clone(), shared_types::CryptoType::CkUSD).await {
+                Ok(e6) => e6 as f64 / 1_000_000.0,
+                Err(_) => 0.0,
+            };
+            
+            (format!("{}:\n{}: {:.2}\nckBTC: {:.8}\nckUSDC: {:.2}\n\n{}", 
+                TranslationService::translate("your_balance", lang),
+                currency,
+                fiat_balance, ckbtc, ckusdc,
+                TranslationService::translate("back_or_menu", lang)), true)
+        }
+        "1" if parts.len() == 2 => {
+            // Send money - start the flow (when text is "1*1")
+            session.step = 0;
+            session.current_menu = "send_money".to_string();
+            crate::flows::local_currency::send_money::handle_send_money(text, session).await
+        }
+        "3" if parts.len() == 2 => {
+            // Deposit - start the flow (when text is "1*3")
+            session.step = 0;
+            session.current_menu = "deposit".to_string();
+            crate::flows::local_currency::deposit::handle_deposit(text, session).await
+        }
+        "4" if parts.len() == 2 => {
+            // Withdraw - start the flow (when text is "1*4")
+            session.step = 0;
+            session.current_menu = "withdraw".to_string();
+            crate::flows::local_currency::withdraw::handle_withdraw(text, session).await
+        }
+        "5" if parts.len() == 2 => {
+            // Transactions history (when text is "1*5")
+            crate::flows::common::transactions::handle_transactions(text, session).await
+        }
+        "6" if parts.len() == 2 => {
+            // Find agent (when text is "1*6")
+            crate::flows::common::find_agent::handle_find_agent(text, session).await
+        }
+        _ => {
+            (format!("{}\n0. {}", 
+                TranslationService::translate("invalid_option", lang),
+                TranslationService::translate("back_or_menu", lang)), true)
+        }
+    }
+}
+
+/// Handle Bitcoin menu
+pub async fn handle_bitcoin_menu(text: &str, session: &mut UssdSession) -> (String, bool) {
+    let lang = Language::from_code(&session.language);
+    
+    let parts: Vec<&str> = text.split('*').collect();
+    
+    // If we have more than 2 parts, we're in a flow
+    if parts.len() > 2 {
+        match parts.get(1) {
+            Some(&"3") => {
+                // Buy Bitcoin flow
+                return crate::flows::bitcoin::buy::handle_buy_bitcoin(text, session).await;
+            }
+            Some(&"4") => {
+                // Sell Bitcoin flow
+                return crate::flows::bitcoin::sell::handle_sell_bitcoin(text, session).await;
+            }
+            Some(&"5") => {
+                // Send Bitcoin flow
+                return crate::flows::bitcoin::send::handle_send_bitcoin(text, session).await;
+            }
+            _ => {}
+        }
+    }
+    
+    let last_input = parts.last().unwrap_or(&"");
+    
+    match *last_input {
+        "2" if parts.len() == 1 => {
+            // Show Bitcoin menu (when text is just "2")
+            let menu = format!("{}\n{}\n1. {}\n2. {}\n3. {}\n4. {}\n5. {}\n\n{}",
+                TranslationService::translate("bitcoin_menu_title", lang),
+                TranslationService::translate("please_select_option", lang),
+                TranslationService::translate("check_balance", lang),
+                TranslationService::translate("bitcoin_rate", lang),
+                TranslationService::translate("buy_bitcoin", lang),
+                TranslationService::translate("sell_bitcoin", lang),
+                TranslationService::translate("send_bitcoin", lang),
+                TranslationService::translate("back_or_menu", lang));
+            (menu, true)
+        }
+        "1" if parts.len() == 2 => {
+            // Check balance (when text is "2*1")
+            let ckbtc = match crate::services::crypto_client::check_crypto_balance(
+                session.phone_number.clone(),
+                shared_types::CryptoType::CkBTC
+            ).await {
+                Ok(sats) => sats as f64 / 100_000_000.0,
+                Err(_) => 0.0,
+            };
+            
+            (format!("{}:\nckBTC: {:.8}\n\n{}", 
+                TranslationService::translate("bitcoin_balance", lang),
+                ckbtc,
+                TranslationService::translate("back_or_menu", lang)), true)
+        }
+        "2" if parts.len() == 2 => {
+            // Bitcoin rate (when text is "2*2")
+            crate::flows::common::bitcoin_rate::handle_bitcoin_rate(text, session).await
+        }
+        "3" if parts.len() == 2 => {
+            // Buy Bitcoin - start the flow (when text is "2*3")
+            session.step = 0;
+            session.current_menu = "buy_bitcoin".to_string();
+            crate::flows::bitcoin::buy::handle_buy_bitcoin(text, session).await
+        }
+        "4" if parts.len() == 2 => {
+            // Sell Bitcoin (when text is "2*4")
+            session.step = 0;
+            session.current_menu = "sell_bitcoin".to_string();
+            crate::flows::bitcoin::sell::handle_sell_bitcoin(text, session).await
+        }
+        "5" if parts.len() == 2 => {
+            // Send Bitcoin - start the flow (when text is "2*5")
+            session.step = 0;
+            session.current_menu = "send_bitcoin".to_string();
+            crate::flows::bitcoin::send::handle_send_bitcoin(text, session).await
+        }
+        _ => {
+            (format!("{}\n\n{}", 
+                TranslationService::translate("invalid_option", lang),
+                TranslationService::translate("back_or_menu", lang)), true)
+        }
+    }
+}
+
+/// Handle USDC menu
+pub async fn handle_usdc_menu(text: &str, session: &mut UssdSession) -> (String, bool) {
+    let lang = Language::from_code(&session.language);
+    
+    let parts: Vec<&str> = text.split('*').collect();
+    let last_input = parts.last().unwrap_or(&"");
+    
+    // If we have more than 2 parts, we're in a flow
+    if parts.len() > 2 {
+        match parts.get(1) {
+            Some(&"3") => {
+                // Buy USD (ckUSDC) flow
+                return crate::flows::usd::buy::handle_buy_usdc(text, session).await;
+            }
+            Some(&"4") => {
+                // Sell USD (ckUSDC) flow
+                return crate::flows::usd::sell::handle_sell_usdc(text, session).await;
+            }
+            Some(&"5") => {
+                // Send USD (ckUSDC) flow
+                return crate::flows::usd::send::handle_send_usdc(text, session).await;
+            }
+            _ => {}
+        }
+    }
+    
+    match *last_input {
+        "3" if parts.len() == 1 => {
+            // Show USDC menu (when text is just "3")
+            let menu = format!("{}\n{}\n1. {}\n2. {}\n3. {}\n4. {}\n5. {}\n\n{}",
+                TranslationService::translate("usdc_menu_title", lang),
+                TranslationService::translate("please_select_option", lang),
+                TranslationService::translate("check_balance", lang),
+                TranslationService::translate("usdc_rate", lang),
+                TranslationService::translate("buy_usdc", lang),
+                TranslationService::translate("sell_usdc", lang),
+                TranslationService::translate("send_usdc", lang),
+                TranslationService::translate("back_or_menu", lang));
+            (menu, true)
+        }
+        "1" if parts.len() == 2 => {
+            // Check balance (when text is "3*1")
+            // Get user ID first
+            let user_profile = match crate::services::user_client::get_user_by_phone(session.phone_number.clone()).await {
+                Ok(profile) => profile,
+                Err(_) => {
+                    return (format!("{}:\nckUSDC: 0.00\n\n{}",
+                        TranslationService::translate("usdc_balance", lang),
+                        TranslationService::translate("back_or_menu", lang)), true);
+                }
+            };
+
+            let ckusdc = match crate::services::crypto_client::check_crypto_balance(
+                user_profile.id,
+                shared_types::CryptoType::CkUSD
+            ).await {
+                Ok(e6) => e6 as f64 / 1_000_000.0,
+                Err(_) => 0.0,
+            };
+
+            (format!("{}:\nckUSDC: {:.2}\n\n{}",
+                TranslationService::translate("usdc_balance", lang),
+                ckusdc,
+                TranslationService::translate("back_or_menu", lang)), true)
+        }
+        "2" if parts.len() == 2 => {
+            // USD rate (when text is "3*2")
+            crate::flows::common::usd_rate::handle_usdc_rate(text, session).await
+        }
+        "3" if parts.len() == 2 => {
+            // Buy USD (ckUSDC) - start the flow (when text is "3*3")
+            session.step = 0;
+            session.current_menu = "buy_usdc".to_string();
+            crate::flows::usd::buy::handle_buy_usdc(text, session).await
+        }
+        "4" if parts.len() == 2 => {
+            // Sell USD (ckUSDC) (when text is "3*4")
+            session.step = 0;
+            session.current_menu = "sell_usdc".to_string();
+            crate::flows::usd::sell::handle_sell_usdc(text, session).await
+        }
+        "5" if parts.len() == 2 => {
+            // Send USD (ckUSDC) (when text is "3*5")
+            session.step = 0;
+            session.current_menu = "send_usdc".to_string();
+            crate::flows::usd::send::handle_send_usdc(text, session).await
+        }
+        _ => {
+            (format!("{}\n\n{}", 
+                TranslationService::translate("invalid_option", lang),
+                TranslationService::translate("back_or_menu", lang)), true)
+        }
+    }
+}
+
+/// Handle DAO menu
+pub async fn handle_dao_menu(text: &str, session: &mut UssdSession) -> (String, bool) {
+    let lang = Language::from_code(&session.language);
+    let parts: Vec<&str> = text.split('*').collect();
+    let last_input = parts.last().unwrap_or(&"");
+    
+    match *last_input {
+        "5" if parts.len() == 1 => {
+            // Show DAO menu (when text is just "5")
+            session.current_menu = "dao".to_string();
+            let menu = format!("{}\n{}\n1. {}\n2. {}\n\n{}",
+                TranslationService::translate("dao_governance", lang),
+                TranslationService::translate("please_select_option", lang),
+                TranslationService::translate("view_proposals", lang),
+                TranslationService::translate("vote_on_proposals", lang),
+                TranslationService::translate("back_or_menu", lang));
+            (menu, true)
+        }
+        "0" => {
+            // Back to main menu (when user presses "0")
+            ic_cdk::println!("⬅️ Navigation: Back to main menu from DAO (0 pressed)");
+            session.current_menu = "main".to_string();
+            session.step = 0;
+            session.clear_data();
+            handle_main_menu("", session).await
+        }
+        "9" => {
+            // Repeat DAO menu (when user presses "9" to repeat menu)
+            let menu = format!("{}\n{}\n1. {}\n2. {}\n\n{}",
+                TranslationService::translate("dao_governance", lang),
+                TranslationService::translate("please_select_option", lang),
+                TranslationService::translate("view_proposals", lang),
+                TranslationService::translate("vote_on_proposals", lang),
+                TranslationService::translate("back_or_menu", lang));
+            (menu, true)
+        }
+        "1" if parts.len() == 2 => {
+            // View proposals (when text is "5*1")
+            crate::flows::dao::proposals::handle_view_proposals(text, session).await
+        }
+        "2" if parts.len() == 2 => {
+            // Vote on proposals (when text is "5*2")
+            crate::flows::dao::vote::handle_vote(text, session).await
+        }
+        _ => {
+            (format!("{}\n\n{}",
+                TranslationService::translate("invalid_option", lang),
+                TranslationService::translate("back_or_menu", lang)), true)
+        }
+    }
+}
+
+/// Handle language menu
+pub async fn handle_language_menu(text: &str, session: &mut UssdSession) -> (String, bool) {
+    let lang = Language::from_code(&session.language);
+
+    let parts: Vec<&str> = text.split('*').collect();
+    let choice = parts.last().unwrap_or(&"");
+
+    ic_cdk::println!("🔍 [LANGUAGE] text='{}', parts={:?}, len={}, choice='{}'", text, parts, parts.len(), choice);
+
+    match *choice {
+        "7" if parts.len() == 1 => {
+            // Show language menu (when text is "7" from main menu)
+            // Set current_menu so next input is routed back here
+            session.current_menu = "language".to_string();
+            ic_cdk::println!("✅ Set current_menu to: language");
+
+            let menu = format!("{}\n1. {}\n2. {}\n3. {}\n\n{}",
+                TranslationService::translate("select_language", lang),
+                TranslationService::translate("english", lang),
+                TranslationService::translate("luganda", lang),
+                TranslationService::translate("swahili", lang),
+                TranslationService::translate("back_or_menu", lang));
+            (menu, true)
+        }
+        "0" => {
+            // Back to main menu (when user presses "0")
+            ic_cdk::println!("⬅️ Navigation: Back to main menu from Language (0 pressed)");
+            session.current_menu = "main".to_string();
+            session.step = 0;
+            session.clear_data();
+            handle_main_menu("", session).await
+        }
+        "9" => {
+            // Repeat menu (when user presses "9" to repeat menu)
+            let menu = format!("{}\n1. {}\n2. {}\n3. {}\n\n{}",
+                TranslationService::translate("select_language", lang),
+                TranslationService::translate("english", lang),
+                TranslationService::translate("luganda", lang),
+                TranslationService::translate("swahili", lang),
+                TranslationService::translate("back_or_menu", lang));
+            (menu, true)
+        }
+        "1" => {
+            // Set English
+            let new_lang = Language::English;
+            session.language = new_lang.to_code().to_string();
+
+            // Language is saved in session and persists across USSD session
+            // NOTE: Permanent user profile language preference requires user_canister ProfileUpdates extension
+            ic_cdk::println!("✅ Language set for session: en");
+
+            // Reset menu state
+            session.current_menu = "main".to_string();
+
+            (format!("{}\n\n{}",
+                TranslationService::translate("language_set", new_lang),
+                TranslationService::translate("back_or_menu", new_lang)), true)
+        }
+        "2" => {
+            // Set Luganda
+            let new_lang = Language::Luganda;
+            session.language = new_lang.to_code().to_string();
+
+            // Language is saved in session and persists across USSD session
+            // NOTE: Permanent user profile language preference requires user_canister ProfileUpdates extension
+            ic_cdk::println!("✅ Language set for session: lg");
+
+            // Reset menu state
+            session.current_menu = "main".to_string();
+
+            (format!("{}\n\n{}",
+                TranslationService::translate("language_set", new_lang),
+                TranslationService::translate("back_or_menu", new_lang)), true)
+        }
+        "3" => {
+            // Set Swahili
+            let new_lang = Language::Swahili;
+            session.language = new_lang.to_code().to_string();
+
+            // Language is saved in session and persists across USSD session
+            // NOTE: Permanent user profile language preference requires user_canister ProfileUpdates extension
+            ic_cdk::println!("✅ Language set for session: sw");
+
+            // Reset menu state
+            session.current_menu = "main".to_string();
+
+            (format!("{}\n\n{}",
+                TranslationService::translate("language_set", new_lang),
+                TranslationService::translate("back_or_menu", new_lang)), true)
+        }
+        _ => {
+            (format!("{}\n\n{}",
+                TranslationService::translate("invalid_option", lang),
+                TranslationService::translate("back_or_menu", lang)), true)
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_main_menu() {
+        let mut session = UssdSession {
+            session_id: "test".to_string(),
+            phone_number: "+256700123456".to_string(),
+            current_menu: "".to_string(),
+            step: 0,
+            language: "en".to_string(),
+            data: std::collections::HashMap::new(),
+            last_activity: 0,
+        };
+        
+        let (response, cont) = handle_main_menu("", &mut session).await;
+        assert!(cont);
+        assert!(response.contains("Welcome"));
+        assert!(response.contains("Bitcoin"));
+    }
+
+    #[tokio::test]
+    async fn test_registration_invalid_pin() {
+        let mut session = UssdSession {
+            session_id: "test".to_string(),
+            phone_number: "+256700123456".to_string(),
+            current_menu: "register".to_string(),
+            step: 0,
+            language: "en".to_string(),
+            data: std::collections::HashMap::new(),
+            last_activity: 0,
+        };
+        
+        let (response, cont) = handle_registration(&mut session, "123").await;
+        assert!(cont);
+        assert!(response.contains("Invalid PIN"));
+    }
+}

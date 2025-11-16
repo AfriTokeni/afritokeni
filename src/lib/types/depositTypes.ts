@@ -1,4 +1,4 @@
-import type { Agent as DBAgent } from "../services/agentService";
+import type { Agent as DBAgent } from "./agent";
 
 export type DepositStep = "amount" | "agent" | "confirmation";
 export type ViewMode = "list" | "map";

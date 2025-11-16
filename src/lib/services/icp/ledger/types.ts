@@ -333,7 +333,7 @@ export interface BitcoinExchangeRate {
 }
 
 // ============================================================================
-// ckUSD TYPES (renamed from ckUSDC)
+// ckUSD TYPES (renamed from ckUSD)
 // ============================================================================
 
 /**
@@ -341,9 +341,9 @@ export interface BitcoinExchangeRate {
  *
  * SECURITY: These are PUBLIC canister IDs, not secrets
  *
- * NOTE: Renamed from ckUSDC to ckUSD for consistency
+ * NOTE: Renamed from ckUSD to ckUSD for consistency
  */
-export interface CkUSDConfig {
+export interface CkUSDonfig {
   /** Ledger canister ID for ckUSD balance tracking */
   ledgerCanisterId: string;
   /** Minter canister ID for USDC deposits/withdrawals */

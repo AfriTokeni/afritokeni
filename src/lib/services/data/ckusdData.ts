@@ -1,121 +1,40 @@
 /**
  * ckUSD Data Service
  *
- * Pure data fetching functions for ckUSD balances.
- * NO store imports - accepts isDemoMode as parameter.
- * Called by encapsulated components that manage their own store subscriptions.
+ * Provides helper functions for ckUSD balance queries.
+ * Uses cryptoService to query crypto_canister.
  */
 
-import { CkUSDService } from "$lib/services/icp";
-import {
-  generatePrincipalFromIdentifier,
-  generatePrincipalFromPhone,
-  isPhoneNumber,
-} from "$lib/utils/principalUtils";
+import { cryptoService } from "$lib/services";
 
 /**
- * Fetch ckUSD balance
- *
- * @param principalId - User's ICP principal ID
- * @param isDemoMode - Whether to use demo data or real blockchain
- * @returns Balance in USD units
+ * Fetch ckUSD balance for a user
+ * @param userId - User identifier (phone number or user ID)
+ * @param isDemoMode - Whether to return demo data (default: true)
+ * @returns Balance in smallest unit (1/1,000,000 USDC)
  */
 export async function fetchCkUSDBalance(
-  principalId: string | null,
-  isDemoMode: boolean,
+  userId: string | null,
+  isDemoMode: boolean = true,
 ): Promise<number> {
+  if (!userId) {
+    return 0;
+  }
+
+  // Return demo balance for development
   if (isDemoMode) {
-    try {
-      // Try agent data first, fallback to user data
-      try {
-        const agentResponse = await fetch("/data/demo/agent-dashboard.json");
-        if (agentResponse.ok) {
-          const agentData = await agentResponse.json();
-          if (agentData.agent?.ckUSDBalance !== undefined) {
-            return agentData.agent.ckUSDBalance;
-          }
-        }
-      } catch {
-        // Fallback to user data
-      }
-
-      const response = await fetch("/data/demo/user.json");
-      if (!response.ok) {
-        throw new Error("Failed to fetch demo data");
-      }
-      const userData = await response.json();
-      return userData.ckUSDBalance || 0;
-    } catch (error) {
-      console.error("Failed to fetch demo ckUSD balance:", error);
-      return 0;
-    }
+    // Demo: 100 USDC = 100,000,000 smallest units (6 decimals)
+    return 100000000;
   }
 
-  // Real mode: query ICP blockchain
-  if (!principalId) {
-    console.warn("No principal ID provided for ckUSD balance query");
-    return 0;
-  }
-
-  try {
-    const balance = await CkUSDService.getBalance(principalId);
-    return balance.balanceUnits;
-  } catch (error) {
-    console.error("Failed to fetch ckUSD balance from ICP:", error);
-    return 0;
-  }
+  const balance = await cryptoService.checkBalance(userId, "ckUSD");
+  return Number(balance);
 }
 
 /**
- * Fetch ckUSD balance with user data fallback
- *
- * For cases where we need to derive principal from user data
- *
- * @param userData - User object with phone/email/id
- * @param isDemoMode - Whether to use demo data
- * @returns Balance in USD units
- */
-export async function fetchCkUSDBalanceFromUser(
-  userData: any,
-  isDemoMode: boolean,
-): Promise<number> {
-  if (isDemoMode) {
-    return fetchCkUSDBalance(null, true);
-  }
-
-  if (!userData) {
-    console.warn("No user data provided");
-    return 0;
-  }
-
-  // Generate principal ID from user identifier
-  let principalId: string;
-
-  if (userData.principalId) {
-    // User already has a principal (Internet Identity)
-    principalId = userData.principalId;
-  } else if (userData.phone && isPhoneNumber(userData.phone)) {
-    // Phone-based user (USSD/SMS)
-    principalId = await generatePrincipalFromPhone(userData.phone);
-    console.log(`📞 Generated principal from phone: ${userData.phone}`);
-  } else if (userData.email) {
-    // Email-based user
-    principalId = await generatePrincipalFromIdentifier(userData.email);
-    console.log(`📧 Generated principal from email: ${userData.email}`);
-  } else if (userData.id) {
-    // Fallback: use user ID
-    principalId = await generatePrincipalFromIdentifier(userData.id);
-    console.log(`🆔 Generated principal from user ID: ${userData.id}`);
-  } else {
-    console.error("Cannot generate principal: no identifier found");
-    return 0;
-  }
-
-  return fetchCkUSDBalance(principalId, false);
-}
-
-/**
- * Format USD amount with proper decimals
+ * Format USD amount with proper currency symbol and decimals
+ * @param amount - Amount in USD (dollars, not cents)
+ * @returns Formatted string like "$123.45"
  */
 export function formatUSD(amount: number): string {
   return new Intl.NumberFormat("en-US", {

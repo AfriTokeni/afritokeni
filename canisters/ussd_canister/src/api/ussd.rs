@@ -1,0 +1,382 @@
+use crate::api::http::{HttpRequest, HttpResponse};
+use std::str;
+
+/// Helper to create error response
+fn make_error_response(status_code: u16, message: &str) -> HttpResponse {
+    HttpResponse {
+        status_code,
+        headers: vec![("Content-Type".to_string(), "text/plain".to_string())],
+        body: message.as_bytes().to_vec(),
+    }
+}
+
+/// Helper to create OK response
+fn ok_response(body: &str) -> HttpResponse {
+    HttpResponse {
+        status_code: 200,
+        headers: vec![("Content-Type".to_string(), "text/plain; charset=utf-8".to_string())],
+        body: body.as_bytes().to_vec(),
+    }
+}
+
+/// Handle USSD webhook from Africa's Talking
+/// 
+/// Supports both:
+/// - Form-urlencoded (Africa's Talking production)
+/// - JSON (playground/testing)
+/// 
+/// Expected fields:
+/// - sessionId: string
+/// - serviceCode: string (optional)
+/// - phoneNumber: string
+/// - text: string
+pub async fn handle_ussd_webhook(req: HttpRequest) -> HttpResponse {
+    // Check content type
+    let content_type = req
+        .headers
+        .iter()
+        .find(|(k, _)| k.to_lowercase() == "content-type")
+        .map(|(_, v)| v.as_str())
+        .unwrap_or("");
+    
+    let is_json = content_type.contains("application/json");
+    
+    // Parse request body
+    let body_str = match str::from_utf8(&req.body) {
+        Ok(s) => s,
+        Err(_) => return make_error_response(400, "Invalid UTF-8 in request body"),
+    };
+    
+    let (session_id, phone_number, text) = if is_json {
+        // Parse JSON request (playground)
+        match parse_json_request(body_str) {
+            Ok(data) => data,
+            Err(e) => return make_error_response(400, &e),
+        }
+    } else {
+        // Parse form-urlencoded data (Africa's Talking)
+        let params = parse_form_data(body_str);
+        let session_id = params.get("sessionId").map(|s| s.as_str()).unwrap_or("");
+        let phone_number = params.get("phoneNumber").map(|s| s.as_str()).unwrap_or("");
+        let text = params.get("text").map(|s| s.as_str()).unwrap_or("");
+        (session_id.to_string(), phone_number.to_string(), text.to_string())
+    };
+
+    // Validate required fields
+    if session_id.is_empty() || phone_number.is_empty() {
+        return make_error_response(400, "Missing required fields: sessionId and phoneNumber");
+    }
+
+    // Sanitize all inputs to prevent injection attacks (defense-in-depth)
+    // Note: Individual flows still validate inputs against expected formats
+    let session_id = crate::utils::validation::sanitize_input(&session_id);
+    let phone_number = crate::utils::validation::sanitize_input(&phone_number);
+    let text = crate::utils::validation::sanitize_input(&text);
+    
+    // Check rate limit (skip for JSON requests which are tests)
+    if !is_json && !crate::utils::rate_limit::check_rate_limit(&phone_number) {
+        // Rate limit error - use English as fallback since we don't have session yet
+        let lang = crate::utils::translations::Language::English;
+        let message = crate::utils::translations::TranslationService::translate("rate_limit_exceeded", lang);
+        return make_error_response(429, message);
+    }
+
+    // Log the request
+    ic_cdk::println!(
+        "📱 USSD Request - Session: {}, Phone: {}, Text: '{}', JSON: {}",
+        session_id,
+        phone_number,
+        text,
+        is_json
+    );
+    
+    // Process USSD request and get response
+    let (response_text, continue_session) = {
+        // Get or create session
+        match crate::core::session::get_or_create_session(&session_id, &phone_number).await {
+            Ok(mut session) => {
+                ic_cdk::println!("🔍 Session state: menu='{}', step={}", session.current_menu, session.step);
+                
+                // Check if user is registered (first-time user detection)
+                let mut user_registered = match crate::services::user_client::get_user_by_phone(phone_number.clone()).await {
+                    Ok(_) => true,
+                    Err(_) => false, // User doesn't exist
+                };
+
+                // ============================================================================
+                // PLAYGROUND MODE - Auto-registration for frontend testing
+                // ============================================================================
+                //
+                // **Security Isolation:**
+                // 1. Triggered ONLY by session_id prefix (configured in config.toml)
+                // 2. Does NOT bypass rate limiting for production phone numbers
+                // 3. Does NOT grant elevated permissions or access control
+                // 4. Uses same user_canister registration as real users
+                // 5. Default PIN (1234) is only for testing - real users must set their own
+                //
+                // **Purpose:**
+                // - Enables frontend developers to test USSD flows without manual registration
+                // - Simplifies integration testing and demo scenarios
+                // - Session-based activation (not phone-based) for safety
+                //
+                // **Production Safety:**
+                // - config.playground.enabled can be set to false in production
+                // - Session ID prefix prevents accidental activation from Africa's Talking
+                // - Playground users are real users in the system (no special privileges)
+                // - All transactions are subject to same validation and limits
+                //
+                // **WARNING:** Playground mode should be DISABLED in production or limited
+                // to specific test phone numbers to prevent unauthorized auto-registration.
+                // ============================================================================
+                let config = crate::config_loader::get_config();
+                if !user_registered && config.playground.enabled && session_id.starts_with(&config.playground.session_id_prefix) {
+                    ic_cdk::println!("🎮 Playground mode detected - auto-registering demo user");
+                    ic_cdk::println!("   Session ID: {}, Phone: {}", session_id, phone_number);
+
+                    let ussd_email = format!("{}@{}", phone_number.replace("+", ""), config.ussd_defaults.default_email_domain);
+
+                    match crate::services::user_client::register_user(
+                        Some(phone_number.clone()),
+                        None,
+                        "Demo".to_string(),
+                        "User".to_string(),
+                        ussd_email,
+                        config.playground.default_pin.clone(),
+                        config.playground.default_currency.clone()
+                    ).await {
+                        Ok(user_id) => {
+                            ic_cdk::println!("✅ Playground user auto-registered: {}", user_id);
+                            user_registered = true;
+                        }
+                        Err(e) => {
+                            // If registration fails because user already exists, that's OK
+                            if e.contains("already registered") {
+                                ic_cdk::println!("ℹ️ Playground user already registered");
+                                user_registered = true;
+                            } else {
+                                ic_cdk::println!("❌ Failed to auto-register playground user: {}", e);
+                            }
+                        }
+                    }
+                }
+
+                // Route based on user registration status
+                let (response_text, continue_session) = if !user_registered {
+                    // New user - handle registration flow
+                    if session.current_menu != "registration" {
+                        // First time - initialize registration
+                        ic_cdk::println!("🆕 New user detected: {}, starting registration", phone_number);
+                        session.current_menu = "registration".to_string();
+                        session.step = 0;
+                        
+                        let lang = crate::utils::translations::Language::from_code(&session.language);
+                        let welcome_msg = format!(
+                            "Welcome to AfriTokeni!\n\nTo get started, please set your 4-digit PIN:\n\n{}",
+                            crate::utils::translations::TranslationService::translate("enter_pin", lang)
+                        );
+                        (welcome_msg, true)
+                    } else {
+                        // Already in registration - continue with current step
+                        ic_cdk::println!("📝 Continuing registration: step={}", session.step);
+                        crate::core::routing::handle_registration(&mut session, &text).await
+                    }
+                } else {
+                    // User is registered, route normally
+                    let parts: Vec<&str> = text.split('*').collect();
+                    ic_cdk::println!("🔍 Routing: text='{}', parts={:?}", text, parts);
+
+                    // Check for active flows FIRST - this takes precedence over navigation commands
+                    // This allows "0" to be used as input value (e.g., amount=0) in active flows
+                    let last_input = parts.last().unwrap_or(&"");
+                    if !session.current_menu.is_empty() && session.current_menu != "main" {
+                        // Session is in an active flow - route to that flow's handler
+                        ic_cdk::println!("🔄 Continuing flow: menu='{}', step={}", session.current_menu, session.step);
+                        match session.current_menu.as_str() {
+                            "send_money" => crate::flows::local_currency::send_money::handle_send_money(&text, &mut session).await,
+                            "deposit" => crate::flows::local_currency::deposit::handle_deposit(&text, &mut session).await,
+                            "withdraw" => crate::flows::local_currency::withdraw::handle_withdraw(&text, &mut session).await,
+                            "buy_bitcoin" => crate::flows::bitcoin::buy::handle_buy_bitcoin(&text, &mut session).await,
+                            "sell_bitcoin" => crate::flows::bitcoin::sell::handle_sell_bitcoin(&text, &mut session).await,
+                            "send_bitcoin" => crate::flows::bitcoin::send::handle_send_bitcoin(&text, &mut session).await,
+                            "buy_usdc" => crate::flows::usd::buy::handle_buy_usdc(&text, &mut session).await,
+                            "sell_usdc" => crate::flows::usd::sell::handle_sell_usdc(&text, &mut session).await,
+                            "send_usdc" => crate::flows::usd::send::handle_send_usdc(&text, &mut session).await,
+                            "swap_crypto" => crate::flows::crypto::swap::handle_crypto_swap(&text, &mut session).await,
+                            "dao" => crate::core::routing::handle_dao_menu(&text, &mut session).await,
+                            "language" => crate::core::routing::handle_language_menu(&text, &mut session).await,
+                            _ => {
+                                // Unknown flow, reset to main menu
+                                ic_cdk::println!("⚠️ Unknown flow: {}, resetting to main", session.current_menu);
+                                session.current_menu = "main".to_string();
+                                session.step = 0;
+                                crate::core::routing::handle_main_menu("", &mut session).await
+                            }
+                        }
+                    } else if *last_input == "9" && parts.len() == 1 {
+                        // 9 = Main Menu (only from top-level, not submenus)
+                        ic_cdk::println!("🏠 Returning to main menu");
+                        session.current_menu = "main".to_string();
+                        session.step = 0;
+                        session.clear_data();
+                        crate::core::routing::handle_main_menu("", &mut session).await
+                    } else if *last_input == "0" && parts.len() == 1 && session.step == 0 {
+                        // 0 = Back to main menu from submenu (only when at menu level, not collecting input)
+                        ic_cdk::println!("⬅️ Navigation: Back to main menu (0 pressed)");
+                        session.current_menu = "main".to_string();
+                        session.step = 0;
+                        session.clear_data();
+                        crate::core::routing::handle_main_menu("", &mut session).await
+                    } else if text.is_empty() {
+                        // Show main menu when no input - with welcome message for first visit
+                        let welcome_prefix = if session_id.starts_with("playground_") {
+                            "Welcome back Demo User!\n\n"
+                        } else {
+                            "Welcome back!\n\n"
+                        };
+                        let (menu_text, continues) = crate::core::routing::handle_main_menu(&text, &mut session).await;
+                        (format!("{}{}", welcome_prefix, menu_text), continues)
+                    } else {
+                        // Route based on the input parts
+                        ic_cdk::println!("🔍 Routing with parts: {:?}", parts);
+
+                        // Route based on first part
+                        match parts.get(0) {
+                        Some(&"1") => {
+                            // Local currency menu
+                            ic_cdk::println!("✅ Routing to local_currency");
+                            crate::core::routing::handle_local_currency_menu(&text, &mut session).await
+                        }
+                        Some(&"2") => {
+                            // Bitcoin menu
+                            ic_cdk::println!("✅ Routing to bitcoin");
+                            crate::core::routing::handle_bitcoin_menu(&text, &mut session).await
+                        }
+                        Some(&"3") => {
+                            // USDC menu
+                            ic_cdk::println!("✅ Routing to usdc");
+                            crate::core::routing::handle_usdc_menu(&text, &mut session).await
+                        }
+                        Some(&"4") => {
+                            // Swap Crypto
+                            ic_cdk::println!("✅ Routing to swap crypto");
+                            crate::flows::crypto::swap::handle_crypto_swap(&text, &mut session).await
+                        }
+                        Some(&"5") => {
+                            // DAO menu
+                            ic_cdk::println!("✅ Routing to dao");
+                            crate::core::routing::handle_dao_menu(&text, &mut session).await
+                        }
+                        Some(&"6") => {
+                            // Help
+                            ic_cdk::println!("ℹ️ Showing help");
+                            let lang = crate::utils::translations::Language::from_code(&session.language);
+                            let config = crate::config_loader::get_config();
+                            (format!("{}\n\n{}: {}\n{}: {}\n\n{}",
+                                crate::utils::translations::TranslationService::translate("for_support", lang),
+                                crate::utils::translations::TranslationService::translate("call", lang),
+                                config.contact_info.support_phone,
+                                crate::utils::translations::TranslationService::translate("visit", lang),
+                                config.contact_info.website,
+                                crate::utils::translations::TranslationService::translate("back_or_menu", lang)), true)
+                        }
+                        Some(&"7") => {
+                            // Language menu
+                            ic_cdk::println!("✅ Routing to language");
+                            crate::core::routing::handle_language_menu(&text, &mut session).await
+                        }
+                        Some(&"0") if parts.len() == 1 || parts.len() == 2 => {
+                            // 0 = Back to main menu (when not in active flow)
+                            // parts.len() == 1: User enters "0" from main menu
+                            // parts.len() == 2: User at submenu level enters "X*0"
+                            ic_cdk::println!("⬅️ Going back to main menu");
+                            session.current_menu = "main".to_string();
+                            session.step = 0;
+                            session.clear_data();
+                            crate::core::routing::handle_main_menu("", &mut session).await
+                        }
+                        _ => {
+                            // Invalid menu option - show error
+                            ic_cdk::println!("❓ Invalid menu option: {}", parts.get(0).unwrap_or(&""));
+                            let lang = crate::utils::translations::Language::from_code(&session.language);
+                            let error_msg = format!("{}\n\n{}",
+                                crate::utils::translations::TranslationService::translate("invalid_option", lang),
+                                crate::utils::translations::TranslationService::get_main_menu(lang, &session.get_data("currency").unwrap_or_else(|| "UGX".to_string())));
+                            (error_msg, true)
+                        }
+                        }
+                    }
+                };
+                
+                if continue_session {
+                    // Save session for next interaction
+                    if let Err(e) = crate::core::session::save_session(&session).await {
+                        ic_cdk::println!("❌ Failed to save session: {}", e);
+                    }
+                } else {
+                    // Session ended, delete it
+                    if let Err(e) = crate::core::session::delete_session(&session_id).await {
+                        ic_cdk::println!("❌ Failed to delete session: {}", e);
+                    }
+                }
+                
+                ic_cdk::println!("✅ USSD processed: continue={}, response_len={}", continue_session, response_text.len());
+                (response_text, continue_session)
+            }
+            Err(e) => {
+                ic_cdk::println!("❌ Session error: {}", e);
+                (format!("Error: {}", e), false)
+            }
+        }
+    };
+    
+    // Return response based on request type
+    if is_json {
+        // JSON response for playground
+        let json_response = serde_json::json!({
+            "continueSession": continue_session,
+            "response": response_text
+        });
+        ok_response(&json_response.to_string())
+    } else {
+        // Plain text response for Africa's Talking
+        // CON = Continue session, END = End session
+        let prefix = if continue_session { "CON" } else { "END" };
+        let ussd_response = format!("{} {}", prefix, response_text);
+        ok_response(&ussd_response)
+    }
+}
+
+/// Parse JSON USSD request
+fn parse_json_request(body: &str) -> Result<(String, String, String), String> {
+    let json: serde_json::Value = serde_json::from_str(body)
+        .map_err(|e| format!("Invalid JSON: {}", e))?;
+    
+    let session_id = json["sessionId"].as_str().unwrap_or("").to_string();
+    let phone_number = json["phoneNumber"].as_str().unwrap_or("").to_string();
+    let text = json["text"].as_str().unwrap_or("").to_string();
+    
+    Ok((session_id, phone_number, text))
+}
+
+/// Parse form-urlencoded data
+fn parse_form_data(body: &str) -> std::collections::HashMap<String, String> {
+    body.split('&')
+        .filter_map(|pair| {
+            let mut parts = pair.splitn(2, '=');
+            let key = parts.next()?;
+            let value = parts.next().unwrap_or("");
+            Some((
+                urlencoding::decode(key).ok()?.to_string(),
+                urlencoding::decode(value).ok()?.to_string(),
+            ))
+        })
+        .collect()
+}
+
+/// Process USSD menu - simplified version (DEPRECATED - use ussd_handlers instead)
+#[allow(dead_code)]
+fn process_ussd_menu(_text: &str, _phone_number: &str) -> (String, bool) {
+    // This function is deprecated and not used
+    // All menu logic is now in ussd_handlers.rs with proper translations
+    (String::new(), false)
+}

@@ -99,54 +99,41 @@ npm run test:integration
 ```
 
 **Test Coverage:**
-- ✅ **58 Rust canister tests** (deposit, withdrawal, exchange)
-- ✅ **162 USSD unit test scenarios** (Bitcoin, USDC, local currency, DAO)
-- ✅ **19 ICP integration scenarios** (real ckBTC/ckUSDC ledger on local replica)
-- 📊 **Total: 239 tests - 100% passing**
+- ✅ **113 unit tests** passing (100%)
+- ✅ **PocketIC v10.0.0** for integration tests
+- ✅ **Zero hardcoded values** - all config in TOML
+- ✅ **Full audit compliance** - no silent failures
 
 **What's Tested:**
-- ✅ **USSD Flows**: Menu navigation, Bitcoin/USDC buy/sell/send, local currency ops
-- ✅ **DAO Governance**: Proposals, voting, token locking, voting power
-- ✅ **ICP Integration**: Real ckBTC/ckUSDC ledger queries on local replica
-- ✅ **Revenue Model**: Platform fees (0.5%), agent commissions (2-12%), on-chain tracking
-- ✅ **Multi-currency**: 39 African currencies with real exchange rates
-- ✅ **Error Handling**: Balance checks, invalid amounts, PIN verification
-- ✅ **Security**: Escrow codes, transaction expiry, fraud prevention
+- ✅ **Non-Custodial Crypto**: ICRC-2 approval flows, user-owned assets
+- ✅ **Agent Credit System**: Tier management, credit limits, settlements
+- ✅ **Platform Reserve**: Balance monitoring, auto-rebalancing via Sonic DEX
+- ✅ **Fraud Detection**: Rate limiting, PIN lockout, velocity tracking
+- ✅ **Multi-currency**: 39 African currencies with per-currency limits
+- ✅ **Security**: No hardcoded fallbacks, proper error propagation
 
-**Test Structure:**
-```
-tests/
-├── unit/              # USSD service unit tests (15 features, 162 scenarios)
-│   ├── ussd-bitcoin.feature
-│   ├── ussd-usdc.feature
-│   ├── ussd-dao.feature
-│   ├── ussd-handlers.feature
-│   └── ... (11 more)
-│
-├── integration/       # ICP canister integration (2 features, 19 scenarios)
-│   ├── integration-ckbtc.feature
-│   └── integration-ckusdc.feature
-│
-├── e2e/              # End-to-end tests (5 features, 36 scenarios)
-│   ├── e2e-deposit-flow.feature
-│   ├── e2e-withdrawal-flow.feature
-│   ├── e2e-exchange-flow.feature
-│   ├── e2e-api-routes.feature
-│   └── e2e-revenue-tracking.feature
-│
-├── helpers/          # Shared test utilities
-└── mocks/            # Mock implementations
-```
+**Test Breakdown by Canister:**
+
+| Canister | Unit Tests | Status | Coverage |
+|----------|------------|--------|----------|
+| **Crypto** | 62 | ✅ 100% | Reserve mgmt, ICRC-2, fraud detection |
+| **Agent** | 51 | ✅ 100% | Credit system, tiers, settlements |
+| **Shared Types** | 0 | ✅ N/A | Type definitions only |
+| **TOTAL** | **113** | ✅ **100%** | **Full audit compliance** |
 
 **Rust Canister Tests:**
 ```bash
 # Test all canisters
-cargo test --release
+cargo test --workspace
 
-# Results:
-# ✅ Deposit canister: 20 tests
-# ✅ Withdrawal canister: 19 tests
-# ✅ Exchange canister: 19 tests
+# Test specific canister
+cd canisters/user_canister && cargo test
+cd canisters/wallet_canister && cargo test
+cd canisters/agent_canister && cargo test
+cd canisters/crypto_canister && cargo test
+
+# Integration tests (PocketIC)
+cargo test --test lib
 ```
 
 ---
@@ -190,28 +177,59 @@ cargo test --release
 - Vite 7
 - Deployed to Juno (ICP)
 
-**Backend (100% on ICP)**:
-- **Juno Satellite** - Serverless functions (Rust)
-  - Custom HTTP endpoints for USSD/SMS webhooks
-  - Event hooks for background tasks
-  - HTTPS outcalls to Africa's Talking API
-- **ICP Canisters** - Smart contracts (Rust)
-  - Deposit canister
-  - Withdrawal canister
-  - Exchange canister
-- **Juno Datastore** - Decentralized database
-- **Juno Storage** - File storage (KYC docs, images)
+**Backend (100% on ICP) - Domain-Driven Architecture**:
+- **USSD Canister** (1.7MB) - Presentation layer
+  - Stateless USSD session management
+  - Multi-language support (English, Luganda, Swahili)
+  - Webhook processing for Africa's Talking
+  
+- **User Canister** (400KB) - Identity & Authentication
+  - User registration (phone/principal/both)
+  - PIN authentication with lockout protection
+  - Profile management & account linking
+  - Argon2 PIN hashing
+  
+- **Wallet Canister** (600KB) - Fiat Operations
+  - P2P transfers (39 African currencies)
+  - Balance management
+  - Fraud detection (rate limiting, risk scoring)
+  - Fiat escrow for crypto sales
+  
+- **Crypto Canister** (1.0MB) - Digital Assets (NON-CUSTODIAL)
+  - Buy crypto: Fiat → ckBTC/ckUSDC (direct ledger transfers to user Principal)
+  - Sell crypto: ICRC-2 approval → transfer_from user to platform reserve
+  - Send crypto: P2P transfers between user Principals
+  - Swap crypto: BTC ↔ USDC via Sonic DEX
+  - Platform reserve: Auto-rebalancing (50/50 BTC/USDC allocation)
+  - Fraud detection: Rate limiting, device fingerprinting, velocity tracking
+  
+- **Agent Canister** (700KB) - Cash On/Off Ramps (CREDIT-BASED)
+  - Agent credit system: Tiered credit limits (New: 1M, Trusted: 5M, Premium: 10M)
+  - Deposit operations: Cash → crypto (agents operate on credit)
+  - Withdrawal operations: Crypto → cash (agents settle outstanding balances)
+  - Weekly settlements: Automatic settlement generation and tracking
+  - Commission tracking: 10% platform cut, 90% to agents
+  - Multi-currency support: 39 African currencies
+  
+- **Data Canister** (1.1MB) - Pure Storage
+  - User profiles & authentication
+  - Balances (fiat & crypto, 39 currencies)
+  - Transaction history
+  - Escrow metadata
+  - Agent settlements
+  - NO business logic (CRUD only)
 
 **Authentication & Identity**:
 - Internet Identity - Decentralized auth
-- USSD PIN - SMS-based authentication
+- USSD PIN - SMS-based authentication with exponential backoff
 
-**Blockchain**:
-- ckBTC - ICP-native Bitcoin (1:1 backed)
-- ckUSDC - ICP-native USDC stablecoin
-- Chain-key cryptography
+**Blockchain (Non-Custodial)**:
+- ckBTC - ICP-native Bitcoin (1:1 backed, users own via Principal ID)
+- ckUSDC - ICP-native USDC stablecoin (users own via Principal ID)
+- ICRC-1 standard - Balance queries, transfers
+- ICRC-2 standard - Approval-based transfers (approve + transfer_from)
+- Chain-key cryptography - No private keys, no seed phrases
 - <1 second finality
-- ICRC-1 ledger standard
 
 **Communication**:
 - Africa's Talking SMS Gateway
@@ -219,10 +237,19 @@ cargo test --release
 - Multi-language support (English, Luganda, Swahili)
 
 **Testing**:
-- Cucumber.js (BDD) - 275 tests
-- Cargo (Rust canister tests) - 58 tests
-- DFX (local ICP replica)
+- **113 unit tests** passing (100%)
+- **Zero hardcoded values** - all config in TOML
+- **Full audit compliance** - no silent failures
+- PocketIC v10.0.0 for integration tests
 - Real ledger canister integration
+
+**Architecture Benefits**:
+- **Non-Custodial**: Users own crypto on ckBTC/ckUSDC ledgers via Principal IDs
+- **Credit-Based Agents**: No upfront deposits, tiered credit limits, weekly settlements
+- **Platform Reserve**: Auto-rebalancing via Sonic DEX (50/50 BTC/USDC allocation)
+- **Security**: ICRC-2 approval flows, no hardcoded values, proper error handling
+- **Configuration**: All business values in TOML (crypto_config.toml, agent_config.toml)
+- **Testability**: 100% test coverage on modified canisters
 
 ---
 

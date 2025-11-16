@@ -1,0 +1,228 @@
+use candid::CandidType;
+use serde::{Deserialize, Serialize};
+use std::cell::RefCell;
+use std::collections::HashMap;
+
+use crate::utils::constants::SESSION_TIMEOUT_NANOS;
+
+// Mock time for tests - use target_arch to cover both internal and external tests
+#[cfg(target_arch = "wasm32")]
+use ic_cdk::api::time;
+
+#[cfg(not(target_arch = "wasm32"))]
+fn time() -> u64 {
+    1731574800000000000 // Fixed timestamp for tests (2024-11-14 09:00:00 UTC)
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, CandidType)]
+pub struct UssdSession {
+    pub session_id: String,
+    pub phone_number: String,
+    pub current_menu: String,
+    pub step: u32,
+    pub language: String, // "en", "lg", or "sw"
+    pub last_activity: u64,
+    pub data: HashMap<String, String>, // Store flow data (recipient, amount, etc)
+}
+
+impl UssdSession {
+    pub fn new(session_id: String, phone_number: String) -> Self {
+        Self {
+            session_id,
+            phone_number,
+            current_menu: String::new(),
+            step: 0,
+            language: "en".to_string(), // Default to English
+            last_activity: time(),
+            data: HashMap::new(),
+        }
+    }
+    
+    pub fn is_expired(&self) -> bool {
+        let current_time = time();
+        current_time - self.last_activity > SESSION_TIMEOUT_NANOS
+    }
+    
+    pub fn update_activity(&mut self) {
+        self.last_activity = time();
+    }
+    
+    pub fn clear_data(&mut self) {
+        self.data.clear();
+    }
+    
+    pub fn set_data(&mut self, key: &str, value: &str) {
+        self.data.insert(key.to_string(), value.to_string());
+    }
+    
+    pub fn get_data(&self, key: &str) -> Option<String> {
+        self.data.get(key).cloned()
+    }
+}
+
+// Thread-local storage for sessions
+thread_local! {
+    static SESSIONS: RefCell<HashMap<String, UssdSession>> = RefCell::new(HashMap::new());
+}
+
+/// Get or create a USSD session
+pub async fn get_or_create_session(session_id: &str, phone_number: &str) -> Result<UssdSession, String> {
+    // Periodically clean up expired sessions (lazy cleanup during normal operations)
+    // This prevents memory buildup from abandoned sessions
+    // We do this every 10th session creation/retrieval to balance cleanup cost
+    static mut CLEANUP_COUNTER: u32 = 0;
+    unsafe {
+        CLEANUP_COUNTER += 1;
+        if CLEANUP_COUNTER % 10 == 0 {
+            cleanup_expired_sessions();
+        }
+    }
+
+    // Check existing session first
+    let existing_session = SESSIONS.with(|sessions| {
+        let sessions_map = sessions.borrow();
+        ic_cdk::println!("🔍 Looking for session '{}', total sessions: {}", session_id, sessions_map.len());
+
+        // Check if session exists and is not expired
+        if let Some(session) = sessions_map.get(session_id) {
+            ic_cdk::println!("✅ Found existing session: menu='{}', step={}", session.current_menu, session.step);
+            if !session.is_expired() {
+                let mut session_clone = session.clone();
+                session_clone.update_activity();
+                return Some(session_clone);
+            } else {
+                ic_cdk::println!("⏰ Session expired");
+                return None;
+            }
+        }
+        ic_cdk::println!("❌ Session not found");
+        None
+    });
+    
+    if let Some(session) = existing_session {
+        // Update the session in storage
+        SESSIONS.with(|sessions| {
+            sessions.borrow_mut().insert(session_id.to_string(), session.clone());
+        });
+        return Ok(session);
+    }
+    
+    // Create new session with default language (English)
+    // Language preference will be loaded from Data Canister when needed
+    let mut new_session = UssdSession::new(session_id.to_string(), phone_number.to_string());
+    new_session.language = "en".to_string();
+    
+    // Auto-detect currency from phone number
+    let detected_currency = crate::core::routing::detect_currency_from_phone(phone_number);
+    new_session.set_data("currency", &detected_currency);
+    ic_cdk::println!("🆕 Creating new session for '{}' with detected currency: {}", session_id, detected_currency);
+    
+    SESSIONS.with(|sessions| {
+        sessions.borrow_mut().insert(session_id.to_string(), new_session.clone());
+    });
+    
+    Ok(new_session)
+}
+
+/// Save session
+pub async fn save_session(session: &UssdSession) -> Result<(), String> {
+    ic_cdk::println!("💾 Saving session '{}': menu='{}', step={}", session.session_id, session.current_menu, session.step);
+    SESSIONS.with(|sessions| {
+        sessions.borrow_mut().insert(session.session_id.clone(), session.clone());
+    });
+    Ok(())
+}
+
+/// Delete session
+pub async fn delete_session(session_id: &str) -> Result<(), String> {
+    ic_cdk::println!("🗑️ Deleting session '{}'", session_id);
+    SESSIONS.with(|sessions| {
+        sessions.borrow_mut().remove(session_id);
+    });
+    Ok(())
+}
+
+/// Clean up expired sessions
+///
+/// This function removes all sessions that have exceeded SESSION_TIMEOUT_NANOS.
+/// It should be called periodically (e.g., during get_or_create_session) to prevent
+/// memory buildup from abandoned sessions.
+///
+/// **Security Note:** This cleanup happens lazily during normal request processing,
+/// making it deterministic (tied to update calls) rather than using heartbeats which
+/// could cause non-determinism.
+///
+/// # Returns
+/// Number of sessions that were cleaned up
+pub fn cleanup_expired_sessions() -> usize {
+    let current_time = time();
+
+    SESSIONS.with(|sessions| {
+        let mut sessions_map = sessions.borrow_mut();
+        let initial_count = sessions_map.len();
+
+        // Remove all expired sessions
+        sessions_map.retain(|session_id, session| {
+            let is_valid = !session.is_expired();
+            if !is_valid {
+                ic_cdk::println!("🧹 Cleaning up expired session: {} (expired {} nanos ago)",
+                    session_id,
+                    current_time.saturating_sub(session.last_activity + SESSION_TIMEOUT_NANOS));
+            }
+            is_valid
+        });
+
+        let cleaned_count = initial_count.saturating_sub(sessions_map.len());
+        if cleaned_count > 0 {
+            ic_cdk::println!("✅ Cleaned up {} expired session(s), {} active remain",
+                cleaned_count,
+                sessions_map.len());
+        }
+
+        cleaned_count
+    })
+}
+
+/// Get total number of active sessions
+///
+/// Useful for monitoring and debugging.
+///
+/// # Returns
+/// Number of active sessions in memory
+pub fn get_active_session_count() -> usize {
+    SESSIONS.with(|sessions| sessions.borrow().len())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_session_structure() {
+        let session = UssdSession::new("test123".to_string(), "+256700123456".to_string());
+        assert_eq!(session.session_id, "test123");
+        assert_eq!(session.phone_number, "+256700123456");
+        assert_eq!(session.language, "en");
+        assert_eq!(session.step, 0);
+        assert!(session.data.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_save_and_retrieve() {
+        let mut session = UssdSession::new("test789".to_string(), "+256700123456".to_string());
+        session.current_menu = "bitcoin".to_string();
+        session.step = 1;
+        
+        let save_result = save_session(&session).await;
+        assert!(save_result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_delete() {
+        let session = UssdSession::new("test999".to_string(), "+256700123456".to_string());
+        save_session(&session).await.unwrap();
+        
+        let delete_result = delete_session("test999").await;
+        assert!(delete_result.is_ok());
+    }
+}

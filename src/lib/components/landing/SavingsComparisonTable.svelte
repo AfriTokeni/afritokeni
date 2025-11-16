@@ -15,7 +15,7 @@
   );
   const toCurrency = $derived(AFRICAN_CURRENCIES[toCountry]);
   const numAmount = $derived(parseFloat(amount) || 0);
-  const useCkUSDC = $derived(numAmount < 100);
+  const useCkUSD = $derived(numAmount < 100);
 
   // AfriTokeni fees based on location
   const feeMap = {
@@ -455,9 +455,9 @@
         </div>
         <div class="mt-2 text-xs text-gray-600 sm:text-sm">
           Sending ${numAmount} to {toCurrency.country} ({location} area)
-          {#if useCkUSDC}
+          {#if useCkUSD}
             <span class="font-semibold text-green-600">
-              • ckUSDC (Stablecoin)</span
+              • ckUSD (Stablecoin)</span
             >
           {:else}
             <span class="font-semibold text-green-600">
@@ -473,7 +473,7 @@
       <p
         class="mx-auto max-w-3xl text-xs leading-relaxed text-gray-500 sm:text-sm"
       >
-        * AfriTokeni uses ICP-native ckBTC (Bitcoin) and ckUSDC (stablecoin) for
+        * AfriTokeni uses ICP-native ckBTC (Bitcoin) and ckUSD (stablecoin) for
         instant transfers. Fees: 2.5-4% urban, 4-7% rural, 7-12% remote (fair
         agent compensation). Mobile money: M-Pesa ~13%, MTN MoMo ~11%, Airtel
         Money ~10% (includes FX markups). AfriTokeni works via USSD across all

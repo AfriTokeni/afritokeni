@@ -18,7 +18,8 @@ const config = {
 		}),
 		alias: {
 			$lib: './src/lib',
-			$tests: './tests'
+			$tests: './tests',
+			$: './src'
 		}
 	}
 };

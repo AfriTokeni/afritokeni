@@ -18,8 +18,9 @@
   import { X, Phone, MapPin, Building } from "@lucide/svelte";
   import { getActiveCurrencies } from "$lib/types/currency";
   import { principalId } from "$lib/stores/auth";
-  import { setDoc, getDoc, uploadFile } from "@junobuild/core";
+  import { uploadFile } from "@junobuild/core";
   import { toast } from "$lib/stores/toast";
+  import { AgentService } from "$lib/services/agents";
   import KYCModal from "$lib/components/shared/KYCModal.svelte";
 
   interface Props {
@@ -82,14 +83,19 @@
   }
 
   async function handleNext() {
-    if (validateStep(step)) {
-      if (step < 4) {
-        step = step + 1;
-      } else {
-        // Step 4 - Save to Juno and complete
-        await handleSubmit();
-      }
+    if (!validateStep(step)) {
+      return; // Stop if validation fails
     }
+
+    // If on step 3 (final form step), create agent profile before showing success screen
+    if (step === 3) {
+      await handleSubmit(); // This creates the agent profile
+      // handleSubmit() already moves to step 4 on success
+    } else if (step < 3) {
+      // For steps 1-2, just move to next step
+      step = step + 1;
+    }
+    // Note: step 4 is the success screen, no "Next" button there
   }
 
   async function handleSubmit() {
@@ -102,25 +108,28 @@
 
       toast.show("info", "Creating agent profile...");
 
-      // Create agent document in Juno
-      await setDoc({
-        collection: "agents",
-        doc: {
-          key: currentPrincipalId,
-          data: {
-            ...formData,
-            kycStatus: "not_started",
-            digitalBalance: 0,
-            cashBalance: 0,
-            dailyEarnings: 0,
-            todayTransactions: 0,
-            activeCustomers: 0,
-            rating: 0,
-            status: "active",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+      // Create agent profile via AgentService
+      // TODO: Add geocoding to get actual lat/lng from address
+      await AgentService.createAgent({
+        userId: currentPrincipalId,
+        businessName: formData.businessName,
+        phoneNumber: formData.phone,
+        email: formData.email,
+        location: {
+          country: formData.country,
+          state: "", // TODO: Add state field to form
+          city: formData.city,
+          address: formData.address,
+          coordinates: {
+            lat: 0, // TODO: Geocode address to get real coordinates
+            lng: 0,
           },
         },
+        isActive: true,
+        commissionRate: 0.02, // Default 2% commission
+        status: "available",
+        rating: 0,
+        reviewCount: 0,
       });
 
       toast.show("success", "Agent profile created successfully!");
@@ -141,7 +150,7 @@
 
       toast.show("info", "Uploading KYC documents...");
 
-      // Upload files
+      // Upload KYC files to Juno storage
       const uploadedFiles: any = {};
 
       if (kycData.idDocument) {
@@ -171,27 +180,25 @@
         uploadedFiles.selfieUrl = selfieResult.downloadUrl;
       }
 
-      // Update agent with KYC data
-      const doc = await getDoc({
-        collection: "agents",
-        key: currentPrincipalId,
-      });
-      if (doc) {
-        await setDoc({
-          collection: "agents",
-          doc: {
-            ...doc,
-            data: {
-              ...doc.data,
-              kycStatus: "pending",
-              kycData: uploadedFiles,
-              updatedAt: new Date().toISOString(),
-            },
-          },
-        });
-      }
+      // KYC documents uploaded to Juno storage
+      console.log("KYC documents uploaded:", uploadedFiles);
 
-      toast.show("success", "KYC documents submitted!");
+      // TODO: Update KYC status in user_canister (not yet implemented)
+      // Need to add update_kyc_status method to user_canister that stores:
+      // - KYC status (pending, approved, rejected)
+      // - Document URLs from uploadedFiles
+      // Example:
+      // await userCanisterService.updateKYCStatus(currentPrincipalId, {
+      //   status: "pending",
+      //   idDocumentUrl: uploadedFiles.idDocumentUrl,
+      //   proofOfAddressUrl: uploadedFiles.proofOfAddressUrl,
+      //   selfieUrl: uploadedFiles.selfieUrl,
+      // });
+
+      toast.show(
+        "success",
+        "KYC documents uploaded! (Status update in user_canister coming soon)",
+      );
       showKYCModal = false;
       onComplete(formData);
     } catch (error: any) {

@@ -156,7 +156,7 @@
             <p class="mb-1 font-semibold">How to add money:</p>
             <ul class="space-y-0.5 text-blue-800">
               <li>• Deposit cash via agents</li>
-              <li>• Sell ckBTC/ckUSDC for cash</li>
+              <li>• Sell ckBTC/ckUSD for cash</li>
               <li>• Receive from other users</li>
             </ul>
           </div>

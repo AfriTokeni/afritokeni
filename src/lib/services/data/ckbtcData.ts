@@ -1,129 +1,41 @@
 /**
  * ckBTC Data Service
  *
- * Pure data fetching functions for ckBTC balances.
- * NO store imports - accepts isDemoMode as parameter.
- * Called by encapsulated components that manage their own store subscriptions.
+ * Provides helper functions for ckBTC balance queries.
+ * Uses cryptoService to query crypto_canister.
  */
 
-import { CkBTCService } from "$lib/services/icp";
-import {
-  generatePrincipalFromIdentifier,
-  generatePrincipalFromPhone,
-  isPhoneNumber,
-} from "$lib/utils/principalUtils";
+import { cryptoService } from "$lib/services";
 
 /**
- * Fetch ckBTC balance
- *
- * @param principalId - User's ICP principal ID
- * @param isDemoMode - Whether to use demo data or real blockchain
+ * Fetch ckBTC balance for a user
+ * @param userId - User identifier (phone number or user ID)
+ * @param isDemoMode - Whether to return demo data (default: true)
  * @returns Balance in satoshis
  */
 export async function fetchCkBTCBalance(
-  principalId: string | null,
-  isDemoMode: boolean,
+  userId: string | null,
+  isDemoMode: boolean = true,
 ): Promise<number> {
+  if (!userId) {
+    return 0;
+  }
+
+  // Return demo balance for development
   if (isDemoMode) {
-    try {
-      // Try agent data first, fallback to user data
-      try {
-        const agentResponse = await fetch("/data/demo/agent-dashboard.json");
-        if (agentResponse.ok) {
-          const agentData = await agentResponse.json();
-          if (agentData.agent?.ckBTCBalance !== undefined) {
-            return agentData.agent.ckBTCBalance;
-          }
-        }
-      } catch {
-        // Fallback to user data
-      }
-
-      const response = await fetch("/data/demo/user.json");
-      if (!response.ok) {
-        throw new Error("Failed to fetch demo data");
-      }
-      const userData = await response.json();
-      return userData.ckBTCBalance || 0;
-    } catch (error) {
-      console.error("Failed to fetch demo ckBTC balance:", error);
-      return 0;
-    }
+    // Demo: 0.0025 BTC = 250,000 satoshis (~$100 USD at $40k/BTC)
+    return 250000;
   }
 
-  // Real mode: query ICP blockchain
-  if (!principalId) {
-    console.warn("No principal ID provided for ckBTC balance query");
-    return 0;
-  }
-
-  try {
-    const balance = await CkBTCService.getBalance(principalId);
-    return balance.balanceSatoshis;
-  } catch (error) {
-    console.error("Failed to fetch ckBTC balance from ICP:", error);
-    return 0;
-  }
-}
-
-/**
- * Fetch ckBTC balance with user data fallback
- *
- * For cases where we need to derive principal from user data
- *
- * @param userData - User object with phone/email/id
- * @param isDemoMode - Whether to use demo data
- * @returns Balance in satoshis
- */
-export async function fetchCkBTCBalanceFromUser(
-  userData: any,
-  isDemoMode: boolean,
-): Promise<number> {
-  if (isDemoMode) {
-    return fetchCkBTCBalance(null, true);
-  }
-
-  if (!userData) {
-    console.warn("No user data provided");
-    return 0;
-  }
-
-  // Generate principal ID from user identifier
-  let principalId: string;
-
-  if (userData.principalId) {
-    // User already has a principal (Internet Identity)
-    principalId = userData.principalId;
-  } else if (userData.phone && isPhoneNumber(userData.phone)) {
-    // Phone-based user (USSD/SMS)
-    principalId = await generatePrincipalFromPhone(userData.phone);
-    console.log(`📞 Generated principal from phone: ${userData.phone}`);
-  } else if (userData.email) {
-    // Email-based user
-    principalId = await generatePrincipalFromIdentifier(userData.email);
-    console.log(`📧 Generated principal from email: ${userData.email}`);
-  } else if (userData.id) {
-    // Fallback: use user ID
-    principalId = await generatePrincipalFromIdentifier(userData.id);
-    console.log(`🆔 Generated principal from user ID: ${userData.id}`);
-  } else {
-    console.error("Cannot generate principal: no identifier found");
-    return 0;
-  }
-
-  return fetchCkBTCBalance(principalId, false);
+  const balance = await cryptoService.checkBalance(userId, "ckBTC");
+  return Number(balance);
 }
 
 /**
  * Convert satoshis to BTC
+ * @param satoshis - Amount in satoshis
+ * @returns Amount in BTC
  */
 export function satoshisToBTC(satoshis: number): number {
   return satoshis / 100_000_000;
-}
-
-/**
- * Convert BTC to satoshis
- */
-export function btcToSatoshis(btc: number): number {
-  return Math.floor(btc * 100_000_000);
 }

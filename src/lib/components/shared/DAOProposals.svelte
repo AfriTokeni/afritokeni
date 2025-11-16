@@ -20,7 +20,9 @@
     XCircle,
   } from "@lucide/svelte";
   import { demoMode } from "$lib/stores/demoMode";
-  import { DAO_CONSTANTS, fetchDAOProposals } from "$lib/services/data/daoData";
+  import { DAO_CONFIG } from "$lib/config/canister";
+  import { demoProposals } from "$lib/stores/demoProposals";
+  import { getActiveSNSProposals } from "$lib/services/icp/sns/governanceService";
 
   interface Props {
     onVote?: (proposalId: string, vote: "yes" | "no" | "abstain") => void;
@@ -50,9 +52,25 @@
   async function loadProposals(isDemoMode: boolean) {
     try {
       error = null;
-      isLoading = true; // Ensure loading state is set
-      const data = await fetchDAOProposals(isDemoMode, maxProposals);
-      proposals = data;
+      isLoading = true;
+      if (isDemoMode) {
+        // Demo mode: fetch from demo JSON
+        const data = await fetch("/data/demo/proposals.json");
+        if (data.ok) {
+          const allProposals = await data.json();
+          proposals = maxProposals
+            ? allProposals.slice(0, maxProposals)
+            : allProposals;
+        } else {
+          proposals = [];
+        }
+      } else {
+        // Production mode: Fetch from real SNS governance canister
+        const snsProposals = await getActiveSNSProposals(false);
+        proposals = maxProposals
+          ? snsProposals.slice(0, maxProposals)
+          : snsProposals;
+      }
     } catch (err: any) {
       console.error("Error fetching DAO proposals:", err);
       error = err.message || "Failed to load proposals";
@@ -109,10 +127,10 @@
       {#if onCreateProposal}
         <button
           onclick={onCreateProposal}
-          disabled={userTokenBalance < DAO_CONSTANTS.MIN_TOKENS_TO_PROPOSE}
+          disabled={userTokenBalance < DAO_CONFIG.MIN_TOKENS_TO_PROPOSE}
           class="flex items-center gap-1.5 rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
-          title={userTokenBalance < DAO_CONSTANTS.MIN_TOKENS_TO_PROPOSE
-            ? `Need ${DAO_CONSTANTS.MIN_TOKENS_TO_PROPOSE} AFRI to create proposal`
+          title={userTokenBalance < DAO_CONFIG.MIN_TOKENS_TO_PROPOSE
+            ? `Need ${DAO_CONFIG.MIN_TOKENS_TO_PROPOSE} AFRI to create proposal`
             : "Create new proposal"}
         >
           <Plus class="h-4 w-4 shrink-0" />
@@ -167,7 +185,7 @@
       </p>
 
       {#if onCreateProposal}
-        {#if userTokenBalance >= DAO_CONSTANTS.MIN_TOKENS_TO_PROPOSE}
+        {#if userTokenBalance >= DAO_CONFIG.MIN_TOKENS_TO_PROPOSE}
           <button
             onclick={onCreateProposal}
             class="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700"
@@ -181,7 +199,7 @@
           >
             <p class="text-sm text-yellow-800">
               <strong
-                >Need {DAO_CONSTANTS.MIN_TOKENS_TO_PROPOSE} AFRI tokens</strong
+                >Need {DAO_CONFIG.MIN_TOKENS_TO_PROPOSE} AFRI tokens</strong
               > to create a proposal
             </p>
             <p class="mt-1 text-xs text-yellow-700">

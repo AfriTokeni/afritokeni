@@ -3,7 +3,9 @@
   import { toast } from "$lib/stores/toast";
   import { principalId } from "$lib/stores/auth";
   import { demoMode } from "$lib/stores/demoMode";
-  import { getDoc, setDoc, uploadFile } from "@junobuild/core";
+  import { uploadFile } from "@junobuild/core";
+  import { AgentService } from "$lib/services/agents";
+  import type { AgentMetadata } from "$lib/services/agents";
   import AgentProfileHeader from "./AgentProfileHeader.svelte";
   import AgentInfoCards from "./AgentInfoCards.svelte";
   import AgentReviews from "./AgentReviews.svelte";
@@ -30,36 +32,6 @@
     isDemoMode: boolean,
     currentPrincipalId: string | null,
   ) {
-    isLoading = true;
-
-    // Demo data ONLY for demo mode
-    const demoData = {
-      businessName: "John Doe Agent Services",
-      phoneNumber: "+256700123456",
-      location: "Kampala, Uganda",
-      businessAddress: "Plot 123, Kampala Road",
-      principalId: currentPrincipalId || "demo",
-      kycStatus: "approved",
-      status: "available",
-      rating: 4.8,
-      totalReviews: 156,
-      totalTransactions: 1234,
-      activeCustomers: 89,
-      totalEarnings: 2500000,
-      serviceRadius: 5,
-      profileImage: null,
-      commissionRate: 2.5,
-      maxCashLimit: 500000,
-      operatingHours: { start: "08:00", end: "18:00" },
-    };
-
-    if (isDemoMode) {
-      // Use demo data
-      agentData = demoData;
-      isLoading = false;
-      return;
-    }
-
     if (!currentPrincipalId) {
       console.log("No principal ID - redirecting to onboarding");
       goto("/agents/onboarding");
@@ -68,50 +40,44 @@
     }
 
     try {
-      // Fetch from Juno
-      const doc = await getDoc({
-        collection: "agents",
-        key: currentPrincipalId,
-      });
+      isLoading = true;
 
-      if (!doc) {
+      // Use AgentService to get agent by userId
+      const agent = await AgentService.getAgentByUserId(currentPrincipalId);
+
+      if (!agent) {
         console.log("No agent profile found - redirecting to onboarding");
         goto("/agents/onboarding");
         isLoading = false;
         return;
       }
 
-      agentDoc = doc;
-      const data = doc.data as any; // Type assertion for Juno data
-
-      // NO FALLBACKS - use exact data from Juno
+      // Transform AgentMetadata to settings page format
       agentData = {
-        businessName: data.businessName,
-        phoneNumber: data.phoneNumber,
-        location: data.location,
-        businessAddress: data.businessAddress,
-        principalId: currentPrincipalId,
-        kycStatus: data.kycStatus,
-        status: data.status,
-        rating: data.rating,
-        totalReviews: data.totalReviews,
-        totalTransactions: data.totalTransactions,
-        activeCustomers: data.activeCustomers,
-        totalEarnings: data.totalEarnings,
-        serviceRadius: data.serviceRadius,
-        profileImage: data.profileImage,
-        commissionRate: data.commissionRate,
-        maxCashLimit: data.maxCashLimit,
-        operatingHours: data.operatingHours,
+        businessName: agent.businessName,
+        phoneNumber: agent.phoneNumber || "",
+        location: `${agent.location.city}, ${agent.location.country}`,
+        businessAddress: agent.location.address,
+        principalId: agent.userId,
+        kycStatus: "approved", // TODO: Get from user_canister
+        status: agent.status,
+        rating: agent.rating || 0,
+        totalReviews: agent.reviewCount || 0,
+        totalTransactions: 0, // TODO: Get from agent_canister
+        activeCustomers: 0, // TODO: Get from agent_canister
+        totalEarnings: 0, // TODO: Get from agent_canister
+        serviceRadius: 5, // Default
+        profileImage: null,
+        commissionRate: agent.commissionRate * 100,
+        maxCashLimit: 500000, // TODO: Get from agent_canister
+        operatingHours: { start: "08:00", end: "18:00" }, // Default
       };
     } catch (error: any) {
       console.error("❌ FAILED TO LOAD AGENT DATA:", error);
-      console.error("Error details:", {
-        message: error.message,
-        stack: error.stack,
-        principalId: currentPrincipalId,
-      });
-      toast.show("error", "Failed to load agent profile. Please try again.");
+      toast.show(
+        "error",
+        "Failed to load agent profile. Enable demo mode to continue.",
+      );
       agentData = null;
     } finally {
       isLoading = false;
@@ -137,24 +103,22 @@
         throw new Error("Not authenticated");
       }
 
-      // Update or create agent document
-      await setDoc({
-        collection: "agents",
-        doc: {
-          ...agentDoc,
-          data: {
-            ...agentDoc?.data,
-            businessName: editBusinessName,
-            phoneNumber: editPhoneNumber,
-            location: editLocation,
-            updatedAt: new Date().toISOString(),
-          },
-        },
-      });
-
-      await loadAgentData($demoMode, currentPrincipalId);
-      toast.show("success", "Profile updated successfully!");
+      // TODO: Implement agent profile update via AgentService
+      // Need to add updateAgentProfile method to AgentService that calls agent_canister
+      toast.show(
+        "warning",
+        "Profile updates coming soon! Enable demo mode to test this feature.",
+      );
       showEditModal = false;
+
+      // Placeholder for future implementation:
+      // await AgentService.updateAgentProfile(currentPrincipalId, {
+      //   businessName: editBusinessName,
+      //   phoneNumber: editPhoneNumber,
+      //   location: parseLocation(editLocation),
+      // });
+      // await loadAgentData($demoMode, currentPrincipalId);
+      // toast.show("success", "Profile updated successfully!");
     } catch (error: any) {
       console.error("Failed to update profile:", error);
       toast.show("error", "Failed to update profile");
@@ -191,20 +155,14 @@
         filename: `${currentPrincipalId}_${Date.now()}.${file.name.split(".").pop()}`,
       });
 
-      await setDoc({
-        collection: "agents",
-        doc: {
-          ...agentDoc,
-          data: {
-            ...agentDoc?.data,
-            profileImage: result.downloadUrl,
-            updatedAt: new Date().toISOString(),
-          },
-        },
-      });
+      // Profile picture URL uploaded to Juno storage
+      // TODO: Store profile picture URL in agent profile (not yet implemented in canisters)
+      console.log("Profile picture uploaded:", result.downloadUrl);
 
-      await loadAgentData($demoMode, $principalId);
-      toast.show("success", "Profile picture updated!");
+      toast.show(
+        "success",
+        "Profile picture uploaded! (Storage in canister coming soon)",
+      );
     } catch (error: any) {
       console.error("Failed to upload profile picture:", error);
       toast.show("error", "Failed to upload profile picture");
@@ -250,30 +208,15 @@
         uploadedFiles.selfieUrl = selfieResult.downloadUrl;
       }
 
-      // Update agent document with KYC data and file URLs
-      await setDoc({
-        collection: "agents",
-        doc: {
-          ...agentDoc,
-          data: {
-            ...agentDoc?.data,
-            kycStatus: "pending",
-            kycSubmittedAt: new Date().toISOString(),
-            kycData: {
-              ...kycData,
-              idDocument: undefined,
-              proofOfAddress: undefined,
-              selfie: undefined,
-              ...uploadedFiles,
-            },
-            updatedAt: new Date().toISOString(),
-          },
-        },
-      });
+      // KYC documents uploaded to Juno
+      // TODO: Update user_canister KYC status (not yet implemented)
+      console.log("KYC documents uploaded:", uploadedFiles);
 
-      toast.show("success", "KYC documents submitted successfully!");
+      toast.show(
+        "success",
+        "KYC documents uploaded! (Status update coming soon)",
+      );
       showKYCModal = false;
-      await loadAgentData($demoMode, $principalId);
     } catch (error: any) {
       console.error("❌ Failed to submit KYC:", error);
       console.error("Error details:", {

@@ -14,7 +14,12 @@
     X,
   } from "@lucide/svelte";
   import { demoMode } from "$lib/stores/demoMode";
-  import { DAO_CONSTANTS } from "$lib/services/data/daoData";
+  import { demoProposals } from "$lib/stores/demoProposals";
+  import { DAO_CONFIG } from "$lib/config/canister";
+  import {
+    createSNSProposal,
+    type ProposalType,
+  } from "$lib/services/icp/sns/governanceService";
   import { toast } from "$lib/stores/toast";
 
   interface Props {
@@ -28,12 +33,17 @@
   let { isOpen, onClose, userId, userTokens, onSuccess }: Props = $props();
 
   // State
-  let proposalType = $state<string>("other");
+  let proposalType = $state<ProposalType>("other");
   let title = $state("");
   let description = $state("");
   let isLoading = $state(false);
 
-  const proposalTypes = [
+  const proposalTypes: Array<{
+    value: ProposalType;
+    label: string;
+    icon: any;
+    color: string;
+  }> = [
     {
       value: "fee_adjustment",
       label: "Fee Adjustment",
@@ -62,7 +72,7 @@
   ];
 
   const canCreateProposal = $derived(
-    userTokens >= DAO_CONSTANTS.MIN_TOKENS_TO_PROPOSE,
+    userTokens >= DAO_CONFIG.MIN_TOKENS_TO_PROPOSE,
   );
 
   async function handleSubmit(e: Event) {
@@ -76,28 +86,46 @@
     isLoading = true;
     try {
       if ($demoMode) {
-        // Demo mode: simulate proposal creation
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // Demo mode: Add to local demo proposals store
+        await new Promise((resolve) => setTimeout(resolve, 800));
+
+        demoProposals.addProposal({
+          type: proposalType,
+          title,
+          description,
+          proposer: `User ${userId.slice(0, 8)}`,
+        });
+
         console.log("📋 Demo proposal created:", {
           type: proposalType,
           title,
           description,
         });
+
         toast.show("success", "Proposal created successfully! (Demo mode)");
-        // TODO: Add to demo proposals store
       } else {
-        // Real mode: Submit to SNS Governance
+        // Real mode: Submit to SNS Governance canister
         console.log("📋 Creating SNS proposal:", {
           type: proposalType,
           title,
           description,
+          userId,
         });
-        // TODO: Implement SNS proposal creation
-        // await createSNSProposal(userId, { type: proposalType, title, description, executionData: {} }, userTokens);
-        throw new Error("SNS proposal creation not yet implemented");
+
+        await createSNSProposal(
+          userId,
+          {
+            type: proposalType,
+            title,
+            description,
+          },
+          userTokens,
+        );
+
+        toast.show("success", "Proposal submitted to SNS Governance!");
       }
 
-      // Success
+      // Success - trigger parent refresh and close modal
       onSuccess();
       onClose();
 
@@ -107,7 +135,17 @@
       proposalType = "other";
     } catch (error: any) {
       console.error("Error creating proposal:", error);
-      toast.show("error", error.message || "Failed to create proposal");
+
+      // Show user-friendly error message
+      const errorMessage = error.message || "Failed to create proposal";
+      toast.show("error", errorMessage);
+
+      // For SNS integration errors, provide additional context
+      if (errorMessage.includes("SNS")) {
+        console.info(
+          "💡 SNS Integration Status: Full SNS governance integration requires deployed canisters and authentication. Use Demo Mode for testing.",
+        );
+      }
     } finally {
       isLoading = false;
     }
@@ -150,7 +188,7 @@
           <div class="rounded-lg border border-red-200 bg-red-50 p-4">
             <p class="font-semibold text-red-800">Insufficient Tokens</p>
             <p class="mt-1 text-sm text-red-600">
-              You need at least {DAO_CONSTANTS.MIN_TOKENS_TO_PROPOSE.toLocaleString()}
+              You need at least {DAO_CONFIG.MIN_TOKENS_TO_PROPOSE.toLocaleString()}
               AFRI tokens to create a proposal. You currently have {userTokens.toLocaleString()}
               AFRI.
             </p>
@@ -222,13 +260,12 @@
         <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
           <p class="mb-2 font-semibold text-blue-800">Voting Parameters</p>
           <ul class="space-y-1 text-sm text-blue-700">
-            <li>• Voting period: {DAO_CONSTANTS.VOTING_PERIOD_DAYS} days</li>
+            <li>• Voting period: {DAO_CONFIG.VOTING_PERIOD_DAYS} days</li>
             <li>
-              • Quorum required: {DAO_CONSTANTS.QUORUM_PERCENTAGE}% of total
-              supply
+              • Quorum required: {DAO_CONFIG.QUORUM_PERCENTAGE}% of total supply
             </li>
             <li>
-              • Passing threshold: {DAO_CONSTANTS.PASS_THRESHOLD}% yes votes
+              • Passing threshold: {DAO_CONFIG.PASS_THRESHOLD}% yes votes
             </li>
             <li>• Your voting power: {userTokens.toLocaleString()} AFRI</li>
           </ul>

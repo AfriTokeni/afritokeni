@@ -2,7 +2,10 @@
   import { demoMode } from "$lib/stores/demoMode";
   import { principalId } from "$lib/stores/auth";
   import { toast } from "$lib/stores/toast";
-  import { fetchAgentCustomers } from "$lib/services/data/customersData";
+  import {
+    fetchAgentCustomers,
+    type Customer as DataCustomer,
+  } from "$lib/services/data/customersData";
   import TransactionHistory from "$lib/components/shared/TransactionHistory.svelte";
   import {
     Ban,
@@ -104,13 +107,46 @@
       error = null;
 
       // Use real data service (handles both demo and real mode)
-      customers = await fetchAgentCustomers(agentPrincipal, isDemoMode);
+      if (!agentPrincipal) {
+        customers = [];
+        return;
+      }
+
+      const dataCustomers = await fetchAgentCustomers(
+        agentPrincipal,
+        isDemoMode,
+      );
+      // Map DataCustomer to Customer interface
+      customers = dataCustomers.map(mapDataCustomerToCustomer);
     } catch (err: any) {
       error = err.message || "Failed to load customers";
       customers = [];
     } finally {
       isLoading = false;
     }
+  }
+
+  // Map DataCustomer to component Customer interface
+  function mapDataCustomerToCustomer(dataCustomer: DataCustomer): Customer {
+    return {
+      id: dataCustomer.id,
+      name: dataCustomer.name,
+      phone: dataCustomer.phone,
+      location: "N/A", // Not available in DataCustomer
+      joinDate: new Date().toISOString(), // Default to current date
+      totalTransactions: dataCustomer.totalTransactions,
+      totalVolume: {
+        ugx: dataCustomer.currency === "UGX" ? dataCustomer.totalVolume : 0,
+        usdc: dataCustomer.currency === "USDC" ? dataCustomer.totalVolume : 0,
+      },
+      lastTransaction:
+        dataCustomer.lastTransaction !== undefined
+          ? new Date(dataCustomer.lastTransaction).toISOString()
+          : new Date().toISOString(),
+      status:
+        (dataCustomer.status as "active" | "inactive" | "blocked") || "active",
+      kycStatus: "pending", // Not available in DataCustomer
+    };
   }
 
   const filteredCustomers = $derived(

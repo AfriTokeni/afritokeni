@@ -12,18 +12,12 @@
  * - AfriTokeni NEVER holds user funds - all funds are in user-controlled principals
  */
 
-import { browser } from "$app/environment";
-
 /**
  * Get environment variable (works in both browser and server)
  */
 function getEnv(key: string): string | undefined {
-  if (browser) {
-    // Browser: use import.meta.env
-    return (import.meta as any).env[key];
-  }
-  // Server: use process.env
-  return process.env[key];
+  // Always use import.meta.env (works in both Vite browser and server contexts)
+  return (import.meta as any).env[key];
 }
 
 /**
@@ -69,10 +63,36 @@ export const CKBTC_MINTER_CANISTER_ID = "mqygn-kiaaa-aaaar-qaadq-cai";
  * - All users interact with it using their own principals
  * - Balances are stored on-chain, NOT in AfriTokeni databases
  *
- * NOTE: Previously called ckUSDC in old codebase, now renamed to ckUSD
+ * NOTE: Previously called ckUSD in old codebase, now renamed to ckUSD
  */
 export const CKUSD_LEDGER_CANISTER_ID =
   getEnv("CANISTER_ID_CKUSD_LEDGER") || "xevnm-gaaaa-aaaar-qafnq-cai";
+
+/**
+ * Domain Canister IDs (User, Wallet, Crypto, Agent, Data, USSD)
+ * Checks VITE_ prefix (Vite convention), PUBLIC_ prefix, then CANISTER_ID_ prefix
+ */
+const resolveCanisterId = (name: string) =>
+  getEnv(`VITE_${name}_CANISTER_ID`) ||
+  getEnv(`PUBLIC_${name}_CANISTER_ID`) ||
+  getEnv(`CANISTER_ID_${name}_CANISTER`) ||
+  "";
+
+export const USER_CANISTER_ID = resolveCanisterId("USER");
+export const WALLET_CANISTER_ID = resolveCanisterId("WALLET");
+export const CRYPTO_CANISTER_ID = resolveCanisterId("CRYPTO");
+export const AGENT_CANISTER_ID = resolveCanisterId("AGENT");
+export const DATA_CANISTER_ID = resolveCanisterId("DATA");
+export const USSD_CANISTER_ID = resolveCanisterId("USSD");
+
+/**
+ * OLD CANISTERS - REMOVED
+ * These have been absorbed into the new 4-domain architecture:
+ * - deposit_canister → agent_canister
+ * - withdrawal_canister → agent_canister
+ * - exchange_canister → crypto_canister
+ * - business_logic_canister → split across user/wallet/agent/crypto canisters
+ */
 
 /**
  * Juno Satellite Canister ID
@@ -112,7 +132,7 @@ export const JUNO_SATELLITE_ID =
  * - Local HTTP is only for development with dfx
  */
 export const IC_HOST =
-  getEnv("DFX_NETWORK") === "local"
+  getEnv("VITE_DFX_NETWORK") === "local" || getEnv("DFX_NETWORK") === "local"
     ? "http://localhost:4943"
     : "https://ic0.app";
 
@@ -180,7 +200,8 @@ export const AGENT_COMMISSION_CUT = 0.1; // 10%
 /**
  * Is Local Development?
  */
-export const IS_LOCAL_DEV = getEnv("DFX_NETWORK") === "local";
+export const IS_LOCAL_DEV =
+  getEnv("VITE_DFX_NETWORK") === "local" || getEnv("DFX_NETWORK") === "local";
 
 /**
  * Canister Configuration Summary
@@ -195,6 +216,14 @@ export function getCanisterConfig() {
     },
     ckUSD: {
       ledger: CKUSD_LEDGER_CANISTER_ID,
+    },
+    domain: {
+      user: USER_CANISTER_ID,
+      wallet: WALLET_CANISTER_ID,
+      crypto: CRYPTO_CANISTER_ID,
+      agent: AGENT_CANISTER_ID,
+      data: DATA_CANISTER_ID,
+      ussd: USSD_CANISTER_ID,
     },
     juno: {
       satellite: JUNO_SATELLITE_ID,

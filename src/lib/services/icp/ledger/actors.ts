@@ -298,7 +298,7 @@ export async function getCkBTCMinterActor(): Promise<ActorSubclass<any>> {
  * - WRITE operations: Require user signature
  * - AfriTokeni NEVER holds ckUSD - all in user principals
  *
- * NOTE: Previously called ckUSDC in old codebase, now renamed to ckUSD
+ * NOTE: Previously called ckUSD in old codebase, now renamed to ckUSD
  */
 export async function getCkUSDLedgerActor(): Promise<ActorSubclass<any>> {
   const agent = await createAgent();

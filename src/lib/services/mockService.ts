@@ -65,7 +65,7 @@ export const MOCK_CKBTC_BALANCE = {
 };
 
 /**
- * Mock ckUSDC balance
+ * Mock ckUSD balance
  */
 export const MOCK_CKUSDC_BALANCE = {
   balanceUSDC: "100.00",

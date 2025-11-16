@@ -1,5 +1,18 @@
 import { defineConfig } from "@junobuild/config";
 
+/**
+ * Juno Configuration - File Storage Only
+ *
+ * NOTE: This configuration is for file storage (images, KYC documents) only.
+ * All application data comes from ICP canisters:
+ * - Agent data: agent_canister
+ * - User data: user_canister
+ * - Transactions: wallet_canister
+ * - Crypto operations: crypto_canister
+ *
+ * API credentials are stored in environment variables, not Juno datastore.
+ */
+
 export default defineConfig({
   satellite: {
     ids: {
@@ -10,68 +23,6 @@ export default defineConfig({
     source: "build",
     predeploy: ["pnpm run build"],
     collections: {
-      datastore: [
-        {
-          collection: "users",
-          read: "managed",
-          write: "managed",
-          memory: "stable",
-        },
-        {
-          collection: "agents",
-          read: "public",   // Agent profiles are public for discovery
-          write: "managed", // Agents can only edit their own profile
-          memory: "stable",
-        },
-        {
-          collection: "agent_customers",
-          read: "managed",  // Agents can only see their own customers
-          write: "managed",
-          memory: "stable",
-        },
-        {
-          collection: "agent_reviews",
-          read: "public",   // Reviews are public
-          write: "managed", // Users can write their own reviews
-          memory: "stable",
-        },
-        {
-          collection: "user_roles",
-          read: "managed",
-          write: "managed",
-          memory: "stable",
-        },
-        {
-          collection: "user_pins",
-          read: "managed",  // Users can only see their own PIN
-          write: "managed",
-          memory: "stable",
-        },
-        {
-          collection: "balances",
-          read: "managed",
-          write: "controllers", // Only backend can modify balances
-          memory: "stable",
-        },
-        {
-          collection: "transactions",
-          read: "managed",
-          write: "controllers",
-          memory: "stable",
-        },
-        {
-          collection: "deposit_requests",
-          read: "managed",
-          write: "managed",
-          memory: "stable",
-        },
-        {
-          collection: "escrow_transactions",
-          read: "managed",
-          write: "controllers",
-          memory: "stable",
-        },
-      ],
       storage: [
         {
           collection: "profile-images",
@@ -97,4 +48,10 @@ export default defineConfig({
       ],
     },
   },
+  emulator: {
+    runner: {
+      type: "docker"
+    },
+    skylab: {}
+  }
 });

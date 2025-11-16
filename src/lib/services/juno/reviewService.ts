@@ -1,80 +1,61 @@
 /**
  * Review Service
- * Handles agent review operations with Juno DB
+ *
+ * Handles agent review operations via data_canister.
+ * Reviews are stored on-chain in data_canister for transparency.
  */
 
-import { listDocs } from "@junobuild/core";
-import type { Doc } from "@junobuild/core";
-import { toast } from "$lib/stores/toast";
-import type { AgentReview } from "$lib/types/admin";
-
-const COLLECTION = "agent_reviews";
+import { dataCanisterService } from "$lib/services/icp/canisters/dataCanisterService";
+import type { AgentReview } from "$/declarations/data_canister/data_canister.did";
 
 /**
- * Juno document data structure for Review
- */
-export interface ReviewDocData {
-  agentId: string;
-  userId: string;
-  userName: string;
-  rating: number;
-  comment: string;
-  createdAt: string;
-}
-
-/**
- * List reviews for an agent
+ * List all reviews for an agent
+ * @param agentId - Agent identifier
+ * @returns Array of reviews, sorted by most recent first
  */
 export async function listAgentReviews(
   agentId: string,
-  filters?: { rating?: number },
 ): Promise<AgentReview[]> {
-  if (!agentId) {
-    throw new Error("Agent ID is required");
-  }
-
-  try {
-    const { items } = await listDocs<ReviewDocData>({
-      collection: COLLECTION,
-      filter: {},
-    });
-
-    let reviews = items
-      .filter((doc) => doc.data.agentId === agentId)
-      .map((doc) => docToReview(doc));
-
-    // Apply rating filter
-    if (filters?.rating) {
-      reviews = reviews.filter((review) => review.rating === filters.rating);
-    }
-
-    // Sort by newest first
-    reviews.sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
-
-    return reviews;
-  } catch (error) {
-    console.error("Error listing agent reviews:", error);
-    toast.show("error", "Failed to load reviews");
-    throw error;
-  }
+  return await dataCanisterService.getAgentReviews(agentId);
 }
 
 /**
- * Convert Juno doc to AgentReview
+ * Get verified reviews for an agent
+ * Only returns reviews linked to actual transactions
+ * @param agentId - Agent identifier
+ * @returns Array of verified reviews
  */
-function docToReview(doc: Doc<ReviewDocData>): AgentReview {
-  const data = doc.data;
+export async function listVerifiedReviews(
+  agentId: string,
+): Promise<AgentReview[]> {
+  return await dataCanisterService.getVerifiedReviews(agentId);
+}
 
+/**
+ * Get reviews by rating for an agent
+ * @param agentId - Agent identifier
+ * @param rating - Filter by rating (1-5)
+ * @returns Array of reviews with the specified rating
+ */
+export async function listReviewsByRating(
+  agentId: string,
+  rating: number,
+): Promise<AgentReview[]> {
+  return await dataCanisterService.getAgentReviewsByRating(agentId, rating);
+}
+
+/**
+ * Get agent rating summary
+ * @param agentId - Agent identifier
+ * @returns Object with average rating and total review count
+ */
+export async function getAgentRatingSummary(agentId: string): Promise<{
+  averageRating: number;
+  totalReviews: number;
+}> {
+  const [avgRating, count] = await dataCanisterService.getAgentRating(agentId);
   return {
-    id: doc.key,
-    agentId: data.agentId,
-    userId: data.userId,
-    userName: data.userName,
-    rating: data.rating,
-    comment: data.comment,
-    createdAt: data.createdAt,
+    averageRating: avgRating,
+    totalReviews: Number(count),
   };
 }

@@ -582,9 +582,9 @@ export class TranslationService {
       sw: "Kosa katika kuchakata. Tafadhali jaribu tena baadaye.",
     },
     usdc_menu_title: {
-      en: "USDC (ckUSDC)",
-      lg: "USDC (ckUSDC)",
-      sw: "USDC (ckUSDC)",
+      en: "USDC (ckUSD)",
+      lg: "USDC (ckUSD)",
+      sw: "USDC (ckUSD)",
     },
     usdc_rate: {
       en: "USDC Rate",

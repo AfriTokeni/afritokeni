@@ -6,18 +6,15 @@
  */
 
 import { demoMode } from "$lib/stores/demoMode";
+import { principalId } from "$lib/stores/auth";
 import { get } from "svelte/store";
 import { CkBTCService, CkUSDService } from "$lib/services/icp";
+import { userCanisterService } from "$lib/services/icp/canisters/userCanisterService";
 import {
   generatePrincipalFromIdentifier,
   generatePrincipalFromPhone,
   isPhoneNumber,
 } from "$lib/utils/principalUtils";
-import {
-  isAuthenticated,
-  principalId as authPrincipalId,
-} from "$lib/stores/auth";
-import { getDoc } from "@junobuild/core";
 
 const DEMO_PATHS = {
   USER: "/data/demo/user.json",
@@ -39,41 +36,49 @@ async function fetchDemoData<T>(path: string): Promise<T> {
 /**
  * Get user profile data
  *
- * REAL JUNO INTEGRATION:
+ * ARCHITECTURE:
  * - Demo mode: Returns JSON file
- * - Real mode: Fetches from Juno datastore using authenticated principal
+ * - Production mode: Fetches from user_canister via ICP
  */
 export async function getUserData() {
   if (isDemoMode()) {
     return fetchDemoData(DEMO_PATHS.USER);
   }
 
+  // In production mode, fetch from user_canister
   try {
-    // Check if user is authenticated
-    const authenticated = get(isAuthenticated);
-    const principal = get(authPrincipalId);
-
-    if (!authenticated || !principal) {
-      console.warn("⚠️ User not authenticated with Juno");
+    const currentPrincipalId = get(principalId);
+    if (!currentPrincipalId) {
+      console.warn("No principal ID available for fetching user data");
       return null;
     }
 
-    // Fetch user data from Juno datastore
-    console.log("📡 Fetching user data from Juno for principal:", principal);
-    const result = await getDoc({
-      collection: "users",
-      key: principal,
-    });
+    console.log("📡 Fetching user profile from user_canister...");
+    const profile =
+      await userCanisterService.getUserByPrincipalUpdate(currentPrincipalId);
 
-    if (!result) {
-      console.warn("⚠️ No user data found in Juno for principal:", principal);
-      return null;
-    }
-
-    console.log("✅ User data loaded from Juno");
-    return result.data;
+    // Transform UserProfile from canister to frontend format
+    return {
+      id: profile.id,
+      principalId: currentPrincipalId,
+      firstName: profile.first_name,
+      lastName: profile.last_name,
+      phone: profile.phone_number.length > 0 ? profile.phone_number[0] : "",
+      email: profile.email,
+      preferredCurrency: profile.preferred_currency,
+      userType: profile.user_type.toLowerCase(),
+      isVerified: profile.kyc_status === "approved",
+      kycStatus: profile.kyc_status,
+      location: {
+        country: "", // Country/city not stored in user_canister yet
+        city: "",
+      },
+      createdAt: new Date(Number(profile.created_at) / 1_000_000), // Convert nanoseconds to milliseconds
+      authMethod: profile.phone_number.length > 0 ? "sms" : "web",
+    };
   } catch (error) {
-    console.error("❌ Failed to fetch user data from Juno:", error);
+    console.error("Failed to fetch user data from user_canister:", error);
+    // Return null instead of throwing to prevent breaking the UI
     return null;
   }
 }

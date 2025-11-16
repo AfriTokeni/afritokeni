@@ -48,8 +48,7 @@
   async function loadAgents(isDemoMode: boolean) {
     try {
       error = null;
-      const data = await fetchAgents(isDemoMode);
-      agents = data;
+      agents = await fetchAgents(isDemoMode);
     } catch (err: any) {
       console.error("Error fetching agents:", err);
       error = err.message || "Failed to load agents";

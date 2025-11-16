@@ -29,6 +29,7 @@
   import { listAgentReviews } from "$lib/services/juno/reviewService";
   import { toast } from "$lib/stores/toast";
   import type { AgentProfile, AgentReview } from "$lib/types/admin";
+  import type { AgentReview as CanisterAgentReview } from "$/declarations/data_canister/data_canister.did";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
@@ -79,13 +80,32 @@
   async function loadAgentReviews(agentId: string) {
     loadingReviews = true;
     try {
-      agentReviews = await listAgentReviews(agentId);
+      const canisterReviews = await listAgentReviews(agentId);
+      // Convert CanisterAgentReview[] to AgentReview[]
+      agentReviews = canisterReviews.map(mapCanisterReviewToAdminReview);
     } catch (error) {
       console.error("Failed to load reviews:", error);
       agentReviews = [];
     } finally {
       loadingReviews = false;
     }
+  }
+
+  // Map CanisterAgentReview to admin AgentReview type
+  function mapCanisterReviewToAdminReview(
+    canisterReview: CanisterAgentReview,
+  ): AgentReview {
+    return {
+      id: canisterReview.id,
+      agentId: canisterReview.agent_id,
+      userId: canisterReview.user_id,
+      userName: canisterReview.user_name,
+      rating: canisterReview.rating,
+      comment: canisterReview.comment,
+      createdAt: new Date(
+        Number(canisterReview.created_at) / 1_000_000,
+      ).toISOString(),
+    };
   }
 
   function loadMoreReviews() {

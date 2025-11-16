@@ -57,7 +57,7 @@ export interface AgentKYCData {
 
 export interface User {
   id: string;
-  principalId?: string; // ICP Principal ID for blockchain operations (ckBTC, ckUSDC)
+  principalId?: string; // ICP Principal ID for blockchain operations (ckBTC, ckUSD)
   firstName: string;
   lastName: string;
   email: string;
@@ -120,4 +120,40 @@ export interface LocationSuggestion {
       lng: number;
     };
   };
+}
+
+// Authentication session
+export interface AuthSession {
+  userId: string;
+  principalId?: string;
+  userType: "user" | "agent" | "admin";
+  isAuthenticated: boolean;
+  expiresAt?: Date;
+}
+
+// Authentication state
+export interface AuthState {
+  session: AuthSession | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+// Login credentials
+export interface LoginCredentials {
+  emailOrPhone: string;
+  password?: string;
+  pin?: string;
+  method: "web" | "sms";
+}
+
+// Signup data
+export interface SignupData {
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phoneNumber?: string;
+  password?: string;
+  pin?: string;
+  userType: "user" | "agent";
+  method: "web" | "sms";
 }

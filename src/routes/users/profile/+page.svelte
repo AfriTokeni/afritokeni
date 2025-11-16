@@ -4,6 +4,9 @@
   import { goto } from "$app/navigation";
   import { principalId } from "$lib/stores/auth";
   import { toast } from "$lib/stores/toast";
+  import { demoMode } from "$lib/stores/demoMode";
+  import { getUserData } from "$lib/services/user/userService";
+  import { userCanisterService } from "$lib/services/icp/canisters/userCanisterService";
   import ProfileHeader from "./ProfileHeader.svelte";
   import ProfileInfoCards from "./ProfileInfoCards.svelte";
   import AccountSettings from "./AccountSettings.svelte";
@@ -12,11 +15,10 @@
   import HelpSupport from "./HelpSupport.svelte";
   import ProfileOnboardingModal from "$lib/components/shared/ProfileOnboardingModal.svelte";
   import KYCModal from "$lib/components/shared/KYCModal.svelte";
-  import { getDoc, setDoc, signOut, uploadFile } from "@junobuild/core";
+  import { signOut } from "@junobuild/core";
 
-  // Real user data from Juno
+  // User data
   let userData = $state<any>(null);
-  let userDoc = $state<any>(null); // Store the full document with version
   let isLoading = $state(true);
   let showProfileCompleteModal = $state(false);
   let showKYCModal = $state(false);
@@ -26,60 +28,27 @@
   let missingFields = $state<string[]>([]);
 
   async function loadUserData() {
-    const currentPrincipalId = $principalId;
-    if (!currentPrincipalId) {
-      console.warn("No principal ID available");
-      userData = null;
-      return;
+    try {
+      // Use the userService which handles demo mode switching internally
+      userData = await getUserData();
+
+      if (!userData) {
+        console.warn("No user data available");
+        return;
+      }
+
+      // Check for missing fields
+      const missing: string[] = [];
+      if (!userData.firstName) missing.push("First Name");
+      if (!userData.lastName) missing.push("Last Name");
+      if (!userData.location?.country) missing.push("Country");
+      if (!userData.location?.city) missing.push("City");
+
+      missingFields = missing;
+    } catch (error) {
+      console.error("Failed to load user data:", error);
+      toast.show("error", "Failed to load profile data");
     }
-
-    // Fetch full document from Juno (includes version)
-    const doc = await getDoc({
-      collection: "users",
-      key: currentPrincipalId,
-    });
-
-    if (!doc) {
-      const error = new Error(
-        `User document not found for principal: ${currentPrincipalId}`,
-      );
-      console.error("❌ USER DATA ERROR:", error);
-      toast.show(
-        "error",
-        "User profile not found. Please complete registration.",
-      );
-      userData = null;
-      return;
-    }
-
-    userDoc = doc; // Store full document with version
-    const data = doc.data as any;
-
-    console.log("Principal ID from auth store:", currentPrincipalId);
-    console.log("User data from Juno:", data);
-
-    // NO FALLBACKS - use exact data from Juno
-    userData = {
-      firstName: data.firstName,
-      lastName: data.lastName,
-      phone: data.phone,
-      principalId: currentPrincipalId,
-      isVerified: data.isVerified,
-      kycStatus: data.kycStatus,
-      joinDate: data.createdAt ? new Date(data.createdAt) : new Date(),
-      authMethod: "web",
-      location: data.location,
-      profileImage: data.profileImage,
-    };
-
-    // Check for missing fields
-    const missing: string[] = [];
-    if (!userData.firstName) missing.push("First Name");
-    if (!userData.lastName) missing.push("Last Name");
-    if (!userData.location?.country) missing.push("Country");
-    if (!userData.location?.city) missing.push("City");
-
-    missingFields = missing;
   }
 
   onMount(async () => {
@@ -116,31 +85,33 @@
       }
 
       const currentPrincipalId = $principalId;
-      if (!currentPrincipalId || !userDoc) {
+      if (!currentPrincipalId) {
         throw new Error("Not authenticated");
       }
 
-      // Update user document
-      await setDoc({
-        collection: "users",
-        doc: {
-          ...userDoc,
-          data: {
-            ...userDoc.data,
-            firstName: editFirstName,
-            lastName: editLastName,
-            updatedAt: new Date().toISOString(),
-          },
-        },
-      });
+      if ($demoMode) {
+        // In demo mode, just update the local state
+        userData.firstName = editFirstName;
+        userData.lastName = editLastName;
+        toast.show("success", "Name updated successfully! (Demo mode)");
+      } else {
+        // Update via user_canister
+        await userCanisterService.updateUserProfile(currentPrincipalId, {
+          first_name: [editFirstName],
+          last_name: [editLastName],
+          email: [],
+          preferred_currency: [],
+        });
 
-      // Reload user data
-      await loadUserData();
-      toast.show("success", "Name updated successfully!");
+        // Reload user data
+        await loadUserData();
+        toast.show("success", "Name updated successfully!");
+      }
+
       showEditNameModal = false;
     } catch (error: any) {
       console.error("Failed to update name:", error);
-      toast.show("error", "Failed to update name");
+      toast.show("error", error.message || "Failed to update name");
     }
   }
 
@@ -174,28 +145,33 @@
         throw new Error("Not authenticated");
       }
 
-      if (!userDoc) {
-        throw new Error("User document not loaded");
+      if ($demoMode) {
+        // In demo mode, just update local state
+        userData = {
+          ...userData,
+          ...profileData,
+        };
+        toast.show("success", "Profile updated successfully! (Demo mode)");
+        await loadUserData();
+      } else {
+        // Save to user_canister (only fields supported by ProfileUpdates)
+        await userCanisterService.updateUserProfile(currentPrincipalId, {
+          first_name: profileData.firstName ? [profileData.firstName] : [],
+          last_name: profileData.lastName ? [profileData.lastName] : [],
+          email: profileData.email ? [profileData.email] : [],
+          preferred_currency: profileData.preferredCurrency
+            ? [profileData.preferredCurrency]
+            : [],
+        });
+
+        // Note: phone_number, country, and city cannot be updated via ProfileUpdates
+        // These fields need to be set during registration or via separate endpoints
+        toast.show("success", "Profile updated successfully!");
+        await loadUserData();
       }
-
-      // Update user data in Juno with version for optimistic concurrency
-      await setDoc({
-        collection: "users",
-        doc: {
-          ...userDoc, // Include existing doc metadata (key, version, etc.)
-          data: {
-            ...userDoc.data, // Preserve existing data
-            ...profileData, // Update with new profile data
-            id: currentPrincipalId,
-            updatedAt: new Date().toISOString(),
-          },
-        },
-      });
-
-      // Reload user data
-      await loadUserData();
     } catch (error: any) {
       console.error("Failed to save profile:", error);
+      toast.show("error", error.message || "Failed to save profile");
       throw error;
     }
   }
@@ -218,51 +194,15 @@
         return;
       }
 
-      const currentPrincipalId = $principalId;
-      if (!currentPrincipalId || !userDoc) {
-        throw new Error("Not authenticated");
-      }
-
-      toast.show("info", "Uploading profile picture...");
-
-      // Upload to Juno Storage (using 'profile-images' collection)
-      const result = await uploadFile({
-        data: file,
-        collection: "profile-images",
-        filename: `${currentPrincipalId}_${Date.now()}.${file.name.split(".").pop()}`,
-      });
-
-      // Update user document with profile picture URL
-      await setDoc({
-        collection: "users",
-        doc: {
-          ...userDoc,
-          data: {
-            ...userDoc.data,
-            profileImage: result.downloadUrl,
-            updatedAt: new Date().toISOString(),
-          },
-        },
-      });
-
-      // Reload user data
-      await loadUserData();
-      toast.show("success", "Profile picture updated!");
+      // TODO: Implement profile picture upload via Juno storage
+      // Keep using Juno for file storage, but metadata goes to user_canister
+      toast.show(
+        "info",
+        "Profile picture upload is being migrated to the new architecture",
+      );
     } catch (error: any) {
       console.error("Failed to upload profile picture:", error);
-
-      // Check if it's a collection not found error
-      if (
-        error.message?.includes("not_found") &&
-        error.message?.includes("Storage")
-      ) {
-        toast.show(
-          "error",
-          "Storage not configured. Please deploy juno.config.ts with: juno deploy",
-        );
-      } else {
-        toast.show("error", "Failed to upload profile picture");
-      }
+      toast.show("error", "Failed to upload profile picture");
     }
   }
 
@@ -273,61 +213,30 @@
         throw new Error("Not authenticated");
       }
 
-      if (!userDoc) {
-        throw new Error("User document not loaded");
+      if ($demoMode) {
+        // In demo mode, just update KYC status locally
+        userData.kycStatus = "pending";
+        userData.kycDocumentType = kycData.documentType;
+        userData.kycDocumentNumber = kycData.documentNumber;
+        toast.show(
+          "success",
+          "KYC submitted successfully! (Demo mode - files not uploaded)",
+        );
+        await loadUserData();
+      } else {
+        // TODO: Implement KYC document upload to Juno Storage
+        // For now, just update the KYC metadata in user_canister
+        // Files should be uploaded to Juno Storage (keep using Juno for this)
+        // KYC metadata and status should be stored in user_canister
+        toast.show(
+          "info",
+          "KYC document upload is not yet implemented. Please contact support.",
+        );
+        await loadUserData();
       }
-
-      // Upload files to Juno Storage
-      const uploadedFiles: any = {};
-
-      if (kycData.documentFront) {
-        const frontResult = await uploadFile({
-          data: kycData.documentFront,
-          collection: "kyc_documents",
-          filename: `${currentPrincipalId}_front_${Date.now()}.${kycData.documentFront.name.split(".").pop()}`,
-        });
-        uploadedFiles.documentFrontUrl = frontResult.downloadUrl;
-      }
-
-      if (kycData.documentBack) {
-        const backResult = await uploadFile({
-          data: kycData.documentBack,
-          collection: "kyc_documents",
-          filename: `${currentPrincipalId}_back_${Date.now()}.${kycData.documentBack.name.split(".").pop()}`,
-        });
-        uploadedFiles.documentBackUrl = backResult.downloadUrl;
-      }
-
-      if (kycData.selfie) {
-        const selfieResult = await uploadFile({
-          data: kycData.selfie,
-          collection: "kyc_documents",
-          filename: `${currentPrincipalId}_selfie_${Date.now()}.${kycData.selfie.name.split(".").pop()}`,
-        });
-        uploadedFiles.selfieUrl = selfieResult.downloadUrl;
-      }
-
-      // Update user document with KYC data and file URLs
-      await setDoc({
-        collection: "users",
-        doc: {
-          ...userDoc,
-          data: {
-            ...userDoc.data,
-            kycStatus: "pending",
-            kycSubmittedAt: new Date().toISOString(),
-            kycDocumentType: kycData.documentType,
-            kycDocumentNumber: kycData.documentNumber,
-            ...uploadedFiles,
-            updatedAt: new Date().toISOString(),
-          },
-        },
-      });
-
-      // Reload user data
-      await loadUserData();
     } catch (error: any) {
       console.error("Failed to submit KYC:", error);
+      toast.show("error", error.message || "Failed to submit KYC");
       throw error;
     }
   }
@@ -443,9 +352,17 @@
 <!-- Edit Name Modal -->
 {#if showEditNameModal}
   <div
-    class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+    onclick={() => (showEditNameModal = false)}
+    role="button"
+    tabindex="-1"
   >
-    <div class="w-full max-w-md rounded-2xl bg-white p-6">
+    <div
+      class="w-full max-w-md rounded-2xl bg-white p-6"
+      onclick={(e) => e.stopPropagation()}
+      role="dialog"
+      tabindex="-1"
+    >
       <h2 class="mb-4 text-2xl font-bold">Edit Name</h2>
 
       <div class="space-y-4">

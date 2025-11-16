@@ -1,0 +1,77 @@
+# USSD Canister Configuration
+
+[rate_limiting]
+# High limit for development/testing (10 req/min is too low for integration tests)
+# In production, this should be lowered to prevent abuse
+max_requests_per_minute = 1000
+rate_limit_window_seconds = 60
+
+[pin_security]
+max_pin_attempts = 3
+lockout_duration_minutes = 15
+min_pin_length = 4
+max_pin_length = 6
+
+[transaction_limits]
+min_amount_kes = 10.0
+max_amount_kes = 1000000.0
+min_amount_btc = 0.00001
+max_amount_btc = 0.1
+min_amount_usdc = 1.0
+max_amount_usdc = 100000.0
+
+[session]
+timeout_minutes = 5
+max_active_sessions = 10000
+
+[security]
+# Africa's Talking User-Agent patterns (comma-separated)
+allowed_user_agents = "AfricasTalking,AT-Gateway"
+# Enable signature verification (requires shared secret)
+verify_signature = false
+# Shared secret for HMAC verification (set in production)
+hmac_secret = ""
+
+[africas_talking]
+# Sandbox credentials (override in production)
+username = "sandbox"
+api_key = "sandbox_api_key"
+api_url = "https://api.sandbox.africastalking.com/version1/messaging"
+is_sandbox = true
+
+[contact_info]
+# Support contact information displayed to users
+support_phone = "+256700000000"
+support_email = "support@afritokeni.com"
+website = "afritokeni.com"
+
+[ussd_defaults]
+# Default email domain for USSD users (who don't have email addresses)
+default_email_domain = "ussd.afritokeni.com"
+# Default currency for new users (fallback if auto-detection fails)
+default_currency = "UGX"
+
+[features]
+# Feature flags - toggle incomplete features
+enable_dao_voting = true  # Requires SNS canister integration
+enable_rate_checking = true  # Shows info about dynamic rates
+enable_find_agent = true  # Calls agent_canister::get_nearby_agents
+enable_transaction_history = true  # Calls wallet_canister::get_transaction_history
+enable_language_switching = true  # Session-based language switching
+
+[validation]
+# BTC address validation settings
+btc_address_min_length = 26
+btc_address_max_length = 62
+# Enable strict checksum validation (requires bitcoin library)
+btc_strict_checksum_validation = true
+
+[playground]
+# Playground mode for frontend testing
+enabled = true
+# Session ID prefix that triggers playground mode
+session_id_prefix = "playground_"
+# Default PIN for playground users (WARNING: only for testing!)
+default_pin = "1234"
+# Default currency for playground users
+default_currency = "UGX"

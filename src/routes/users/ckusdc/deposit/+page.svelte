@@ -26,15 +26,15 @@
     >
       <ArrowLeft class="h-5 w-5" />
     </button>
-    <h1 class="text-2xl font-bold">Deposit ckUSDC</h1>
+    <h1 class="text-2xl font-bold">Deposit ckUSD</h1>
   </div>
 
   <div class="space-y-6 rounded-xl border border-gray-200 bg-white p-6">
     <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
-      <h3 class="mb-2 font-semibold text-blue-900">How to deposit ckUSDC</h3>
+      <h3 class="mb-2 font-semibold text-blue-900">How to deposit ckUSD</h3>
       <ol class="list-inside list-decimal space-y-1 text-sm text-blue-800">
         <li>Copy your Principal ID below</li>
-        <li>Send ckUSDC to this Principal ID from any IC wallet or exchange</li>
+        <li>Send ckUSD to this Principal ID from any IC wallet or exchange</li>
         <li>Your balance updates instantly (no confirmations needed!)</li>
       </ol>
     </div>

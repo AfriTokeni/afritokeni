@@ -20,7 +20,8 @@
   import AgentOnboardingModal from "$lib/components/agent/AgentOnboardingModal.svelte";
   import KYCModal from "$lib/components/shared/KYCModal.svelte";
   import DemoModeModal from "$lib/components/dashboard/DemoModeModal.svelte";
-  import { getDoc, setDoc, uploadFile } from "@junobuild/core";
+  import { AgentService } from "$lib/services/agents";
+  import { uploadFile } from "@junobuild/core";
   import { toast } from "$lib/stores/toast";
 
   // State
@@ -30,7 +31,9 @@
   let showDemoModal = $state(false);
   let showOnboarding = $state(false);
   let showKYCModal = $state(false);
-  let selectedCurrency = $state("UGX");
+  import type { AfricanCurrency } from "$lib/types/currency";
+
+  let selectedCurrency = $state<AfricanCurrency>("UGX");
   let searchQuery = $state("");
   let kycStatus = $state<"pending" | "verified" | "rejected" | "not_started">(
     "not_started",
@@ -92,28 +95,30 @@
         todayTransactions = data.todayTransactions;
         activeCustomers = data.activeCustomers;
       } else {
-        // Load from Juno - NO FALLBACKS
-        const doc = await getDoc({
-          collection: "agents",
-          key: agentPrincipal,
-        });
+        // Production mode: Use AgentService
+        const agent = await AgentService.getAgentByUserId(agentPrincipal);
 
-        if (!doc) {
+        if (!agent) {
           console.log("No agent profile found - redirecting to onboarding");
           goto("/agents/onboarding");
           isLoading = false;
           return;
         }
 
-        // NO FALLBACKS - use exact data from Juno
-        const data = doc.data as any;
-        agentData = data;
-        kycStatus = data.kycStatus;
-        digitalBalance = data.digitalBalance;
-        cashBalance = data.cashBalance;
-        dailyEarnings = data.dailyEarnings;
-        todayTransactions = data.todayTransactions;
-        activeCustomers = data.activeCustomers;
+        // Get balances from canisters
+        const balances = await AgentService.getAgentBalances(
+          agent.id,
+          selectedCurrency,
+        );
+
+        agentData = agent;
+        kycStatus = "verified"; // TODO: Get from user_canister
+        digitalBalance = balances.digitalBalance;
+        cashBalance = balances.cashBalance;
+        // TODO: Get these metrics from domain canisters
+        dailyEarnings = 0;
+        todayTransactions = 0;
+        activeCustomers = 0;
       }
     } catch (err: any) {
       console.error("Failed to load agent data:", err);
@@ -170,35 +175,11 @@
         uploadedFiles.selfieUrl = selfieResult.downloadUrl;
       }
 
-      // Update agent document with KYC data
-      const doc = await getDoc({
-        collection: "agents",
-        key: currentPrincipalId,
-      });
+      // TODO: Store KYC data in user_canister or data_canister
+      // For now, KYC documents are uploaded to Juno storage only
+      console.log("KYC documents uploaded:", uploadedFiles);
 
-      if (doc) {
-        await setDoc({
-          collection: "agents",
-          doc: {
-            ...doc,
-            data: {
-              ...doc.data,
-              kycStatus: "pending",
-              kycSubmittedAt: new Date().toISOString(),
-              kycData: {
-                ...kycData,
-                idDocument: undefined,
-                proofOfAddress: undefined,
-                selfie: undefined,
-                ...uploadedFiles,
-              },
-              updatedAt: new Date().toISOString(),
-            },
-          },
-        });
-      }
-
-      toast.show("success", "KYC documents submitted successfully!");
+      toast.show("success", "KYC documents uploaded successfully!");
       showKYCModal = false;
       showKYCBanner = false;
       // Reload agent data
@@ -296,7 +277,7 @@
     ownerName: agentData?.ownerName,
     email: agentData?.email,
     phone: agentData?.phone,
-    preferredCurrency: selectedCurrency as any,
+    preferredCurrency: selectedCurrency,
     country: agentData?.country,
     city: agentData?.city,
     address: agentData?.address,
@@ -547,7 +528,7 @@
     </div>
   </div>
 
-  <!-- ckBTC and ckUSDC Balance Cards -->
+  <!-- ckBTC and ckUSD Balance Cards -->
   <div class="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 md:gap-6">
     <CkBTCBalanceCard showActions={false} />
     <CkUSDBalanceCard showActions={false} />

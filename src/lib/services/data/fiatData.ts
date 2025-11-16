@@ -1,96 +1,101 @@
 /**
- * Fiat Data Service
+ * Fiat Data Service (UI Helpers Only)
  *
- * Pure data fetching functions for fiat (local African currency) balances.
- * NO store imports - accepts isDemoMode as parameter.
- * Called by encapsulated components that manage their own store subscriptions.
+ * Currency formatting and display utilities.
+ * NO BUSINESS LOGIC - For UI display only.
+ *
+ * For real fiat operations, use walletService.
  */
 
-import { getDoc } from "@junobuild/core";
+import { walletService } from "$lib/services";
 
 /**
  * Fetch fiat balance
- *
- * @param principalId - User's principal ID (for Juno lookup)
- * @param isDemoMode - Whether to use demo data or real backend
- * @returns Balance object with amount and currency
+ * Uses walletService to query wallet_canister
  */
 export async function fetchFiatBalance(
-  principalId: string | null,
-  isDemoMode: boolean,
-): Promise<{ amount: number; _currency: string }> {
-  if (isDemoMode) {
-    try {
-      const response = await fetch("/data/demo/user.json");
-      if (!response.ok) {
-        throw new Error("Failed to fetch demo data");
-      }
-      const data = await response.json();
-      return {
-        amount: data.balance || 0,
-        _currency: data.preferredCurrency || "UGX",
-      };
-    } catch (error) {
-      console.error("Failed to fetch demo fiat balance:", error);
-      return { amount: 0, _currency: "UGX" };
-    }
-  }
-
-  // Real mode: query Juno datastore
-  if (!principalId) {
-    console.warn("No principal ID provided for fiat balance query");
-    return { amount: 0, _currency: "UGX" };
-  }
-
-  try {
-    const result = await getDoc({
-      collection: "users",
-      key: principalId,
-    });
-
-    if (!result || !result.data) {
-      console.warn("No user data found in Juno for principal:", principalId);
-      return { amount: 0, _currency: "UGX" };
-    }
-
-    const userData = result.data as any;
-    return {
-      amount: userData.balance || 0,
-      _currency: userData.preferredCurrency || "UGX",
-    };
-  } catch (error) {
-    console.error("Failed to fetch fiat balance from Juno:", error);
-    return { amount: 0, _currency: "UGX" };
-  }
+  userId: string,
+  currency: string,
+): Promise<number> {
+  return await walletService.getBalance(userId, currency);
 }
 
 /**
- * Format currency amount with proper locale
- *
- * @param amount - Amount to format
- * @param currency - Currency code (NGN, KES, UGX, etc.)
- * @returns Formatted string
+ * Currency symbols for display
  */
-export function formatCurrency(amount: number, _currency: string): string {
-  return new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 2,
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  UGX: "UGX",
+  KES: "KES",
+  TZS: "TZS",
+  NGN: "₦",
+  GHS: "GH₵",
+  ZAR: "R",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+};
+
+/**
+ * Get currency symbol for display
+ */
+export function getCurrencySymbol(currency: string): string {
+  return CURRENCY_SYMBOLS[currency.toUpperCase()] || currency.toUpperCase();
+}
+
+/**
+ * Format currency amount for display
+ * Example: formatCurrency(1000000, "UGX") => "UGX 1,000,000"
+ */
+export function formatCurrency(amount: number, currency: string): string {
+  const symbol = getCurrencySymbol(currency);
+  const formatted = amount.toLocaleString("en-US", {
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
-  }).format(amount);
+  });
+  return `${symbol} ${formatted}`;
 }
 
 /**
- * Get currency symbol
+ * Format amount with currency symbol (compact)
+ * Example: formatCurrencyCompact(1500000, "UGX") => "UGX 1.5M"
  */
-export function getCurrencySymbol(_currency: string): string {
-  const symbols: Record<string, string> = {
-    UGX: "UGX",
-    NGN: "₦",
-    KES: "KSh",
-    GHS: "₵",
-    ZAR: "R",
-    TZS: "TSh",
-    RWF: "FRw",
-    // Add more as needed
-  };
-  return symbols[_currency] || _currency;
+export function formatCurrencyCompact(
+  amount: number,
+  currency: string,
+): string {
+  const symbol = getCurrencySymbol(currency);
+
+  if (amount >= 1_000_000_000) {
+    return `${symbol} ${(amount / 1_000_000_000).toFixed(1)}B`;
+  } else if (amount >= 1_000_000) {
+    return `${symbol} ${(amount / 1_000_000).toFixed(1)}M`;
+  } else if (amount >= 1_000) {
+    return `${symbol} ${(amount / 1_000).toFixed(1)}K`;
+  } else {
+    return `${symbol} ${amount.toFixed(0)}`;
+  }
+}
+
+/**
+ * Parse currency amount from string
+ * Example: parseCurrencyAmount("UGX 1,000,000") => 1000000
+ */
+export function parseCurrencyAmount(value: string): number {
+  // Remove currency symbols and commas
+  const cleaned = value.replace(/[^0-9.]/g, "");
+  return parseFloat(cleaned) || 0;
+}
+
+/**
+ * Validate currency code
+ */
+export function isValidCurrency(currency: string): boolean {
+  return currency.toUpperCase() in CURRENCY_SYMBOLS;
+}
+
+/**
+ * Get supported currencies
+ */
+export function getSupportedCurrencies(): string[] {
+  return Object.keys(CURRENCY_SYMBOLS);
 }

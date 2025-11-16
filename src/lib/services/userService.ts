@@ -1,21 +1,33 @@
 import { nanoid } from "nanoid";
 import { getDoc, listDocs, setDoc } from "@junobuild/core";
+import { z } from "zod";
 import type { User } from "../types/auth";
 import { generatePrincipalFromIdentifier } from "../utils/principalUtils";
-import { PINVerificationService } from "./pinVerification";
 
-export interface UserDataFromJuno {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneNumber?: string;
-  userType: "user" | "agent" | "admin";
-  isVerified: boolean;
-  kycStatus: "pending" | "approved" | "rejected" | "not_started";
-  pin?: string;
-  createdAt: string;
-}
+/**
+ * IMPORTANT: This service ONLY handles user metadata in Juno (name, email, KYC status).
+ *
+ * For business logic operations, use domain canisters:
+ * - PIN verification: Use userCanisterService.verifyPin()
+ * - Balance operations: Use walletCanisterService
+ * - Authentication: Use user_canister
+ */
+
+// Zod schema for runtime validation of Juno data
+const UserDataFromJunoSchema = z.object({
+  id: z.string(),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Invalid email format"),
+  phoneNumber: z.string().optional(),
+  userType: z.enum(["user", "agent", "admin"]),
+  isVerified: z.boolean(),
+  kycStatus: z.enum(["pending", "approved", "rejected", "not_started"]),
+  pin: z.string().optional(),
+  createdAt: z.string(),
+});
+
+export type UserDataFromJuno = z.infer<typeof UserDataFromJunoSchema>;
 
 export interface UserPin {
   phoneNumber: string;
@@ -85,7 +97,15 @@ export class UserService {
 
       if (!doc?.data) return null;
 
-      const rawData = doc.data as UserDataFromJuno;
+      // Validate data from Juno with Zod
+      const parseResult = UserDataFromJunoSchema.safeParse(doc.data);
+
+      if (!parseResult.success) {
+        console.error("Invalid user data from Juno:", parseResult.error);
+        return null;
+      }
+
+      const rawData = parseResult.data;
       return {
         id: rawData.id,
         firstName: rawData.firstName,
@@ -174,7 +194,12 @@ export class UserService {
 
       return docs.items
         .map((doc) => {
-          const rawData = doc.data as UserDataFromJuno;
+          const parseResult = UserDataFromJunoSchema.safeParse(doc.data);
+          if (!parseResult.success) {
+            console.warn("Skipping invalid user data:", parseResult.error);
+            return null;
+          }
+          const rawData = parseResult.data;
           return {
             id: rawData.id,
             firstName: rawData.firstName,
@@ -187,6 +212,7 @@ export class UserService {
             createdAt: new Date(rawData.createdAt),
           } as User;
         })
+        .filter((user): user is User => user !== null)
         .filter(
           (user) =>
             user.firstName.toLowerCase().includes(searchLower) ||
@@ -206,7 +232,9 @@ export class UserService {
       });
 
       const userDoc = docs.items.find((doc) => {
-        const data = doc.data as UserDataFromJuno;
+        const parseResult = UserDataFromJunoSchema.safeParse(doc.data);
+        if (!parseResult.success) return false;
+        const data = parseResult.data;
         return (
           data.phoneNumber === phoneNumber ||
           data.email === phoneNumber ||
@@ -216,7 +244,13 @@ export class UserService {
 
       if (!userDoc) return null;
 
-      const rawData = userDoc.data as UserDataFromJuno;
+      const parseResult = UserDataFromJunoSchema.safeParse(userDoc.data);
+      if (!parseResult.success) {
+        console.error("Invalid user data from Juno:", parseResult.error);
+        return null;
+      }
+
+      const rawData = parseResult.data;
       return {
         id: rawData.id,
         firstName: rawData.firstName,
@@ -243,7 +277,12 @@ export class UserService {
 
       return docs.items
         .map((doc) => {
-          const rawData = doc.data as UserDataFromJuno;
+          const parseResult = UserDataFromJunoSchema.safeParse(doc.data);
+          if (!parseResult.success) {
+            console.warn("Skipping invalid user data:", parseResult.error);
+            return null;
+          }
+          const rawData = parseResult.data;
           return {
             id: rawData.id,
             firstName: rawData.firstName,
@@ -256,7 +295,9 @@ export class UserService {
             createdAt: new Date(rawData.createdAt),
           } as User;
         })
-        .filter((user) => user.userType === "user")
+        .filter(
+          (user): user is User => user !== null && user.userType === "user",
+        )
         .sort(
           (a, b) =>
             new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime(),
@@ -267,109 +308,8 @@ export class UserService {
     }
   }
 
-  static async getUserPin(
-    phoneNumber: string,
-    _satellite?: any,
-  ): Promise<UserPin | null> {
-    try {
-      const doc = await getDoc({
-        collection: "user_pins",
-        key: phoneNumber,
-      });
-
-      if (!doc?.data) return null;
-
-      const rawData = doc.data as any;
-      return {
-        phoneNumber: rawData.phoneNumber,
-        pin: rawData.pin,
-        createdAt: new Date(rawData.createdAt),
-        updatedAt: rawData.updatedAt ? new Date(rawData.updatedAt) : undefined,
-      };
-    } catch (error) {
-      console.error("Error getting user PIN:", error);
-      return null;
-    }
-  }
-
-  static async createOrUpdateUserPin(
-    phoneNumber: string,
-    pin: string,
-    _satellite?: any,
-  ): Promise<boolean> {
-    if (!PINVerificationService.isValidPINFormat(pin)) {
-      throw new Error("Invalid PIN format. PIN must be 4-6 digits.");
-    }
-
-    try {
-      const hashedPin = PINVerificationService.hashPIN(pin);
-      const now = new Date();
-      const existing = await this.getUserPin(phoneNumber);
-
-      const pinData = {
-        phoneNumber,
-        pin: hashedPin,
-        createdAt: existing?.createdAt.toISOString() || now.toISOString(),
-        updatedAt: now.toISOString(),
-      };
-
-      const existingDoc = await getDoc({
-        collection: "user_pins",
-        key: phoneNumber,
-      });
-
-      await setDoc({
-        collection: "user_pins",
-        doc: {
-          key: phoneNumber,
-          data: pinData,
-          version: existingDoc?.version ? existingDoc.version : 1n,
-        },
-      });
-
-      return true;
-    } catch (error) {
-      console.error("Error creating/updating user PIN:", error);
-      return false;
-    }
-  }
-
-  static async verifyUserPin(
-    phoneNumber: string,
-    pin: string,
-  ): Promise<boolean> {
-    const result = await PINVerificationService.verifyPIN(phoneNumber, pin);
-    return result.success;
-  }
-
-  static async initializeUserData(userId: string): Promise<void> {
-    const user = await this.getUserByKey(userId);
-    if (!user) {
-      throw new Error("User not found");
-    }
-  }
-
-  static async updateUserBalance(
-    userId: string,
-    newBalance: number,
-  ): Promise<void> {
-    const balanceDoc = await getDoc({
-      collection: "balances",
-      key: userId,
-    });
-
-    if (balanceDoc?.data) {
-      await setDoc({
-        collection: "balances",
-        doc: {
-          key: userId,
-          data: {
-            ...balanceDoc.data,
-            balance: newBalance,
-            lastUpdated: new Date().toISOString(),
-          },
-        },
-      });
-    }
-  }
+  // PIN management, balance operations, and initialization removed
+  // Use domain canister services instead:
+  // - PIN operations: userCanisterService
+  // - Balance operations: walletCanisterService
 }

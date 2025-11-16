@@ -200,66 +200,223 @@ AfriTokeni provides **instant, low-cost crypto banking accessible via USSD** on 
 - Webhook processing
 - Multi-language support (English, Luganda, Swahili)
 
-### 3.2 ICP-Native Architecture
+### 3.2 Domain-Driven Canister Architecture
 
-AfriTokeni runs entirely on the Internet Computer Protocol:
+AfriTokeni uses a modern domain-driven architecture with specialized canisters for optimal scalability, security, and maintainability:
 
 ```
-┌────────────────────────────────────────────────┐
-│          ICP CANISTER ARCHITECTURE             │
-├────────────────────────────────────────────────┤
-│                                                │
-│  ┌──────────────┐  ┌──────────────┐            │
-│  │  Frontend    │  │  Datastore   │            │
-│  │  Canister    │  │  Canister    │            │
-│  │  (Juno)      │  │  (Juno)      │            │
-│  └──────────────┘  └──────────────┘            │
-│         │                  │                   │
-│         └────────┬─────────┘                   │
-│                  │                             │
-│         ┌────────┴────────┐                    │
-│         │                 │                    │
-│    ┌────▼────┐      ┌────▼────┐                │
-│    │ ckBTC   │      │ ckUSDC  │                │
-│    │ Ledger  │      │ Ledger  │                │
-│    │ Canister│      │ Canister│                │
-│    └────┬────┘      └────┬────┘                │
-│         │                 │                    │
-│    ┌────▼────┐      ┌────▼────┐                │
-│    │ ckBTC   │      │ ckUSDC  │                │
-│    │ Minter  │      │ Minter  │                │
-│    │ Canister│      │ Canister│                │
-│    └─────────┘      └─────────┘                │
-│                                                │
-└────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                    PRESENTATION LAYER                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │   Frontend   │  │     USSD     │  │   Web App    │          │
+│  │   Canister   │  │   Canister   │  │  (Juno)      │          │
+│  │   (Juno)     │  │  (Stateless) │  │              │          │
+│  └──────────────┘  └──────────────┘  └──────────────┘          │
+│         │                  │                  │                │
+│         └──────────────────┼──────────────────┘                │
+│                            │                                   │
+└────────────────────────────┼───────────────────────────────────┘
+                             ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                    DOMAIN BUSINESS LOGIC LAYER                  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │     USER     │  │    WALLET    │  │    CRYPTO    │          │
+│  │   CANISTER   │  │   CANISTER   │  │   CANISTER   │          │
+│  ├──────────────┤  ├──────────────┤  ├──────────────┤          │
+│  │ • Register   │  │ • Transfers  │  │ • Buy/Sell   │          │
+│  │ • Auth/PIN   │  │ • Balances   │  │ • Send BTC   │          │
+│  │ • Profiles   │  │ • Fraud Det. │  │ • Swap       │          │
+│  │ • Linking    │  │ • Escrow     │  │ • DEX Integ. │          │
+│  │ • 400KB      │  │ • 600KB      │  │ • 1.0MB      │          │
+│  └──────────────┘  └──────────────┘  └──────────────┘          │
+│         │                  │                  │                │
+│         └──────────────────┼──────────────────┘                │
+│                            │                                   │
+│  ┌────────────────────────────────────────────────────┐        │
+│  │              AGENT CANISTER                        │        │
+│  ├────────────────────────────────────────────────────┤        │
+│  │ • Deposits (cash → crypto)                         │        │
+│  │ • Withdrawals (crypto → cash)                      │        │
+│  │ • Agent commissions & settlements                  │        │
+│  │ • Multi-currency support (39 currencies)           │        │
+│  │ • Revenue tracking & reporting                     │        │
+│  │ • 700KB                                            │        │
+│  └────────────────────────────────────────────────────┘        │
+│                            │                                   │
+└────────────────────────────┼───────────────────────────────────┘
+                             ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                    DATA & STORAGE LAYER                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────┐      │
+│  │         DATA CANISTER (Pure CRUD)                    │      │
+│  │  • User profiles & authentication                    │      │
+│  │  • Fiat & crypto balances (39 currencies)            │      │
+│  │  • Transaction history                               │      │
+│  │  • Escrow metadata                                   │      │
+│  │  • Deposit/withdrawal records                        │      │
+│  │  • Agent information & settlements                   │      │
+│  │  • NO business logic                                 │      │
+│  │  • 1.1MB                                             │      │
+│  └──────────────────────────────────────────────────────┘      │
+│                            │                                   │
+└────────────────────────────┼───────────────────────────────────┘
+                             ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                    BLOCKCHAIN LAYER                             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌──────────┐ │
+│  │   ckBTC    │  │   ckUSDC   │  │   Sonic    │  │   SNS    │ │
+│  │   Ledger   │  │   Ledger   │  │    DEX     │  │   DAO    │ │
+│  └────────────┘  └────────────┘  └────────────┘  └──────────┘ │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-**enefits**:
-- *AWS/Google Cloud**: Pure blockchain astructure
-- **Censorship Resistant**: No single pointfailure
+**Architecture Benefits**:
+- **Domain Separation**: Each canister handles one business domain
+- **Scalability**: 50% capacity headroom (vs 95% in old architecture)
+- **Maintainability**: Clear boundaries, single responsibility
+- **Security**: Enhanced fraud detection across all domains
+- **Performance**: Optimized inter-canister communication
+- **No AWS/Google Cloud**: Pure blockchain infrastructure
+- **Censorship Resistant**: No single point of failure
 - **Low Cost**: ~$0.01 per transaction
-- *tant Finality**: <1 second confirmat
-- **Scalable**: Handles millions of transacs per day
+- **Instant Finality**: <1 second confirmations
 
-### Data Architecture
+### 3.3 Canister Responsibilities
 
-**ections** (Juno Datastore):
-- `users`: User profiles and authentication
-- `agents`: Agent network information
-- `transactions`: All financial transactions
-- `ckbtc_transactions`: ckBTC-specific operations
-- `ckusdc_transactions`: ckUSDC-specific operations
-- `escrow_transactions`: Secure exchange codes
-- `pending_transactions`: Two-step confirmations
-- `withdrawal_requests`: Cash withdrawal processing
-- `deposit_requests`: Cash deposit processing
+#### USSD Canister (Presentation)
+- **Purpose**: Parse USSD input, format responses
+- **Size**: 1.7MB
+- **Stateless**: Africa's Talking manages session state
+- **Functions**: 
+  - Parse text input (e.g., "1*256700123456*50000*1234")
+  - Call domain canisters (User, Wallet, Crypto, Agent)
+  - Format CON/END responses
+  - Multi-language support (English, Luganda, Swahili)
+  - Session reset functionality
 
-**Security**:
-- Principal-based authentication
-- PIN verification for USSD users
-- Rate limiting (10 requests/minute)
-- Fraud detection algorithms
-- Multi-signature for large transactions
+#### User Canister (Identity & Authentication)
+- **Purpose**: User management and authentication
+- **Size**: 400KB (20% capacity)
+- **Functions**:
+  - User registration (phone/principal/both)
+  - PIN authentication with lockout protection
+  - PIN change with old PIN verification
+  - Profile management
+  - Account linking (phone ↔ principal)
+  - Audit logging (user-specific trails)
+- **Security**:
+  - Argon2 PIN hashing
+  - Exponential backoff after failed attempts
+  - Account takeover detection
+
+#### Wallet Canister (Fiat Transfers)
+- **Purpose**: Fiat currency transfers and balances
+- **Size**: 600KB (30% capacity)
+- **Functions**:
+  - P2P fiat transfers (39 African currencies)
+  - Balance queries and updates
+  - Transaction history
+  - Fiat escrow for crypto sales
+  - Transfer fee calculation (0.5%)
+- **Fraud Detection**:
+  - Rate limiting (global + per-operation)
+  - Amount thresholds (10M max, 5M suspicious)
+  - Velocity limits (1h and 24h)
+  - Risk scoring (0-100)
+
+#### Crypto Canister (Digital Assets)
+- **Purpose**: Cryptocurrency operations
+- **Size**: 1.0MB (50% capacity)
+- **Functions**:
+  - Buy crypto (fiat → BTC/USDC)
+  - Sell crypto (BTC/USDC → fiat)
+  - Send crypto (external transfers)
+  - Swap crypto (BTC ↔ USDC via Sonic DEX)
+  - Crypto escrow management
+  - Balance queries
+  - Expired escrow cleanup
+- **Revenue**:
+  - 0.5% spread on swaps (100% to company)
+  - DEX integration: Sonic (3xwpq-ziaaa-aaaah-qcn4a-cai)
+- **Fraud Detection**:
+  - Device fingerprinting
+  - Geographic location tracking
+  - High-value transaction alerts
+
+#### Agent Canister (Cash On/Off Ramps)
+- **Purpose**: Agent network and cash operations
+- **Size**: 700KB (35% capacity)
+- **Functions**:
+  - **Deposits**: Cash → crypto conversions
+    - Generate deposit codes (DEP000001, etc.)
+    - Track agent commissions (10% of 0.5% platform fee)
+    - Multi-currency support (39 currencies)
+  - **Withdrawals**: Crypto → cash conversions
+    - Generate withdrawal codes (WTH000001, etc.)
+    - Fee calculation (0.5% platform + 2-12% agent)
+    - Agent earnings tracking (90% of agent fee)
+  - **Settlements**: Monthly agent payouts
+    - Generate settlement reports
+    - Track paid/unpaid status
+    - Platform revenue reporting
+- **Multi-Currency**:
+  - Per-currency limits (min/max deposits/withdrawals)
+  - Currency-specific agent balances
+  - Exchange rate integration
+
+#### Data Canister (Storage)
+- **Purpose**: Pure CRUD operations (no business logic)
+- **Size**: 1.1MB (55% capacity)
+- **Collections**:
+  - `users`: User profiles and authentication
+  - `balances`: Fiat & crypto balances (39 currencies)
+  - `transactions`: Complete transaction history
+  - `escrows`: Crypto escrow metadata
+  - `deposits`: Deposit transaction records
+  - `withdrawals`: Withdrawal transaction records
+  - `agents`: Agent network information
+  - `settlements`: Monthly settlement data
+  - `transactions`: All financial transactions
+  - `ckbtc_transactions`: ckBTC-specific operations
+  - `ckusdc_transactions`: ckUSDC-specific operations
+  - `escrow_transactions`: Secure exchange codes
+  - `balances`: Fiat and crypto balances
+
+### 3.4 Revenue Model Integration
+
+**Commission Breakdown**:
+
+| Operation | Platform Fee | Agent Commission | Company Revenue |
+|-----------|-------------|------------------|-----------------|
+| Deposit (100K UGX) | 500 UGX (0.5%) | 50 UGX (10%) | 450 UGX |
+| Withdrawal (100K UGX) | 500 UGX (0.5%) | 10,000 UGX (10%) | 500 UGX |
+| Exchange (100K UGX) | 500 UGX (0.5%) | 0 UGX | 500 UGX |
+
+**Monthly Revenue Example** (1,000 transactions each):
+- Deposits: 450,000 UGX company + 50,000 UGX agents
+- Withdrawals: 500,000 UGX company + 10M UGX agents
+- Exchanges: 500,000 UGX company
+- **Total**: 1.45M UGX company + 10.05M UGX agents
+
+### 3.5 Security Architecture
+
+**Multi-Layer Security**:
+- **Principal-based authentication**: ICP cryptographic identities
+- **PIN verification**: 4-digit PIN for USSD users
+- **Rate limiting**: 10 requests/minute per user
+- **Fraud detection**: Automatic blocking of suspicious transactions
+- **Audit logging**: All operations logged for compliance
+- **Multi-signature**: Large transactions require multiple approvals
+- **Escrow system**: Atomic crypto-to-cash exchanges
 
 ---
 
@@ -705,94 +862,6 @@ Piga *384*22948# kuanza kipindi kipya
 - Performance monitoring
 - Rating system
 
-### 6.3 Non-Custodial Architecture
-
-**⚠️ CRITICAL: AfriTokeni is 100% NON-CUSTODIAL**
-
-AfriTokeni NEVER holds, controls, or has access to user funds. This is a fundamental architectural principle for security, legal compliance, and user protection.
-
-**How User Funds Work**:
-
-```
-User's Internet Identity/NFID
-    ↓
-User's ICP Principal (USER OWNS THIS)
-    ↓
-ckBTC/ckUSD Ledger Canister (ICP Blockchain)
-    ↓
-User's Balance (ON-CHAIN, USER-CONTROLLED)
-```
-
-**What AfriTokeni Does** ✅:
-- **Provides UI**: Web and SMS interface to interact with ICP blockchain
-- **Facilitates matching**: Connects users with agents for cash exchanges
-- **Stores metadata**: Transaction history, preferences (NOT funds)
-- **Provides information**: Exchange rates, agent locations, status updates
-
-**What AfriTokeni NEVER Does** ❌:
-- **Hold funds**: No platform wallet, no pooled funds, no custody
-- **Control keys**: Users control their own Internet Identity/NFID
-- **Sign transactions**: Only users can sign their own transactions
-- **Access balances**: We can only READ public ledger data, never MOVE funds
-
-**Transaction Flow (Non-Custodial)**:
-1. User initiates transaction in AfriTokeni UI
-2. User signs transaction with their Internet Identity/NFID
-3. Transaction sent DIRECTLY to ICP ledger canister
-4. Ledger updates user's balance on-chain
-5. AfriTokeni stores transaction METADATA in Juno (not funds!)
-
-**Agent Exchange Flow (Non-Custodial)**:
-
-*Cash → Bitcoin*:
-- User brings cash to agent
-- Agent verifies cash
-- Agent sends ckBTC from **AGENT'S principal** to **USER'S principal**
-- User receives ckBTC in their own wallet
-- Agent keeps the cash
-
-*Bitcoin → Cash*:
-- User sends ckBTC from **USER'S principal** to **AGENT'S principal**
-- Agent receives ckBTC in their own wallet
-- Agent gives cash to user
-
-**CRITICAL**: At no point does AfriTokeni hold funds. Transfers are always:
-- User's principal → Agent's principal (direct)
-- Agent's principal → User's principal (direct)
-
-**What We Store in Juno** (Metadata Only):
-- ✅ Transaction IDs, timestamps, amounts, status
-- ✅ User preferences (currency, language, notifications)
-- ✅ Agent information (location, ratings, availability)
-- ✅ Exchange history (for user's transaction view)
-- ❌ Private keys (NEVER)
-- ❌ Actual funds (NEVER)
-- ❌ Control over balances (NEVER)
-
-**Security Benefits**:
-- **No single point of failure**: No platform wallet to hack
-- **User sovereignty**: Users can access funds through any ICP wallet
-- **Regulatory clarity**: Non-custodial = no money transmission license
-- **Transparency**: All transactions on-chain and publicly verifiable
-
-**Emergency Scenarios**:
-
-*What if AfriTokeni goes offline?*
-- ✅ Users can still access funds via Internet Identity
-- ✅ Users can transfer ckBTC/ckUSD using any ICP wallet
-- ✅ Funds are on ICP blockchain, not on our servers
-
-*What if AfriTokeni is hacked?*
-- ✅ No funds to steal (we don't hold any)
-- ✅ No private keys to compromise (we don't have any)
-- ✅ Worst case: Transaction metadata leaked (not funds)
-
-**Legal Compliance**:
-- Non-custodial = Not a money transmitter
-- No custody = Not a financial institution
-- P2P marketplace = No banking license required
-- Users control keys = User responsibility for security
-
 ---
 
 ## 7. Agent Network
@@ -1126,92 +1195,6 @@ The platform automatically distributes AFRI tokens from the treasury to users an
 - Marketing: 20% of revenue
 
 **Break-even**: ~5,000 active users
-
-### 9.4 Non-Custodial Fee Collection Architecture
-
-**Challenge**: How do we collect fees while remaining 100% non-custodial?
-
-**Solution**: Smart Contract Fee Intermediary
-
-AfriTokeni deploys a transparent ICP canister that acts as a fee collection intermediary:
-
-**How It Works**:
-
-1. **User Initiates Transfer**:
-   - User wants to send 100,000 UGX worth of ckBTC to recipient
-   - User approves transfer via Internet Identity/NFID
-   - Single transaction from user's perspective
-
-2. **AfriTokeni Canister Processes**:
-   ```
-   User's Principal (100,000 UGX worth of ckBTC)
-        ↓
-   AfriTokeni Fee Canister (transparent smart contract)
-        ├─→ 0.5% (500 UGX) → AfriTokeni Principal (platform fee)
-        └─→ 99.5% (99,500 UGX) → Recipient's Principal
-   ```
-
-3. **Fee Distribution**:
-   - Platform fees: Collected in AfriTokeni's ICP principal
-   - Agent commissions: Paid directly to agent's principal
-   - AfriTokeni's 10% cut: Deducted from agent commission automatically
-
-**Security & Transparency**:
-- ✅ **Open Source**: Fee canister code is publicly auditable
-- ✅ **Non-Custodial**: Canister cannot hold funds, only route them
-- ✅ **Atomic**: Fee deduction and transfer happen in single transaction
-- ✅ **User Controlled**: User signs transaction with their Internet Identity
-- ✅ **No Custody**: AfriTokeni never holds user funds, only receives fees
-
-**Example Transaction Flow**:
-
-*User-to-User Transfer*:
-```
-User A sends 100,000 UGX worth of ckBTC to User B
-↓
-AfriTokeni Canister:
-  - Deducts 500 UGX (0.5%) → AfriTokeni Principal
-  - Sends 99,500 UGX → User B's Principal
-↓
-Result:
-  - User A: -100,000 UGX
-  - User B: +99,500 UGX
-  - AfriTokeni: +500 UGX (fee)
-```
-
-*Agent Exchange*:
-```
-User buys ckBTC from Agent with 100,000 UGX cash
-↓
-Agent transfers ckBTC to user via AfriTokeni Canister:
-  - Agent commission: 5,000 UGX (5% for rural area)
-  - AfriTokeni's 10% of commission: 500 UGX
-  - User receives: ckBTC worth 95,000 UGX
-↓
-AfriTokeni Canister:
-  - Deducts 500 UGX → AfriTokeni Principal (10% of agent commission)
-  - Sends ckBTC worth 95,000 UGX → User's Principal
-  - Agent keeps: 4,500 UGX (90% of commission)
-↓
-Result:
-  - User: +ckBTC worth 95,000 UGX (paid 100,000 cash)
-  - Agent: +100,000 UGX cash, +4,500 UGX net commission
-  - AfriTokeni: +500 UGG platform fee
-```
-
-**Technical Implementation**:
-- Fee canister written in Motoko/Rust
-- Deployed on ICP mainnet
-- Upgradeable via DAO governance
-- All transactions logged on-chain
-- Real-time fee tracking and reporting
-
-**Advantages Over Custodial Models**:
-- ✅ No regulatory burden (not a money transmitter)
-- ✅ No security risk (no pooled funds to hack)
-- ✅ User sovereignty (users always control their keys)
-- ✅ Transparent fees (all on-chain, publicly auditable)
-- ✅ Instant settlement (no waiting for AfriTokeni to process)
 
 ---
 

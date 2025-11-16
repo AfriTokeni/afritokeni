@@ -1,0 +1,35 @@
+[package]
+name = "ussd_canister"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+test-utils = []
+
+[dependencies]
+candid = "0.10"
+ic-cdk = "0.18"
+ic-cdk-macros = "0.18"
+ic-stable-structures = "0.6"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_urlencoded = "0.7"
+urlencoding = "2.1"
+getrandom = { version = "0.3", features = ["wasm_js"] }
+argon2 = "0.5"
+toml = "0.8"
+lazy_static = "1.4"
+hex = "0.4"
+sha2 = "0.10"
+num-bigint = "0.4"
+bs58 = "0.5"
+shared_types = { path = "../shared_types" }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+serde_json = "1.0"
+pocket-ic = "10.0.0"
+mockall = "0.13"

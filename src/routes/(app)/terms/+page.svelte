@@ -36,7 +36,7 @@
       <h2 class="mb-4 text-2xl font-semibold">2. Service Description</h2>
       <p class="mb-4">AfriTokeni provides:</p>
       <ul class="list-disc pl-6">
-        <li>Mobile money to cryptocurrency exchange (ckBTC, ckUSDC)</li>
+        <li>Mobile money to cryptocurrency exchange (ckBTC, ckUSD)</li>
         <li>Peer-to-peer cryptocurrency transfers</li>
         <li>Cash deposit and withdrawal through licensed agents</li>
         <li>USSD-based mobile access (*384*96#)</li>

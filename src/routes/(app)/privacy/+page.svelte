@@ -46,7 +46,7 @@
       <h3 class="mb-3 text-xl font-semibold">2.2 Financial Information</h3>
       <ul class="mb-4 list-disc pl-6">
         <li>Transaction amounts and frequencies</li>
-        <li>Wallet balances (ckBTC, ckUSDC)</li>
+        <li>Wallet balances (ckBTC, ckUSD)</li>
         <li>Mobile money account information</li>
       </ul>
 

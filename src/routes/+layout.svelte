@@ -4,7 +4,6 @@
   import ToastContainer from "$lib/components/shared/ToastContainer.svelte";
   import { onMount } from "svelte";
   import {
-    getDoc,
     initSatellite,
     onAuthStateChange,
     type User as JunoUser,
@@ -36,34 +35,54 @@
         (path) => currentPath === path || currentPath.startsWith("/info/"),
       );
 
-      // Check if user has a role
-      const roleDoc = await getDoc({
-        collection: "user_roles",
-        key: junoUser.key,
-      });
+      // Get user profile from user_canister by principal ID
+      try {
+        // Dynamic import to avoid SSR issues with process.env
+        const { userCanisterService } = await import(
+          "$lib/services/icp/canisters/userCanisterService"
+        );
+        // Use update call (not query) since it makes inter-canister calls to data_canister
+        const userProfile = await userCanisterService.getUserByPrincipalUpdate(
+          junoUser.key,
+        );
 
-      if (roleDoc?.data) {
-        // User has existing role - redirect to their dashboard
-        const role = (roleDoc.data as any).role;
-        const targetDashboard =
-          role === "agent" ? "/agents/dashboard" : "/users/dashboard";
+        if (userProfile) {
+          // User exists in canister - check their role
+          const role = userProfile.user_type.toLowerCase(); // "User", "Agent", or "Admin" → lowercase
 
-        // Don't redirect if already on their dashboard or a route within it
-        if (currentPath.startsWith(targetDashboard.split("/")[1])) {
-          console.log("✅ Already on correct dashboard area");
-          isCheckingRole = false;
-          return;
+          let targetDashboard = "/users/dashboard";
+          if (role === "agent") {
+            targetDashboard = "/agents/dashboard";
+          } else if (role === "admin") {
+            targetDashboard = "/admin/dashboard";
+          }
+
+          // Don't redirect if already on their dashboard or a route within it
+          const dashboardPrefix = targetDashboard.split("/")[1]; // "users", "agents", or "admin"
+          if (currentPath.startsWith(`/${dashboardPrefix}`)) {
+            console.log(`✅ Already on correct dashboard area (${role})`);
+            isCheckingRole = false;
+            return;
+          }
+
+          // Redirect to dashboard from public pages or role selection
+          if (isPublicPage || currentPath === "/auth/role-selection") {
+            console.log(`🔄 Redirecting ${role} to ${targetDashboard}`);
+            goto(targetDashboard);
+          }
+        } else {
+          // User not found in canister - new user needs role selection
+          if (currentPath !== "/auth/role-selection") {
+            console.log("🔄 New user - redirecting to role selection");
+            goto("/auth/role-selection");
+          }
         }
-
-        // Redirect to dashboard from public pages or role selection
-        if (isPublicPage || currentPath === "/auth/role-selection") {
-          console.log(`🔄 Redirecting ${role} to dashboard`);
-          goto(targetDashboard);
-        }
-      } else {
-        // New user without role - redirect to role selection
+      } catch (canisterError) {
+        // User might not exist in canister yet - redirect to role selection
+        console.log(
+          "⚠️ User not found in canister, redirecting to role selection",
+        );
         if (currentPath !== "/auth/role-selection") {
-          console.log("🔄 New user - redirecting to role selection");
           goto("/auth/role-selection");
         }
       }
@@ -88,6 +107,8 @@
             "VITE_SATELLITE_ID not provided. Ensure the Juno Vite plugin is configured.",
           );
         }
+        // Enable emulator for quick testing (auto-login with test principal)
+        // Set to false to test real Internet Identity flow
         const useContainer = import.meta.env.DEV === true;
         console.log(
           `🚀 Initializing Juno with satellite ${satelliteId} (${useContainer ? "emulator" : "remote"})`,

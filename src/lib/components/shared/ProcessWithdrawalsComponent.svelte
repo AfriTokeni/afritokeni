@@ -2,12 +2,14 @@
   import { demoMode } from "$lib/stores/demoMode";
   import { principalId } from "$lib/stores/auth";
   import { toast } from "$lib/stores/toast";
-  import { fetchAgentWithdrawalRequests } from "$lib/services/data/withdrawalsData";
+  import { agentOperationsService, userCanisterService } from "$lib/services";
+  import type { WithdrawalTransaction } from "$/declarations/agent_canister/agent_canister.did";
   import {
     AlertCircle,
     CheckCircle,
     Clock,
     Info,
+    Lock,
     MapPin,
     Phone,
     Search,
@@ -16,6 +18,9 @@
   } from "@lucide/svelte";
 
   let showInstructions = $state(false);
+  let showPinModal = $state(false);
+  let pinForConfirmation = $state("");
+  let pendingConfirmRequest = $state<WithdrawalRequest | null>(null);
 
   interface WithdrawalRequest {
     id: string;
@@ -45,6 +50,7 @@
   let verificationCodes = $state<Record<string, string>>({});
   let isProcessing = $state(false);
   let loading = $state(true);
+  let enrichingUsers = $state(false);
   let error = $state("");
   let filter = $state<
     "all" | "pending" | "confirmed" | "completed" | "rejected"
@@ -71,17 +77,126 @@
       loading = true;
       error = "";
 
-      // Use real data service (handles both demo and real mode)
-      withdrawalRequests = await fetchAgentWithdrawalRequests(
-        agentPrincipal,
-        isDemoMode,
-      );
+      if (isDemoMode) {
+        // Demo mode - load from JSON
+        const response = await fetch(
+          "/data/demo/demo-withdrawal-requests.json",
+        );
+        if (!response.ok) {
+          throw new Error("Failed to load demo withdrawal requests");
+        }
+        const demoData = await response.json();
+        withdrawalRequests = demoData;
+      } else if (agentPrincipal) {
+        // Production mode: Fetch real withdrawals from agent canister
+        const canisterWithdrawals =
+          await agentOperationsService.getAgentWithdrawals(agentPrincipal);
+
+        // Map to request format first
+        const mappedRequests = canisterWithdrawals.map(
+          mapWithdrawalTransactionToRequest,
+        );
+
+        // Enrich with user data
+        withdrawalRequests = await enrichWithUserData(mappedRequests);
+      } else {
+        // No principal and not demo mode
+        withdrawalRequests = [];
+      }
     } catch (err: any) {
       error = err.message || "Failed to load withdrawal requests";
       withdrawalRequests = [];
     } finally {
       loading = false;
     }
+  }
+
+  /**
+   * Enrich withdrawal requests with user data from user_canister
+   */
+  async function enrichWithUserData(
+    requests: WithdrawalRequest[],
+  ): Promise<WithdrawalRequest[]> {
+    if (requests.length === 0) return requests;
+
+    enrichingUsers = true;
+    try {
+      const enrichedRequests = await Promise.all(
+        requests.map(async (req) => {
+          try {
+            // Fetch user profile from user_canister using user_id (phone number)
+            const userProfile = await userCanisterService.getUserByPhone(
+              req.userId,
+            );
+
+            // Extract phone_number from Candid optional type [] | [string]
+            let phoneNumber: string;
+            if (
+              Array.isArray(userProfile.phone_number) &&
+              userProfile.phone_number.length > 0 &&
+              userProfile.phone_number[0] !== undefined
+            ) {
+              phoneNumber = userProfile.phone_number[0];
+            } else if (
+              !Array.isArray(userProfile.phone_number) &&
+              userProfile.phone_number
+            ) {
+              phoneNumber = userProfile.phone_number;
+            } else {
+              phoneNumber = req.userId;
+            }
+
+            return {
+              ...req,
+              userName: `${userProfile.first_name} ${userProfile.last_name}`,
+              userPhone: phoneNumber,
+            };
+          } catch (err) {
+            // If user lookup fails, keep original data (user_id as fallback)
+            console.warn(`Failed to fetch user data for ${req.userId}:`, err);
+            return {
+              ...req,
+              userName: "Unknown User",
+              userPhone: req.userId,
+            };
+          }
+        }),
+      );
+      return enrichedRequests;
+    } catch (err) {
+      console.error("Error enriching user data:", err);
+      return requests; // Return original requests if enrichment fails completely
+    } finally {
+      enrichingUsers = false;
+    }
+  }
+
+  /**
+   * Map canister WithdrawalTransaction to component WithdrawalRequest interface
+   */
+  function mapWithdrawalTransactionToRequest(
+    tx: WithdrawalTransaction,
+  ): WithdrawalRequest {
+    // Map canister status to component status
+    let status: WithdrawalRequest["status"] = "pending";
+    if ("Confirmed" in tx.status) status = "confirmed";
+    else if ("Cancelled" in tx.status) status = "rejected";
+    else if ("Expired" in tx.status) status = "rejected";
+    else if ("Pending" in tx.status) status = "pending";
+
+    return {
+      id: tx.id,
+      userId: tx.user_id,
+      userName: tx.user_id, // Will be enriched with actual name
+      userPhone: tx.user_id, // Will be enriched with actual phone
+      amount: Number(tx.amount),
+      currency: tx.currency,
+      code: tx.withdrawal_code,
+      status,
+      createdAt: new Date(Number(tx.timestamp) / 1_000_000).toISOString(),
+      userLocation: undefined,
+      userPhoto: undefined,
+    };
   }
 
   async function handleVerifyCode(request: WithdrawalRequest) {
@@ -91,27 +206,79 @@
     const expectedCode = request.code.trim().toUpperCase();
 
     if (currentCode === expectedCode) {
-      try {
-        if ($demoMode) {
-          // Demo: mark as confirmed
-          withdrawalRequests = withdrawalRequests.map((r) =>
-            r.id === request.id ? { ...r, status: "confirmed" as const } : r,
-          );
-          selectedRequest = { ...request, status: "confirmed" };
-          error = "";
-        } else {
-          // Real canister call
-          // await withdrawalCanister.confirm_withdrawal(request.id);
-          await loadWithdrawalRequests($demoMode, $principalId);
-          selectedRequest = request;
-          error = "";
-        }
-      } catch (err: any) {
-        error = "Failed to confirm withdrawal request. Please try again.";
-      }
+      // Store request and show PIN modal for confirmation
+      pendingConfirmRequest = request;
+      showPinModal = true;
+      error = "";
     } else {
       error = `Invalid withdrawal code. Expected: ${expectedCode}, Got: ${currentCode}`;
     }
+  }
+
+  async function handlePinSubmit() {
+    if (!pendingConfirmRequest || !pinForConfirmation) {
+      error = "PIN is required";
+      return;
+    }
+
+    try {
+      isProcessing = true;
+      error = "";
+
+      if ($demoMode) {
+        // Demo: mark as confirmed
+        withdrawalRequests = withdrawalRequests.map((r) =>
+          r.id === pendingConfirmRequest!.id
+            ? { ...r, status: "confirmed" as const }
+            : r,
+        );
+        selectedRequest = { ...pendingConfirmRequest, status: "confirmed" };
+        closePinModal();
+      } else {
+        // Real canister call - confirm withdrawal with agent's PIN
+        if (!$principalId) {
+          error = "Agent principal ID not found";
+          return;
+        }
+
+        // Verify agent PIN first
+        try {
+          const pinValid = await userCanisterService.verifyPin(
+            $principalId,
+            pinForConfirmation,
+          );
+
+          if (!pinValid) {
+            error = "Invalid PIN. Please try again.";
+            return;
+          }
+        } catch (err: any) {
+          error = err.message || "Failed to verify PIN";
+          return;
+        }
+
+        // PIN is valid, confirm the withdrawal
+        await agentOperationsService.confirmWithdrawal({
+          withdrawalCode: pendingConfirmRequest.code,
+          agentId: $principalId,
+          agentPin: pinForConfirmation,
+        });
+
+        await loadWithdrawalRequests($demoMode, $principalId);
+        selectedRequest = pendingConfirmRequest;
+        closePinModal();
+      }
+    } catch (err: any) {
+      error = "Failed to confirm withdrawal request. Please try again.";
+    } finally {
+      isProcessing = false;
+    }
+  }
+
+  function closePinModal() {
+    showPinModal = false;
+    pinForConfirmation = "";
+    pendingConfirmRequest = null;
   }
 
   async function handleConfirmWithdrawal(request: WithdrawalRequest) {
@@ -131,15 +298,19 @@
           `Withdrawal completed! ${formatAmount(request.amount, request.currency)} given to ${request.userName}.`,
         );
       } else {
-        // Real canister call
-        // await withdrawalCanister.process_withdrawal(request.id, $principalId);
+        // Real canister call - withdrawal is already confirmed, just reload to show updated state
         await loadWithdrawalRequests($demoMode, $principalId);
         selectedRequest = null;
         verificationCodes[request.id] = "";
         error = "";
+        toast.show(
+          "success",
+          `Withdrawal completed! ${formatAmount(request.amount, request.currency)} given to ${request.userName}.`,
+        );
       }
     } catch (err: any) {
       error = "Failed to process withdrawal. Please try again.";
+      toast.show("error", "Failed to process withdrawal. Please try again.");
     } finally {
       isProcessing = false;
     }
@@ -161,15 +332,15 @@
           `Withdrawal from ${request.userName} has been rejected.`,
         );
       } else {
-        // Real canister call
-        // await withdrawalCanister.reject_withdrawal(request.id);
-        await loadWithdrawalRequests($demoMode, $principalId);
-        selectedRequest = null;
-        verificationCodes[request.id] = "";
-        error = "";
+        // Real canister call - cancel withdrawal
+        // Note: User cancels their own withdrawal, not the agent
+        // This may need to be adjusted based on business requirements
+        // For now, showing info that withdrawals expire automatically
+        error =
+          "Rejection not implemented. Withdrawals expire automatically if not confirmed.";
         toast.show(
           "info",
-          `Withdrawal from ${request.userName} has been rejected.`,
+          "Withdrawals expire automatically if not confirmed within the time limit.",
         );
       }
     } catch (err: any) {
@@ -215,8 +386,95 @@
   }
 </script>
 
+<!-- PIN Confirmation Modal -->
+{#if showPinModal}
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+    role="dialog"
+    aria-labelledby="pin-modal-title"
+    aria-modal="true"
+  >
+    <div
+      class="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl"
+    >
+      <div class="mb-4 flex items-center justify-between">
+        <h3 id="pin-modal-title" class="text-lg font-semibold text-gray-900">
+          Confirm with PIN
+        </h3>
+        <button
+          onclick={() => closePinModal()}
+          class="text-gray-400 hover:text-gray-600"
+          aria-label="Close modal"
+        >
+          <X class="h-5 w-5" />
+        </button>
+      </div>
+
+      <p class="mb-4 text-sm text-gray-600">
+        Enter your 4-digit PIN to confirm this withdrawal.
+      </p>
+
+      <div class="mb-4">
+        <label
+          for="agent-pin"
+          class="mb-2 block text-sm font-medium text-gray-700"
+        >
+          Agent PIN
+        </label>
+        <div class="relative">
+          <Lock
+            class="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-gray-400"
+          />
+          <input
+            id="agent-pin"
+            type="password"
+            inputmode="numeric"
+            maxlength="4"
+            pattern="[0-9]*"
+            bind:value={pinForConfirmation}
+            placeholder="Enter 4-digit PIN"
+            class="w-full rounded-lg border border-gray-300 py-3 pr-4 pl-10 text-center font-mono text-lg tracking-widest focus:border-transparent focus:ring-2 focus:ring-blue-500"
+            autocomplete="off"
+          />
+        </div>
+      </div>
+
+      {#if error}
+        <div class="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </div>
+      {/if}
+
+      <div class="flex gap-3">
+        <button
+          onclick={() => closePinModal()}
+          disabled={isProcessing}
+          class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Cancel
+        </button>
+        <button
+          onclick={handlePinSubmit}
+          disabled={isProcessing || pinForConfirmation.length !== 4}
+          class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+        >
+          {#if isProcessing}
+            <div
+              class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
+            ></div>
+            <span>Verifying...</span>
+          {:else}
+            <Lock class="h-4 w-4" />
+            <span>Confirm</span>
+          {/if}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <!-- Error Message -->
-{#if error}
+{#if error && !showPinModal}
   <div
     class="mb-6 rounded-2xl border-2 border-red-500 bg-red-50 p-3 shadow-lg sm:p-4"
   >
@@ -262,13 +520,13 @@
       <li>Customer shows you their withdrawal code</li>
       <li>Verify the code matches the request</li>
       <li>Give the cash amount to customer</li>
-      <li>Complete the withdrawal to debit their digital balance</li>
+      <li>Enter your PIN to confirm the withdrawal</li>
       <li>Customer receives confirmation notification</li>
     </ol>
     <div class="mt-3 rounded-lg bg-blue-100 p-2.5 sm:mt-4 sm:p-3">
       <p class="text-xs font-medium text-blue-900 sm:text-sm">
-        ⚠️ Always verify the withdrawal code before giving cash. Rejected
-        withdrawals cannot be reversed.
+        ⚠️ Always verify the withdrawal code before giving cash. You will need
+        to enter your PIN to confirm each withdrawal.
       </p>
     </div>
     {#if $demoMode}
@@ -342,13 +600,15 @@
 
   <!-- Withdrawal Requests List -->
   <div class="space-y-3 sm:space-y-4">
-    {#if loading}
+    {#if loading || enrichingUsers}
       <div class="py-8 text-center sm:py-10 md:py-12">
         <div
           class="mx-auto mb-3 h-7 w-7 animate-spin rounded-full border-2 border-blue-600 border-t-transparent sm:mb-4 sm:h-8 sm:w-8"
         ></div>
         <p class="text-sm text-neutral-600 sm:text-base">
-          Loading withdrawal requests...
+          {enrichingUsers
+            ? "Loading user details..."
+            : "Loading withdrawal requests..."}
         </p>
       </div>
     {:else if filteredRequests.length === 0}

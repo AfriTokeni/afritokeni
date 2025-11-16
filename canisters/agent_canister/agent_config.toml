@@ -1,0 +1,148 @@
+# AfriTokeni Agent Canister Configuration
+# Handles deposit and withdrawal operations with agent commission tracking
+
+[company_wallet]
+# AfriTokeni Company Wallet - receives platform fees
+principal = "ctfzw-zjxmq-in44p-737ub-a73mu-uiuhb-rkehx-42rpn-ukhaf-7yzor-aae"
+
+# ============================================================================
+# COMMISSION STRUCTURE (Per Whitepaper)
+# ============================================================================
+# Platform Revenue = 0.5% on operation + 10% of agent's commission
+# Agent Keeps = 90% of their commission
+# ============================================================================
+
+[fees.deposit]
+# Agent commission rate (what agent charges user)
+agent_commission_basis_points = 1000  # 10% of deposit amount
+# Platform fee on the operation
+platform_operation_fee_basis_points = 50  # 0.5% of deposit amount
+# Platform cut of agent's commission
+platform_commission_cut_percentage = 10  # 10% of agent's commission
+
+[fees.withdrawal]
+# Agent commission rate (what agent charges user)
+agent_commission_basis_points = 1000  # 10% of withdrawal amount
+# Platform fee on the operation
+platform_operation_fee_basis_points = 50  # 0.5% of withdrawal amount
+# Platform cut of agent's commission
+platform_commission_cut_percentage = 10  # 10% of agent's commission
+
+# ============================================================================
+# LIMITS (Per Currency)
+# ============================================================================
+# All amounts in cents (e.g., 1000000 = 10,000 in currency units)
+
+[limits.KES]  # Kenya Shilling
+max_deposit = 1000000      # 10,000 KES
+max_withdrawal = 500000    # 5,000 KES
+min_deposit = 10000        # 100 KES
+min_withdrawal = 10000     # 100 KES
+
+[limits.UGX]  # Uganda Shilling
+max_deposit = 10000000     # 100,000 UGX
+max_withdrawal = 5000000   # 50,000 UGX
+min_deposit = 100000       # 1,000 UGX
+min_withdrawal = 100000    # 1,000 UGX
+
+[limits.TZS]  # Tanzania Shilling
+max_deposit = 5000000      # 50,000 TZS
+max_withdrawal = 2500000   # 25,000 TZS
+min_deposit = 50000        # 500 TZS
+min_withdrawal = 50000     # 500 TZS
+
+[limits.NGN]  # Nigerian Naira
+max_deposit = 2000000      # 20,000 NGN
+max_withdrawal = 1000000   # 10,000 NGN
+min_deposit = 20000        # 200 NGN
+min_withdrawal = 20000     # 200 NGN
+
+[limits.ZAR]  # South African Rand
+max_deposit = 500000       # 5,000 ZAR
+max_withdrawal = 250000    # 2,500 ZAR
+min_deposit = 5000         # 50 ZAR
+min_withdrawal = 5000      # 50 ZAR
+
+[limits.GHS]  # Ghana Cedi
+max_deposit = 300000       # 3,000 GHS
+max_withdrawal = 150000    # 1,500 GHS
+min_deposit = 3000         # 30 GHS
+min_withdrawal = 3000      # 30 GHS
+
+# Default limits for currencies not explicitly configured
+[limits.default]
+max_deposit = 1000000
+max_withdrawal = 500000
+min_deposit = 10000
+min_withdrawal = 10000
+
+# ============================================================================
+# AGENT CREDIT SYSTEM (NON-CUSTODIAL)
+# ============================================================================
+# Agents operate on credit - no upfront deposits required
+# Credit limits based on tier, settled weekly
+
+[credit.tiers]
+# New agent credit limit (in currency units, e.g., UGX)
+new_agent_limit = 1_000_000      # 1M UGX for new agents
+# Trusted agent credit limit
+trusted_agent_limit = 5_000_000  # 5M UGX for trusted agents
+# Premium agent credit limit
+premium_agent_limit = 10_000_000 # 10M UGX for premium agents
+
+[credit.settlement]
+# Settlement frequency (weekly, not monthly)
+settlement_frequency = "weekly"
+# Settlement day of week (1 = Monday, 7 = Sunday)
+settlement_day_of_week = 1  # Monday
+# Minimum outstanding balance to trigger settlement (in currency units)
+min_settlement_balance = 50_000  # 500 in currency units
+
+# ============================================================================
+# SETTLEMENT CONFIGURATION (DEPRECATED - Use credit.settlement instead)
+# ============================================================================
+
+[settlement]
+# Day of month to generate settlements (1-28)
+settlement_day_of_month = 1
+# Minimum commission amount to trigger settlement (in cents)
+min_settlement_amount = 100000  # 1,000 in currency units
+# Auto-settlement enabled (if false, manual settlement required)
+auto_settlement_enabled = false
+
+# ============================================================================
+# FRAUD DETECTION (Agent-Specific)
+# ============================================================================
+
+[fraud]
+# Maximum operations per agent per day
+max_deposits_per_agent_per_day = 100
+max_withdrawals_per_agent_per_day = 50
+
+# Maximum total volume per agent per day (in cents, per currency)
+max_deposit_volume_per_day = 50000000   # 500,000 in currency units
+max_withdrawal_volume_per_day = 25000000  # 250,000 in currency units
+
+# Velocity checks (time windows in seconds)
+velocity_check_window_1h = 3600      # 1 hour
+velocity_check_window_24h = 86400    # 24 hours
+
+# Maximum operations in time windows
+max_operations_per_hour = 20
+max_operations_per_day = 100
+
+# Suspicious pattern detection
+suspicious_same_user_agent_threshold = 10  # Same user-agent pair in 24h
+suspicious_rapid_transactions_threshold = 5  # Transactions within 5 minutes
+
+# ============================================================================
+# CODE GENERATION
+# ============================================================================
+
+[codes]
+# Deposit code format: DEP-{agent_prefix}-{timestamp}
+deposit_code_prefix = "DEP"
+# Withdrawal code format: WTH-{agent_prefix}-{timestamp}
+withdrawal_code_prefix = "WTH"
+# Code expiration time in nanoseconds (24 hours)
+code_expiration_ns = 86400000000000

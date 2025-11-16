@@ -2,8 +2,8 @@
   import { goto } from "$app/navigation";
   import { principalId } from "$lib/stores/auth";
   import AgentOnboardingModal from "$lib/components/agent/AgentOnboardingModal.svelte";
+  import { AgentService } from "$lib/services/agents";
   import { onMount } from "svelte";
-  import { getDoc } from "@junobuild/core";
 
   let showOnboarding = $state(true);
 
@@ -11,14 +11,17 @@
   onMount(async () => {
     const currentPrincipalId = $principalId;
     if (currentPrincipalId) {
-      const doc = await getDoc({
-        collection: "agents",
-        key: currentPrincipalId,
-      });
+      try {
+        // Check if agent profile exists in data_canister
+        const agent = await AgentService.getAgentByUserId(currentPrincipalId);
 
-      // If agent already has profile, redirect to dashboard
-      if (doc) {
-        goto("/agents/dashboard");
+        // If agent already has profile, redirect to dashboard
+        if (agent) {
+          goto("/agents/dashboard");
+        }
+      } catch (error) {
+        console.error("Error checking agent profile:", error);
+        // If error, let them continue with onboarding
       }
     }
   });

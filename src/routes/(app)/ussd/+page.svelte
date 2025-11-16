@@ -12,6 +12,7 @@
   let sessionId = `playground_session_${Date.now()}`;
   let inputCommand = $state("");
   let isInitialized = $state(false);
+  let ussdHistory = $state(""); // Track USSD input history like Africa's Talking
   let messages = $state<Message[]>([
     {
       type: "received",
@@ -26,7 +27,7 @@
   let messagesContainer: HTMLDivElement | undefined;
 
   onMount(() => {
-    console.log("🎭 Playground: Using in-memory mock data (no backend calls)");
+    console.log("🎭 Playground: Ready for first-time user experience");
     isInitialized = true;
   });
 
@@ -38,42 +39,86 @@
     }
 
     // Handle USSD dial code or menu navigation
-    const ussdText = trimmedCmd;
+    // Append to history like Africa's Talking does (stateless USSD)
+    let ussdText: string;
+    if (trimmedCmd === "*384*22948#") {
+      // Reset on dial code - new session
+      ussdHistory = "";
+      ussdText = "";
+    } else if (ussdHistory === "") {
+      ussdHistory = trimmedCmd;
+      ussdText = trimmedCmd;
+    } else {
+      ussdHistory = ussdHistory + "*" + trimmedCmd;
+      ussdText = ussdHistory;
+    }
+
+    console.log(
+      `🔗 USSD Chain: "${ussdText}" (previous="${ussdHistory.split("*").slice(0, -1).join("*")}", new input="${trimmedCmd}")`,
+    );
 
     try {
-      // Call Juno satellite function (Rust backend)
+      // Call USSD canister directly using agent (bypasses HTTP certification issues)
       console.log(
         `📱 USSD Playground: sessionId="${sessionId}", text="${ussdText}"`,
       );
 
-      const satId = import.meta.env.VITE_SATELLITE_ID;
-      if (!satId) {
-        throw new Error("Satellite ID not configured");
+      const { Actor, HttpAgent } = await import("@dfinity/agent");
+      // @ts-ignore - Generated file
+      const { idlFactory } = await import(
+        "$lib/../declarations/ussd_canister/ussd_canister.did.js"
+      );
+
+      const canisterId = import.meta.env.VITE_USSD_CANISTER_ID;
+      const network = import.meta.env.VITE_DFX_NETWORK || "local";
+      const host =
+        network === "local" ? "http://127.0.0.1:4943" : "https://icp0.io";
+
+      if (!canisterId) {
+        throw new Error("USSD Canister ID not configured");
       }
 
-      const response = await fetch(`https://${satId}.icp0.io/api/ussd`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          sessionId,
-          phoneNumber,
-          text: ussdText,
-        }),
+      const agent = await HttpAgent.create({ host });
+
+      // Fetch root key for local development
+      await agent.fetchRootKey();
+
+      const actor = Actor.createActor(idlFactory, {
+        agent,
+        canisterId,
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // Call test_ussd_direct method
+      const result: any = await actor.test_ussd_direct(
+        sessionId,
+        phoneNumber,
+        ussdText,
+      );
+
+      const [response, continues] = result;
+
+      console.log(
+        `✅ Response: ${response.substring(0, 100)}...`,
+        `continues=${continues}`,
+      );
+
+      // Reset history if session ended (terminal response)
+      if (!continues) {
+        console.log("🔚 Session ended - resetting USSD history");
+        ussdHistory = "";
+        sessionId = `playground_session_${Date.now()}`; // New session for next interaction
       }
 
-      const result = await response.text();
-
-      // Clean up response (remove CON/END prefixes)
-      return result.replace(/^(CON |END )/, "");
-    } catch (error) {
-      console.error("Failed to process USSD command:", error);
-      return "❌ Error processing command\n\nPlease try again or dial *384*22948# to restart";
+      return response;
+    } catch (error: any) {
+      console.error("❌ Failed to process USSD command:", error);
+      console.error("Error details:", {
+        message: error?.message,
+        stack: error?.stack,
+        name: error?.name,
+        cause: error?.cause,
+      });
+      return `❌ Error: ${error?.message || "Unknown error"}\n\nPlease try again or dial *384*22948# to restart`;
     }
   }
 
@@ -271,7 +316,7 @@
               <!-- Quick Start Button -->
               <button
                 onclick={quickDial}
-                class="mb-2 flex w-full items-center justify-center gap-2 rounded-xl bg-green-500 py-2.5 text-sm font-bold text-white transition-colors hover:bg-green-600 sm:mb-3 sm:py-3 sm:text-base"
+                class="mb-3 flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-700 sm:px-6 sm:py-4 sm:text-base"
               >
                 <Smartphone class="h-4 w-4 sm:h-5 sm:w-5" />
                 Dial *384*22948#

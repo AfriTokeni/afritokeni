@@ -1,8 +1,47 @@
 [workspace]
 members = [
-    "src/satellite",
-    "canisters/deposit_canister",
-    "canisters/withdrawal_canister",
-    "canisters/exchange_canister"
+    "canisters/shared_types",
+    "canisters/data_canister",
+    "canisters/user_canister",
+    "canisters/wallet_canister",
+    "canisters/crypto_canister",
+    "canisters/agent_canister",
+    "canisters/ussd_canister",
+    "canisters/mock_icrc1_ledger",
 ]
+exclude = ["tests", "src/satellite"]
 resolver = "2"
+
+[workspace.dependencies]
+argon2 = { version = "0.5", default-features = false }
+cucumber = "0.21"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+uuid = { version = "1", features = ["v4"] }
+
+# ============================================================================
+# Release Profile Optimization for WASM Size
+# ============================================================================
+# Target: Keep all canisters under 2MB WASM limit
+# Current sizes (Nov 2025):
+# - data_canister: 1.3M (65% of limit)
+# - user_canister: ~400KB
+# - wallet_canister: ~600KB
+# - agent_canister: ~700KB
+# - crypto_canister: ~1.0M
+
+[profile.release]
+# Optimize for size (z = most aggressive size optimization)
+opt-level = "z"
+
+# Enable Link Time Optimization (removes duplicate code across crates)
+lto = true
+
+# Reduce number of codegen units for better optimization (slower build, smaller binary)
+codegen-units = 1
+
+# Strip debug symbols from binary
+strip = true
+
+# Additional size optimizations
+panic = "abort"          # Reduce panic-related code size
+overflow-checks = false  # Disable overflow checks in release (use with caution)

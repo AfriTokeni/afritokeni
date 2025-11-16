@@ -37,20 +37,47 @@
       "wasm": "https://download.dfinity.systems/ic/d87954601e4b22972899e9957e800406a0a6b929/canisters/ic-icrc1-ledger.wasm.gz",
       "init_arg": "(variant { Init = record { token_name = \"ckUSDC\"; token_symbol = \"ckUSDC\"; decimals = opt 6; minting_account = record { owner = principal \"aaaaa-aa\" }; transfer_fee = 10000; metadata = vec {}; initial_balances = vec { record { record { owner = principal \"2vxsx-fae\"; subaccount = null }; 100000000 } }; archive_options = record { trigger_threshold = 2000; num_blocks_to_archive = 1000; controller_id = principal \"aaaaa-aa\" }; feature_flags = opt record { icrc2 = true }; } })"
     },
-    "exchange_canister": {
+    "data_canister": {
       "type": "rust",
-      "package": "exchange_canister",
-      "candid": "canisters/exchange_canister/exchange_canister.did"
+      "package": "data_canister",
+      "candid": "canisters/data_canister/data_canister.did"
     },
-    "deposit_canister": {
+    "crypto_canister": {
       "type": "rust",
-      "package": "deposit_canister",
-      "candid": "canisters/deposit_canister/deposit_canister.did"
+      "package": "crypto_canister",
+      "candid": "canisters/crypto_canister/crypto_canister.did"
     },
-    "withdrawal_canister": {
+    "agent_canister": {
       "type": "rust",
-      "package": "withdrawal_canister",
-      "candid": "canisters/withdrawal_canister/withdrawal_canister.did"
+      "package": "agent_canister",
+      "candid": "canisters/agent_canister/agent_canister.did"
+    },
+    "ussd_canister": {
+      "type": "rust",
+      "package": "ussd_canister",
+      "candid": "canisters/ussd_canister/ussd_canister.did"
+    },
+    "wallet_canister": {
+      "type": "rust",
+      "package": "wallet_canister",
+      "candid": "canisters/wallet_canister/wallet_canister.did"
+    },
+    "user_canister": {
+      "type": "rust",
+      "package": "user_canister",
+      "candid": "canisters/user_canister/user_canister.did"
+    },
+    "satellite": {
+      "type": "custom",
+      "candid": "src/satellite/satellite.did",
+      "build": "cd src/satellite && cargo build --target wasm32-unknown-unknown --release",
+      "wasm": "src/satellite/target/wasm32-unknown-unknown/release/satellite.wasm"
+    }
+  },
+  "networks": {
+    "juno": {
+      "providers": ["http://127.0.0.1:5987"],
+      "type": "persistent"
     }
   },
   "defaults": {

@@ -19,27 +19,42 @@ export interface CanisterStatus {
 
 /**
  * Get canister list from env vars
+ * NOTE: deposit_canister, withdrawal_canister, and exchange_canister have been
+ * absorbed into the new domain canister architecture:
+ * - Deposits/Withdrawals: agent_canister
+ * - Crypto swaps: crypto_canister
+ * - Fiat transfers: wallet_canister
  */
 function getCanisterList(): Array<{ id: string; name: string }> {
+  // Try old architecture first (for backward compatibility)
   const depositId = process.env.CANISTER_ID_DEPOSIT_CANISTER;
   const withdrawalId = process.env.CANISTER_ID_WITHDRAWAL_CANISTER;
   const exchangeId = process.env.CANISTER_ID_EXCHANGE_CANISTER;
 
-  if (!depositId) {
-    throw new Error("CANISTER_ID_DEPOSIT_CANISTER not found in environment");
-  }
-  if (!withdrawalId) {
-    throw new Error("CANISTER_ID_WITHDRAWAL_CANISTER not found in environment");
-  }
-  if (!exchangeId) {
-    throw new Error("CANISTER_ID_EXCHANGE_CANISTER not found in environment");
-  }
+  // New domain canister architecture
+  const agentId = process.env.CANISTER_ID_AGENT_CANISTER;
+  const cryptoId = process.env.CANISTER_ID_CRYPTO_CANISTER;
+  const walletId = process.env.CANISTER_ID_WALLET_CANISTER;
 
-  return [
-    { id: depositId, name: "Deposit Canister" },
-    { id: withdrawalId, name: "Withdrawal Canister" },
-    { id: exchangeId, name: "Exchange Canister" },
-  ];
+  const canisters: Array<{ id: string; name: string }> = [];
+
+  // Add old canisters if they exist (backward compatibility)
+  if (depositId)
+    canisters.push({ id: depositId, name: "Deposit Canister (deprecated)" });
+  if (withdrawalId)
+    canisters.push({
+      id: withdrawalId,
+      name: "Withdrawal Canister (deprecated)",
+    });
+  if (exchangeId)
+    canisters.push({ id: exchangeId, name: "Exchange Canister (deprecated)" });
+
+  // Add new domain canisters if they exist
+  if (agentId) canisters.push({ id: agentId, name: "Agent Canister" });
+  if (cryptoId) canisters.push({ id: cryptoId, name: "Crypto Canister" });
+  if (walletId) canisters.push({ id: walletId, name: "Wallet Canister" });
+
+  return canisters;
 }
 
 export interface SystemLog {
