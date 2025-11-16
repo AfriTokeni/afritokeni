@@ -67,10 +67,9 @@ export class DataCanisterService {
       throw new Error("Rating must be between 1 and 5");
     }
 
-    const result = await (await this.getActor()).get_agent_reviews_by_rating(
-      agentId,
-      rating,
-    );
+    const result = await (
+      await this.getActor()
+    ).get_agent_reviews_by_rating(agentId, rating);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -147,10 +146,9 @@ export class DataCanisterService {
     limit?: bigint,
     offset?: bigint,
   ): Promise<Transaction[]> {
-    const result = await (await this.getActor()).get_my_transactions(
-      limit ? [limit] : [],
-      offset ? [offset] : [],
-    );
+    const result = await (
+      await this.getActor()
+    ).get_my_transactions(limit ? [limit] : [], offset ? [offset] : []);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -171,7 +169,9 @@ export class DataCanisterService {
     limit?: bigint,
     offset?: bigint,
   ): Promise<Transaction[]> {
-    const result = await (await this.getActor()).get_user_transactions(
+    const result = await (
+      await this.getActor()
+    ).get_user_transactions(
       userId,
       limit ? [limit] : [],
       offset ? [offset] : [],

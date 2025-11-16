@@ -79,7 +79,9 @@ export class UserCanisterService {
    * @param userIdentifier - Phone number, principal ID, or user ID
    */
   async getUserProfile(userIdentifier: string): Promise<UserProfile> {
-    const result = await (await this.getActor()).get_user_profile(userIdentifier);
+    const result = await (
+      await this.getActor()
+    ).get_user_profile(userIdentifier);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -93,7 +95,9 @@ export class UserCanisterService {
    * @param userIdentifier - Phone number, principal ID, or user ID
    */
   async getUserProfileUpdate(userIdentifier: string): Promise<UserProfile> {
-    const result = await (await this.getActor()).get_user_profile_update(userIdentifier);
+    const result = await (
+      await this.getActor()
+    ).get_user_profile_update(userIdentifier);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -119,7 +123,9 @@ export class UserCanisterService {
    * Get user by phone number (update)
    */
   async getUserByPhoneUpdate(phone: string): Promise<UserProfile> {
-    const result = await (await this.getActor()).get_user_by_phone_update(phone);
+    const result = await (
+      await this.getActor()
+    ).get_user_by_phone_update(phone);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -132,7 +138,9 @@ export class UserCanisterService {
    * Get user by principal ID (query)
    */
   async getUserByPrincipal(principalId: string): Promise<UserProfile> {
-    const result = await (await this.getActor()).get_user_by_principal(principalId);
+    const result = await (
+      await this.getActor()
+    ).get_user_by_principal(principalId);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -145,7 +153,9 @@ export class UserCanisterService {
    * Get user by principal ID (update)
    */
   async getUserByPrincipalUpdate(principalId: string): Promise<UserProfile> {
-    const result = await (await this.getActor()).get_user_by_principal_update(principalId);
+    const result = await (
+      await this.getActor()
+    ).get_user_by_principal_update(principalId);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -176,10 +186,9 @@ export class UserCanisterService {
     userIdentifier: string,
     updates: ProfileUpdates,
   ): Promise<void> {
-    const result = await (await this.getActor()).update_user_profile(
-      userIdentifier,
-      updates,
-    );
+    const result = await (
+      await this.getActor()
+    ).update_user_profile(userIdentifier, updates);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -194,10 +203,9 @@ export class UserCanisterService {
     principalId: string,
     phoneNumber: string,
   ): Promise<void> {
-    const result = await (await this.getActor()).link_phone_to_account(
-      principalId,
-      phoneNumber,
-    );
+    const result = await (
+      await this.getActor()
+    ).link_phone_to_account(principalId, phoneNumber);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -213,7 +221,9 @@ export class UserCanisterService {
     userIdentifier: string,
     newUserType: string,
   ): Promise<void> {
-    const result = await (await this.getActor()).set_user_type(userIdentifier, newUserType);
+    const result = await (
+      await this.getActor()
+    ).set_user_type(userIdentifier, newUserType);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -230,7 +240,9 @@ export class UserCanisterService {
    * @throws Error if user not found or account is locked
    */
   async verifyPin(userIdentifier: string, pin: string): Promise<boolean> {
-    const result = await (await this.getActor()).verify_pin(userIdentifier, pin);
+    const result = await (
+      await this.getActor()
+    ).verify_pin(userIdentifier, pin);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -247,7 +259,9 @@ export class UserCanisterService {
     oldPin: string,
     newPin: string,
   ): Promise<void> {
-    const result = await (await this.getActor()).change_pin(userIdentifier, oldPin, newPin);
+    const result = await (
+      await this.getActor()
+    ).change_pin(userIdentifier, oldPin, newPin);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -263,7 +277,9 @@ export class UserCanisterService {
    * @param limit - Maximum number of entries to return
    */
   async getAuditLog(limit?: bigint): Promise<AuditEntry[]> {
-    const result = await (await this.getActor()).get_audit_log(limit ? [limit] : []);
+    const result = await (
+      await this.getActor()
+    ).get_audit_log(limit ? [limit] : []);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -289,10 +305,9 @@ export class UserCanisterService {
    * Get audit entries for a specific user
    */
   async getUserAuditLog(userId: string, limit?: bigint): Promise<AuditEntry[]> {
-    const result = await (await this.getActor()).get_user_audit_log(
-      userId,
-      limit ? [limit] : [],
-    );
+    const result = await (
+      await this.getActor()
+    ).get_user_audit_log(userId, limit ? [limit] : []);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -308,10 +323,9 @@ export class UserCanisterService {
     action: string,
     limit?: bigint,
   ): Promise<AuditEntry[]> {
-    const result = await (await this.getActor()).get_audit_by_action(
-      action,
-      limit ? [limit] : [],
-    );
+    const result = await (
+      await this.getActor()
+    ).get_audit_by_action(action, limit ? [limit] : []);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -324,7 +338,9 @@ export class UserCanisterService {
    * Get failed operations (for debugging)
    */
   async getFailedOperations(limit?: bigint): Promise<AuditEntry[]> {
-    const result = await (await this.getActor()).get_failed_operations(limit ? [limit] : []);
+    const result = await (
+      await this.getActor()
+    ).get_failed_operations(limit ? [limit] : []);
 
     if ("Err" in result) {
       throw new Error(result.Err);

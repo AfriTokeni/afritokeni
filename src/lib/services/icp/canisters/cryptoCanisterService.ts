@@ -10,7 +10,6 @@
  * IMPORTANT: All crypto operations route through this canister to collect platform fees (0.5%)
  */
 
-
 import { idlFactory } from "$/declarations/crypto_canister/crypto_canister.did.js";
 import { AuthenticatedActorService } from "./actorFactory";
 import type { _SERVICE } from "$/declarations/crypto_canister/crypto_canister.did.d.ts";
@@ -114,10 +113,9 @@ export class CryptoCanisterService {
     userIdentifier: string,
     cryptoType: string,
   ): Promise<bigint> {
-    const result = await (await this.getActor()).check_crypto_balance(
-      userIdentifier,
-      cryptoType,
-    );
+    const result = await (
+      await this.getActor()
+    ).check_crypto_balance(userIdentifier, cryptoType);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -162,7 +160,9 @@ export class CryptoCanisterService {
     userIdentifier: string,
     pin: string,
   ): Promise<void> {
-    const result = await (await this.getActor()).cancel_escrow(code, userIdentifier, pin);
+    const result = await (
+      await this.getActor()
+    ).cancel_escrow(code, userIdentifier, pin);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -200,7 +200,9 @@ export class CryptoCanisterService {
    * Get platform reserve balance (admin only)
    */
   async getReserveBalance(btcPriceUsd: number): Promise<ReserveBalance> {
-    const result = await (await this.getActor()).get_reserve_balance(btcPriceUsd);
+    const result = await (
+      await this.getActor()
+    ).get_reserve_balance(btcPriceUsd);
 
     if ("Err" in result) {
       throw new Error(result.Err);

@@ -10,7 +10,6 @@
  * Collects 0.5% platform fee on all transfers
  */
 
-
 import { idlFactory } from "$/declarations/wallet_canister/wallet_canister.did.js";
 import { AuthenticatedActorService } from "./actorFactory";
 import type { _SERVICE } from "$/declarations/wallet_canister/wallet_canister.did.d.ts";
@@ -67,7 +66,9 @@ export class WalletCanisterService {
     userId: string,
     currency: FiatCurrency,
   ): Promise<bigint> {
-    const result = await (await this.getActor()).get_fiat_balance(userId, currency);
+    const result = await (
+      await this.getActor()
+    ).get_fiat_balance(userId, currency);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -84,7 +85,9 @@ export class WalletCanisterService {
     amount: bigint,
     currency: FiatCurrency,
   ): Promise<bigint> {
-    const result = await (await this.getActor()).add_fiat_balance(userId, amount, currency);
+    const result = await (
+      await this.getActor()
+    ).add_fiat_balance(userId, amount, currency);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -101,11 +104,9 @@ export class WalletCanisterService {
     amount: bigint,
     currency: FiatCurrency,
   ): Promise<bigint> {
-    const result = await (await this.getActor()).deduct_fiat_balance(
-      userId,
-      amount,
-      currency,
-    );
+    const result = await (
+      await this.getActor()
+    ).deduct_fiat_balance(userId, amount, currency);
 
     if ("Err" in result) {
       throw new Error(result.Err);
@@ -125,7 +126,9 @@ export class WalletCanisterService {
     startTime?: bigint,
     endTime?: bigint,
   ): Promise<Transaction[]> {
-    const result = await (await this.getActor()).get_transaction_history(
+    const result = await (
+      await this.getActor()
+    ).get_transaction_history(
       userId,
       startTime ? [startTime] : [],
       endTime ? [endTime] : [],
@@ -170,7 +173,9 @@ export class WalletCanisterService {
    * Cancel escrow and refund crypto to user
    */
   async cancelEscrow(code: string, userId: string, pin: string): Promise<void> {
-    const result = await (await this.getActor()).cancel_escrow(code, userId, pin);
+    const result = await (
+      await this.getActor()
+    ).cancel_escrow(code, userId, pin);
 
     if ("Err" in result) {
       throw new Error(result.Err);

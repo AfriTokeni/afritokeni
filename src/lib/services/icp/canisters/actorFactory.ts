@@ -5,7 +5,12 @@
  * Uses Internet Identity from Juno to authenticate all canister calls.
  */
 
-import { Actor, HttpAgent, type ActorSubclass, type Identity } from "@dfinity/agent";
+import {
+  Actor,
+  HttpAgent,
+  type ActorSubclass,
+  type Identity,
+} from "@dfinity/agent";
 import type { IDL } from "@dfinity/candid";
 import { unsafeIdentity } from "@junobuild/core";
 import { IC_HOST } from "./config";
@@ -60,10 +65,12 @@ export async function createAuthenticatedActor<T>(
  * - Actors are created on first use
  * - Actors are recreated when authentication changes
  * - All calls use authenticated identity from Juno
+ * - Prevents race conditions when creating actors concurrently
  */
 export class AuthenticatedActorService<T> {
   private actorPromise: Promise<ActorSubclass<T>> | null = null;
   private currentIdentityKey: string | null = null;
+  private creatingActor: Promise<ActorSubclass<T>> | null = null;
 
   constructor(
     private idlFactory: IDL.InterfaceFactory,
@@ -73,18 +80,41 @@ export class AuthenticatedActorService<T> {
   /**
    * Get or create authenticated actor
    * Recreates actor if identity has changed
+   * Prevents race conditions by memoizing the creation promise
    */
   async getActor(): Promise<ActorSubclass<T>> {
     // Check if identity has changed
     const identity = await getAuthenticatedIdentity();
     const identityKey = identity.getPrincipal().toText();
 
-    // Recreate actor if identity changed or actor doesn't exist
-    if (!this.actorPromise || this.currentIdentityKey !== identityKey) {
-      this.currentIdentityKey = identityKey;
-      this.actorPromise = createAuthenticatedActor<T>(this.idlFactory, this.canisterId);
+    // If identity hasn't changed and we have an actor, return it
+    if (this.actorPromise && this.currentIdentityKey === identityKey) {
+      return this.actorPromise;
     }
 
-    return this.actorPromise;
+    // If we're already creating an actor for this identity, wait for it
+    if (this.creatingActor && this.currentIdentityKey === identityKey) {
+      return this.creatingActor;
+    }
+
+    // Create new actor (identity changed or no actor exists)
+    this.currentIdentityKey = identityKey;
+    this.creatingActor = createAuthenticatedActor<T>(
+      this.idlFactory,
+      this.canisterId,
+    );
+
+    try {
+      // Wait for actor creation to complete
+      const actor = await this.creatingActor;
+      this.actorPromise = this.creatingActor;
+      this.creatingActor = null;
+      return actor;
+    } catch (error) {
+      // Reset state on error so next call retries
+      this.creatingActor = null;
+      this.actorPromise = null;
+      throw error;
+    }
   }
 }

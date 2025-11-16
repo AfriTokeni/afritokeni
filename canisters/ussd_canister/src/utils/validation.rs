@@ -204,7 +204,7 @@ pub fn parse_amount(amount_str: &str) -> Result<f64, String> {
 /// assert_eq!(sanitize_input("hello<script>"), "helloscript"); // HTML tags removed
 /// assert_eq!(sanitize_input("+256700123"), "+256700123");     // Phone numbers preserved
 /// assert_eq!(sanitize_input("100.50"), "100.50");             // Decimals preserved
-/// assert_eq!(sanitize_input("user_123"), "user123");          // Underscores removed
+/// assert_eq!(sanitize_input("user_123"), "user_123");         // Underscores allowed for user IDs
 /// ```
 pub fn sanitize_input(input: &str) -> String {
     // Step 1: Remove dangerous multi-character sequences
@@ -228,7 +228,7 @@ pub fn sanitize_input(input: &str) -> String {
     // Step 4: Filter with context awareness
     let mut filtered = Vec::new();
     for (i, &c) in chars.iter().enumerate() {
-        if c.is_alphanumeric() || c == '+' || c == '*' || c == ' ' {
+        if c.is_alphanumeric() || c == '+' || c == '*' || c == ' ' || c == '_' {
             filtered.push(c);
         } else if c == '.' {
             // Keep period only if surrounded by digits
